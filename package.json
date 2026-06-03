@@ -1,0 +1,31 @@
+{
+  "name": "roguent",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:engine": "bun run --watch src/engine/server.ts",
+    "dev:web": "vite",
+    "build": "vite build",
+    "test": "bun test",
+    "check": "biome check ."
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.161",
+    "@pixi/react": "^8.0.5",
+    "pixi.js": "^8.2.6",
+    "pixi-filters": "^6",
+    "react": "^19",
+    "react-dom": "^19",
+    "ws": "^8",
+    "zustand": "^5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/ws": "^8",
+    "@vitejs/plugin-react": "^4",
+    "typescript": "^5.6",
+    "vite": "^6"
+  }
+}
