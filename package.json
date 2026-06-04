@@ -7,7 +7,9 @@
     "dev:web": "vite",
     "build": "vite build",
     "test": "bun test",
-    "check": "biome check ."
+    "check": "biome check .",
+    "dev:app": "bun scripts/build-sidecar.ts && bun scripts/stage-cli.ts && tauri dev",
+    "build:app": "bun run build && bun scripts/build-sidecar.ts && bun scripts/stage-cli.ts && tauri build"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.161",
