@@ -11,5 +11,5 @@
     "types": ["bun-types", "react", "react-dom"],
     "verbatimModuleSyntax": true
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "scripts", "vite.config.ts"]
 }
