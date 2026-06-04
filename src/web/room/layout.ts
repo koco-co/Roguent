@@ -19,9 +19,12 @@ export function roomLayout(
   const n = Math.max(1, others.length);
   others.forEach((id, i) => {
     const angle = -Math.PI / 2 + (i / n) * Math.PI * 2;
+    // Proportional ring so the layout works in any coordinate space (the
+    // virtual 16px-tile room is only ~384×224, so a fixed pixel offset would
+    // push subagents through the walls).
     out[id] = {
-      x: Math.round(cx + Math.cos(angle) * w * 0.22),
-      y: Math.round(cy + 70 + Math.sin(angle) * h * 0.16),
+      x: Math.round(cx + Math.cos(angle) * w * 0.3),
+      y: Math.round(cy + h * 0.1 + Math.sin(angle) * h * 0.24),
     };
   });
   return out;

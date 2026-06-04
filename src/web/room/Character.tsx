@@ -1,41 +1,52 @@
-import type { Graphics, TextStyle } from "pixi.js";
-import { useCallback } from "react";
+import type { AnimatedSprite, Graphics, TextStyle } from "pixi.js";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { anim, useAtlas } from "./atlas";
 
 export function Character({
   x,
   y,
-  color,
-  icon,
+  heroBase,
+  working,
   isLead,
+  icon,
   onSelect,
 }: {
   x: number;
   y: number;
-  color: number;
-  icon: string;
+  heroBase: string;
+  working: boolean;
   isLead: boolean;
+  icon: string;
   onSelect?: () => void;
 }) {
-  const draw = useCallback(
-    (g: Graphics) => {
-      g.clear();
-      g.setFillStyle({ color: 0x000000, alpha: 0.4 });
-      g.ellipse(0, 16, 14, 4);
-      g.fill();
-      g.setFillStyle({ color });
-      g.roundRect(-9, -2, 18, 16, 4);
-      g.fill();
-      g.setFillStyle({ color: 0xffe0b8 });
-      g.roundRect(-8, -18, 16, 14, 5);
-      g.fill();
-      if (isLead) {
-        g.setStrokeStyle({ width: 2, color: 0xffffff });
-        g.roundRect(-8, -18, 16, 14, 5);
-        g.stroke();
-      }
-    },
-    [color, isLead],
+  const sheet = useAtlas();
+  const frames = useMemo(
+    () => anim(sheet, `${heroBase}_idle_anim`),
+    [sheet, heroBase],
   );
+  const spriteRef = useRef<AnimatedSprite | null>(null);
+
+  useEffect(() => {
+    const s = spriteRef.current;
+    if (!s) return;
+    s.anchor.set(0.5, 1); // feet planted on (x, y)
+    s.animationSpeed = working ? 0.18 : 0.1;
+    s.play();
+  }, [working]);
+
+  const shadow = useCallback((g: Graphics) => {
+    g.clear();
+    g.setFillStyle({ color: 0x000000, alpha: 0.35 });
+    g.ellipse(0, 0, 7, 3);
+    g.fill();
+  }, []);
+
+  const leadRing = useCallback((g: Graphics) => {
+    g.clear();
+    g.setStrokeStyle({ width: 1, color: 0xffd166, alpha: 0.9 });
+    g.ellipse(0, 0, 9, 4);
+    g.stroke();
+  }, []);
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: PixiJS canvas element — keyboard a11y not applicable
@@ -46,13 +57,16 @@ export function Character({
       cursor="pointer"
       onClick={onSelect}
     >
-      <pixiGraphics draw={draw} />
+      <pixiGraphics y={1} draw={shadow} />
+      {isLead ? <pixiGraphics draw={leadRing} /> : null}
+      <pixiAnimatedSprite ref={spriteRef} textures={frames} />
       {icon ? (
         <pixiText
           text={icon}
           anchor={0.5}
-          y={-32}
-          style={{ fontSize: 14 } as Partial<TextStyle>}
+          y={-22}
+          resolution={4}
+          style={{ fontSize: 9 } as Partial<TextStyle>}
         />
       ) : null}
     </pixiContainer>

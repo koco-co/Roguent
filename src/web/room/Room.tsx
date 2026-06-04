@@ -1,48 +1,76 @@
-import { Application, extend, useTick } from "@pixi/react";
-import { AnimatedSprite, Container, Graphics, Sprite, Text } from "pixi.js";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { Application, extend } from "@pixi/react";
+import {
+  AnimatedSprite,
+  Container,
+  Graphics,
+  Sprite,
+  type Spritesheet,
+  Text,
+} from "pixi.js";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Agent } from "../../shared/domain";
-import { toolNameToIcon } from "../../shared/mapping";
+import {
+  ORCHESTRATOR_HERO,
+  roleToHero,
+  toolNameToIcon,
+} from "../../shared/mapping";
 import { useRoomStore } from "../store";
 import { Character } from "./Character";
-import { Portal } from "./Portal";
+import { AtlasProvider, loadAtlas, tex, useAtlas } from "./atlas";
 import { roomLayout } from "./layout";
 
-// Register PixiJS classes → <pixiContainer>, <pixiGraphics>, <pixiText> (module scope — Appendix A).
+// Register PixiJS classes → <pixiContainer>, <pixiSprite>, etc. (module scope).
 extend({ Container, Graphics, Sprite, AnimatedSprite, Text });
 
-const W = 900;
-const H = 560;
-const SKIN_COLORS: Record<string, number> = {
-  lead: 0xffd166,
-  cyan: 0x00ffe7,
-  mag: 0xff3ea5,
-  grn: 0x5cff9d,
-  gold: 0xffd166,
-  purple: 0x9b5de5,
-};
+export const TILE = 16;
+export const COLS = 24;
+export const ROWS = 14;
+const VW = COLS * TILE; // 384 virtual px
+const VH = ROWS * TILE; // 224 virtual px
 
-function Floor() {
-  const draw = useCallback((g: Graphics) => {
-    g.clear();
-    g.setFillStyle({ color: 0x13243b });
-    g.rect(0, 0, W, H);
-    g.fill();
-    g.setStrokeStyle({ width: 1, color: 0x1c3350 });
-    for (let x = 0; x <= W; x += 30) {
-      g.moveTo(x, 0);
-      g.lineTo(x, H);
+// Temporary tiled floor — replaced by the full DungeonRoom (walls + decor) in
+// the next step. Already reads as a dungeon instead of a flat colour grid.
+function FloorFill() {
+  const sheet = useAtlas();
+  const tiles = useMemo(() => {
+    const out: { c: number; r: number; name: string }[] = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const v = (c * 7 + r * 13) % 17;
+        const name =
+          v === 0
+            ? "floor_2"
+            : v === 5
+              ? "floor_4"
+              : v === 11
+                ? "floor_6"
+                : "floor_1";
+        out.push({ c, r, name });
+      }
     }
-    for (let y = 0; y <= H; y += 30) {
-      g.moveTo(0, y);
-      g.lineTo(W, y);
-    }
-    g.stroke();
+    return out;
   }, []);
-  return <pixiGraphics draw={draw} />;
+  return (
+    <pixiContainer>
+      {tiles.map(({ c, r, name }) => (
+        <pixiSprite
+          key={`${c}_${r}`}
+          texture={tex(sheet, name)}
+          x={c * TILE}
+          y={r * TILE}
+        />
+      ))}
+    </pixiContainer>
+  );
 }
 
-function Scene() {
+function Scene({
+  canvasW,
+  canvasH,
+}: {
+  canvasW: number;
+  canvasH: number;
+}) {
   const session = useRoomStore((s) =>
     s.currentSessionId ? s.sessions[s.currentSessionId] : undefined,
   );
@@ -54,39 +82,34 @@ function Scene() {
     () =>
       roomLayout(
         agents.map((a) => a.id),
-        W,
-        H,
+        VW,
+        VH,
       ),
     [agents],
   );
-  const [t, setT] = useState(0);
-  // Memoized so the ticker callback isn't re-registered every frame (Appendix A gotcha).
-  const tick = useCallback(
-    (ticker: { deltaTime: number }) => setT((v) => v + ticker.deltaTime),
-    [],
-  );
-  useTick(tick);
+
+  // Integer scale so pixels stay crisp; centre the room in the canvas.
+  const scale = Math.max(1, Math.floor(Math.min(canvasW / VW, canvasH / VH)));
+  const offX = Math.floor((canvasW - VW * scale) / 2);
+  const offY = Math.floor((canvasH - VH * scale) / 2);
 
   return (
-    <pixiContainer>
-      <Floor />
-      <Portal x={70} y={H - 70} />
+    <pixiContainer x={offX} y={offY} scale={scale}>
+      <FloorFill />
       {agents.map((a) => {
-        const pos = layout[a.id] ?? { x: W / 2, y: H / 2 };
-        const bob = a.status === "working" ? Math.sin(t * 0.15 + pos.x) * 3 : 0;
-        const icon = a.currentTool
-          ? toolNameToIcon(a.currentTool)
-          : a.kind === "orchestrator"
-            ? "★"
-            : "";
+        const pos = layout[a.id] ?? { x: VW / 2, y: VH / 2 };
+        const hero =
+          a.kind === "orchestrator" ? ORCHESTRATOR_HERO : roleToHero(a.role);
+        const icon = a.currentTool ? toolNameToIcon(a.currentTool) : "";
         return (
           <Character
             key={a.id}
             x={pos.x}
-            y={pos.y + bob}
-            color={SKIN_COLORS[a.skin] ?? 0xffffff}
-            icon={icon}
+            y={pos.y}
+            heroBase={hero}
+            working={a.status === "working" || a.status === "thinking"}
             isLead={a.kind === "orchestrator"}
+            icon={icon}
           />
         );
       })}
@@ -96,10 +119,33 @@ function Scene() {
 
 export function Room() {
   const hostRef = useRef<HTMLDivElement>(null);
+  const [sheet, setSheet] = useState<Spritesheet | null>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    loadAtlas()
+      .then(setSheet)
+      .catch((e) => console.error("[atlas] load failed", e));
+  }, []);
+
+  useLayoutEffect(() => {
+    const el = hostRef.current;
+    if (!el) return;
+    const measure = () => setSize({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div ref={hostRef} style={{ position: "absolute", inset: 0 }}>
-      <Application resizeTo={hostRef} background={0x0c1422} antialias>
-        <Scene />
+      <Application resizeTo={hostRef} background={0x0b0a12} antialias={false}>
+        {sheet && size.w > 0 ? (
+          <AtlasProvider value={sheet}>
+            <Scene canvasW={size.w} canvasH={size.h} />
+          </AtlasProvider>
+        ) : null}
       </Application>
     </div>
   );
