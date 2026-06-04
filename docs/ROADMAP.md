@@ -112,11 +112,13 @@ status: living-doc
 
 **结果(2026-06-05)**: atlas 加载失败在 Room + Overworld 均显示错误覆盖层含重试;atlasErrorText 单测 2 pass;commit d88ce4d
 
-### [ ] P1-2 核心可视化主链路 e2e 兜底
+### [x] P1-2 核心可视化主链路 e2e 兜底
 - **目标**:把"事件流 → 房间表现"这条主链路用回放 e2e 钉死,杜绝回归。
 - **涉及文件**:`src/web/replay.e2e.test.ts`(扩展)、`fixtures/sample-run.jsonl`(必要时补录脱敏 fixture)、`src/web/store.ts`。
 - **e2e 验收(回放驱动,零额度)**:断言 `agent.spawned`→出现小人;`tool.started/ended/failed`→头顶图标/红灯;`agent.done`/`session.cleared`→离场;`loot.dropped`→入背包;overworld:多 `cwd`→多房间 + 多 NPC。
 - **DoD**:这些 e2e 全绿、可进 CI、零额度。
+
+**结果(2026-06-05)**: 分步断言(agent.spawned/tool.started/ended/agent.done/loot/session.cleared) + tool.failed + overworld 多房间;3 个新 test 全绿;commit TBD
 
 ### [ ] P1-3 已实现交互功能逐项 e2e(每个子项 = 一个任务,逐个做)
 - [ ] **多会话**:新建 / 切换会话 → 渲染源切换、HUD 联动。
