@@ -1,5 +1,7 @@
 # Roguent 房间画面打磨 · 设计 spec
 
+> 🧭 **现状(2026-06-05)**:本 spec 已实现并合入 `main`(`src/web/room/*`:motion/ToolBubble/Emote/进出门/扬尘/小表情)。设计参考,非 backlog。最新现状见 [docs/ROADMAP.md](../../ROADMAP.md)。
+
 日期:2026-06-04
 状态:已通过 brainstorming 讨论并获用户批准
 分支基线:`main`（已含 Soul-Knight 美术重做 Step A–D + 审查修复）

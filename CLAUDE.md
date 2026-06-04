@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Roguent —— Claude Code agent 活动的游戏化实时可视化平台。把**订阅模式**驱动的真实 subagent 活动,渲染成《元气骑士》画风 top-down 像素地牢里「一屋子小人在干活」。完整设计见 [docs/superpowers/specs/2026-06-04-roguent-design.md](docs/superpowers/specs/2026-06-04-roguent-design.md)。
+Roguent —— Claude Code agent 活动的游戏化实时可视化平台。把**订阅模式**驱动的真实 subagent 活动,渲染成《元气骑士》画风 top-down 像素地牢里「一屋子小人在干活」。完整设计见 [docs/superpowers/specs/2026-06-04-roguent-design.md](docs/superpowers/specs/2026-06-04-roguent-design.md);**当前现状 + 待办 backlog(改 / 修 / 加功能前先读)见 [docs/ROADMAP.md](docs/ROADMAP.md)**。
 
 ## 命令
 

@@ -7,6 +7,8 @@ authors: [koco-co]
 
 # Roguent · 设计文档
 
+> 🧭 **现状(2026-06-05)**:本总设计的**核心主链路、房间渲染、总览世界、桌面打包均已实现并合入 `main`**(baseline `2070a0d`)。本文是**设计参考**(描述"应该是什么样"),不是 backlog。最新现状与待办见 [docs/ROADMAP.md](../../ROADMAP.md)。§8.1 的订阅认证「反向校验」结论已落地于 `driver.ts` 的 `usesApiKey`。
+
 > 一个赛博朋克 / 《元气骑士》(Soul Knight)画风的平台:在一个 top-down 像素地牢房间里,把 **Claude Code 的真实 agent 活动**可视化成"一屋子小人在干活"。底层用**订阅模式**(非 API key)驱动 Claude Code,从 UI 发消息、触发 `/skill`、切模型、切模式;subagent 的出生 / 干活 / 离场由真实事件驱动,不靠猜。
 
 ---

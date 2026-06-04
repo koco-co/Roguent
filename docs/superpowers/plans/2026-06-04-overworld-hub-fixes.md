@@ -1,5 +1,7 @@
 # 总览世界(Overworld Hub)修复实施计划
 
+> 🗂 **历史记录(2026-06-05)**:本计划**已实现并合入 `main`**。下方 checkbox 当年未回勾,**不代表未完成**——勿当 backlog。当前现状与新待办见 [docs/ROADMAP.md](../../ROADMAP.md);本文保留作实现参考。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 修掉总览世界实现里事后审查抓到的 1 critical / 2 high / 13 medium-low 问题,并按用户决策补齐两处 spec 取舍(真门动画入场/退场/走回;每 worktree 独立房间 + `cwd='/'` 空串守卫)。

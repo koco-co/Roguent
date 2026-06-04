@@ -1,5 +1,7 @@
 # Roguent 总览世界(Overworld Hub)设计 spec — S3 + 最小 S1
 
+> 🧭 **现状(2026-06-05)**:本 spec(S3 + 最小 S1)已实现并合入 `main`(`src/web/overworld/*`、`hud/NpcCard.tsx`;merge `ff658d6` + 审查修复)。设计参考,非 backlog。文末"明确不在本 spec"的 S2/S4/S5/持久化属 **Phase 2**,见 [docs/ROADMAP.md](../../ROADMAP.md)。
+
 > 状态:已通过 brainstorming 并获用户批准(2026-06-04)。本 spec 为整体游戏化重构的第一块,落地后走 writing-plans 出分阶段实现计划。
 
 ## Context(为什么做这件事)

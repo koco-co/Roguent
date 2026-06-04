@@ -1,5 +1,7 @@
 # Tauri + sidecar 迁移实现计划(第一阶段:能跑的原生 macOS .app)
 
+> 🗂 **历史记录(2026-06-05)**:本计划**已实现并合入 `main`**(merge `2070a0d`)。下方 checkbox 当年未回勾,**不代表未完成**——勿当 backlog。落地后另补了 macOS 代理/孤儿 sidecar/CLI 路径等真机修复;遗留项(打包黑屏、DMG)见 [docs/ROADMAP.md](../../ROADMAP.md) P1-1/P1-4/P1-5。本文保留作实现参考。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把现有 "Bun WS engine + Vite React/Pixi 前端" 套进一个原生 macOS `.app`:Tauri 壳 + Bun sidecar + 保留 WS(端口由 Tauri 随机分配),engine 编译成独立二进制、218MB claude CLI 作 .app 资源经 `pathToClaudeCodeExecutable` 指过去。

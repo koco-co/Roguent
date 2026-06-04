@@ -9,6 +9,8 @@ base_commit: ff658d6 (本地 main,领先 origin/main 19 commit;2026-06-04)
 
 # Roguent · Tauri + sidecar 迁移设计
 
+> 🧭 **现状(2026-06-05)**:第一阶段已实现并合入 `main`(merge `2070a0d`):`src-tauri/*`、`scripts/build-sidecar.ts`、`scripts/stage-cli.ts`、`src/web/engine-url.ts`、字体本地化。落地后另补了真机修复——macOS 系统代理注入(`src/engine/proxy.ts`)、孤儿 sidecar 回收、bundled CLI 路径(`<resource_dir>/resources/claude`)。**遗留**:打包 .app 主画布黑屏待定位(§9 风险点 1)、DMG 打包失败。设计参考,最新待办见 [docs/ROADMAP.md](../../ROADMAP.md) P1-1/P1-4/P1-5。
+
 > 目标:把现有"Bun WS engine + Vite React/Pixi 前端"套进一个原生 macOS `.app`,为后续作为产品售卖打地基。**本阶段只求"能跑的原生 .app"**:Tauri 壳 + Bun sidecar + 保留 WS 传输,在 Apple Silicon 上跑通现有全部功能,并验证打包后 SDK/CLI 能正常 spawn。签名、公证、付费、授权全部后置为独立子项目。
 
 ---

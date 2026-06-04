@@ -1,5 +1,7 @@
 # Roguent MVP Implementation Plan
 
+> 🗂 **历史记录(2026-06-05)**:本计划**已实现并合入 `main`**。下方 checkbox 当年未回勾,**不代表未完成**——勿当 backlog。当前现状与新待办见 [docs/ROADMAP.md](../../ROADMAP.md);本文保留作"当时怎么一步步做"的实现参考。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the Roguent MVP — drive ONE Claude Code subscription session through the Agent SDK and visualize its subagents as little people working in a Soul-Knight-style PixiJS room, end-to-end.
