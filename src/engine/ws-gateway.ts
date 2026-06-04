@@ -3,10 +3,17 @@ import type { RoomEvent } from "../shared/events";
 import type { SessionManager } from "./session";
 
 export type Command =
-  | { cmd: "newSession"; sessionId: string; title: string; model: string }
+  | {
+      cmd: "newSession";
+      sessionId: string;
+      title: string;
+      model: string;
+      cwd?: string;
+    }
   | { cmd: "sendMessage"; sessionId: string; text: string }
   | { cmd: "setModel"; sessionId: string; model: string }
-  | { cmd: "interrupt"; sessionId: string };
+  | { cmd: "interrupt"; sessionId: string }
+  | { cmd: "deleteSession"; sessionId: string };
 
 export function parseCommand(raw: string): Command | null {
   let o: Record<string, unknown>;
@@ -17,9 +24,11 @@ export function parseCommand(raw: string): Command | null {
   }
   switch (o.cmd) {
     case "newSession":
+      // cwd 可选(默认服务端 cwd);带了就必须是字符串。
       return typeof o.sessionId === "string" &&
         typeof o.title === "string" &&
-        typeof o.model === "string"
+        typeof o.model === "string" &&
+        (o.cwd === undefined || typeof o.cwd === "string")
         ? (o as Command)
         : null;
     case "sendMessage":
@@ -31,6 +40,8 @@ export function parseCommand(raw: string): Command | null {
         ? (o as Command)
         : null;
     case "interrupt":
+      return typeof o.sessionId === "string" ? (o as Command) : null;
+    case "deleteSession":
       return typeof o.sessionId === "string" ? (o as Command) : null;
     default:
       return null;
@@ -63,9 +74,14 @@ export class WsGateway {
     const c = parseCommand(raw);
     if (!c) return;
     if (c.cmd === "newSession")
-      this.mgr.createSession(c.sessionId, { title: c.title, model: c.model });
+      this.mgr.createSession(c.sessionId, {
+        title: c.title,
+        model: c.model,
+        cwd: c.cwd,
+      });
     else if (c.cmd === "sendMessage") this.mgr.sendMessage(c.sessionId, c.text);
     else if (c.cmd === "setModel") void this.mgr.setModel(c.sessionId, c.model);
     else if (c.cmd === "interrupt") void this.mgr.interrupt(c.sessionId);
+    else if (c.cmd === "deleteSession") this.mgr.deleteSession(c.sessionId);
   }
 }
