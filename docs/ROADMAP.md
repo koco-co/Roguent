@@ -41,9 +41,9 @@ status: living-doc
 - **e2e 只有 1 个**:`src/web/replay.e2e.test.ts`。**绝大多数功能没有端到端覆盖**——这正是 Phase 1 要补的。
 
 ### 1.3 已知损坏 / 未验证(Phase 1 要解决)
-- **打包 .app 主画布疑似黑屏 / 空**(用户报告;根因**未确认**)。已确认的真实缺陷:atlas 加载失败被**静默吞掉**(`src/web/room/Room.tsx:178` / `src/web/overworld/Overworld.tsx:341` 仅 `console.error`;`sheet && size.w>0` 守卫在 `:194`/`:357`,sheet 为 null 时场景**永不渲染**,只剩深色背景 `0x0b0a12`,UI 无任何错误提示)。→ 见 **P1-1**。
+- **打包 .app 主画布疑似黑屏 / 空**(用户报告;根因**未确认**)。已确认的真实缺陷:atlas 加载失败被**静默吞掉**(`src/web/room/Room.tsx:178` / `src/web/overworld/Overworld.tsx:341` 仅 `console.error`;`sheet && size.w>0` 守卫在 `:194`/`:357`,sheet 为 null 时场景**永不渲染**,只剩深色背景 `0x0b0a12`,UI 无任何错误提示)。→ web 端可见性 + 渲染见 **P1-1**;打包端定位见 **P1-4**。
 - **每个已实现功能缺 e2e**:目前靠单测 + 人工浏览器冒烟,回归风险高。→ 见 **P1-2 / P1-3**。
-- **DMG 打包失败**:`.app` 本身能出,但 DMG(`bundle_dmg.sh`)报错、残留 `rw.*.dmg` 临时文件。→ 见 **P1-5**。
+- **DMG 打包失败**:`.app` 本身能出,但 DMG(`bundle_dmg.sh`)报错、残留 `rw.*.dmg` 临时文件。→ 见 **P1-6**。
 
 ---
 
@@ -64,27 +64,32 @@ status: living-doc
 
 ---
 
-## 3. Phase 1 backlog —— 让现有功能真能用(按依赖/优先级排序)
+## 3. Phase 1 backlog —— 让现有功能真能用
 
 > 原则:**先修复 + 补 e2e 兜底,再谈新功能**。每条带:目标 / 为什么 / 涉及文件 / e2e 验收 / 完成定义。
-> 顺序建议:P1-0 → P1-1 → P1-2 → P1-3(逐子项) → P1-4 → P1-5。
+> **本轮 `/goal` 只做 Phase 1A(web 端);1A 全绿并经用户确认后,再开下一轮做 Phase 1B(app 端打包)。**
+
+### Phase 1A · web 端交互(本轮 /goal 范围)
+
+> 全程在浏览器跑(`bun run dev:engine`[可 `--replay`]+ `bun run dev:web`),**零额度、完全不碰 Tauri 打包**。顺序:P1-0 → P1-1 → P1-2 → P1-3。
+> **e2e 手段**:优先自动化——回放 fixture 扩 `replay.e2e.test.ts` + store/reducer 级断言;真·UI 交互(点击/输入/切会话)若 reducer 级覆盖不到,可引入**轻量浏览器 e2e harness**(如 Playwright 连 `dev:web` + replay engine),否则沿用「可测逻辑下沉到纯函数 + 人工浏览器冒烟」。由实现者在 P1-0 里选定最轻、能给真覆盖的方案。
 
 ### [ ] P1-0 浏览器 dev 基线复核(前置)
-- **目标**:在打包问题之外,先弄清**浏览器端**这条主链路目前逐项是好是坏,产出一份「浏览器现状清单」。打包黑屏可能掩盖了"浏览器本来好/坏"的事实,先把基线钉死。
+- **目标**:先弄清**浏览器端**这条主链路目前逐项是好是坏,产出一份「浏览器现状清单」,并选定本轮 e2e 手段。
 - **怎么做**:`bun run dev:engine` + `bun run dev:web`,分别用**回放 fixture**和**真连一条消息**各跑一遍;逐项记录房间渲染 / overworld / 多会话 / 聊天 / 切模型 / 进出内景的 ✅/❌ 与现象。
-- **验收**:把清单回写进本条目下;每个 ❌ 拆成后续 backlog 条目。
+- **验收**:把清单回写进本条目下;每个 ❌ 拆成后续 backlog 条目;e2e 手段已选定。
 - **DoD**:清单完成、与现实一致。
 
-### [ ] P1-1 游戏画面渲染可靠性(黑屏)— 最高优先
-- **目标**:① 让 atlas/资源加载失败**可见**(不再静默黑屏);② 定位并修复打包 .app 主画布黑屏/空。
-- **为什么**:用户最痛的点——"最基础的都没法用、游戏画面写不出来"。当前任何资源加载失败都表现为一块纯黑画布、零提示,无从排查。
-- **涉及文件**:`src/web/room/atlas.ts`(`ATLAS_URL = "/assets/0x72/dungeon.json"` 绝对路径)、`src/web/room/Room.tsx:176-194`、`src/web/overworld/Overworld.tsx:339-357`、`vite.config.ts`(无 `base`,默认 `/`)、`src-tauri/tauri.conf.json`(`frontendDist: ../dist`、`csp: null`)。
+### [ ] P1-1 游戏画面渲染可靠性(web 端)— 最高优先
+- **目标**:① 让 atlas/资源加载失败**可见**(不再静默黑屏);② 确认并保证**浏览器端**房间 + overworld 在各场景(空会话 / 有 subagent / 多项目)都稳定渲染。
+- **为什么**:atlas 加载失败当前表现为纯黑画布、零提示,无从排查;这是确定的缺陷,先在 web 端修掉。
+- **涉及文件**:`src/web/room/atlas.ts`、`src/web/room/Room.tsx:176-194`、`src/web/overworld/Overworld.tsx:339-357`。
 - **步骤**:
-  1. **失败可见**:`loadAtlas()` 失败时渲染错误覆盖层(含原因 + 重试),替换当前 `.catch(console.error)` + 黑背景。这是确定的缺陷,**先修**。
-  2. **定位打包端**:用 .app(回放模式)开发者工具看是否出现 `[atlas] load failed`、Network 里 `/assets/0x72/dungeon.json` 在 `tauri://localhost` 下能否取到;同时排除「空会话无房间 / 相机·主角初始位置」等非资源原因。
-  3. **按根因修**:若是资源路径/协议问题,改相对路径或 `import.meta.env.BASE_URL`,并在浏览器 + 打包 .app 两端都验证不回归。
-- **e2e 验收**:① 单测/集成:模拟 atlas 加载失败 → 断言渲染出错误态而非空白;② 打包 .app 回放模式窗口**肉眼/截图**看到地板瓦片渲染(对应 migration spec §9 风险点 1)。
-- **DoD**:浏览器 + 打包 .app 都能稳定渲染房间;任何资源失败都有可见错误态;相关断言进 `bun test`。
+  1. **失败可见**:`loadAtlas()` 失败时渲染错误覆盖层(含原因 + 重试),替换当前 `.catch(console.error)` + 黑背景。
+  2. **逐场景核渲染**:空会话内景是否有地板 + 主控★;overworld 是否有房间 / NPC / 主角;有 subagent 时小人 / 头顶图标是否出。
+- **e2e 验收**:① 单测/集成:模拟 atlas 加载失败 → 断言渲染出错误态而非空白;② 浏览器冒烟(回放 fixture)肉眼/截图看到房间渲染。
+- **DoD**:浏览器端任何资源失败都有可见错误态、房间各场景稳定渲染;断言进 `bun test`。
+- 📌 **打包 .app 的黑屏定位移到 P1-4(Phase 1B)**——可能与 web 端同根因,也可能是 `tauri://` 资源协议特有,留到 app 轮。
 
 ### [ ] P1-2 核心可视化主链路 e2e 兜底
 - **目标**:把"事件流 → 房间表现"这条主链路用回放 e2e 钉死,杜绝回归。
@@ -101,13 +106,26 @@ status: living-doc
 - **约定**:能在 store/reducer 或纯函数层 e2e 的就写断言;纯 `.tsx` 组件按本仓库既有约定用 `bun run build` + `bun run check` + 回放冒烟,并尽量把可测逻辑下沉到可单测的纯函数。
 - **DoD**:每子项有对应自动化断言或固定的回放冒烟步骤,且记录在该子项下。
 
-### [ ] P1-4 打包 .app 端到端验证 + LIVE spawn
+> ✅ **Phase 1A 完成定义**:P1-0~P1-3 全绿 + 逐项浏览器冒烟通过 → **本轮 `/goal` 收口、移交用户**;不要自行继续 Phase 1B。
+
+### Phase 1B · app 端打包(web 全绿后,下一轮 /goal)
+
+> 涉及打包 `.app`(Tauri),需本机 Rust 工具链 + 订阅 `/login` 登录态 + 系统代理。**web 端验证通过前不要开。**
+
+### [ ] P1-4 打包 .app 渲染 / 黑屏定位(app 端)
+- **目标**:在 web 端渲染已稳定(P1-1)的前提下,定位并修复打包 `.app` 主画布黑屏 / 空。
+- **涉及文件**:`vite.config.ts`(无 `base`,默认 `/`)、`src-tauri/tauri.conf.json`(`frontendDist: ../dist`、`csp: null`)、`src/web/room/atlas.ts`(`ATLAS_URL = "/assets/0x72/dungeon.json"` 绝对路径)。
+- **步骤**:用 `.app`(回放模式)开发者工具看是否出现 `[atlas] load failed`、Network 里 `/assets/0x72/dungeon.json` 在 `tauri://localhost` 下能否取到;排除「空会话无房间 / 相机·主角初始位置」;若是资源路径/协议问题,改相对路径或 `import.meta.env.BASE_URL`,浏览器 + 打包两端都验证不回归。
+- **e2e 验收**:打包 `.app` 回放模式窗口**肉眼/截图**看到地板瓦片(对应 migration spec §9 风险点 1)。
+- **DoD**:打包 `.app` 稳定渲染房间。
+
+### [ ] P1-5 打包 .app 端到端验证 + LIVE spawn
 - **目标**:把 migration spec §7 的手动验收固化成可复跑清单/脚本。
 - **步骤**:① `bun run build:app` 出 `.app`;② 回放模式启动 → 窗口渲染 Pixi + 播 fixture(零额度);③ LIVE 起真会话 → SDK 经资源 CLI 正常 spawn、**不 403**(代理修复已合入,需确认系统代理开启时生效)。
 - **验收**:清单全过,并记录环境前提(订阅 `/login` 登录态、macOS 系统代理状态)。
 - **DoD**:任何人按清单能复现"打包 .app 真能聊起来"。
 
-### [ ] P1-5 DMG 打包修复(次要)
+### [ ] P1-6 DMG 打包修复(次要)
 - **目标**:修 DMG 产出失败或显式只产 `app`。
 - **涉及文件**:`src-tauri/tauri.conf.json`(`bundle.targets` 当前 `"all"`)、`scripts/`。
 - **步骤**:定位 `bundle_dmg.sh` 失败根因 + 清理残留 `rw.*.dmg`;短期可把 `targets` 收成 `["app"]`,DMG 留作后续。
@@ -133,3 +151,4 @@ status: living-doc
 ## 5. 变更记录
 
 - 2026-06-05:建立本 ROADMAP;桌面打包(Tauri 第一阶段)+ macOS 代理/孤儿 sidecar/CLI 路径修复合入 `main`(merge `2070a0d`);把 `plans/` 标注为历史记录、`specs/` 加现状批注。
+- 2026-06-05:按用户决策把 Phase 1 拆成 **1A(web 端,本轮 `/goal` 范围)/ 1B(app 端打包,下一轮)**;打包 .app 黑屏定位从 P1-1 移到 1B 的 P1-4,app 验收/DMG 顺延为 P1-5/P1-6。
