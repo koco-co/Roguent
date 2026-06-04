@@ -199,7 +199,7 @@ Roguent 是 Claude Code 的一个**游戏化前端 + 实时可视化平台**:
 ### 8.1 订阅模式认证
 - 把 `ANTHROPIC_API_KEY` **和** `ANTHROPIC_AUTH_TOKEN` 都留空 → 回落到本机 `/login` 的订阅 OAuth;或用 `claude setup-token` 生成 `CLAUDE_CODE_OAUTH_TOKEN`(一年期、仅推理)。
 - 在非交互(`-p`)下 `ANTHROPIC_API_KEY` 一旦存在就**总是优先**,故必须 unset。
-- 启动时读 `system:init` 的 `apiKeySource` **校验**确实走的订阅 OAuth。
+- 启动时读 `system:init` 的 `apiKeySource` **校验**确实走的订阅 OAuth。**实测(2026-06-04,SDK 0.3.161):订阅 OAuth 下 `apiKeySource` 报成 `none`(无 api-key env),并非早先假设的 `oauth`。** 故校验改成「反向」判定:只有 `apiKeySource ∈ {user, project, org, temporary}`(真用上 api-key 源)才告警没走订阅;`none`/`oauth`/缺省都视作订阅正常(见 `driver.ts` 的 `usesApiKey`)。
 - **禁用 `--bare`**:它会跳过 OAuth/keychain,**并关掉 hooks / skills / plugins / MCP / CLAUDE.md** —— 与本设计的订阅+hooks 目标都冲突。
 
 ### 8.2 Agent SDK(`@anthropic-ai/claude-agent-sdk`)
@@ -221,6 +221,7 @@ Roguent 是 Claude Code 的一个**游戏化前端 + 实时可视化平台**:
 
 ### 8.4 版本敏感点(启动时实测,别只信文档)
 - `SubagentStart` / `agent_id`、`Task`→`Agent` 改名(v2.1.63)、SDK `/clear`(v2.1.117)、stdin 10MB 上限(v2.1.128)等都 gate 在具体版本。
+- `apiKeySource` 取值随版本漂移:订阅 OAuth 实测(SDK 0.3.161)为 `none` 而非 `oauth`;auth 校验用「反向」判定(只认 api-key 源才告警),别硬等 `'oauth'`(见 §8.1)。
 - **启动先打一条 logging hook,抓真实 stdin JSON 形状**再依赖字段。
 - 工具名检测**同时认 `Task` 和 `Agent`**(`Agent` 出现在 `tool_use` 块,但 `Task` 仍出现在 init 工具列表与 `permission_denials`)。
 
@@ -241,7 +242,7 @@ Roguent 是 Claude Code 的一个**游戏化前端 + 实时可视化平台**:
 
 - **乱序**:服务端单调 `seq`,按 `(sessionId, seq)` 定序;不信 hooks 到达顺序(并行、会去重)。
 - **不阻塞**:观测 hooks 全 `async:true`,永不 `exit 2`(否则卡住真实操作)。
-- **auth 校验**:启动验 `system:init.apiKeySource` = 订阅 OAuth;禁用 `--bare`。
+- **auth 校验**:启动验 `system:init.apiKeySource` 不是 api-key 源(订阅 OAuth 实测报 `none`,见 §8.1);禁用 `--bare`。
 - **版本漂移**:启动打 logging hook 抓真实 JSON 形状;`Task/Agent` 双名检测。
 - **断连/崩溃**:WS 重连 + 事件缓冲补发;会话 query 崩溃 → 标 error 态(房间显示故障),可 `--resume`(用捕获的 `session_id`)。
 - **隐私**:`tool_input/tool_response/prompt` 可能含文件内容/密钥 → collector 只绑 localhost、不持久化原始 payload、日志脱敏。

@@ -1,6 +1,17 @@
 import { expect, test } from "bun:test";
-import { buildHooks, stripSubscriptionEnv } from "./driver";
+import { buildHooks, stripSubscriptionEnv, usesApiKey } from "./driver";
 import type { HookLike } from "./normalize";
+
+test("usesApiKey: subscription OAuth ('none'/'oauth'/undefined) is not flagged", () => {
+  // 订阅模式实测 apiKeySource='none';这些都不应被当成"用了 API key"
+  expect(usesApiKey("none")).toBe(false);
+  expect(usesApiKey(undefined)).toBe(false);
+  expect(usesApiKey("oauth")).toBe(false);
+  // 真用上 api-key 源才告警
+  expect(usesApiKey("user")).toBe(true);
+  expect(usesApiKey("project")).toBe(true);
+  expect(usesApiKey("temporary")).toBe(true);
+});
 
 test("stripSubscriptionEnv removes API key + auth token, keeps the rest", () => {
   const out = stripSubscriptionEnv({

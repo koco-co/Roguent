@@ -21,6 +21,13 @@ export function stripSubscriptionEnv(
   return rest;
 }
 
+// 订阅 OAuth 下 SDK 的 system:init 实测把 apiKeySource 报成 'none'(无 api-key
+// env),而非 spec 早先假设的 'oauth'。只有真用上了 api-key 源,才说明没走订阅。
+const API_KEY_SOURCES = new Set(["user", "project", "org", "temporary"]);
+export function usesApiKey(apiKeySource: string | undefined): boolean {
+  return apiKeySource != null && API_KEY_SOURCES.has(apiKeySource);
+}
+
 // Register passive observer hooks. Each returns {} immediately (never blocks the agent — spec §8.3/§10).
 export function buildHooks(onHook: (h: HookLike) => void): Options["hooks"] {
   const observe = (i: unknown) => {
@@ -97,11 +104,10 @@ export class Driver implements IDriver {
         if (
           m.type === "system" &&
           m.subtype === "init" &&
-          m.apiKeySource &&
-          m.apiKeySource !== "oauth"
+          usesApiKey(m.apiKeySource)
         ) {
           console.warn(
-            `[driver] apiKeySource=${m.apiKeySource} (expected 'oauth' for subscription)`,
+            `[driver] apiKeySource=${m.apiKeySource} — using an API key, not subscription OAuth (unset ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN)`,
           );
         }
         this.cb.onDraft(normalizeSdkMessage(m), Date.now());
