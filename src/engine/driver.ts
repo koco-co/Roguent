@@ -28,6 +28,15 @@ export function usesApiKey(apiKeySource: string | undefined): boolean {
   return apiKeySource != null && API_KEY_SOURCES.has(apiKeySource);
 }
 
+// Tauri 打包后,host 把 .app 内的 claude CLI 资源路径经 env 传进来;dev(未设)
+// 则回落 SDK 默认解析(node_modules 平台包)。返回 undefined 即"不覆盖默认"。
+export function cliPathFromEnv(
+  env: Record<string, string | undefined>,
+): string | undefined {
+  const trimmed = env.ROGUENT_CLI_PATH?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 // Register passive observer hooks. Each returns {} immediately (never blocks the agent — spec §8.3/§10).
 export function buildHooks(onHook: (h: HookLike) => void): Options["hooks"] {
   const observe = (i: unknown) => {
@@ -89,6 +98,7 @@ export class Driver implements IDriver {
       settingSources: ["user", "project"], // load CLAUDE.md + skills (spec §7.4)
       cwd: this.cwd,
       env: stripSubscriptionEnv({ ...process.env }),
+      pathToClaudeCodeExecutable: cliPathFromEnv(process.env),
       includePartialMessages: false,
       hooks: buildHooks(onHook),
     };
