@@ -4,6 +4,7 @@ import {
   type RefObject,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -53,6 +54,7 @@ export function SessionNpc({
   hero,
   home,
   bounds,
+  door,
   selected,
   near,
   leaving,
@@ -66,6 +68,7 @@ export function SessionNpc({
   hero: string;
   home: Pos;
   bounds: Bounds;
+  door: Pos;
   selected: boolean;
   near: boolean;
   leaving: boolean;
@@ -110,17 +113,21 @@ export function SessionNpc({
   boundsRef.current = bounds;
   const leavingRef = useRef(leaving);
   leavingRef.current = leaving;
+  const doorRef = useRef(door);
+  doorRef.current = door;
 
-  // Seed at home and fade in on mount (NPC appears in its room).
+  // Seed at the doorway and walk in on mount (NPC enters from its room door,
+  // spec §生命周期). useLayoutEffect so position is set before first paint
+  // (mirrors room/Character.tsx:120, spec §8).
   // biome-ignore lint/correctness/useExhaustiveDependencies: mount-once seed
-  useEffect(() => {
-    pos.current = { ...home };
+  useLayoutEffect(() => {
+    pos.current = { ...door };
     target.current = { ...home };
     phase.current = "entering";
     const root = rootRef.current;
     if (root) {
       root.position.set(pos.current.x, pos.current.y);
-      root.alpha = 0;
+      root.alpha = 1;
     }
   }, []);
 
@@ -148,18 +155,36 @@ export function SessionNpc({
 
       if (leavingRef.current && phase.current !== "leaving") {
         phase.current = "leaving";
+      } else if (!leavingRef.current && phase.current === "leaving") {
+        // critical 修复:归档淡出未完成时又被取消归档(再激活竞态)。回到 living,
+        // 复原 alpha,清掉 exited —— 否则相位永远卡在 leaving、fade 到 0 后误报退场。
+        phase.current = "living";
+        exited.current = false;
+        root.alpha = 1;
+        pauseLeft.current = randPauseFrames();
       }
 
       let nowMoving = false;
       if (phase.current === "leaving") {
-        root.alpha -= FADE_PER_FRAME * dt;
-        if (root.alpha <= 0 && !exited.current) {
-          exited.current = true;
-          onExited(id);
+        // 先走到门口,再淡出。
+        const s = stepToward(pos.current, doorRef.current, SPEED);
+        pos.current = { x: s.x, y: s.y };
+        facing.current = faceDir(s.vx, facing.current);
+        nowMoving = !s.arrived;
+        if (s.arrived) {
+          root.alpha -= FADE_PER_FRAME * dt;
+          if (root.alpha <= 0 && !exited.current) {
+            exited.current = true;
+            onExited(id);
+          }
         }
       } else if (phase.current === "entering") {
-        root.alpha = Math.min(1, root.alpha + FADE_PER_FRAME * dt);
-        if (root.alpha >= 1) {
+        // 从门口走进 home;到了就开始 living。
+        const s = stepToward(pos.current, target.current, SPEED);
+        pos.current = { x: s.x, y: s.y };
+        facing.current = faceDir(s.vx, facing.current);
+        nowMoving = !s.arrived;
+        if (s.arrived) {
           phase.current = "living";
           pauseLeft.current = randPauseFrames();
         }
@@ -284,7 +309,7 @@ export function SessionNpc({
 
       {near && !leaving ? (
         <pixiText
-          text="[E] 进入"
+          text="[E] 信息"
           anchor={0.5}
           y={-20}
           resolution={4}

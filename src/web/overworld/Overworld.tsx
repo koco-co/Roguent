@@ -35,7 +35,7 @@ extend({ Container, Graphics, Sprite, AnimatedSprite, Text });
 
 const PROX = 26; // px: how close the player must be for the NPC interaction hint
 
-type NpcDesc = { hero: string; home: Pos; bounds: Bounds };
+type NpcDesc = { hero: string; home: Pos; bounds: Bounds; door: Pos };
 
 // Spread same-room sessions around the room anchor so several NPCs in one
 // project don't stack on the exact same tile.
@@ -63,6 +63,7 @@ interface NpcActor {
   hero: string;
   home: Pos;
   bounds: Bounds;
+  door: Pos;
   leaving: boolean;
 }
 
@@ -134,6 +135,7 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
           hero: sessionHero(id),
           home: spreadHome(room.anchorPx, room.boundsPx, k, ids.length),
           bounds: room.boundsPx,
+          door: room.doorPx,
         });
       });
     }
@@ -162,7 +164,9 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
           a.leaving ||
           a.home.x !== want.home.x ||
           a.home.y !== want.home.y ||
-          a.bounds !== want.bounds
+          a.bounds !== want.bounds ||
+          a.door.x !== want.door.x ||
+          a.door.y !== want.door.y
         ) {
           changed = true;
           return { ...a, leaving: false, ...want };
@@ -235,7 +239,10 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
       "arrowright",
     ]);
     const down = (e: KeyboardEvent) => {
-      if (typing()) return;
+      if (typing()) {
+        keysRef.current.clear();
+        return;
+      }
       const k = e.key.toLowerCase();
       if (move.has(k)) keysRef.current.add(k);
       else if (k === "e" || k === "enter") {
@@ -245,11 +252,15 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
     const up = (e: KeyboardEvent) => {
       keysRef.current.delete(e.key.toLowerCase());
     };
+    // 焦点离开画布(进输入框 / 切窗口)时清空按键,否则已按住的方向键会让主角持续滑动。
+    const blur = () => keysRef.current.clear();
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
+    window.addEventListener("blur", blur);
     return () => {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", blur);
     };
   }, [selectNpc]);
 
@@ -291,6 +302,7 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
               hero={a.hero}
               home={a.home}
               bounds={a.bounds}
+              door={a.door}
               selected={selectedNpcId === a.id}
               near={nearbyId === a.id}
               leaving={a.leaving || !s || s.archived}
