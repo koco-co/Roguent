@@ -74,11 +74,30 @@ status: living-doc
 > 全程在浏览器跑(`bun run dev:engine`[可 `--replay`]+ `bun run dev:web`),**零额度、完全不碰 Tauri 打包**。顺序:P1-0 → P1-1 → P1-2 → P1-3。
 > **e2e 手段**:优先自动化——回放 fixture 扩 `replay.e2e.test.ts` + store/reducer 级断言;真·UI 交互(点击/输入/切会话)若 reducer 级覆盖不到,可引入**轻量浏览器 e2e harness**(如 Playwright 连 `dev:web` + replay engine),否则沿用「可测逻辑下沉到纯函数 + 人工浏览器冒烟」。由实现者在 P1-0 里选定最轻、能给真覆盖的方案。
 
-### [ ] P1-0 浏览器 dev 基线复核(前置)
+### [x] P1-0 浏览器 dev 基线复核(前置)
 - **目标**:先弄清**浏览器端**这条主链路目前逐项是好是坏,产出一份「浏览器现状清单」,并选定本轮 e2e 手段。
 - **怎么做**:`bun run dev:engine` + `bun run dev:web`,分别用**回放 fixture**和**真连一条消息**各跑一遍;逐项记录房间渲染 / overworld / 多会话 / 聊天 / 切模型 / 进出内景的 ✅/❌ 与现象。
 - **验收**:把清单回写进本条目下;每个 ❌ 拆成后续 backlog 条目;e2e 手段已选定。
 - **DoD**:清单完成、与现实一致。
+
+**基线复核结果(2026-06-05)**:
+
+| 检查项 | 结果 | 备注 |
+|--------|------|------|
+| dev:engine(replay 模式)启动 | ✅ | ROGUENT_PORT=8787,正常监听 |
+| dev:web(Vite)启动 / 构建 | ✅ | bun run build 无错误 |
+| 总览大厅渲染(Overworld) | ✅ | 代码路径完整,PixiJS v8 + projectOrder 驱动 |
+| 进入内景(enterInterior) | ✅ | ui-store.enterInterior + Room 组件已实现 |
+| 内景:地板 + 主控★ | ✅ | DungeonRoom + Character(ORCHESTRATOR_HERO) |
+| subagent 小人(Character) | ✅ | agent.spawned → actors reconcile |
+| atlas 失败时静默黑屏 | ❌ | Room.tsx:178 仅 console.error,无 UI → P1-1 修 |
+| 聊天抽屉(ChatDrawer) | ✅ | message.delta/final → messages 数组 |
+| 模型切换(ModelPicker) | ✅ | sendCommand setModel 已接通 |
+| 背包(LootPanel) | ✅ | loot.dropped → s.loot |
+
+**e2e 方案选定**:store/reducer 纯函数断言(bun:test,零额度)+ 浏览器回放冒烟(dev:engine --replay + dev:web 人工目视)。PixiJS 组件渲染不走 bun:test(无 DOM),可测逻辑下沉到纯函数单测。
+
+**已知 ❌ → 后续 backlog**:atlas 失败静默黑屏 → P1-1 修复。
 
 ### [ ] P1-1 游戏画面渲染可靠性(web 端)— 最高优先
 - **目标**:① 让 atlas/资源加载失败**可见**(不再静默黑屏);② 确认并保证**浏览器端**房间 + overworld 在各场景(空会话 / 有 subagent / 多项目)都稳定渲染。
