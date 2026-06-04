@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "roguent",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.roguent.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -21,7 +21,8 @@
     ],
     "security": {
       "csp": null
-    }
+    },
+    "withGlobalTauri": true
   },
   "bundle": {
     "active": true,
@@ -35,6 +36,8 @@
     ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
-    }
+    },
+    "externalBin": ["binaries/roguent-engine"],
+    "resources": ["resources/claude"]
   }
 }
