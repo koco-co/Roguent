@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev:engine": "bun run --watch src/engine/server.ts",
+    "dev:engine": "ROGUENT_PORT=8787 bun run --watch src/engine/server.ts",
     "dev:web": "vite",
     "build": "vite build",
     "test": "bun test",
