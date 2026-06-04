@@ -25,12 +25,12 @@ function Glow({ x, y, radius, color, alpha }: Omit<Light, "key">) {
   );
 }
 
-/** Additive light pools (room space): doorway + fountains + each character. */
-export function GlowLayer({
-  characters,
-}: {
-  characters: { key: string; x: number; y: number; isLead: boolean }[];
-}) {
+/**
+ * Static additive light pools (room space): doorway + fountains. Each
+ * character's warm glow now lives inside Character so it follows along as the
+ * character moves (spec §5).
+ */
+export function GlowLayer() {
   const statics: Light[] = [
     {
       key: "door",
@@ -59,16 +59,6 @@ export function GlowLayer({
           radius={l.radius}
           color={l.color}
           alpha={l.alpha}
-        />
-      ))}
-      {characters.map((ch) => (
-        <Glow
-          key={`glow_${ch.key}`}
-          x={ch.x}
-          y={ch.y - 8}
-          radius={ch.isLead ? 30 : 22}
-          color={ch.isLead ? 0xffd98a : 0xfff0d0}
-          alpha={ch.isLead ? 0.55 : 0.4}
         />
       ))}
     </pixiContainer>

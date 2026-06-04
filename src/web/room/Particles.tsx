@@ -1,7 +1,8 @@
 import { useTick } from "@pixi/react";
 import type { Graphics } from "pixi.js";
-import { useCallback, useEffect, useRef } from "react";
+import { type RefObject, useCallback, useEffect, useRef } from "react";
 import { VH, VW } from "./config";
+import type { MotionMap } from "./motion";
 
 type Kind = "dust" | "spark" | "coin";
 
@@ -43,18 +44,19 @@ function makeDust(): P {
 }
 
 /**
- * Imperative particle layer: ambient dust, sparks over working agents, a coin
- * burst on loot, and a dust poof at the door when an agent spawns. Everything
- * is drawn into one Graphics inside useTick so there are no per-frame React
- * re-renders.
+ * Imperative particle layer: ambient dust, sparks over working agents, footstep
+ * dust under moving agents, a coin burst on loot, and a dust poof at the door
+ * when an agent spawns. Live agent positions are read each frame from the shared
+ * motionRef. Everything is drawn into one Graphics inside useTick so there are
+ * no per-frame React re-renders.
  */
 export function Particles({
-  workers,
+  motionRef,
   doorPos,
   lootCount,
   agentCount,
 }: {
-  workers: { x: number; y: number }[];
+  motionRef: RefObject<MotionMap>;
   doorPos: { x: number; y: number };
   lootCount: number;
   agentCount: number;
@@ -62,8 +64,7 @@ export function Particles({
   const gfxRef = useRef<Graphics | null>(null);
   const list = useRef<P[]>([]);
   const accum = useRef(0);
-  const workersRef = useRef(workers);
-  workersRef.current = workers;
+  const dustAccum = useRef(0);
   const doorRef = useRef(doorPos);
   doorRef.current = doorPos;
   const prevLoot = useRef(lootCount);
@@ -153,26 +154,49 @@ export function Particles({
       if (!g) return;
 
       accum.current += dt;
-      const periodic = accum.current >= 7;
-      if (periodic) {
-        accum.current = 0;
-        // a spark rising off each working agent
-        for (const w of workersRef.current) {
-          push({
-            kind: "spark",
-            loop: false,
-            x: w.x + rand(-4, 4),
-            y: w.y - 18 + rand(-2, 2),
-            vx: rand(-0.3, 0.3),
-            vy: rand(-0.5, -0.15),
-            life: rand(26, 46),
-            fade: 20,
-            size: rand(1, 2),
-            color: 0xfff0a0,
-            alpha: 0.9,
-            gravity: 0,
-            floorY: VH,
-          });
+      dustAccum.current += dt;
+      const sparkTick = accum.current >= 7;
+      const dustTick = dustAccum.current >= 8;
+      if (sparkTick) accum.current = 0;
+      if (dustTick) dustAccum.current = 0;
+      if (sparkTick || dustTick) {
+        for (const w of Object.values(motionRef.current ?? {})) {
+          // a spark rising off each working agent
+          if (sparkTick && w.status === "working") {
+            push({
+              kind: "spark",
+              loop: false,
+              x: w.x + rand(-4, 4),
+              y: w.y - 18 + rand(-2, 2),
+              vx: rand(-0.3, 0.3),
+              vy: rand(-0.5, -0.15),
+              life: rand(26, 46),
+              fade: 20,
+              size: rand(1, 2),
+              color: 0xfff0a0,
+              alpha: 0.9,
+              gravity: 0,
+              floorY: VH,
+            });
+          }
+          // a small puff of dust kicked up under a moving agent's feet
+          if (dustTick && w.moving) {
+            push({
+              kind: "dust",
+              loop: false,
+              x: w.x + rand(-2, 2),
+              y: w.y - 1,
+              vx: rand(-0.15, 0.15),
+              vy: rand(-0.25, -0.05),
+              life: rand(14, 24),
+              fade: 12,
+              size: 1,
+              color: 0xcdbfa0,
+              alpha: 0.5,
+              gravity: 0,
+              floorY: VH,
+            });
+          }
         }
       }
 
@@ -210,7 +234,7 @@ export function Particles({
         g.fill();
       }
     },
-    [push],
+    [push, motionRef],
   );
   useTick(tick);
 
