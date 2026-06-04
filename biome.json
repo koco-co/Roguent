@@ -1,6 +1,6 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-  "files": { "ignore": ["dist", "node_modules"] },
+  "files": { "ignore": ["dist", "node_modules", "public/assets"] },
   "linter": {
     "enabled": true,
     "rules": {
