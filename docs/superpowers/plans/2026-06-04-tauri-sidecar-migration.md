@@ -800,11 +800,10 @@ ls -la src-tauri/target/release/bundle/macos/
 
 Run:
 ```bash
-ROGUENT_REPLAY="$PWD/fixtures/sample-run.jsonl" open -a src-tauri/target/release/bundle/macos/roguent.app
+ROGUENT_REPLAY="$PWD/fixtures/sample-run.jsonl" ./src-tauri/target/release/bundle/macos/roguent.app/Contents/MacOS/app
 ```
 人工验证:.app 启动、窗口渲染、回放播放正常(确认打包后 webview 与 sidecar 接线无误)。
-（注:`open` 默认不继承 shell env;若 .app 未进回放模式,改用
-`ROGUENT_REPLAY="$PWD/fixtures/sample-run.jsonl" ./src-tauri/target/release/bundle/macos/roguent.app/Contents/MacOS/roguent` 直接带 env 启动可执行体。）
+（注:可执行体名为 `app`(= Cargo 包名,非 productName `roguent`),路径 `…/roguent.app/Contents/MacOS/app`。`open` 默认不继承 shell env,故回放验证必须**直跑**该可执行体并带 env;`open src-tauri/target/release/bundle/macos/roguent.app` 仅用于不带 env 的普通启动。）
 
 - [ ] **Step 5: 风险 #2 —— LIVE 真会话 spawn CLI(放最后,烧少量额度)**
 
