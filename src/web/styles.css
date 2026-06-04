@@ -119,6 +119,8 @@ img {
   box-shadow: inset -2px -2px 0 0 #00000055;
   color: var(--text);
   cursor: pointer;
+  /* native <button> rows don't inherit the app font without this */
+  font-family: inherit;
 }
 .px-row:hover {
   filter: brightness(1.25);

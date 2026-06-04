@@ -64,6 +64,23 @@ function AnimatedDecor({
 export function DungeonRoom() {
   const sheet = useAtlas();
 
+  // Memoize the animated frame sets so their array references stay stable.
+  // @pixi/react diffs the `textures` prop by reference; a fresh array each
+  // render makes PixiJS reassign `.textures`, which calls gotoAndStop(0) and
+  // freezes the decor on every store-driven Scene re-render.
+  const fountainMid = useMemo(
+    () => anim(sheet, "wall_fountain_mid_blue_anim"),
+    [sheet],
+  );
+  const fountainBasin = useMemo(
+    () => anim(sheet, "wall_fountain_basin_blue_anim"),
+    [sheet],
+  );
+  const chestFrames = useMemo(
+    () => anim(sheet, "chest_full_open_anim"),
+    [sheet],
+  );
+
   const tiles = useMemo(() => {
     const out: { key: string; name: string; x: number; y: number }[] = [];
     for (let r = 0; r < ROWS; r++) {
@@ -122,13 +139,13 @@ export function DungeonRoom() {
             y={0}
           />
           <AnimatedDecor
-            textures={anim(sheet, "wall_fountain_mid_blue_anim")}
+            textures={fountainMid}
             x={c * TILE}
             y={TILE}
             speed={0.12}
           />
           <AnimatedDecor
-            textures={anim(sheet, "wall_fountain_basin_blue_anim")}
+            textures={fountainBasin}
             x={c * TILE}
             y={2 * TILE}
             speed={0.12}
@@ -157,7 +174,7 @@ export function DungeonRoom() {
 
       {/* a treasure chest tucked in the corner */}
       <AnimatedDecor
-        textures={anim(sheet, "chest_full_open_anim")}
+        textures={chestFrames}
         x={2 * TILE}
         y={3 * TILE}
         speed={0.06}

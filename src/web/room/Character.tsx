@@ -29,13 +29,17 @@ export function Character({
   const spriteRef = useRef<AnimatedSprite | null>(null);
   const [hovered, setHovered] = useState(false);
 
+  // `frames` is an intentional re-play trigger: swapping AnimatedSprite.textures
+  // (when heroBase changes) calls gotoAndStop(0) and halts playback, so the
+  // effect must re-run play(). anchor.set is idempotent, so re-running is safe.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: frames is a re-play trigger (see above)
   useEffect(() => {
     const s = spriteRef.current;
     if (!s) return;
     s.anchor.set(0.5, 1); // feet planted on (x, y)
     s.animationSpeed = working ? 0.18 : 0.1;
     s.play();
-  }, [working]);
+  }, [working, frames]);
 
   const shadow = useCallback((g: Graphics) => {
     g.clear();
