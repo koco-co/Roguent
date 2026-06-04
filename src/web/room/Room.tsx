@@ -16,53 +16,13 @@ import {
 } from "../../shared/mapping";
 import { useRoomStore } from "../store";
 import { Character } from "./Character";
-import { AtlasProvider, loadAtlas, tex, useAtlas } from "./atlas";
+import { DungeonRoom } from "./DungeonRoom";
+import { AtlasProvider, loadAtlas } from "./atlas";
+import { VH, VW } from "./config";
 import { roomLayout } from "./layout";
 
 // Register PixiJS classes → <pixiContainer>, <pixiSprite>, etc. (module scope).
 extend({ Container, Graphics, Sprite, AnimatedSprite, Text });
-
-export const TILE = 16;
-export const COLS = 24;
-export const ROWS = 14;
-const VW = COLS * TILE; // 384 virtual px
-const VH = ROWS * TILE; // 224 virtual px
-
-// Temporary tiled floor — replaced by the full DungeonRoom (walls + decor) in
-// the next step. Already reads as a dungeon instead of a flat colour grid.
-function FloorFill() {
-  const sheet = useAtlas();
-  const tiles = useMemo(() => {
-    const out: { c: number; r: number; name: string }[] = [];
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const v = (c * 7 + r * 13) % 17;
-        const name =
-          v === 0
-            ? "floor_2"
-            : v === 5
-              ? "floor_4"
-              : v === 11
-                ? "floor_6"
-                : "floor_1";
-        out.push({ c, r, name });
-      }
-    }
-    return out;
-  }, []);
-  return (
-    <pixiContainer>
-      {tiles.map(({ c, r, name }) => (
-        <pixiSprite
-          key={`${c}_${r}`}
-          texture={tex(sheet, name)}
-          x={c * TILE}
-          y={r * TILE}
-        />
-      ))}
-    </pixiContainer>
-  );
-}
 
 function Scene({
   canvasW,
@@ -95,7 +55,7 @@ function Scene({
 
   return (
     <pixiContainer x={offX} y={offY} scale={scale}>
-      <FloorFill />
+      <DungeonRoom />
       {agents.map((a) => {
         const pos = layout[a.id] ?? { x: VW / 2, y: VH / 2 };
         const hero =
