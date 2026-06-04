@@ -42,7 +42,22 @@ export function NpcCard() {
   const subagents = Object.values(session.agents).filter(
     (a) => a.kind === "subagent",
   );
-  const working = subagents.filter((a) => a.status === "working").length;
+  // 各状态分桶(spec §生命周期/信息卡: task 摘要 = subagent 数 + 各状态),只显示非零桶。
+  const STATUS_TALLY: Record<string, string> = {
+    working: "工作",
+    thinking: "思考",
+    idle: "待命",
+    spawning: "启动",
+    done: "完成",
+  };
+  const tally = subagents.reduce<Record<string, number>>((m, a) => {
+    m[a.status] = (m[a.status] ?? 0) + 1;
+    return m;
+  }, {});
+  const breakdown = Object.entries(STATUS_TALLY)
+    .filter(([k]) => (tally[k] ?? 0) > 0)
+    .map(([k, label]) => `${tally[k] ?? 0} ${label}`)
+    .join(" · ");
 
   const enter = () => {
     switchSession(id);
@@ -108,7 +123,7 @@ export function NpcCard() {
       <StatRow k="状态" v={STATUS_LABEL[session.status] ?? session.status} />
       <StatRow
         k="子智能体"
-        v={`${subagents.length} 个${working ? ` · ${working} 工作中` : ""}`}
+        v={`${subagents.length} 个${breakdown ? ` · ${breakdown}` : ""}`}
       />
       <StatRow k="Token" v={session.usage.tokens.toLocaleString()} />
       <StatRow k="花费" v={`$${session.usage.cost.toFixed(4)}`} />
