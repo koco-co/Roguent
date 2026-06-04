@@ -110,7 +110,7 @@ status: living-doc
 - **DoD**:浏览器端任何资源失败都有可见错误态、房间各场景稳定渲染;断言进 `bun test`。
 - 📌 **打包 .app 的黑屏定位移到 P1-4(Phase 1B)**——可能与 web 端同根因,也可能是 `tauri://` 资源协议特有,留到 app 轮。
 
-**结果(2026-06-05)**: atlas 加载失败在 Room + Overworld 均显示错误覆盖层含重试;atlasErrorText 单测 2 pass;commit TBD
+**结果(2026-06-05)**: atlas 加载失败在 Room + Overworld 均显示错误覆盖层含重试;atlasErrorText 单测 2 pass;commit d88ce4d
 
 ### [ ] P1-2 核心可视化主链路 e2e 兜底
 - **目标**:把"事件流 → 房间表现"这条主链路用回放 e2e 钉死,杜绝回归。
