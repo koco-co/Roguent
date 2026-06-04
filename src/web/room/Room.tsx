@@ -18,8 +18,9 @@ import { useRoomStore } from "../store";
 import { Character } from "./Character";
 import { DungeonRoom } from "./DungeonRoom";
 import { GlowLayer, Vignette } from "./Lights";
+import { Particles } from "./Particles";
 import { AtlasProvider, loadAtlas } from "./atlas";
-import { VH, VW } from "./config";
+import { DOOR_COL, TILE, VH, VW } from "./config";
 import { roomLayout } from "./layout";
 
 // Register PixiJS classes → <pixiContainer>, <pixiSprite>, etc. (module scope).
@@ -91,6 +92,14 @@ function Scene({
             icon={p.icon}
           />
         ))}
+        <Particles
+          workers={placed
+            .filter((p) => p.working)
+            .map((p) => ({ x: p.x, y: p.y }))}
+          doorPos={{ x: DOOR_COL * TILE, y: 2 * TILE }}
+          lootCount={session?.loot.length ?? 0}
+          agentCount={agents.length}
+        />
       </pixiContainer>
       <Vignette w={canvasW} h={canvasH} />
     </pixiContainer>
