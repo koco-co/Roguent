@@ -22,16 +22,25 @@ export interface RoomState {
 export const ACTIVE_CAP = 10;
 
 /**
- * 就地把活跃度最低的会话软归档,直到活跃(未归档)会话数 ≤ ACTIVE_CAP。
- * 入参是 reduce 已浅拷贝的 sessions(可改);被归档者替换为新对象保持不可变。
+ * 就地把活跃度最低的会话软归档,直到「活跃(未归档)且有 project」的会话数 ≤
+ * ACTIVE_CAP。只统计带 project 的会话:无 project 的(如早到的 session.error 占位)
+ * 渲染不出 NPC,不该占大厅槽。protectId 永不被选为牺牲品 —— 用于保护刚建/刚激活者,
+ * 防止非单调 wall-clock(时钟回拨)把它自己挤掉。
  */
-function enforceActiveCap(sessions: Record<string, Session>): void {
+function enforceActiveCap(
+  sessions: Record<string, Session>,
+  protectId?: string,
+): void {
   while (true) {
-    const active = Object.values(sessions).filter((s) => !s.archived);
+    const active = Object.values(sessions).filter(
+      (s) => !s.archived && s.project,
+    );
     if (active.length <= ACTIVE_CAP) break;
     let victim: Session | undefined;
-    for (const s of active)
+    for (const s of active) {
+      if (s.id === protectId) continue;
       if (!victim || s.lastActiveAt < victim.lastActiveAt) victim = s;
+    }
     if (!victim) break;
     sessions[victim.id] = { ...victim, archived: true };
   }
@@ -100,8 +109,8 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       p.project && !state.projectOrder.includes(p.project)
         ? [...state.projectOrder, p.project]
         : state.projectOrder;
-    // 新建即跳第 11 个 → 软归档活跃度最低者(新会话最新,不会被剔)。
-    enforceActiveCap(sessions);
+    // 新建即跳第 11 个 → 软归档活跃度最低者;新会话受保护,绝不被自己挤掉。
+    enforceActiveCap(sessions, e.sessionId);
     // 新建即跳转:会话首次出现就把焦点切过去。
     return { sessions, projectOrder, currentSessionId: e.sessionId };
   }
@@ -113,7 +122,12 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
     const p = e.payload as { message: string };
     const base =
       sessions[e.sessionId] ??
-      createSession({ id: e.sessionId, title: e.sessionId, model: "" });
+      createSession({
+        id: e.sessionId,
+        title: e.sessionId,
+        model: "",
+        lastActiveAt: e.ts,
+      });
     sessions[e.sessionId] = {
       ...base,
       status: "error",
@@ -308,7 +322,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
         ...st.sessions,
         [id]: { ...s, archived: false, lastActiveAt: Date.now() },
       };
-      enforceActiveCap(sessions);
+      enforceActiveCap(sessions, id);
       return { sessions, currentSessionId: id };
     }),
   removeSession: (id) =>

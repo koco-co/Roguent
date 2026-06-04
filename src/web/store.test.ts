@@ -381,3 +381,63 @@ test("a default-mode re-init does not clobber an already-known non-default mode"
   );
   expect(st.sessions.s1?.permissionMode).toBe("acceptEdits");
 });
+
+test("an early session.error placeholder stamps lastActiveAt and never steals a lobby slot", () => {
+  // 先来一条 session.error(无 project 的占位),再建 10 个带 project 的会话。
+  // 占位不计入 ACTIVE_CAP,所以 10 个真实会话全部保持活跃。
+  let st = reduce(
+    empty,
+    ev({ ts: 7, type: "session.error", payload: { message: "auth failed" } }),
+  );
+  expect(st.sessions.s1?.lastActiveAt).toBe(7);
+  expect(st.sessions.s1?.project).toBeUndefined();
+  for (let i = 2; i <= 11; i++) {
+    st = reduce(
+      st,
+      ev({
+        sessionId: `s${i}`,
+        ts: i,
+        type: "session.created",
+        payload: { title: `s${i}`, model: "m", project: `p${i}` },
+      }),
+    );
+  }
+  const lobby = Object.values(st.sessions).filter(
+    (x) => !x.archived && x.project,
+  ).length;
+  expect(lobby).toBe(10);
+  // 错误占位还在,但没被算进大厅、也没被归档(它没 project)。
+  expect(st.sessions.s1?.archived).toBe(false);
+});
+
+test("the just-created session is never the LRU victim even if the clock went backward", () => {
+  let st = empty;
+  for (let i = 1; i <= 10; i++) {
+    st = reduce(
+      st,
+      ev({
+        sessionId: `s${i}`,
+        ts: 100 + i,
+        type: "session.created",
+        payload: { title: `s${i}`, model: "m", project: `p${i}` },
+      }),
+    );
+  }
+  // 第 11 个会话的 ts 比所有人都小(时钟回拨)。它绝不能把自己挤掉。
+  st = reduce(
+    st,
+    ev({
+      sessionId: "s11",
+      ts: 1,
+      type: "session.created",
+      payload: { title: "s11", model: "m", project: "p11" },
+    }),
+  );
+  expect(st.sessions.s11?.archived).toBe(false);
+  // 被归档的是其它会话里 lastActiveAt 最低的(s1=101)。
+  expect(st.sessions.s1?.archived).toBe(true);
+  const lobby = Object.values(st.sessions).filter(
+    (x) => !x.archived && x.project,
+  ).length;
+  expect(lobby).toBe(10);
+});
