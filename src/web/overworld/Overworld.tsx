@@ -313,6 +313,7 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
           );
         })}
         <Player
+          key={world.rooms.length > 0 ? "live" : "empty"}
           world={world}
           spawn={spawn}
           playerPosRef={playerPosRef}

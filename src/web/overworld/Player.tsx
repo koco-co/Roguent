@@ -1,6 +1,13 @@
 import { useTick } from "@pixi/react";
 import type { AnimatedSprite, Container } from "pixi.js";
-import { type RefObject, useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { anim, useAtlas } from "../room/atlas";
 import { TILE } from "../room/config";
 import type { Pos } from "../room/layout";
@@ -65,9 +72,10 @@ export function Player({
   const worldRef = useRef(world);
   worldRef.current = world;
 
-  // Seed at spawn once.
+  // Seed at spawn once, before first paint (mirrors room/Character.tsx:120).
+  // Remounted via key on the 0->1 project transition so spawn lands on floor.
   // biome-ignore lint/correctness/useExhaustiveDependencies: mount-once seed
-  useEffect(() => {
+  useLayoutEffect(() => {
     pos.current = { ...spawn };
     const root = rootRef.current;
     if (root) root.position.set(pos.current.x, pos.current.y);
