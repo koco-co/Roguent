@@ -35,7 +35,13 @@ export class SessionManager {
     const cb: DriverCallbacks = {
       onDraft: (drafts, ts) => {
         for (const d of drafts) {
-          this.emit(this.seq.stamp(id, d.type, d.payload, ts, d.agentId));
+          // SDK system:init 派生的 session.created 不带用户标题(spec §5),
+          // 在这里把建会话时的 title 注入,避免抽屉里显示成 sessionId。
+          const payload =
+            d.type === "session.created"
+              ? { ...(d.payload as Record<string, unknown>), title: opts.title }
+              : d.payload;
+          this.emit(this.seq.stamp(id, d.type, payload, ts, d.agentId));
         }
       },
     };

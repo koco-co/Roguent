@@ -61,14 +61,15 @@ export function ChatDrawer() {
           type="button"
           className="px-btn"
           style={{ width: "100%", padding: 8, fontSize: 10 }}
-          onClick={() =>
+          onClick={() => {
+            const n = list.length + 1;
             sendCommand({
               cmd: "newSession",
-              sessionId: `s${list.length + 1}`,
-              title: "new",
+              sessionId: `s${n}`,
+              title: `会话 ${n}`,
               model: "claude-opus-4-8",
-            })
-          }
+            });
+          }}
         >
           ＋ 新会话
         </button>
