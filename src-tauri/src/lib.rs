@@ -1,6 +1,6 @@
 use std::sync::Mutex;
-use tauri::{async_runtime, Manager, State};
-use tauri_plugin_shell::process::CommandEvent;
+use tauri::{async_runtime, Manager, RunEvent, State};
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 
 // 从 sidecar 的一行 stdout 里解析 "PORT=<n>"。纯函数,便于单测。
@@ -10,6 +10,12 @@ fn parse_port_line(line: &str) -> Option<u16> {
 
 #[derive(Default)]
 struct EnginePort(Mutex<Option<u16>>);
+
+// 持有 sidecar 子进程句柄,app 退出时 kill 掉。tauri-plugin-shell 的 CommandChild
+// 被 drop 时并不会杀进程,若不显式收尾,host 退出后 sidecar(~60MB)会变成孤儿
+// 留在后台,反复启动会越积越多(已实测复现)。
+#[derive(Default)]
+struct EngineChild(Mutex<Option<CommandChild>>);
 
 // webview 调用以拿到 engine 的 WS 地址;端口尚未从 sidecar stdout 解析到时返回 Err,
 // 前端会退避重试(见 web/engine-url.ts)。
@@ -23,9 +29,10 @@ fn engine_url(state: State<EnginePort>) -> Result<String, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .manage(EnginePort::default())
+        .manage(EngineChild::default())
         .invoke_handler(tauri::generate_handler![engine_url])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -35,10 +42,12 @@ pub fn run() {
                 .sidecar("roguent-engine")
                 .expect("sidecar 'roguent-engine' 缺失(先跑 build-sidecar)");
 
-            // CLI 资源:.app 内 resources/claude 存在则经 env 传给 sidecar
+            // CLI 资源:.app 内的 claude 存在则经 env 传给 sidecar
             //(SDK 用作 pathToClaudeCodeExecutable);dev 无资源则回落 SDK 默认解析。
+            // 注意:bundle.resources = ["resources/claude"] 会保留这层 `resources/`,
+            // 故 CLI 实际落在 <resource_dir>/resources/claude(不是 <resource_dir>/claude)。
             if let Ok(dir) = app.path().resource_dir() {
-                let cli = dir.join("claude");
+                let cli = dir.join("resources").join("claude");
                 if cli.exists() {
                     cmd = cmd.env("ROGUENT_CLI_PATH", cli.to_string_lossy().to_string());
                 }
@@ -48,7 +57,8 @@ pub fn run() {
                 cmd = cmd.env("ROGUENT_REPLAY", replay);
             }
 
-            let (mut rx, _child) = cmd.spawn().expect("spawn sidecar 失败");
+            let (mut rx, child) = cmd.spawn().expect("spawn sidecar 失败");
+            *app.state::<EngineChild>().0.lock().unwrap() = Some(child);
 
             async_runtime::spawn(async move {
                 while let Some(event) = rx.recv().await {
@@ -62,8 +72,17 @@ pub fn run() {
             });
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|app_handle, event| {
+        // 窗口关闭 / 退出时杀掉 sidecar,避免孤儿进程泄漏。
+        if let RunEvent::Exit = event {
+            if let Some(child) = app_handle.state::<EngineChild>().0.lock().unwrap().take() {
+                let _ = child.kill();
+            }
+        }
+    });
 }
 
 #[cfg(test)]
