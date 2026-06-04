@@ -21,6 +21,16 @@ export interface Loot {
   t: number;
 }
 
+export type ChatRole = "user" | "assistant" | "system";
+
+export interface ChatMessage {
+  id: string; // 服务端 seq 派生;user 气泡用本地乐观 id
+  role: ChatRole;
+  agentId?: string; // 产出该气泡的 agent(默认主控),用于归 swimlane
+  text: string;
+  t: number;
+}
+
 export interface Session {
   id: string;
   title: string;
@@ -29,6 +39,7 @@ export interface Session {
   permissionMode: string;
   slashCommands: string[];
   agents: Record<string, Agent>;
+  messages: ChatMessage[];
   loot: Loot[];
   usage: { tokens: number; cost: number };
   createdAt: number;
@@ -57,6 +68,7 @@ export function createSession(
         skin: "lead",
       },
     },
+    messages: [],
     loot: [],
     slashCommands: [],
     usage: { tokens: 0, cost: 0 },

@@ -179,3 +179,29 @@ img {
 .px-pop {
   animation: px-pop 0.09s ease-out;
 }
+
+/* 抽屉对话气泡:user 靠右青色、assistant 靠左面板色、system 报错红 */
+.px-bubble {
+  max-width: 85%;
+  padding: 7px 9px;
+  border: 2px solid var(--edge-dark, #2f3a55);
+  border-radius: 4px;
+  line-height: 1.5;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.px-bubble.assistant {
+  background: var(--panel);
+  border-color: #2f3a55;
+  color: var(--text);
+}
+.px-bubble.user {
+  background: #1c3a44;
+  border-color: var(--cyan);
+  color: var(--text);
+}
+.px-bubble.system {
+  background: #3a1c26;
+  border-color: var(--pink);
+  color: var(--pink);
+}

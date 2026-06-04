@@ -9,12 +9,18 @@ export function ChatDrawer() {
   const sessions = useRoomStore((s) => s.sessions);
   const currentId = useRoomStore((s) => s.currentSessionId);
   const switchSession = useRoomStore((s) => s.switchSession);
+  const appendUserMessage = useRoomStore((s) => s.appendUserMessage);
+  const messages = useRoomStore((s) =>
+    s.currentSessionId ? s.sessions[s.currentSessionId]?.messages : undefined,
+  );
   const [text, setText] = useState("");
   if (!open) return null;
   const list = Object.values(sessions);
   const send = () => {
-    if (currentId && text.trim()) {
-      sendCommand({ cmd: "sendMessage", sessionId: currentId, text });
+    const t = text.trim();
+    if (currentId && t) {
+      appendUserMessage(currentId, t); // 乐观回显用户气泡
+      sendCommand({ cmd: "sendMessage", sessionId: currentId, text: t });
       setText("");
     }
   };
@@ -88,12 +94,32 @@ export function ChatDrawer() {
           className="px-scroll"
           style={{
             flex: 1,
-            color: "var(--muted)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
             fontSize: 12,
             paddingTop: 8,
           }}
         >
-          {currentId ? `会话 ${currentId}` : "选一个会话"}
+          {!currentId && (
+            <span style={{ color: "var(--muted)" }}>选一个会话</span>
+          )}
+          {currentId && (messages?.length ?? 0) === 0 && (
+            <span style={{ color: "var(--muted)" }}>
+              还没有消息,发一条开始…
+            </span>
+          )}
+          {messages?.map((m) => (
+            <div
+              key={m.id}
+              className={`px-bubble ${m.role}`}
+              style={{
+                alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+              }}
+            >
+              {m.text}
+            </div>
+          ))}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <input

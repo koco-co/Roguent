@@ -59,6 +59,9 @@ export interface LootPayload {
 export interface MessagePayload {
   text: string;
 }
+export interface SessionErrorPayload {
+  message: string;
+}
 export interface UsagePayload {
   tokens: number;
   cost: number;

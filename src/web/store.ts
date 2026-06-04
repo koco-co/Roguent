@@ -35,6 +35,28 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
     };
   }
 
+  // session.error 可能在 system:init 之前就到达(如订阅 auth 直接失败),
+  // 此时还没有 session.created。所以在 prev 守卫之前处理:缺会话就建占位,
+  // 把错误标进状态并落进 transcript,保证"为什么没法用"对用户可见(spec §10)。
+  if (e.type === "session.error") {
+    const p = e.payload as { message: string };
+    const base =
+      sessions[e.sessionId] ??
+      createSession({ id: e.sessionId, title: e.sessionId, model: "" });
+    sessions[e.sessionId] = {
+      ...base,
+      status: "error",
+      messages: [
+        ...base.messages,
+        { id: String(e.seq), role: "system", text: `⚠ ${p.message}`, t: e.ts },
+      ],
+    };
+    return {
+      sessions,
+      currentSessionId: state.currentSessionId ?? e.sessionId,
+    };
+  }
+
   const prev = sessions[e.sessionId];
   if (!prev) return state; // event for an unknown session — ignore
   const s: Session = { ...prev, agents: { ...prev.agents } };
@@ -102,6 +124,24 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       ];
       break;
     }
+    case "message.delta":
+    case "message.final": {
+      // 助手文字进抽屉会话窗口,不进房间(spec §5/§7.3)。
+      // includePartialMessages=false 时一条 delta = 一整轮助手发言。
+      const p = e.payload as { text: string };
+      if (p.text)
+        s.messages = [
+          ...s.messages,
+          {
+            id: String(e.seq),
+            role: "assistant",
+            agentId: e.agentId,
+            text: p.text,
+            t: e.ts,
+          },
+        ];
+      break;
+    }
     case "usage.updated": {
       const p = e.payload as { tokens: number; cost: number };
       s.usage = { tokens: p.tokens, cost: p.cost };
@@ -124,6 +164,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
 export interface RoomStore extends RoomState {
   applyEvent: (e: RoomEvent) => void;
   switchSession: (id: string) => void;
+  appendUserMessage: (sessionId: string, text: string) => void;
 }
 
 export const useRoomStore = create<RoomStore>((set) => ({
@@ -131,4 +172,27 @@ export const useRoomStore = create<RoomStore>((set) => ({
   currentSessionId: null,
   applyEvent: (e) => set((st) => reduce(st, e)),
   switchSession: (id) => set({ currentSessionId: id }),
+  // 乐观回显:用户发的消息没有对应服务端事件,本地直接进 transcript。
+  appendUserMessage: (sessionId, text) =>
+    set((st) => {
+      const prev = st.sessions[sessionId];
+      if (!prev) return st;
+      return {
+        sessions: {
+          ...st.sessions,
+          [sessionId]: {
+            ...prev,
+            messages: [
+              ...prev.messages,
+              {
+                id: `u-${prev.messages.length}-${Date.now()}`,
+                role: "user",
+                text,
+                t: Date.now(),
+              },
+            ],
+          },
+        },
+      };
+    }),
 }));
