@@ -1,0 +1,81 @@
+import type { AgentStatus } from "../../shared/domain";
+import { toolNameToIcon } from "../../shared/mapping";
+import { useRoomStore } from "../store";
+import { useUiStore } from "../ui-store";
+import { StatRow } from "./widgets";
+
+const STATUS_LABEL: Record<AgentStatus, string> = {
+  spawning: "召唤中",
+  thinking: "思考中",
+  working: "工作中",
+  idle: "待命",
+  done: "完成",
+};
+
+/** Detail card for the character the user clicked in the room. */
+export function AgentCard() {
+  const id = useUiStore((s) => s.selectedAgentId);
+  const select = useUiStore((s) => s.select);
+  const agent = useRoomStore((s) => {
+    const sess = s.currentSessionId
+      ? s.sessions[s.currentSessionId]
+      : undefined;
+    return id && sess ? sess.agents[id] : undefined;
+  });
+  if (!id || !agent) return null;
+
+  const isLead = agent.kind === "orchestrator";
+  return (
+    <div
+      className="px-panel px-pop"
+      style={{
+        position: "absolute",
+        left: "50%",
+        bottom: 78,
+        transform: "translateX(-50%)",
+        width: 300,
+        padding: "14px 16px",
+      }}
+    >
+      <button
+        type="button"
+        title="关闭"
+        className="px-btn"
+        style={{
+          position: "absolute",
+          top: 6,
+          right: 6,
+          width: 26,
+          height: 26,
+          fontSize: 12,
+        }}
+        onClick={() => select(null)}
+      >
+        ✕
+      </button>
+      <div
+        className="pf"
+        style={{
+          fontSize: 11,
+          color: isLead ? "var(--gold)" : "var(--cyan)",
+          marginBottom: 12,
+          paddingRight: 24,
+        }}
+      >
+        {isLead ? "★ " : ""}
+        {agent.role}
+      </div>
+      <StatRow k="类型" v={isLead ? "指挥官" : "子智能体"} />
+      <StatRow k="状态" v={STATUS_LABEL[agent.status] ?? agent.status} />
+      <StatRow
+        k="工具"
+        v={
+          agent.currentTool
+            ? `${toolNameToIcon(agent.currentTool)} ${agent.currentTool}`
+            : "—"
+        }
+      />
+      {agent.parentId ? <StatRow k="上级" v={agent.parentId} /> : null}
+    </div>
+  );
+}

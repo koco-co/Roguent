@@ -5,6 +5,7 @@ import { sendCommand } from "../ws-client";
 
 export function ChatDrawer() {
   const open = useUiStore((s) => s.drawerOpen);
+  const toggle = useUiStore((s) => s.toggle);
   const sessions = useRoomStore((s) => s.sessions);
   const currentId = useRoomStore((s) => s.currentSessionId);
   const switchSession = useRoomStore((s) => s.switchSession);
@@ -19,49 +20,41 @@ export function ChatDrawer() {
   };
   return (
     <div
+      className="px-panel px-pop"
       style={{
         position: "absolute",
         top: 0,
         right: 0,
         bottom: 0,
-        width: "55%",
-        background: "#0d1726",
-        borderLeft: "2px solid #ff3ea5",
+        width: "min(52%, 560px)",
         display: "flex",
+        padding: 0,
       }}
     >
       <div
+        className="px-scroll"
         style={{
-          width: "38%",
-          borderRight: "1px solid #21303f",
-          padding: 8,
-          overflow: "auto",
+          width: 180,
+          borderRight: "3px solid var(--edge-dark)",
+          padding: 10,
         }}
       >
-        <div style={{ color: "#86c7d6", fontSize: 11, padding: 4 }}>会话</div>
+        <div className="px-title">会话</div>
         {list.map((s) => (
           <button
             key={s.id}
             type="button"
+            className={`px-row${s.id === currentId ? " sel" : ""}`}
             onClick={() => switchSession(s.id)}
-            style={{
-              display: "block",
-              width: "100%",
-              textAlign: "left",
-              marginBottom: 6,
-              padding: 8,
-              borderRadius: 8,
-              background: s.id === currentId ? "#181226" : "#101c2e",
-              border: `1px solid ${s.id === currentId ? "#ff3ea5" : "#21303f"}`,
-              color: "#d7e6ef",
-              cursor: "pointer",
-            }}
           >
-            {s.title} · {s.status}
+            <div style={{ fontSize: 11 }}>{s.title}</div>
+            <div style={{ fontSize: 9, color: "var(--muted)" }}>{s.status}</div>
           </button>
         ))}
         <button
           type="button"
+          className="px-btn"
+          style={{ width: "100%", padding: 8, fontSize: 10 }}
           onClick={() =>
             sendCommand({
               cmd: "newSession",
@@ -70,15 +63,6 @@ export function ChatDrawer() {
               model: "claude-opus-4-8",
             })
           }
-          style={{
-            width: "100%",
-            padding: 8,
-            borderRadius: 8,
-            border: "1px dashed #2a4a5e",
-            background: "transparent",
-            color: "#86c7d6",
-            cursor: "pointer",
-          }}
         >
           ＋ 新会话
         </button>
@@ -91,34 +75,39 @@ export function ChatDrawer() {
           padding: 12,
         }}
       >
-        <div style={{ flex: 1, color: "#9bb3c2", fontSize: 12 }}>
+        <button
+          type="button"
+          title="关闭"
+          className="px-btn"
+          style={{ alignSelf: "flex-end", width: 26, height: 26, fontSize: 12 }}
+          onClick={() => toggle("drawerOpen")}
+        >
+          ✕
+        </button>
+        <div
+          className="px-scroll"
+          style={{
+            flex: 1,
+            color: "var(--muted)",
+            fontSize: 12,
+            paddingTop: 8,
+          }}
+        >
           {currentId ? `会话 ${currentId}` : "选一个会话"}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <input
+            className="px-input"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
             placeholder="发消息…"
-            style={{
-              flex: 1,
-              padding: 8,
-              borderRadius: 18,
-              background: "#10202e",
-              border: "2px solid #00ffe7",
-              color: "#cffcf7",
-            }}
           />
           <button
             type="button"
+            className="px-btn"
+            style={{ width: 44, fontSize: 14, color: "var(--cyan)" }}
             onClick={send}
-            style={{
-              padding: "8px 14px",
-              borderRadius: 18,
-              background: "#00ffe7",
-              border: "none",
-              cursor: "pointer",
-            }}
           >
             ▶
           </button>

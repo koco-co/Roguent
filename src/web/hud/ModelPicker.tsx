@@ -12,23 +12,27 @@ export function ModelPicker() {
   const open = useUiStore((s) => s.modelOpen);
   const toggle = useUiStore((s) => s.toggle);
   const currentId = useRoomStore((s) => s.currentSessionId);
+  const currentModel = useRoomStore((s) =>
+    s.currentSessionId ? s.sessions[s.currentSessionId]?.model : undefined,
+  );
   if (!open) return null;
   return (
     <div
+      className="px-panel px-pop"
       style={{
         position: "absolute",
-        top: 66,
+        top: 70,
         right: 12,
-        background: "#101c2e",
-        border: "2px solid #ffd166",
-        borderRadius: 12,
+        width: 184,
         padding: 10,
       }}
     >
+      <div className="px-title">💎 选择模型</div>
       {MODELS.map((m) => (
         <button
           key={m.id}
           type="button"
+          className={`px-row${m.id === currentModel ? " sel" : ""}`}
           onClick={() => {
             if (currentId)
               sendCommand({
@@ -37,18 +41,6 @@ export function ModelPicker() {
                 model: m.id,
               });
             toggle("modelOpen");
-          }}
-          style={{
-            display: "block",
-            width: 160,
-            textAlign: "left",
-            marginBottom: 6,
-            padding: 8,
-            borderRadius: 8,
-            background: "#13243b",
-            border: "1px solid #2a4a5e",
-            color: "#d7e6ef",
-            cursor: "pointer",
           }}
         >
           {m.label}

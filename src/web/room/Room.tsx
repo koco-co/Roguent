@@ -15,6 +15,7 @@ import {
   toolNameToIcon,
 } from "../../shared/mapping";
 import { useRoomStore } from "../store";
+import { useUiStore } from "../ui-store";
 import { Character } from "./Character";
 import { DungeonRoom } from "./DungeonRoom";
 import { GlowLayer, Vignette } from "./Lights";
@@ -36,6 +37,8 @@ function Scene({
   const session = useRoomStore((s) =>
     s.currentSessionId ? s.sessions[s.currentSessionId] : undefined,
   );
+  const selectedId = useUiStore((s) => s.selectedAgentId);
+  const select = useUiStore((s) => s.select);
   const agents: Agent[] = useMemo(
     () => (session ? Object.values(session.agents) : []),
     [session],
@@ -89,7 +92,9 @@ function Scene({
             heroBase={p.hero}
             working={p.working}
             isLead={p.isLead}
+            selected={p.id === selectedId}
             icon={p.icon}
+            onSelect={() => select(p.id === selectedId ? null : p.id)}
           />
         ))}
         <Particles
