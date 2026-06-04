@@ -341,3 +341,43 @@ test("archive/unarchive/remove session actions", () => {
   expect(useRoomStore.getState().sessions.s1).toBeUndefined();
   expect(useRoomStore.getState().currentSessionId).toBeNull();
 });
+
+test("SDK-init session.created merges the real permissionMode over the synthesized default", () => {
+  // engine 合成的第一条 permissionMode=default;SDK init 派生的第二条带真实模式。
+  let st = reduce(
+    empty,
+    ev({
+      type: "session.created",
+      payload: { title: "t", model: "m", permissionMode: "default" },
+    }),
+  );
+  expect(st.sessions.s1?.permissionMode).toBe("default");
+  st = reduce(
+    st,
+    ev({
+      seq: 9,
+      type: "session.created",
+      payload: { title: "t", model: "m", permissionMode: "plan" },
+    }),
+  );
+  expect(st.sessions.s1?.permissionMode).toBe("plan");
+});
+
+test("a default-mode re-init does not clobber an already-known non-default mode", () => {
+  let st = reduce(
+    empty,
+    ev({
+      type: "session.created",
+      payload: { title: "t", model: "m", permissionMode: "acceptEdits" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 9,
+      type: "session.created",
+      payload: { title: "t", model: "m", permissionMode: "default" },
+    }),
+  );
+  expect(st.sessions.s1?.permissionMode).toBe("acceptEdits");
+});

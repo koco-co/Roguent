@@ -47,6 +47,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       slashCommands?: string[];
       cwd?: string;
       project?: string;
+      permissionMode?: string;
     };
     // 幂等:engine 先合成一条 session.created,SDK init 后又派生一条。第二条必须
     // 合并(补 model/slashCommands/cwd/project),绝不能重建会话——否则会清空已有
@@ -63,6 +64,12 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
           : existing.slashCommands,
         cwd: existing.cwd ?? p.cwd,
         project: proj,
+        // SDK init 派生的第二条带真实 permissionMode;只在它是非 default 时覆盖,
+        // 否则保留已知值(合成的第一条恒为 "default",不能把真实模式刷回去)。
+        permissionMode:
+          p.permissionMode && p.permissionMode !== "default"
+            ? p.permissionMode
+            : existing.permissionMode,
       };
       const projectOrder =
         proj && !state.projectOrder.includes(proj)
@@ -83,6 +90,9 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       slashCommands: p.slashCommands ?? [],
       cwd: p.cwd,
       project: p.project,
+      // 合成的第一条恒为 "default";若首条已带真实模式(如 init 先于合成到达)则尊重之。
+      // 显式回落 "default":createSession 的默认会被 partial 里的 undefined 覆盖掉。
+      permissionMode: p.permissionMode ?? "default",
       lastActiveAt: e.ts, // 首次出现即视为刚活跃,供 LRU 排序
     });
     sessions[e.sessionId] = created;
