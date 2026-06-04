@@ -1,5 +1,10 @@
 import { expect, test } from "bun:test";
-import { buildHooks, stripSubscriptionEnv, usesApiKey } from "./driver";
+import {
+  buildHooks,
+  cliPathFromEnv,
+  stripSubscriptionEnv,
+  usesApiKey,
+} from "./driver";
 import type { HookLike } from "./normalize";
 
 test("usesApiKey: subscription OAuth ('none'/'oauth'/undefined) is not flagged", () => {
@@ -22,6 +27,22 @@ test("stripSubscriptionEnv removes API key + auth token, keeps the rest", () => 
   expect(out.PATH).toBe("/bin");
   expect(out.ANTHROPIC_API_KEY).toBeUndefined();
   expect(out.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
+});
+
+test("cliPathFromEnv: 有 ROGUENT_CLI_PATH 用之,否则 undefined", () => {
+  expect(
+    cliPathFromEnv({
+      ROGUENT_CLI_PATH: "/Applications/Roguent.app/.../claude",
+    }),
+  ).toBe("/Applications/Roguent.app/.../claude");
+  expect(cliPathFromEnv({})).toBeUndefined();
+  expect(cliPathFromEnv({ ROGUENT_CLI_PATH: "" })).toBeUndefined();
+  expect(cliPathFromEnv({ ROGUENT_CLI_PATH: "   " })).toBeUndefined();
+  expect(
+    cliPathFromEnv({
+      ROGUENT_CLI_PATH: "  /x/claude  ",
+    }),
+  ).toBe("/x/claude");
 });
 
 test("buildHooks forwards hook input and returns a non-blocking {}", async () => {

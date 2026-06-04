@@ -426,10 +426,10 @@ Expected: 构建成功,`dist/` 内含字体 woff2 资源。
 - [ ] **Step 5: 提交**
 
 ```bash
-git add package.json bun.lock package-lock.json src/web/main.tsx index.html
+git add package.json bun.lock src/web/main.tsx index.html
 git commit -m "feat: 🧩 bundle Press Start 2P locally instead of the Google Fonts CDN"
 ```
-（注:仓库当前用 npm lock;若 `bun add` 生成的是 `bun.lock`,把实际改动的 lock 文件加入即可——以 `git status` 为准。）
+（注:本任务已把仓库锁文件从 npm 的 `package-lock.json` 迁移到 `bun.lock` 作唯一权威锁文件——后续一律 `bun add`/`bun install`,只提交 `bun.lock`,不要再引入 `package-lock.json`。）
 
 ---
 
@@ -480,10 +480,10 @@ Expected: 首次会拉取 crates 并编译,最终 `Finished`(无 error)。
 - [ ] **Step 5: 提交**
 
 ```bash
-git add .gitignore package.json bun.lock package-lock.json src-tauri/
+git add .gitignore package.json bun.lock src-tauri/
 git commit -m "chore: 🧹 scaffold the Tauri 2 shell (src-tauri) and ignore build artifacts"
 ```
-（`src-tauri/target/` 已被忽略,不会进暂存;以 `git status` 为准选 lock 文件。）
+（`src-tauri/target/` 已被忽略,不会进暂存;锁文件只有 `bun.lock`。）
 
 ---
 
@@ -800,11 +800,10 @@ ls -la src-tauri/target/release/bundle/macos/
 
 Run:
 ```bash
-ROGUENT_REPLAY="$PWD/fixtures/sample-run.jsonl" open -a src-tauri/target/release/bundle/macos/roguent.app
+ROGUENT_REPLAY="$PWD/fixtures/sample-run.jsonl" ./src-tauri/target/release/bundle/macos/roguent.app/Contents/MacOS/app
 ```
 人工验证:.app 启动、窗口渲染、回放播放正常(确认打包后 webview 与 sidecar 接线无误)。
-（注:`open` 默认不继承 shell env;若 .app 未进回放模式,改用
-`ROGUENT_REPLAY="$PWD/fixtures/sample-run.jsonl" ./src-tauri/target/release/bundle/macos/roguent.app/Contents/MacOS/roguent` 直接带 env 启动可执行体。）
+（注:可执行体名为 `app`(= Cargo 包名,非 productName `roguent`),路径 `…/roguent.app/Contents/MacOS/app`。`open` 默认不继承 shell env,故回放验证必须**直跑**该可执行体并带 env;`open src-tauri/target/release/bundle/macos/roguent.app` 仅用于不带 env 的普通启动。）
 
 - [ ] **Step 5: 风险 #2 —— LIVE 真会话 spawn CLI(放最后,烧少量额度)**
 

@@ -11,6 +11,7 @@ import {
   normalizeHook,
   normalizeSdkMessage,
 } from "./normalize";
+import { readMacSystemProxy, resolveProxyEnv } from "./proxy";
 
 export function stripSubscriptionEnv(
   env: Record<string, string | undefined>,
@@ -26,6 +27,15 @@ export function stripSubscriptionEnv(
 const API_KEY_SOURCES = new Set(["user", "project", "org", "temporary"]);
 export function usesApiKey(apiKeySource: string | undefined): boolean {
   return apiKeySource != null && API_KEY_SOURCES.has(apiKeySource);
+}
+
+// Tauri 打包后,host 把 .app 内的 claude CLI 资源路径经 env 传进来;dev(未设)
+// 则回落 SDK 默认解析(node_modules 平台包)。返回 undefined 即"不覆盖默认"。
+export function cliPathFromEnv(
+  env: Record<string, string | undefined>,
+): string | undefined {
+  const trimmed = env.ROGUENT_CLI_PATH?.trim();
+  return trimmed ? trimmed : undefined;
 }
 
 // Register passive observer hooks. Each returns {} immediately (never blocks the agent — spec §8.3/§10).
@@ -83,12 +93,18 @@ export class Driver implements IDriver {
   start(): void {
     const onHook = (h: HookLike) =>
       this.cb.onDraft(normalizeHook(h), Date.now());
+    // 抹掉 api-key/token 回落订阅;再兜底代理:LaunchServices 启动的 .app 不继承
+    // shell 的 HTTP(S)_PROXY,在需代理才能访问 Anthropic 的网络里会 403。环境已有
+    // 代理则尊重,否则注入 macOS 系统代理(见 proxy.ts)。
+    const baseEnv = stripSubscriptionEnv({ ...process.env });
+    const env = { ...baseEnv, ...resolveProxyEnv(baseEnv, readMacSystemProxy) };
     const options: Options = {
       model: this.model,
       permissionMode: "default",
       settingSources: ["user", "project"], // load CLAUDE.md + skills (spec §7.4)
       cwd: this.cwd,
-      env: stripSubscriptionEnv({ ...process.env }),
+      env,
+      pathToClaudeCodeExecutable: cliPathFromEnv(process.env),
       includePartialMessages: false,
       hooks: buildHooks(onHook),
     };
