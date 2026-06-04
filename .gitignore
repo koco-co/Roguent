@@ -4,3 +4,7 @@ dist/
 *.log
 .DS_Store
 fixtures/*.local.jsonl
+
+# Claude Code 本地 runtime(个人权限 / 运行锁;不入仓库)
+.claude/settings.local.json
+.claude/*.lock
