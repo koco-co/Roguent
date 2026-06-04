@@ -1,0 +1,12 @@
+{"seq":1,"ts":0,"sessionId":"s1","type":"session.created","payload":{"title":"code-review · kata","model":"claude-opus-4-8","permissionMode":"default","apiKeySource":"oauth","slashCommands":["/code-review","/deep-research","/frontend-design"]}}
+{"seq":2,"ts":400,"sessionId":"s1","type":"agent.spawned","agentId":"ag-coder","payload":{"role":"coder","promptSummary":"review concurrency","parentId":"orchestrator"}}
+{"seq":3,"ts":700,"sessionId":"s1","type":"tool.started","agentId":"ag-coder","payload":{"toolName":"Edit","inputSummary":"src/x.ts","toolUseId":"t1"}}
+{"seq":4,"ts":1200,"sessionId":"s1","type":"agent.spawned","agentId":"ag-research","payload":{"role":"researcher","promptSummary":"find refs","parentId":"orchestrator"}}
+{"seq":5,"ts":1500,"sessionId":"s1","type":"tool.started","agentId":"ag-research","payload":{"toolName":"WebSearch","inputSummary":"race conditions","toolUseId":"t2"}}
+{"seq":6,"ts":2200,"sessionId":"s1","type":"tool.ended","agentId":"ag-coder","payload":{"toolUseId":"t1","ok":true}}
+{"seq":7,"ts":2600,"sessionId":"s1","type":"tool.ended","agentId":"ag-research","payload":{"toolUseId":"t2","ok":true}}
+{"seq":8,"ts":3000,"sessionId":"s1","type":"agent.done","agentId":"ag-research","payload":{"stopReason":"normal"}}
+{"seq":9,"ts":3400,"sessionId":"s1","type":"agent.done","agentId":"ag-coder","payload":{"stopReason":"normal"}}
+{"seq":10,"ts":3800,"sessionId":"s1","type":"loot.dropped","payload":{"kind":"report","label":"2 races fixed","sourceRef":"results/review.md"}}
+{"seq":11,"ts":4000,"sessionId":"s1","type":"usage.updated","payload":{"tokens":1820,"cost":0.021}}
+{"seq":12,"ts":4600,"sessionId":"s1","type":"session.cleared","payload":{}}
