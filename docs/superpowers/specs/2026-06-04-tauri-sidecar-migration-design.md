@@ -102,7 +102,7 @@ scripts/
 
 - `build.frontendDist: "../dist"`、`build.devUrl: "http://localhost:5173"`、`build.beforeDevCommand: "bun run dev:web"`、`build.beforeBuildCommand: "bun run build"`。
 - `bundle.externalBin: ["binaries/roguent-engine"]`、`bundle.resources: ["resources/claude"]`。
-- `bundle.targets`: 本阶段 `app`(可加 `dmg` 但不签名)。
+- `bundle.targets`: 本阶段 `all`——产出 `.app` 与未签名 `.dmg`(`.dmg` 仅作本地分发雏形;签名 / 公证 / 正式分发见非目标)。
 
 ### 4.3 两种 dev 模式(并存)
 
