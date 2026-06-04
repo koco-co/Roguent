@@ -55,8 +55,15 @@ export class WsGateway {
   constructor(
     port: number,
     private mgr: SessionManager,
+    onListening?: (port: number) => void,
   ) {
     this.wss = new WebSocketServer({ port });
+    if (onListening) {
+      this.wss.on("listening", () => {
+        const addr = this.wss.address();
+        if (addr && typeof addr === "object") onListening(addr.port);
+      });
+    }
     this.wss.on("connection", (ws) => {
       this.clients.add(ws);
       ws.on("message", (data) => this.onCommand(String(data)));
