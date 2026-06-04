@@ -17,14 +17,22 @@ export interface RoomConnection {
   close: () => void;
 }
 
+let active: RoomConnection | null = null;
+
+export function sendCommand(cmd: object): void {
+  active?.send(cmd);
+}
+
 export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
   const ws = new WebSocket(url);
   const apply = useRoomStore.getState().applyEvent;
   ws.onmessage = (ev) => handleIncoming(String(ev.data), apply);
-  return {
+  const conn: RoomConnection = {
     send: (cmd) => {
       if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(cmd));
     },
     close: () => ws.close(),
   };
+  active = conn;
+  return conn;
 }
