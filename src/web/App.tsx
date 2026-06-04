@@ -1,11 +1,12 @@
 import { useEffect } from "react";
+import { resolveEngineUrl } from "./engine-url";
 import { Hud } from "./hud/Hud";
 import { NpcCard } from "./hud/NpcCard";
 import { Overworld } from "./overworld/Overworld";
 import { Room } from "./room/Room";
 import { useRoomStore } from "./store";
 import { useUiStore } from "./ui-store";
-import { connectRoom } from "./ws-client";
+import { type RoomConnection, connectRoom } from "./ws-client";
 
 export function App() {
   const view = useUiStore((s) => s.view);
@@ -24,8 +25,19 @@ export function App() {
   }, [interiorId, interiorGone, exitOverworld]);
 
   useEffect(() => {
-    const conn = connectRoom();
-    return () => conn.close();
+    let conn: RoomConnection | null = null;
+    let cancelled = false;
+    resolveEngineUrl()
+      .then((url) => {
+        if (!cancelled) conn = connectRoom(url);
+      })
+      .catch(() => {
+        /* engine 不可达(Tauri 重试耗尽)——错误 UX 后续阶段处理 */
+      });
+    return () => {
+      cancelled = true;
+      conn?.close();
+    };
   }, []);
 
   // Esc returns from an interior to the overworld lobby (spec §架构: Esc/门 zoom-out).
