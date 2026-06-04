@@ -11,6 +11,7 @@ import {
   normalizeHook,
   normalizeSdkMessage,
 } from "./normalize";
+import { readMacSystemProxy, resolveProxyEnv } from "./proxy";
 
 export function stripSubscriptionEnv(
   env: Record<string, string | undefined>,
@@ -92,12 +93,17 @@ export class Driver implements IDriver {
   start(): void {
     const onHook = (h: HookLike) =>
       this.cb.onDraft(normalizeHook(h), Date.now());
+    // 抹掉 api-key/token 回落订阅;再兜底代理:LaunchServices 启动的 .app 不继承
+    // shell 的 HTTP(S)_PROXY,在需代理才能访问 Anthropic 的网络里会 403。环境已有
+    // 代理则尊重,否则注入 macOS 系统代理(见 proxy.ts)。
+    const baseEnv = stripSubscriptionEnv({ ...process.env });
+    const env = { ...baseEnv, ...resolveProxyEnv(baseEnv, readMacSystemProxy) };
     const options: Options = {
       model: this.model,
       permissionMode: "default",
       settingSources: ["user", "project"], // load CLAUDE.md + skills (spec §7.4)
       cwd: this.cwd,
-      env: stripSubscriptionEnv({ ...process.env }),
+      env,
       pathToClaudeCodeExecutable: cliPathFromEnv(process.env),
       includePartialMessages: false,
       hooks: buildHooks(onHook),
