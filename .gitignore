@@ -8,3 +8,9 @@ fixtures/*.local.jsonl
 # Claude Code 本地 runtime(个人权限 / 运行锁;不入仓库)
 .claude/settings.local.json
 .claude/*.lock
+
+# Tauri 构建产物 / 大体积本地资源(不入仓库)
+src-tauri/target/
+src-tauri/gen/
+src-tauri/binaries/
+src-tauri/resources/
