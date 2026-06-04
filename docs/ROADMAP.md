@@ -99,7 +99,7 @@ status: living-doc
 
 **已知 ❌ → 后续 backlog**:atlas 失败静默黑屏 → P1-1 修复。
 
-### [ ] P1-1 游戏画面渲染可靠性(web 端)— 最高优先
+### [x] P1-1 游戏画面渲染可靠性(web 端)— 最高优先
 - **目标**:① 让 atlas/资源加载失败**可见**(不再静默黑屏);② 确认并保证**浏览器端**房间 + overworld 在各场景(空会话 / 有 subagent / 多项目)都稳定渲染。
 - **为什么**:atlas 加载失败当前表现为纯黑画布、零提示,无从排查;这是确定的缺陷,先在 web 端修掉。
 - **涉及文件**:`src/web/room/atlas.ts`、`src/web/room/Room.tsx:176-194`、`src/web/overworld/Overworld.tsx:339-357`。
@@ -109,6 +109,8 @@ status: living-doc
 - **e2e 验收**:① 单测/集成:模拟 atlas 加载失败 → 断言渲染出错误态而非空白;② 浏览器冒烟(回放 fixture)肉眼/截图看到房间渲染。
 - **DoD**:浏览器端任何资源失败都有可见错误态、房间各场景稳定渲染;断言进 `bun test`。
 - 📌 **打包 .app 的黑屏定位移到 P1-4(Phase 1B)**——可能与 web 端同根因,也可能是 `tauri://` 资源协议特有,留到 app 轮。
+
+**结果(2026-06-05)**: atlas 加载失败在 Room + Overworld 均显示错误覆盖层含重试;atlasErrorText 单测 2 pass;commit TBD
 
 ### [ ] P1-2 核心可视化主链路 e2e 兜底
 - **目标**:把"事件流 → 房间表现"这条主链路用回放 e2e 钉死,杜绝回归。

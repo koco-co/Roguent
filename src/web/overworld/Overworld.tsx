@@ -18,7 +18,12 @@ import {
   useState,
 } from "react";
 import { Vignette } from "../room/Lights";
-import { AtlasProvider, loadAtlas } from "../room/atlas";
+import {
+  AtlasProvider,
+  atlasErrorText,
+  loadAtlas,
+  resetAtlas,
+} from "../room/atlas";
 import { TILE } from "../room/config";
 import type { Pos } from "../room/layout";
 import type { Bounds } from "../room/motion";
@@ -332,13 +337,29 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
 export function Overworld() {
   const hostRef = useRef<HTMLDivElement>(null);
   const [sheet, setSheet] = useState<Spritesheet | null>(null);
+  const [atlasError, setAtlasError] = useState<string | null>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const projectCount = useRoomStore((s) => s.projectOrder.length);
+
+  const retryAtlas = () => {
+    setAtlasError(null);
+    setSheet(null);
+    resetAtlas();
+    loadAtlas()
+      .then(setSheet)
+      .catch((e: unknown) => {
+        console.error("[atlas] load failed", e);
+        setAtlasError(atlasErrorText(e));
+      });
+  };
 
   useEffect(() => {
     loadAtlas()
       .then(setSheet)
-      .catch((e) => console.error("[atlas] load failed", e));
+      .catch((e: unknown) => {
+        console.error("[atlas] load failed", e);
+        setAtlasError(atlasErrorText(e));
+      });
   }, []);
 
   useLayoutEffect(() => {
@@ -360,7 +381,7 @@ export function Overworld() {
           </AtlasProvider>
         ) : null}
       </Application>
-      {projectCount === 0 ? (
+      {projectCount === 0 && !atlasError ? (
         <div
           className="px-panel pf"
           style={{
@@ -377,6 +398,39 @@ export function Overworld() {
           还没有会话
           <br />
           <span style={{ fontSize: 9 }}>点右下角 💬 新建一个开始</span>
+        </div>
+      ) : null}
+      {atlasError ? (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(11,10,18,0.92)",
+            color: "#ff6b6b",
+            fontFamily: "monospace",
+            fontSize: 12,
+            padding: 24,
+            gap: 12,
+          }}
+        >
+          <div>⚠ atlas load failed</div>
+          <div
+            style={{
+              color: "#aaa",
+              fontSize: 10,
+              wordBreak: "break-all",
+              maxWidth: 360,
+            }}
+          >
+            {atlasError}
+          </div>
+          <button type="button" className="px-btn" onClick={retryAtlas}>
+            重试
+          </button>
         </div>
       ) : null}
     </div>

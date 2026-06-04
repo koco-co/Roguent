@@ -57,3 +57,17 @@ export function useAtlas(): Spritesheet {
   }
   return sheet;
 }
+
+/** Format an atlas load error for the error overlay. Extracted for testability. */
+export function atlasErrorText(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  return String(e);
+}
+
+/**
+ * Reset the singleton promise so the next loadAtlas() call re-fetches.
+ * Call before retry in the error overlay.
+ */
+export function resetAtlas(): void {
+  sheetPromise = null;
+}
