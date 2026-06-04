@@ -426,10 +426,10 @@ Expected: 构建成功,`dist/` 内含字体 woff2 资源。
 - [ ] **Step 5: 提交**
 
 ```bash
-git add package.json bun.lock package-lock.json src/web/main.tsx index.html
+git add package.json bun.lock src/web/main.tsx index.html
 git commit -m "feat: 🧩 bundle Press Start 2P locally instead of the Google Fonts CDN"
 ```
-（注:仓库当前用 npm lock;若 `bun add` 生成的是 `bun.lock`,把实际改动的 lock 文件加入即可——以 `git status` 为准。）
+（注:本任务已把仓库锁文件从 npm 的 `package-lock.json` 迁移到 `bun.lock` 作唯一权威锁文件——后续一律 `bun add`/`bun install`,只提交 `bun.lock`,不要再引入 `package-lock.json`。）
 
 ---
 
@@ -480,10 +480,10 @@ Expected: 首次会拉取 crates 并编译,最终 `Finished`(无 error)。
 - [ ] **Step 5: 提交**
 
 ```bash
-git add .gitignore package.json bun.lock package-lock.json src-tauri/
+git add .gitignore package.json bun.lock src-tauri/
 git commit -m "chore: 🧹 scaffold the Tauri 2 shell (src-tauri) and ignore build artifacts"
 ```
-（`src-tauri/target/` 已被忽略,不会进暂存;以 `git status` 为准选 lock 文件。）
+（`src-tauri/target/` 已被忽略,不会进暂存;锁文件只有 `bun.lock`。）
 
 ---
 
