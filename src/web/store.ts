@@ -23,15 +23,29 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       model: string;
       slashCommands?: string[];
     };
-    sessions[e.sessionId] = createSession({
-      id: e.sessionId,
-      title: p.title || e.sessionId,
-      model: p.model,
-      slashCommands: p.slashCommands ?? [],
-    });
+    // 幂等:engine 先合成一条 session.created,SDK init 后又派生一条。第二条必须
+    // 合并(补 model/slashCommands),绝不能重建会话——否则会清空已有 transcript。
+    const existing = sessions[e.sessionId];
+    sessions[e.sessionId] = existing
+      ? {
+          ...existing,
+          title: p.title || existing.title,
+          model: p.model || existing.model,
+          slashCommands: p.slashCommands?.length
+            ? p.slashCommands
+            : existing.slashCommands,
+        }
+      : createSession({
+          id: e.sessionId,
+          title: p.title || e.sessionId,
+          model: p.model,
+          slashCommands: p.slashCommands ?? [],
+        });
+    // 新建即跳转:会话首次出现就把焦点切过去。但 SDK init 派生的第二条
+    // session.created(existing)绝不能抢焦点,否则会把用户从当前会话拽走。
     return {
       sessions,
-      currentSessionId: state.currentSessionId ?? e.sessionId,
+      currentSessionId: existing ? state.currentSessionId : e.sessionId,
     };
   }
 
@@ -92,6 +106,18 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       const a = e.agentId ? s.agents[e.agentId] : undefined;
       if (a && e.agentId)
         s.agents[e.agentId] = { ...a, currentTool: undefined };
+      break;
+    }
+    case "agent.thinking": {
+      // Mirror agent.idle: clear currentTool so the head shows the "..." emote
+      // (not a tool bubble) while the agent reasons (spec §6.4).
+      const a = e.agentId ? s.agents[e.agentId] : undefined;
+      if (a && e.agentId)
+        s.agents[e.agentId] = {
+          ...a,
+          status: "thinking",
+          currentTool: undefined,
+        };
       break;
     }
     case "agent.idle": {

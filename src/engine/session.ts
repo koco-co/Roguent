@@ -32,6 +32,24 @@ export class SessionManager {
   }
 
   createSession(id: string, opts: { title: string; model: string }): void {
+    // 会话的存在性必须立刻可见,不能依赖 SDK 的 system:init —— SDK 在 streaming
+    // 输入下要等第一条 user 消息才发 init,否则就「没会话 → 发不了消息 → 不发 init
+    // → 没会话」死锁,新建会话与对话都失效。先合成一条 session.created,把建会话时
+    // 已知的 title/model 填上;SDK init 后续派生的 session.created 由前端幂等合并。
+    this.emit(
+      this.seq.stamp(
+        id,
+        "session.created",
+        {
+          title: opts.title,
+          model: opts.model,
+          permissionMode: "default",
+          apiKeySource: "",
+          slashCommands: [],
+        },
+        Date.now(),
+      ),
+    );
     const cb: DriverCallbacks = {
       onDraft: (drafts, ts) => {
         for (const d of drafts) {

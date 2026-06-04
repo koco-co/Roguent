@@ -25,6 +25,65 @@ test("session.created adds a session and sets currentSessionId once", () => {
   expect(st.currentSessionId).toBe("s1");
 });
 
+test("a second session.created (from SDK init) merges, keeping messages and filling slashCommands", () => {
+  // engine 先合成 session.created;SDK init 到来后又派生一个 session.created。
+  // 后者必须合并(补 slashCommands/model),绝不能重建会话清空已有 transcript。
+  let st = reduce(
+    empty,
+    ev({
+      type: "session.created",
+      payload: { title: "会话 1", model: "claude-opus-4-8", slashCommands: [] },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "message.delta",
+      agentId: ORCHESTRATOR_ID,
+      payload: { text: "first reply" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 9,
+      type: "session.created",
+      payload: { title: "会话 1", model: "m", slashCommands: ["/review"] },
+    }),
+  );
+  expect(st.sessions.s1?.messages).toHaveLength(1);
+  expect(st.sessions.s1?.messages[0]?.text).toBe("first reply");
+  expect(st.sessions.s1?.slashCommands).toEqual(["/review"]);
+});
+
+test("creating a new session steals focus; a re-init of another session does not", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "s1", model: "m" } }),
+  );
+  expect(st.currentSessionId).toBe("s1");
+  // 新建 s2(首次)→ 焦点立即跳到 s2。
+  st = reduce(
+    st,
+    ev({
+      sessionId: "s2",
+      type: "session.created",
+      payload: { title: "s2", model: "m" },
+    }),
+  );
+  expect(st.currentSessionId).toBe("s2");
+  // s1 延迟到来的 SDK init 派生的第二条 session.created(会话已存在)→ 不抢焦点。
+  st = reduce(
+    st,
+    ev({
+      sessionId: "s1",
+      type: "session.created",
+      payload: { title: "s1", model: "m", slashCommands: ["/x"] },
+    }),
+  );
+  expect(st.currentSessionId).toBe("s2");
+});
+
 test("agent.spawned adds a working subagent; tool.started sets the head icon tool", () => {
   let st = reduce(
     empty,
@@ -48,6 +107,32 @@ test("agent.spawned adds a working subagent; tool.started sets the head icon too
     }),
   );
   expect(st.sessions.s1?.agents["ag-1"]?.currentTool).toBe("Edit");
+});
+
+test("agent.thinking sets thinking status and clears the tool icon", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "agent.spawned",
+      agentId: "ag-1",
+      payload: { role: "coder", parentId: ORCHESTRATOR_ID },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "tool.started",
+      agentId: "ag-1",
+      payload: { toolName: "Edit" },
+    }),
+  );
+  st = reduce(st, ev({ type: "agent.thinking", agentId: "ag-1", payload: {} }));
+  expect(st.sessions.s1?.agents["ag-1"]?.status).toBe("thinking");
+  expect(st.sessions.s1?.agents["ag-1"]?.currentTool).toBeUndefined();
 });
 
 test("agent.done removes a subagent but never the orchestrator", () => {
