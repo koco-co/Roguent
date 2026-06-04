@@ -129,7 +129,7 @@ status: living-doc
 - **约定**:能在 store/reducer 或纯函数层 e2e 的就写断言;纯 `.tsx` 组件按本仓库既有约定用 `bun run build` + `bun run check` + 回放冒烟,并尽量把可测逻辑下沉到可单测的纯函数。
 - **DoD**:每子项有对应自动化断言或固定的回放冒烟步骤,且记录在该子项下。
 
-**结果(2026-06-05)**: 6 个子项均有自动化断言(switchSession/chat-agentId/setModel/permissionMode/生命周期/enterInterior/exitOverworld);新增 6 个 test 全绿;commit TBD
+**结果(2026-06-05)**: 6 个子项均有自动化断言(switchSession/chat-agentId/setModel/permissionMode/生命周期/enterInterior/exitOverworld);新增 6 个 test 全绿;commit 6c40c0b
 
 > ✅ **Phase 1A 完成定义**:P1-0~P1-3 全绿 + 逐项浏览器冒烟通过 → **本轮 `/goal` 收口、移交用户**;不要自行继续 Phase 1B。
 
