@@ -1,7 +1,7 @@
 import type { AnimatedSprite, Texture } from "pixi.js";
 import { useEffect, useMemo, useRef } from "react";
 import { anim, tex, useAtlas } from "./atlas";
-import { COLS, ROWS, TILE } from "./config";
+import { COLS, DOOR_COL, FOUNTAIN_COLS, ROWS, TILE } from "./config";
 
 // Deterministic per-tile floor variant: mostly plain, a few cracks/grates so
 // the floor has texture without looking noisy or shimmering between renders.
@@ -79,9 +79,7 @@ export function DungeonRoom() {
     return out;
   }, []);
 
-  const cc = Math.floor(COLS / 2); // back-wall centre column
-  const fountainCols = [4, COLS - 5];
-  const bannerCols = [cc - 3, cc + 2];
+  const bannerCols = [DOOR_COL - 3, DOOR_COL + 2];
 
   // Static floor props, placed in the periphery so they never sit under the
   // central agent ring.
@@ -116,7 +114,7 @@ export function DungeonRoom() {
       ))}
 
       {/* animated wall fountains (top + mid + basin) */}
-      {fountainCols.map((c) => (
+      {FOUNTAIN_COLS.map((c) => (
         <pixiContainer key={`fountain_${c}`}>
           <pixiSprite
             texture={tex(sheet, "wall_fountain_top_2")}
@@ -141,7 +139,7 @@ export function DungeonRoom() {
       {/* open archway doorway in the back wall — the spawn portal */}
       <pixiSprite
         texture={tex(sheet, "doors_leaf_open")}
-        x={(cc - 1) * TILE}
+        x={(DOOR_COL - 1) * TILE}
         y={0}
       />
 

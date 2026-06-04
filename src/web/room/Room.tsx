@@ -17,6 +17,7 @@ import {
 import { useRoomStore } from "../store";
 import { Character } from "./Character";
 import { DungeonRoom } from "./DungeonRoom";
+import { GlowLayer, Vignette } from "./Lights";
 import { AtlasProvider, loadAtlas } from "./atlas";
 import { VH, VW } from "./config";
 import { roomLayout } from "./layout";
@@ -53,26 +54,45 @@ function Scene({
   const offX = Math.floor((canvasW - VW * scale) / 2);
   const offY = Math.floor((canvasH - VH * scale) / 2);
 
+  const placed = agents.map((a) => {
+    const pos = layout[a.id] ?? { x: VW / 2, y: VH / 2 };
+    const isLead = a.kind === "orchestrator";
+    return {
+      id: a.id,
+      x: pos.x,
+      y: pos.y,
+      isLead,
+      hero: isLead ? ORCHESTRATOR_HERO : roleToHero(a.role),
+      icon: a.currentTool ? toolNameToIcon(a.currentTool) : "",
+      working: a.status === "working" || a.status === "thinking",
+    };
+  });
+
   return (
-    <pixiContainer x={offX} y={offY} scale={scale}>
-      <DungeonRoom />
-      {agents.map((a) => {
-        const pos = layout[a.id] ?? { x: VW / 2, y: VH / 2 };
-        const hero =
-          a.kind === "orchestrator" ? ORCHESTRATOR_HERO : roleToHero(a.role);
-        const icon = a.currentTool ? toolNameToIcon(a.currentTool) : "";
-        return (
+    <pixiContainer>
+      <pixiContainer x={offX} y={offY} scale={scale}>
+        <DungeonRoom />
+        <GlowLayer
+          characters={placed.map((p) => ({
+            key: p.id,
+            x: p.x,
+            y: p.y,
+            isLead: p.isLead,
+          }))}
+        />
+        {placed.map((p) => (
           <Character
-            key={a.id}
-            x={pos.x}
-            y={pos.y}
-            heroBase={hero}
-            working={a.status === "working" || a.status === "thinking"}
-            isLead={a.kind === "orchestrator"}
-            icon={icon}
+            key={p.id}
+            x={p.x}
+            y={p.y}
+            heroBase={p.hero}
+            working={p.working}
+            isLead={p.isLead}
+            icon={p.icon}
           />
-        );
-      })}
+        ))}
+      </pixiContainer>
+      <Vignette w={canvasW} h={canvasH} />
     </pixiContainer>
   );
 }
