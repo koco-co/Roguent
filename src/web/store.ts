@@ -329,6 +329,8 @@ export const useRoomStore = create<RoomStore>((set) => ({
     set((st) => {
       if (!st.sessions[id]) return st;
       const sessions = { ...st.sessions };
+      // 注:不修剪 projectOrder(追加式、保证既有房间不挪位),删掉某项目最后一个
+      // 会话会留下一个空房间直到刷新 —— 已接受的 tradeoff(见 spec §验证)。
       delete sessions[id];
       return {
         sessions,

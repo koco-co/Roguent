@@ -94,6 +94,9 @@
    - WASD 走动,相机跟随并夹边界;点远处地面 → A\* 自动走。
    - 走到 NPC → 交互提示 → 信息卡(项目/模型/状态正确)→ **进入** → 掉进该会话内景(subagent 在走)→ Esc 返回。
    - 建第 11 个会话 → 活跃度最低 NPC 走出、新的走入;归档 → NPC 退场并进 ChatDrawer 已归档区 → 再激活走回。
+- **门动画**:NPC 入场从项目房间门口(`RoomBox.doorPx`,底边中央)走到 home,LRU/归档退场走回门口再淡出,再激活从退场中恢复继续驻留 —— 已实现(非淡入淡出占位)。
+- **worktree 分组**:`project = git rev-parse --show-toplevel` 的 basename,故同一仓库的不同 worktree 落进**不同房间**,属有意行为;`cwd` 的 git 根 basename 为空(如 `/`)时回退到目录名,绝不产出无名空房间。
+- **硬删除空房间**:`removeSession` 不动 `projectOrder`(追加式、保证已存在房间不挪位),故删掉某项目最后一个会话后,该项目仍留一个空房间直到刷新页面 —— 已接受的 tradeoff,非泄漏。
 
 ## 实现分期建议(spec 全量,实现可分期)
 
