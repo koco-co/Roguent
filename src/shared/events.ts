@@ -33,6 +33,10 @@ export interface SessionCreatedPayload {
   permissionMode: string;
   apiKeySource: string;
   slashCommands: string[];
+  // 总览世界:服务端把会话 cwd + 算出的 project(git 根 basename)随会话一起下发。
+  // 可选 → replay/旧 fixture 不带也安全(spec §服务端/协议改动:均为加法)。
+  cwd?: string;
+  project?: string;
 }
 export interface AgentSpawnedPayload {
   role: string;

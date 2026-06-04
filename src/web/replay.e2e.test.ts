@@ -6,7 +6,11 @@ import { type RoomState, reduce } from "./store";
 // spawn → work → done → loot 主链路 + 对话 transcript 都被消费(spec §11)。
 test("replaying sample fixture drives room chain + transcript", async () => {
   const events = await loadFixture("fixtures/sample-run.jsonl");
-  let st: RoomState = { sessions: {}, currentSessionId: null };
+  let st: RoomState = {
+    sessions: {},
+    currentSessionId: null,
+    projectOrder: [],
+  };
   for (const e of events) st = reduce(st, e);
 
   const s = st.sessions.s1;

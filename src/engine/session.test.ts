@@ -71,3 +71,38 @@ test("session.created draft from SDK init is enriched with the user title", () =
     "code-review · kata",
   );
 });
+
+test("createSession stamps cwd + derived project onto session.created", () => {
+  const captured: { cb?: DriverCallbacks } = {};
+  // "/tmp" isn't a git repo → project falls back to the dir basename "tmp".
+  const mgr = new SessionManager(fakeDriverFactory(captured), "/tmp");
+  const got: RoomEvent[] = [];
+  mgr.subscribe((e) => got.push(e));
+
+  mgr.createSession("s1", { title: "t", model: "m" });
+  const p = got[0]?.payload as { cwd: string; project: string };
+  expect(p.cwd).toBe("/tmp");
+  expect(p.project).toBe("tmp");
+});
+
+test("deleteSession ends the driver and drops it", () => {
+  let ended = false;
+  const factory = (cb: DriverCallbacks): IDriver => {
+    void cb;
+    return {
+      start() {},
+      send() {},
+      async setModel() {},
+      async interrupt() {},
+      end() {
+        ended = true;
+      },
+    };
+  };
+  const mgr = new SessionManager(factory, "/tmp");
+  mgr.createSession("s1", { title: "t", model: "m" });
+  mgr.deleteSession("s1");
+  expect(ended).toBe(true);
+  // sending after delete is a no-op (driver gone), not a throw.
+  expect(() => mgr.sendMessage("s1", "hi")).not.toThrow();
+});

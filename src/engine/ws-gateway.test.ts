@@ -13,3 +13,36 @@ test("parseCommand accepts known commands and rejects junk", () => {
   expect(parseCommand("not json")).toBeNull();
   expect(parseCommand('{"cmd":"explode"}')).toBeNull();
 });
+
+test("parseCommand accepts newSession with an optional cwd", () => {
+  expect(
+    parseCommand(
+      '{"cmd":"newSession","sessionId":"s1","title":"t","model":"m","cwd":"/repo"}',
+    ),
+  ).toEqual({
+    cmd: "newSession",
+    sessionId: "s1",
+    title: "t",
+    model: "m",
+    cwd: "/repo",
+  });
+  // cwd omitted is fine (server defaults); a non-string cwd is rejected.
+  expect(
+    parseCommand(
+      '{"cmd":"newSession","sessionId":"s1","title":"t","model":"m"}',
+    )?.cmd,
+  ).toBe("newSession");
+  expect(
+    parseCommand(
+      '{"cmd":"newSession","sessionId":"s1","title":"t","model":"m","cwd":5}',
+    ),
+  ).toBeNull();
+});
+
+test("parseCommand accepts deleteSession", () => {
+  expect(parseCommand('{"cmd":"deleteSession","sessionId":"s1"}')).toEqual({
+    cmd: "deleteSession",
+    sessionId: "s1",
+  });
+  expect(parseCommand('{"cmd":"deleteSession"}')).toBeNull();
+});

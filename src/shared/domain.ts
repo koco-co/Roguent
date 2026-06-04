@@ -43,6 +43,14 @@ export interface Session {
   loot: Loot[];
   usage: { tokens: number; cost: number };
   createdAt: number;
+  // 总览世界(S1 最小数据,spec 2026-06-04-overworld-hub):
+  // cwd = 会话工作目录;project = 该 cwd 的 git 根 basename(房间归属键)。
+  cwd?: string;
+  project?: string;
+  // 活跃度:reducer 在 message/tool/agent 事件上 bump 为 e.ts,供 ≤10/LRU 选择。
+  lastActiveAt: number;
+  // 软归档:客户端可见性开关(driver 后台不杀),归档后移出大厅、进 ChatDrawer。
+  archived: boolean;
 }
 
 export const ORCHESTRATOR_ID = "orchestrator";
@@ -73,6 +81,8 @@ export function createSession(
     slashCommands: [],
     usage: { tokens: 0, cost: 0 },
     createdAt: 0,
+    lastActiveAt: 0,
+    archived: false,
     ...partial,
   };
 }

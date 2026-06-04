@@ -7,6 +7,9 @@ type Panel =
   | "lootOpen"
   | "infoOpen";
 
+// 双层缩放(spec §架构):总览大厅 ↔ 进入某会话的内景(复用现有 Room/Scene)。
+export type View = "overworld" | { interior: string };
+
 export interface UiState {
   drawerOpen: boolean;
   modelOpen: boolean;
@@ -14,8 +17,15 @@ export interface UiState {
   lootOpen: boolean;
   infoOpen: boolean;
   selectedAgentId: string | null;
+  // 当前选中的 NPC(总览里打开了它的信息卡的那个会话);与 selectedAgentId(内景里
+  // 选中的某个 subagent)是不同语境。
+  selectedNpcId: string | null;
+  view: View;
   toggle: (k: Panel) => void;
   select: (id: string | null) => void;
+  selectNpc: (id: string | null) => void;
+  enterInterior: (id: string) => void;
+  exitOverworld: () => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -25,6 +35,14 @@ export const useUiStore = create<UiState>((set) => ({
   lootOpen: false,
   infoOpen: false,
   selectedAgentId: null,
+  selectedNpcId: null,
+  view: "overworld",
   toggle: (k) => set((s) => ({ [k]: !s[k] }) as Partial<UiState>),
   select: (id) => set({ selectedAgentId: id }),
+  selectNpc: (id) => set({ selectedNpcId: id }),
+  // 进入会话内景:清掉总览的 NPC 选择,切到内景视图。会话焦点切换由调用方
+  // 另调 useRoomStore.switchSession(id)(两个 store 解耦)。
+  enterInterior: (id) => set({ view: { interior: id }, selectedNpcId: null }),
+  // 返回大厅:清掉内景里选中的 subagent。
+  exitOverworld: () => set({ view: "overworld", selectedAgentId: null }),
 }));
