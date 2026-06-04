@@ -160,3 +160,19 @@ test("empty input yields a valid (one slot-row tall) world with no rooms", () =>
   expect(w.tiles.every((t) => t === "void")).toBe(true);
   expect(w.walkable.every((v) => v === false)).toBe(true);
 });
+
+test("each room exposes a doorPx at the bottom-centre, inside its wander bounds", () => {
+  const w = generateWorld([
+    { id: "alpha", sessionCount: 1 },
+    { id: "beta", sessionCount: 3 },
+  ]);
+  for (const room of w.rooms) {
+    const d = room.doorPx;
+    // 门口在 NPC wander bounds 内(横向居中、纵向贴下沿)。
+    expect(d.x).toBeGreaterThanOrEqual(room.boundsPx.minX);
+    expect(d.x).toBeLessThanOrEqual(room.boundsPx.maxX);
+    expect(d.y).toBe(room.boundsPx.maxY);
+    // 门口在 anchor 下方(或同高),即朝房间「下方入口」。
+    expect(d.y).toBeGreaterThanOrEqual(room.anchorPx.y);
+  }
+});

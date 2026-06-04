@@ -27,6 +27,13 @@ export interface RoomBox {
   anchorPx: Pos;
   /** Interior floor area in px (inset by a small margin) for NPC wander clamping. */
   boundsPx: { minX: number; maxX: number; minY: number; maxY: number };
+  /**
+   * Room "doorway" anchor in px — bottom-centre of the wander area. NPCs enter
+   * by walking from here to anchorPx and leave by walking back to it (spec
+   * §生命周期: 由房门口入场 / 走出门退场 / 再激活走回). Inside boundsPx so it never
+   * lands on a wall.
+   */
+  doorPx: Pos;
 }
 
 export type TileKind = "void" | "floor" | "wall";
@@ -142,16 +149,19 @@ export function generateWorld(projects: ProjectInput[]): WorldModel {
     const interiorMinYPx = (rect.y + 1) * TILE;
     const interiorMaxXPx = (rect.x + rect.w - 1) * TILE;
     const interiorMaxYPx = (rect.y + rect.h - 1) * TILE;
+    const boundsPx = {
+      minX: interiorMinXPx + BOUNDS_MARGIN_PX,
+      minY: interiorMinYPx + BOUNDS_MARGIN_PX,
+      maxX: interiorMaxXPx - BOUNDS_MARGIN_PX,
+      maxY: interiorMaxYPx - BOUNDS_MARGIN_PX,
+    };
     return {
       projectId: p.id,
       rect,
       anchorPx,
-      boundsPx: {
-        minX: interiorMinXPx + BOUNDS_MARGIN_PX,
-        minY: interiorMinYPx + BOUNDS_MARGIN_PX,
-        maxX: interiorMaxXPx - BOUNDS_MARGIN_PX,
-        maxY: interiorMaxYPx - BOUNDS_MARGIN_PX,
-      },
+      boundsPx,
+      // 门口 = 横向居中、纵向贴 wander 区下沿。
+      doorPx: { x: anchorPx.x, y: boundsPx.maxY },
     };
   });
 
