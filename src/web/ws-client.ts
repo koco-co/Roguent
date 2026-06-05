@@ -1,15 +1,28 @@
 import type { RoomEvent } from "../shared/events";
+import type { ControlMessage } from "../shared/local-sessions";
 import { useRoomStore } from "./store";
+import { useUiStore } from "./ui-store";
 
 export function handleIncoming(
   raw: string,
   apply: (e: RoomEvent) => void,
+  onControl?: (c: ControlMessage) => void,
 ): void {
+  let parsed: unknown;
   try {
-    apply(JSON.parse(raw) as RoomEvent);
+    parsed = JSON.parse(raw);
   } catch {
-    /* ignore malformed frames */
+    return; // ignore malformed frames
   }
+  if (
+    parsed &&
+    typeof parsed === "object" &&
+    (parsed as { kind?: string }).kind === "control"
+  ) {
+    onControl?.(parsed as ControlMessage);
+    return;
+  }
+  apply(parsed as RoomEvent);
 }
 
 export interface RoomConnection {
@@ -25,6 +38,13 @@ export function sendCommand(cmd: object): void {
 
 export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
   const apply = useRoomStore.getState().applyEvent;
+  const onControl = (c: ControlMessage) => {
+    const ui = useUiStore.getState();
+    if (c.kind === "control" && c.type === "localSessions")
+      ui.setLocalSessions(c.items);
+    else if (c.kind === "control" && c.type === "importError")
+      ui.setImportError(c.reason);
+  };
   // 连接建立前发出的命令(如 newSession)先入队,onopen 后补发;
   // 断线非主动关闭则退避重连(spec §10)。
   const buffer: object[] = [];
@@ -33,7 +53,7 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
 
   const open = () => {
     ws = new WebSocket(url);
-    ws.onmessage = (ev) => handleIncoming(String(ev.data), apply);
+    ws.onmessage = (ev) => handleIncoming(String(ev.data), apply, onControl);
     ws.onopen = () => {
       for (const cmd of buffer.splice(0)) ws.send(JSON.stringify(cmd));
     };
