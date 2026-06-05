@@ -1,5 +1,8 @@
+import { basename } from "node:path";
 import { type WebSocket, WebSocketServer } from "ws";
 import type { RoomEvent } from "../shared/events";
+import type { ControlMessage } from "../shared/local-sessions";
+import { listLocalSessions } from "./local-sessions";
 import type { SessionManager } from "./session";
 
 export type Command =
@@ -13,7 +16,10 @@ export type Command =
   | { cmd: "sendMessage"; sessionId: string; text: string }
   | { cmd: "setModel"; sessionId: string; model: string }
   | { cmd: "interrupt"; sessionId: string }
-  | { cmd: "deleteSession"; sessionId: string };
+  | { cmd: "deleteSession"; sessionId: string }
+  | { cmd: "listLocalSessions" }
+  | { cmd: "importSession"; path: string; speed?: number }
+  | { cmd: "setReplaySpeed"; sessionId: string; speed: number };
 
 export function parseCommand(raw: string): Command | null {
   let o: Record<string, unknown>;
@@ -43,6 +49,17 @@ export function parseCommand(raw: string): Command | null {
       return typeof o.sessionId === "string" ? (o as Command) : null;
     case "deleteSession":
       return typeof o.sessionId === "string" ? (o as Command) : null;
+    case "listLocalSessions":
+      return { cmd: "listLocalSessions" };
+    case "importSession":
+      return typeof o.path === "string" &&
+        (o.speed === undefined || typeof o.speed === "number")
+        ? (o as Command)
+        : null;
+    case "setReplaySpeed":
+      return typeof o.sessionId === "string" && typeof o.speed === "number"
+        ? (o as Command)
+        : null;
     default:
       return null;
   }
@@ -51,6 +68,7 @@ export function parseCommand(raw: string): Command | null {
 export class WsGateway {
   private wss: WebSocketServer;
   private clients = new Set<WebSocket>();
+  private importSeq = 0;
 
   constructor(
     port: number,
@@ -66,7 +84,7 @@ export class WsGateway {
     }
     this.wss.on("connection", (ws) => {
       this.clients.add(ws);
-      ws.on("message", (data) => this.onCommand(String(data)));
+      ws.on("message", (data) => void this.onCommand(String(data), ws));
       ws.on("close", () => this.clients.delete(ws));
     });
     mgr.subscribe((e) => this.broadcast(e));
@@ -77,7 +95,7 @@ export class WsGateway {
     for (const ws of this.clients) if (ws.readyState === ws.OPEN) ws.send(msg);
   }
 
-  private onCommand(raw: string): void {
+  private async onCommand(raw: string, ws: WebSocket): Promise<void> {
     const c = parseCommand(raw);
     if (!c) return;
     if (c.cmd === "newSession")
@@ -90,5 +108,29 @@ export class WsGateway {
     else if (c.cmd === "setModel") void this.mgr.setModel(c.sessionId, c.model);
     else if (c.cmd === "interrupt") void this.mgr.interrupt(c.sessionId);
     else if (c.cmd === "deleteSession") this.mgr.deleteSession(c.sessionId);
+    else if (c.cmd === "listLocalSessions")
+      this.reply(ws, {
+        kind: "control",
+        type: "localSessions",
+        items: listLocalSessions(),
+      });
+    else if (c.cmd === "importSession") {
+      const id = `${basename(c.path, ".jsonl")}#imp${++this.importSeq}`;
+      try {
+        await this.mgr.importSession(id, c.path, c.speed ?? 1);
+      } catch (e) {
+        this.reply(ws, {
+          kind: "control",
+          type: "importError",
+          path: c.path,
+          reason: e instanceof Error ? e.message : String(e),
+        });
+      }
+    } else if (c.cmd === "setReplaySpeed")
+      this.mgr.setReplaySpeed(c.sessionId, c.speed);
+  }
+
+  private reply(ws: WebSocket, msg: ControlMessage): void {
+    if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
   }
 }
