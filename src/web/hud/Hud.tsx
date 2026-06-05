@@ -12,6 +12,7 @@ import { Minimap } from "./Minimap";
 import { ModelPicker } from "./ModelPicker";
 import { RosterCard } from "./RosterCard";
 import { SessionBanner } from "./SessionBanner";
+import { Settings } from "./Settings";
 import { Skills } from "./Skills";
 import { TaskWindow } from "./TaskWindow";
 import { Tasks } from "./Tasks";
@@ -58,6 +59,8 @@ export function Hud() {
       <About />
       {/* 共享任务面板(整面板 mock 占位,自带 activePanel gate)*/}
       <Tasks />
+      {/* 设置(CONFIG)面板(整面板 mock 占位,自带 activePanel gate)*/}
+      <Settings />
     </>
   );
 }
