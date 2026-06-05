@@ -179,8 +179,47 @@ test("plain tool_use → tool.started; ok result → tool.ended; is_error → to
     (started?.payload as { toolName: string; toolUseId: string }).toolName,
   ).toBe("Edit");
   expect((started?.payload as { toolUseId: string }).toolUseId).toBe("e1");
-  expect(out.find((d) => d.type === "tool.ended")?.type).toBe("tool.ended");
-  expect(out.find((d) => d.type === "tool.failed")?.type).toBe("tool.failed");
+  const ended = out.find((d) => d.type === "tool.ended");
+  expect((ended?.payload as { toolUseId: string; ok: boolean }).toolUseId).toBe(
+    "e1",
+  );
+  expect((ended?.payload as { ok: boolean }).ok).toBe(true);
+  const failed = out.find((d) => d.type === "tool.failed");
+  expect(
+    (failed?.payload as { toolUseId: string; ok: boolean }).toolUseId,
+  ).toBe("b1");
+  expect((failed?.payload as { ok: boolean }).ok).toBe(false);
+});
+
+test("Task tool_use (the other subagent name) also → agent.spawned", () => {
+  const lines = [
+    {
+      type: "user",
+      timestamp: T,
+      cwd: "/w",
+      sessionId: "s",
+      message: { role: "user", content: "go" },
+    },
+    {
+      type: "assistant",
+      timestamp: T2,
+      message: {
+        role: "assistant",
+        content: [
+          {
+            type: "tool_use",
+            id: "tk1",
+            name: "Task",
+            input: { description: "do work" },
+          },
+        ],
+      },
+    },
+  ];
+  const out = normalizeTranscript(lines);
+  const spawned = out.find((d) => d.type === "agent.spawned");
+  expect(spawned?.agentId).toBe("tk1");
+  expect((spawned?.payload as { role: string }).role).toBe("agent"); // no subagent_type → default
 });
 
 test("malformed lines are skipped, not thrown", () => {

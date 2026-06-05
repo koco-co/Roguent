@@ -92,6 +92,7 @@ export function normalizeTranscript(input: unknown[]): TimedDraft[] {
       } else if (b.type === "tool_use" && b.id) {
         if (SUBAGENT_TOOLS.has(b.name ?? "")) {
           subagentIds.add(b.id);
+          // Real CC Task/Agent inputs may omit subagent_type (only description/prompt present); fall back to generic "agent" — affects dungeon skin only, not correctness.
           const role = (b.input?.subagent_type as string) ?? "agent";
           const prompt =
             (b.input?.description as string) ??
