@@ -877,6 +877,182 @@ img {
   cursor: not-allowed;
 }
 
+/* ── 左下小地图(Minimap,移植自原型 layout.css 的 .minimap/.mm-*)──────── */
+/* 原型在 .hud-bl 容器内无定位;我们自带绝对定位落左下角 */
+.minimap {
+  position: absolute;
+  bottom: 14px;
+  left: 12px;
+  width: 200px;
+}
+.mm-body {
+  padding: 10px 12px;
+}
+.mm-h {
+  font-size: 9px;
+  color: var(--ink-dim);
+  margin-bottom: 6px;
+}
+.mm-grid {
+  position: relative;
+  height: 108px;
+  background: rgba(11, 10, 18, 0.5);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.04) 1px,
+      transparent 1px
+    ), linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.mm-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1px #000;
+}
+.mm-dot.sel {
+  box-shadow: 0 0 0 1px #000, 0 0 6px var(--gold);
+  width: 10px;
+  height: 10px;
+}
+
+/* ── 玻璃质感(移植自原型 layout.css 的 .glass,供 TaskWindow 用)──────── */
+.glass {
+  background: linear-gradient(
+    160deg,
+    rgba(34, 74, 86, 0.42),
+    rgba(11, 20, 26, 0.62)
+  );
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  box-shadow: 0 0 0 2px rgba(54, 197, 224, 0.35), inset 0 0 0 1px
+    rgba(160, 230, 245, 0.18), inset 0 18px 30px rgba(120, 210, 235, 0.06), 0
+    6px 18px rgba(0, 0, 0, 0.4);
+}
+
+/* ── 内景实时任务窗(TaskWindow,移植自原型 layout.css 的 .taskwin/.tw-*)── */
+/* 接左栈(ViewSwitch top:314 下方);自带绝对定位 */
+.taskwin {
+  position: absolute;
+  top: 366px;
+  left: 12px;
+  width: 312px;
+  pointer-events: auto;
+}
+.tw-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 13px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(120, 200, 225, 0.18);
+}
+.tw-title {
+  font-size: 10px;
+  color: #bfeaf5;
+  flex: 1;
+  text-align: left;
+  text-shadow: 0 0 6px rgba(54, 197, 224, 0.5);
+}
+.tw-count {
+  font-family: var(--font-px);
+  font-size: 9px;
+  color: var(--cyan);
+}
+.tw-mock {
+  font-size: 8px;
+  color: var(--gold);
+  background: rgba(11, 10, 18, 0.6);
+  padding: 1px 4px;
+  box-shadow: 0 0 0 1px #000;
+}
+.tw-chev {
+  color: #bfeaf5;
+  font-size: 12px;
+  width: 14px;
+  text-align: center;
+}
+.taskwin.collapsed .tw-head {
+  border-bottom: 0;
+}
+/* 原型 max-height:300;我们左栈是固定定位(非 flex),为不与左下 Minimap 在矮视口重叠,收到 220 + scroll */
+.tw-body {
+  max-height: 220px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.tw-item {
+  cursor: pointer;
+  text-align: left;
+}
+.tw-item:hover .tw-name {
+  color: #fff;
+}
+.tw-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 5px;
+}
+.tw-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+.tw-name {
+  font-size: 12px;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.tw-bar {
+  height: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+.tw-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  transition: width 0.5s;
+}
+.tw-fill.live::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.5),
+    transparent
+  );
+  animation: twshimmer 1.5s linear infinite;
+}
+@keyframes twshimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(220%);
+  }
+}
+.tw-foot {
+  display: flex;
+  justify-content: space-between;
+  padding: 9px 13px;
+  font-size: 11px;
+  border-top: 1px solid rgba(120, 200, 225, 0.18);
+}
+
 /* text-color utilities */
 .dim {
   color: var(--ink-dim);
