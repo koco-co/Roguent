@@ -1,7 +1,10 @@
-import type { RoomEvent } from "../shared/events";
+import type { RoomEvent, SessionCreatedPayload } from "../shared/events";
 import { Driver, type DriverCallbacks, type IDriver } from "./driver";
+import { type ReplayDeps, Replayer } from "./import";
+import { readTranscriptLines } from "./local-sessions";
 import { projectFor } from "./project";
 import { Sequencer } from "./sequencer";
+import { normalizeTranscript } from "./transcript";
 
 export type DriverFactory = (
   cb: DriverCallbacks,
@@ -16,6 +19,7 @@ const defaultFactory: DriverFactory = (cb, model, cwd) =>
 export class SessionManager {
   private seq = new Sequencer();
   private drivers = new Map<string, IDriver>();
+  private replayers = new Map<string, Replayer>();
   private sinks = new Set<EventSink>();
 
   constructor(
@@ -86,6 +90,37 @@ export class SessionManager {
 
   sendMessage(id: string, text: string): void {
     this.drivers.get(id)?.send(text);
+  }
+
+  // 第三个事件来源:导入本地 CC transcript,零额度压缩回放。不建 Driver,
+  // 走 Replayer 计时发事件,seq 与 LIVE 会话同享 Sequencer。
+  async importSession(
+    id: string,
+    path: string,
+    speed: number,
+    deps?: Pick<ReplayDeps, "sleep">,
+  ): Promise<void> {
+    const drafts = normalizeTranscript(readTranscriptLines(path));
+    if (drafts.length === 0) return;
+    const created = drafts[0]!.payload as SessionCreatedPayload;
+    const cwd = created.cwd?.trim() || this.cwd;
+    const project = projectFor(cwd);
+    const replayer = new Replayer(drafts, speed, {
+      sleep: deps?.sleep,
+      emit: (d) => {
+        const payload =
+          d.type === "session.created"
+            ? { ...(d.payload as Record<string, unknown>), cwd, project }
+            : d.payload;
+        this.emit(this.seq.stamp(id, d.type, payload, d.ts, d.agentId));
+      },
+    });
+    this.replayers.set(id, replayer);
+    await replayer.run();
+  }
+
+  setReplaySpeed(id: string, speed: number): void {
+    this.replayers.get(id)?.setSpeed(speed);
   }
 
   // 硬删除:停掉 driver 并丢弃。归档是纯客户端可见性、driver 后台不杀(spec);
