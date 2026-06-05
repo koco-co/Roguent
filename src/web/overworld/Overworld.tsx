@@ -23,12 +23,15 @@ import {
   atlasErrorText,
   loadAtlas,
   resetAtlas,
+  tex,
+  useAtlas,
 } from "../room/atlas";
 import { TILE } from "../room/config";
 import type { Pos } from "../room/layout";
 import type { Bounds } from "../room/motion";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
+import { LobbyLights } from "./LobbyLights";
 import { Player } from "./Player";
 import { type NpcMotionMap, SessionNpc } from "./SessionNpc";
 import { WorldTilemap } from "./WorldTilemap";
@@ -72,6 +75,38 @@ interface NpcActor {
   leaving: boolean;
 }
 
+/**
+ * Static fountain landmark marking the Hub centre. A 3-tile vertical stack
+ * (top + mid + basin) anchored on hub.anchorPx, so the player spawns next to a
+ * recognisable plaza feature. Minimal static implementation — frames are the
+ * confirmed-present 0x72 fountain sprites; a true animation can come later.
+ */
+function HubFountain({ anchor }: { anchor: Pos }) {
+  const sheet = useAtlas();
+  // anchor is the interior-centre px; stack the 3 tiles so the basin sits at it.
+  const cx = anchor.x - TILE / 2; // sprites draw from top-left
+  const cy = anchor.y - TILE / 2;
+  return (
+    <pixiContainer>
+      <pixiSprite
+        texture={tex(sheet, "wall_fountain_top_2")}
+        x={cx}
+        y={cy - 2 * TILE}
+      />
+      <pixiSprite
+        texture={tex(sheet, "wall_fountain_mid_blue_anim_f0")}
+        x={cx}
+        y={cy - TILE}
+      />
+      <pixiSprite
+        texture={tex(sheet, "wall_fountain_basin_blue_anim_f0")}
+        x={cx}
+        y={cy}
+      />
+    </pixiContainer>
+  );
+}
+
 function OverworldScene({ view }: { view: { w: number; h: number } }) {
   const sessions = useRoomStore((s) => s.sessions);
   const projectOrder = useRoomStore((s) => s.projectOrder);
@@ -112,14 +147,9 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
     return m;
   }, [world]);
 
-  const spawn: Pos = useMemo(
-    () =>
-      world.rooms[0]?.anchorPx ?? {
-        x: world.widthPx / 2,
-        y: world.heightPx / 2,
-      },
-    [world],
-  );
+  // Spawn at the central Hub plaza — always present, so the player never spawns
+  // into empty void even with zero projects.
+  const spawn: Pos = useMemo(() => ({ ...world.hub.anchorPx }), [world]);
 
   // Desired NPC descriptor (hero/home/bounds) per active session id.
   const desired = useMemo(() => {
@@ -296,6 +326,7 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
         onPointerTap={onTap}
       >
         <WorldTilemap world={world} />
+        <HubFountain anchor={world.hub.anchorPx} />
         {actors.map((a) => {
           const s = sessions[a.id];
           return (
@@ -317,8 +348,9 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
             />
           );
         })}
+        <LobbyLights world={world} />
         <Player
-          key={world.rooms.length > 0 ? "live" : "empty"}
+          key="player"
           world={world}
           spawn={spawn}
           playerPosRef={playerPosRef}
