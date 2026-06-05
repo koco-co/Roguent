@@ -1,7 +1,9 @@
 import { WebSocketServer } from "ws";
+import { readOauthCredentials } from "./credentials";
 import { resolvePort } from "./port";
 import { loadFixture, replayTimed } from "./record";
 import { SessionManager } from "./session";
+import { UsagePoller, defaultFetchUsage } from "./usage-poller";
 import { WsGateway } from "./ws-gateway";
 
 const port = resolvePort(process.env);
@@ -34,6 +36,16 @@ if (replayFixture) {
   });
 } else {
   const mgr = new SessionManager();
-  new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`));
+  const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`));
+  const poller = new UsagePoller({
+    readCredentials: () => readOauthCredentials(),
+    fetchUsage: defaultFetchUsage,
+    onLimits: (limits) => gateway.pushLimits(limits),
+    baseUrl:
+      process.env.ANTHROPIC_BASE_URL ??
+      process.env.ANTHROPIC_API_BASE_URL ??
+      "",
+  });
+  poller.start();
   console.log("[server] LIVE");
 }
