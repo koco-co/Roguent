@@ -62,3 +62,35 @@ test("offset never reveals past the world edges for an interior focus", () => {
   expect(off.x).toBe(view.w / 2 - focus.x);
   expect(off.y).toBe(view.h / 2 - focus.y);
 });
+
+test("scale 把世界放大后仍居中聚焦点", () => {
+  // world 100×80,scale 2 → 缩放后 200×160,均小于 view(800×600) → 两轴居中。
+  const tiny = { w: 100, h: 80 };
+  const off = cameraOffset({ x: 50, y: 40 }, view, tiny, 2);
+  expect(off.x).toBe((view.w - tiny.w * 2) / 2);
+  expect(off.y).toBe((view.h - tiny.h * 2) / 2);
+});
+
+test("scale 让世界超出视口时跟随并夹边", () => {
+  // world 500×400,scale 3 → 1500×1200 > view → 跟随。focus 在缩放世界中点。
+  const w = { w: 500, h: 400 };
+  const focus = { x: 250, y: 200 };
+  const off = cameraOffset(focus, view, w, 3);
+  // 缩放后聚焦点落屏幕中央:off + scale*focus === view/2。
+  expect(off.x + focus.x * 3).toBe(view.w / 2);
+  expect(off.y + focus.y * 3).toBe(view.h / 2);
+});
+
+test("scale 下夹到 view - scale*world(右/下边不露白)", () => {
+  const w = { w: 500, h: 400 };
+  const off = cameraOffset({ x: w.w, y: w.h }, view, w, 3);
+  expect(off.x).toBe(view.w - w.w * 3);
+  expect(off.y).toBe(view.h - w.h * 3);
+});
+
+test("默认 scale=1 与旧行为一致(回归保护)", () => {
+  const focus = { x: world.w / 2, y: world.h / 2 };
+  expect(cameraOffset(focus, view, world)).toEqual(
+    cameraOffset(focus, view, world, 1),
+  );
+});

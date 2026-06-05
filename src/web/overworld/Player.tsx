@@ -16,6 +16,7 @@ import { cameraOffset } from "./camera";
 import type { Tile } from "./pathfind";
 import { PLAYER_HERO } from "./skins";
 import type { WorldModel } from "./worldgen";
+import { lobbyZoom } from "./zoom";
 
 const SPEED = 1.15; // px per frame (a touch quicker than wandering NPCs)
 const ARRIVE = 1.5;
@@ -160,14 +161,21 @@ export function Player({
       }
       sprite.animationSpeed = nowMoving ? 0.22 : 0.12;
 
-      // Camera follows the player, clamped to the world edges.
+      // Camera follows the player at an integer zoom, clamped to world edges.
       const wr = worldRootRef.current;
       const view = viewRef.current;
       if (wr && view) {
-        const off = cameraOffset(pos.current, view, {
-          w: w.widthPx,
-          h: w.heightPx,
-        });
+        const z = lobbyZoom(view);
+        wr.scale.set(z);
+        const off = cameraOffset(
+          pos.current,
+          view,
+          {
+            w: w.widthPx,
+            h: w.heightPx,
+          },
+          z,
+        );
         wr.position.set(off.x, off.y);
       }
     },
