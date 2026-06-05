@@ -2137,3 +2137,46 @@ img {
   color: var(--ink-dim);
   text-align: center;
 }
+
+/* ── MODEL PANEL ────────────────────────────────────────────
+   源自原型 layout.css 第 312~317 行(ModelPanel 竖排模型卡)。
+   .model-card 在本项目是 <button>(无障碍),故补 button reset
+   (border/width/text-align/font),参考 .set-navitem/.shop-cat。
+   这些类无 var(--ink) 文本,无需 --ink→--text 转换。 */
+.model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.model-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(11, 10, 18, 0.45);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  padding: 16px;
+  cursor: pointer;
+  transition: filter 0.1s;
+  /* button reset */
+  border: 0;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.model-card:hover {
+  filter: brightness(1.12);
+}
+.model-card.sel {
+  box-shadow: inset 0 0 0 2px var(--ac);
+}
+.model-ic {
+  width: 56px;
+  height: 56px;
+  background: rgba(0, 0, 0, 0.3);
+  display: grid;
+  place-items: center;
+}
+.model-meta {
+  flex: 1;
+}

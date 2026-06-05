@@ -5,17 +5,24 @@ import { Icon, type IconName } from "./icons";
 // 仅内景显示(组件内 view!=='overworld' gate)。
 //
 // 接线说明(过渡期混合接线):
-// - 剩余 3 个面板仍走布尔标志(T3.x 各面板迁到单一路由后统一):
-//   chat→drawerOpen、model→modelOpen、import→importOpen;lit = 对应布尔。
-// - skills / tasks / shop / leaderboard / backpack 走 openPanel(单一路由);
-//   skills(T3.3)、leaderboard(T3.4)、backpack(T3.7)已迁,lit = activePanel === id。
+// - 剩余 2 个面板仍走布尔标志(T3.x 各面板迁到单一路由后统一):
+//   chat→drawerOpen、import→importOpen;lit = 对应布尔。
+// - skills / tasks / shop / leaderboard / backpack / model 走 openPanel(单一路由);
+//   skills(T3.3)、leaderboard(T3.4)、backpack(T3.7)、model(T3.9)已迁,
+//   lit = activePanel === id。
 // - badge 角标:暂无真实徽标数据 → 不渲染(不造假);保留 .badge 渲染能力(badge?: number)
 //   以便引擎补齐后接入。
 
 // 走布尔标志的槽(过渡期遗留)。
-type FlagKey = "drawerOpen" | "modelOpen" | "importOpen";
+type FlagKey = "drawerOpen" | "importOpen";
 // 走单一路由 openPanel 的槽。
-type RoutePanel = "tasks" | "shop" | "skills" | "leaderboard" | "backpack";
+type RoutePanel =
+  | "tasks"
+  | "shop"
+  | "skills"
+  | "leaderboard"
+  | "backpack"
+  | "model";
 
 type FlagSlot = { kind: "flag"; icon: IconName; flag: FlagKey; label: string };
 type RouteSlot = {
@@ -31,7 +38,7 @@ const GROUP1: Slot[] = [
   { kind: "route", icon: "spellbook", panel: "skills", label: "技能" },
   { kind: "route", icon: "pouch", panel: "backpack", label: "背包" },
   { kind: "flag", icon: "chat", flag: "drawerOpen", label: "聊天" },
-  { kind: "flag", icon: "crystal", flag: "modelOpen", label: "模型" },
+  { kind: "route", icon: "crystal", panel: "model", label: "模型" },
   { kind: "flag", icon: "import", flag: "importOpen", label: "导入" },
 ];
 // g2:任务 / 商店 / 排行榜(对标原型 hotbar g2)。
@@ -74,7 +81,6 @@ export function Hotbar() {
   const inInterior = useUiStore((s) => s.view !== "overworld");
   // 订阅各布尔标志 + 路由当前面板,用于 lit 态。
   const drawerOpen = useUiStore((s) => s.drawerOpen);
-  const modelOpen = useUiStore((s) => s.modelOpen);
   const importOpen = useUiStore((s) => s.importOpen);
   const activePanel = useUiStore((s) => s.activePanel);
   const toggle = useUiStore((s) => s.toggle);
@@ -85,7 +91,6 @@ export function Hotbar() {
   // 布尔标志当前值查表(用于 lit)。
   const flagValue: Record<FlagKey, boolean> = {
     drawerOpen,
-    modelOpen,
     importOpen,
   };
 
