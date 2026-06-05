@@ -5,6 +5,12 @@ import { useUiStore } from "../ui-store";
 import { HeroPortrait } from "./HeroPortrait";
 import { Icon, type IconName } from "./icons";
 
+// Stable empty ref: a zustand selector must NOT build a fresh value each call
+// (Object.values / [] / {}), or useSyncExternalStore sees a new snapshot every
+// render → "getSnapshot should be cached" infinite loop. Select the stable
+// agents map (or this constant) and derive the array in render. See LootPanel.
+const EMPTY_AGENTS: Record<string, Agent> = {};
+
 // alert 角标:对标原型 RosterCard 的 status→icon 规则。
 // 原型有 'askuser' / 'todo' 两种状态,引擎暂未产出(我们的 AgentStatus 只有
 // spawning/thinking/working/idle/done),故仅保留映射占位、待引擎补齐;当前没有
@@ -70,14 +76,16 @@ export function RosterCard() {
   const inInterior = useUiStore((s) => s.view !== "overworld");
   const select = useUiStore((s) => s.select);
   const selectedId = useUiStore((s) => s.selectedAgentId);
-  const agents = useRoomStore((s) => {
-    const sess = s.currentSessionId
-      ? s.sessions[s.currentSessionId]
-      : undefined;
-    return sess ? Object.values(sess.agents) : [];
-  });
+  // Select the stable agents map (never a fresh array) — see EMPTY_AGENTS note.
+  const agentsMap = useRoomStore((s) =>
+    s.currentSessionId
+      ? (s.sessions[s.currentSessionId]?.agents ?? EMPTY_AGENTS)
+      : EMPTY_AGENTS,
+  );
 
   if (!inInterior) return null;
+
+  const agents = Object.values(agentsMap);
 
   return (
     <div className="panel roster">
