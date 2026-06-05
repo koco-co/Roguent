@@ -1,11 +1,11 @@
 import { useEffect } from "react";
-import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
 
-const SPEEDS = [1, 2, 4];
-
-/** 导入本地 Claude Code 会话历史:列出 ~/.claude/projects 下的会话,选中后零额度压缩回放。 */
+/**
+ * 导入本地 Claude Code 会话历史:列出 ~/.claude/projects 下的会话,
+ * 点一条即把整段对话(用户 + 助手轮次)零额度同步进聊天抽屉——「云存档同步」式回看。
+ */
 export function ImportPanel() {
   const open = useUiStore((s) => s.importOpen);
   const items = useUiStore((s) => s.localSessions);
@@ -49,9 +49,7 @@ export function ImportPanel() {
               textAlign: "left",
               cursor: "pointer",
             }}
-            onClick={() =>
-              sendCommand({ cmd: "importSession", path: m.path, speed: 1 })
-            }
+            onClick={() => sendCommand({ cmd: "importSession", path: m.path })}
           >
             <div style={{ fontSize: 11, color: "var(--cyan)" }}>
               {m.project}
@@ -65,30 +63,6 @@ export function ImportPanel() {
           </button>
         ))
       )}
-      <div
-        style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 8 }}
-      >
-        <span style={{ color: "var(--muted)", fontSize: 11 }}>速度</span>
-        {SPEEDS.map((sp) => (
-          <button
-            key={sp}
-            type="button"
-            className="px-btn"
-            style={{ cursor: "pointer", fontSize: 11, padding: "2px 6px" }}
-            onClick={() => {
-              const id = useRoomStore.getState().currentSessionId;
-              if (id)
-                sendCommand({
-                  cmd: "setReplaySpeed",
-                  sessionId: id,
-                  speed: sp,
-                });
-            }}
-          >
-            {sp}x
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

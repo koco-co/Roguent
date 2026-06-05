@@ -78,15 +78,48 @@ export function normalizeTranscript(input: unknown[]): TimedDraft[] {
     const ts = tsOf(l, prev);
     prev = ts;
 
-    if (l.type === "assistant" && typeof l.message?.content === "string")
-      continue;
+    // 用户轮次(人类提问):content 可能是纯字符串,也可能是含 text 块的数组。
+    // 把它作为 role:"user" 的消息发出,让导入的会话历史在聊天抽屉里完整重现。
+    // 注意:user 行里的 tool_result 块不是人类发言,仍交由下方统一处理(→ tool.ended/agent.done)。
+    if (l.type === "user") {
+      const c = l.message?.content;
+      const userText =
+        typeof c === "string"
+          ? c
+          : blocks(l)
+              .filter((b) => b.type === "text" && b.text)
+              .map((b) => b.text)
+              .join("");
+      if (userText) {
+        out.push({
+          type: "message.delta",
+          payload: { text: userText, role: "user" },
+          ts,
+        });
+      }
+    }
 
-    for (const b of blocks(l)) {
-      if (b.type === "text" && b.text) {
+    // 助手纯字符串内容(少见,如压缩摘要)也作为助手文本发出。
+    if (l.type === "assistant" && typeof l.message?.content === "string") {
+      if (l.message.content) {
         out.push({
           type: "message.delta",
           agentId: ORCHESTRATOR_ID,
-          payload: { text: b.text },
+          payload: { text: l.message.content, role: "assistant" },
+          ts,
+        });
+      }
+      continue;
+    }
+
+    for (const b of blocks(l)) {
+      if (b.type === "text" && b.text) {
+        // 用户行的 text 块已在上面作为 user 消息发过,这里只发助手文本。
+        if (l.type === "user") continue;
+        out.push({
+          type: "message.delta",
+          agentId: ORCHESTRATOR_ID,
+          payload: { text: b.text, role: "assistant" },
           ts,
         });
       } else if (b.type === "tool_use" && b.id) {

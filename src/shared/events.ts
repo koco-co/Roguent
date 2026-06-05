@@ -62,6 +62,9 @@ export interface LootPayload {
 }
 export interface MessagePayload {
   text: string;
+  // 说话方:导入历史会话时,用户轮次与助手轮次都进聊天抽屉。
+  // 可选 → LIVE/REPLAY 的助手 delta 不带则默认 "assistant"(向后兼容)。
+  role?: "user" | "assistant";
 }
 export interface SessionErrorPayload {
   message: string;

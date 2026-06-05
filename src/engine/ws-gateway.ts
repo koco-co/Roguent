@@ -18,8 +18,7 @@ export type Command =
   | { cmd: "interrupt"; sessionId: string }
   | { cmd: "deleteSession"; sessionId: string }
   | { cmd: "listLocalSessions" }
-  | { cmd: "importSession"; path: string; speed?: number }
-  | { cmd: "setReplaySpeed"; sessionId: string; speed: number };
+  | { cmd: "importSession"; path: string };
 
 export function parseCommand(raw: string): Command | null {
   let o: Record<string, unknown>;
@@ -52,14 +51,7 @@ export function parseCommand(raw: string): Command | null {
     case "listLocalSessions":
       return { cmd: "listLocalSessions" };
     case "importSession":
-      return typeof o.path === "string" &&
-        (o.speed === undefined || typeof o.speed === "number")
-        ? (o as Command)
-        : null;
-    case "setReplaySpeed":
-      return typeof o.sessionId === "string" && typeof o.speed === "number"
-        ? (o as Command)
-        : null;
+      return typeof o.path === "string" ? (o as Command) : null;
     default:
       return null;
   }
@@ -95,7 +87,7 @@ export class WsGateway {
     for (const ws of this.clients) if (ws.readyState === ws.OPEN) ws.send(msg);
   }
 
-  private async onCommand(raw: string, ws: WebSocket): Promise<void> {
+  private onCommand(raw: string, ws: WebSocket): void {
     const c = parseCommand(raw);
     if (!c) return;
     if (c.cmd === "newSession")
@@ -117,7 +109,7 @@ export class WsGateway {
     else if (c.cmd === "importSession") {
       const id = `${basename(c.path, ".jsonl")}#imp${++this.importSeq}`;
       try {
-        await this.mgr.importSession(id, c.path, c.speed ?? 1);
+        this.mgr.importSession(id, c.path);
       } catch (e) {
         this.reply(ws, {
           kind: "control",
@@ -126,8 +118,7 @@ export class WsGateway {
           reason: e instanceof Error ? e.message : String(e),
         });
       }
-    } else if (c.cmd === "setReplaySpeed")
-      this.mgr.setReplaySpeed(c.sessionId, c.speed);
+    }
   }
 
   private reply(ws: WebSocket, msg: ControlMessage): void {

@@ -56,9 +56,85 @@ test("assistant text → message.delta on the orchestrator", () => {
     },
   ];
   const out = normalizeTranscript(lines);
-  const delta = out.find((d) => d.type === "message.delta");
+  const delta = out.find(
+    (d) =>
+      d.type === "message.delta" &&
+      (d.payload as { role?: string }).role === "assistant",
+  );
   expect(delta?.agentId).toBe(ORCHESTRATOR_ID);
   expect((delta?.payload as { text: string }).text).toBe("开工");
+});
+
+test("user prompt (string content) → message.delta with role:user, no agentId", () => {
+  const lines = [
+    {
+      type: "user",
+      timestamp: T,
+      cwd: "/w",
+      sessionId: "s",
+      message: { role: "user", content: "复核并发改动" },
+    },
+    {
+      type: "assistant",
+      timestamp: T2,
+      message: { role: "assistant", content: [{ type: "text", text: "好的" }] },
+    },
+  ];
+  const out = normalizeTranscript(lines);
+  const userDelta = out.find(
+    (d) =>
+      d.type === "message.delta" &&
+      (d.payload as { role?: string }).role === "user",
+  );
+  expect(userDelta).toBeDefined();
+  expect((userDelta?.payload as { text: string }).text).toBe("复核并发改动");
+  expect(userDelta?.agentId).toBeUndefined();
+});
+
+test("user line carrying only tool_result is not a user message (it's tool output)", () => {
+  const lines = [
+    {
+      type: "user",
+      timestamp: T,
+      cwd: "/w",
+      sessionId: "s",
+      message: { role: "user", content: "go" },
+    },
+    {
+      type: "assistant",
+      timestamp: T2,
+      message: {
+        role: "assistant",
+        content: [
+          {
+            type: "tool_use",
+            id: "e1",
+            name: "Edit",
+            input: { file_path: "x" },
+          },
+        ],
+      },
+    },
+    {
+      type: "user",
+      timestamp: T2,
+      message: {
+        role: "user",
+        content: [{ type: "tool_result", tool_use_id: "e1", content: "ok" }],
+      },
+    },
+  ];
+  const out = normalizeTranscript(lines);
+  // 只有第一条人类提问 "go" 算 user 消息;tool_result 那条不算。
+  const userDeltas = out.filter(
+    (d) =>
+      d.type === "message.delta" &&
+      (d.payload as { role?: string }).role === "user",
+  );
+  expect(userDeltas).toHaveLength(1);
+  expect((userDeltas[0]?.payload as { text: string }).text).toBe("go");
+  // tool_result 仍正常落成 tool.ended。
+  expect(out.some((d) => d.type === "tool.ended")).toBe(true);
 });
 
 test("Agent tool_use → agent.spawned; its tool_result → agent.done", () => {

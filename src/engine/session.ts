@@ -1,6 +1,5 @@
 import type { RoomEvent, SessionCreatedPayload } from "../shared/events";
 import { Driver, type DriverCallbacks, type IDriver } from "./driver";
-import { type ReplayDeps, Replayer } from "./import";
 import { readTranscriptLines } from "./local-sessions";
 import { projectFor } from "./project";
 import { Sequencer } from "./sequencer";
@@ -19,7 +18,6 @@ const defaultFactory: DriverFactory = (cb, model, cwd) =>
 export class SessionManager {
   private seq = new Sequencer();
   private drivers = new Map<string, IDriver>();
-  private replayers = new Map<string, Replayer>();
   private sinks = new Set<EventSink>();
 
   constructor(
@@ -92,14 +90,10 @@ export class SessionManager {
     this.drivers.get(id)?.send(text);
   }
 
-  // 第三个事件来源:导入本地 CC transcript,零额度压缩回放。不建 Driver,
-  // 走 Replayer 计时发事件,seq 与 LIVE 会话同享 Sequencer。
-  async importSession(
-    id: string,
-    path: string,
-    speed: number,
-    deps?: Pick<ReplayDeps, "sleep">,
-  ): Promise<void> {
+  // 第三个事件来源:导入本地 CC transcript,零额度同步。不建 Driver,把整段
+  // 会话历史(含用户轮次)瞬时折成事件灌进聊天抽屉——「云存档同步」式回看,
+  // 不做计时回放。seq 与 LIVE 会话同享 Sequencer。
+  importSession(id: string, path: string): void {
     const lines = readTranscriptLines(path);
     // 文件不存在 / 读不出 / 空 → 抛错,让 WsGateway 的 try/catch 回 importError(spec §4)。
     if (lines.length === 0) throw new Error("transcript empty or unreadable");
@@ -109,31 +103,18 @@ export class SessionManager {
     const created = drafts[0]!.payload as SessionCreatedPayload;
     const cwd = created.cwd?.trim() || this.cwd;
     const project = projectFor(cwd);
-    this.replayers.get(id)?.cancel();
-    const replayer = new Replayer(drafts, speed, {
-      sleep: deps?.sleep,
-      emit: (d) => {
-        const payload =
-          d.type === "session.created"
-            ? { ...(d.payload as Record<string, unknown>), cwd, project }
-            : d.payload;
-        this.emit(this.seq.stamp(id, d.type, payload, d.ts, d.agentId));
-      },
-    });
-    this.replayers.set(id, replayer);
-    await replayer.run();
-    if (this.replayers.get(id) === replayer) this.replayers.delete(id);
-  }
-
-  setReplaySpeed(id: string, speed: number): void {
-    this.replayers.get(id)?.setSpeed(speed);
+    for (const d of drafts) {
+      const payload =
+        d.type === "session.created"
+          ? { ...(d.payload as Record<string, unknown>), cwd, project }
+          : d.payload;
+      this.emit(this.seq.stamp(id, d.type, payload, d.ts, d.agentId));
+    }
   }
 
   // 硬删除:停掉 driver 并丢弃。归档是纯客户端可见性、driver 后台不杀(spec);
   // 删除则真正结束这个会话的 SDK query。
   deleteSession(id: string): void {
-    this.replayers.get(id)?.cancel();
-    this.replayers.delete(id);
     this.drivers.get(id)?.end();
     this.drivers.delete(id);
   }

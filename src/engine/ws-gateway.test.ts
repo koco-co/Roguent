@@ -47,21 +47,15 @@ test("parseCommand accepts deleteSession", () => {
   expect(parseCommand('{"cmd":"deleteSession"}')).toBeNull();
 });
 
-test("parseCommand accepts listLocalSessions / importSession / setReplaySpeed", () => {
+test("parseCommand accepts listLocalSessions / importSession", () => {
   expect(parseCommand('{"cmd":"listLocalSessions"}')).toEqual({
     cmd: "listLocalSessions",
   });
-  expect(
-    parseCommand('{"cmd":"importSession","path":"/a/b.jsonl","speed":2}'),
-  ).toEqual({ cmd: "importSession", path: "/a/b.jsonl", speed: 2 });
-  // speed 可省(默认 1)。
-  expect(parseCommand('{"cmd":"importSession","path":"/a/b.jsonl"}')?.cmd).toBe(
-    "importSession",
-  );
-  expect(
-    parseCommand('{"cmd":"setReplaySpeed","sessionId":"s1","speed":4}'),
-  ).toEqual({ cmd: "setReplaySpeed", sessionId: "s1", speed: 4 });
-  // 非法:path 非字符串 / speed 非数字 / 缺字段。
+  expect(parseCommand('{"cmd":"importSession","path":"/a/b.jsonl"}')).toEqual({
+    cmd: "importSession",
+    path: "/a/b.jsonl",
+  });
+  // 非法:path 非字符串 / 缺字段。
   expect(parseCommand('{"cmd":"importSession","path":5}')).toBeNull();
-  expect(parseCommand('{"cmd":"setReplaySpeed","sessionId":"s1"}')).toBeNull();
+  expect(parseCommand('{"cmd":"importSession"}')).toBeNull();
 });
