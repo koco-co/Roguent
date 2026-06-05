@@ -19,7 +19,9 @@ export function StatRow({ k, v }: { k: string; v: ReactNode }) {
   );
 }
 
-/** A pixel-framed square icon button anchored absolutely in the HUD. */
+/** A pixel-framed square icon button. When `pos` is provided the button is
+ *  absolutely positioned (legacy scatter layout); when omitted it renders as
+ *  an inline flow element (used inside `.px-hotbar` / `.px-dock`). */
 export function IconButton({
   icon,
   title,
@@ -31,14 +33,14 @@ export function IconButton({
   title: string;
   lit?: boolean;
   onClick?: () => void;
-  pos: CSSProperties;
+  pos?: CSSProperties;
 }) {
   return (
     <button
       type="button"
       title={title}
       className={`px-btn px-icon${lit ? " lit" : ""}`}
-      style={{ position: "absolute", ...pos }}
+      style={pos ? { position: "absolute", ...pos } : undefined}
       onClick={onClick}
     >
       {icon}

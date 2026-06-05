@@ -64,48 +64,49 @@ export function Hud() {
         <span className="px-stat">🪙{tokens.toLocaleString()}</span>
       </div>
 
-      <IconButton
-        icon="⚙"
-        title="会话信息"
-        lit={ui.infoOpen}
-        pos={{ top: 12, left: 12 }}
-        onClick={() => toggle("infoOpen")}
-      />
-      <IconButton
-        icon="💎"
-        title="模型"
-        lit={ui.modelOpen}
-        pos={{ top: 12, right: 12 }}
-        onClick={() => toggle("modelOpen")}
-      />
-      <IconButton
-        icon="📂"
-        title="导入会话"
-        lit={ui.importOpen}
-        pos={{ top: 70, right: 12 }}
-        onClick={() => toggle("importOpen")}
-      />
-      <IconButton
-        icon="📜"
-        title="技能"
-        lit={ui.skillsOpen}
-        pos={{ bottom: 78, left: 12 }}
-        onClick={() => toggle("skillsOpen")}
-      />
-      <IconButton
-        icon="🎒"
-        title="背包"
-        lit={ui.lootOpen}
-        pos={{ bottom: 12, left: 12 }}
-        onClick={() => toggle("lootOpen")}
-      />
-      <IconButton
-        icon="💬"
-        title="聊天"
-        lit={ui.drawerOpen}
-        pos={{ bottom: 12, right: 12 }}
-        onClick={() => toggle("drawerOpen")}
-      />
+      {/* left-top settings dock */}
+      <div className="px-dock">
+        <IconButton
+          icon="⚙"
+          title="会话信息"
+          lit={ui.infoOpen}
+          onClick={() => toggle("infoOpen")}
+        />
+      </div>
+
+      {/* bottom-center action hotbar */}
+      <div className="px-hotbar">
+        <IconButton
+          icon="📜"
+          title="技能"
+          lit={ui.skillsOpen}
+          onClick={() => toggle("skillsOpen")}
+        />
+        <IconButton
+          icon="🎒"
+          title="背包"
+          lit={ui.lootOpen}
+          onClick={() => toggle("lootOpen")}
+        />
+        <IconButton
+          icon="💬"
+          title="聊天"
+          lit={ui.drawerOpen}
+          onClick={() => toggle("drawerOpen")}
+        />
+        <IconButton
+          icon="💎"
+          title="模型"
+          lit={ui.modelOpen}
+          onClick={() => toggle("modelOpen")}
+        />
+        <IconButton
+          icon="📂"
+          title="导入会话"
+          lit={ui.importOpen}
+          onClick={() => toggle("importOpen")}
+        />
+      </div>
 
       <InfoPopover session={session} />
       <AgentCard />
