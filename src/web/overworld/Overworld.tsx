@@ -347,6 +347,7 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
               onSelect={() => selectNpc(a.id)}
               onExited={handleExited}
               motionRef={npcMotionRef}
+              utilization={s?.context?.utilization}
             />
           );
         })}

@@ -68,6 +68,7 @@ export function SessionNpc({
   onSelect,
   onExited,
   motionRef,
+  utilization,
 }: {
   id: string;
   title: string;
@@ -82,6 +83,7 @@ export function SessionNpc({
   onSelect: () => void;
   onExited: (id: string) => void;
   motionRef: RefObject<NpcMotionMap>;
+  utilization?: number;
 }) {
   const sheet = useAtlas();
   const idleFrames = useMemo(
@@ -278,6 +280,31 @@ export function SessionNpc({
     [ringColor],
   );
 
+  // Context-window charge bar above the nameplate.
+  const BAR_W = 22;
+  const bar = useCallback(
+    (g: Graphics) => {
+      g.clear();
+      if (utilization == null) return; // 无数据 → 不画
+      const u = Math.max(0, Math.min(100, utilization));
+      // 槽
+      g.setFillStyle({ color: 0x0e1622, alpha: 0.9 });
+      g.rect(-BAR_W / 2, 0, BAR_W, 3);
+      g.fill();
+      // 填充:<20 绿 / 20-80 琥珀 / >80 红
+      const color = u > 80 ? 0xff5ea0 : u >= 20 ? 0xffd166 : 0x6bf0a0;
+      g.setFillStyle({ color, alpha: 1 });
+      g.rect(-BAR_W / 2, 0, (BAR_W * u) / 100, 3);
+      g.fill();
+      // 20% 阈值刻度线
+      g.setStrokeStyle({ width: 1, color: 0xffffff, alpha: 0.6 });
+      g.moveTo(-BAR_W / 2 + BAR_W * 0.2, -1);
+      g.lineTo(-BAR_W / 2 + BAR_W * 0.2, 4);
+      g.stroke();
+    },
+    [utilization],
+  );
+
   const nameStyle = useMemo(
     () => ({ fontSize: 7, fill: 0xdce8f2 }) as Partial<TextStyle>,
     [],
@@ -336,6 +363,7 @@ export function SessionNpc({
           resolution={4}
           style={slotStyle}
         />
+        <pixiGraphics y={-8} draw={bar} />
       </pixiContainer>
 
       {near && !leaving ? (
