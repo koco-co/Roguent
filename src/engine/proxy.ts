@@ -1,3 +1,9 @@
+import * as https from "node:https";
+import type { RequestOptions } from "node:https";
+import * as net from "node:net";
+import type { Duplex } from "node:stream";
+import * as tls from "node:tls";
+
 // 代理环境解析。打包成 .app 后由 LaunchServices 启动,进程**不继承 shell 环境**,
 // 故 bundled claude CLI 拿不到 HTTP(S)_PROXY → 在需代理才能访问 Anthropic 的网络环境
 // 下直连会 403。这里在组装 SDK env 时兜底:环境本就有代理则尊重之,否则读 macOS
@@ -75,4 +81,73 @@ export function readMacSystemProxy(): SystemProxy {
   } catch {
     return {};
   }
+}
+
+/**
+ * 给进程内 https 请求用的 HTTP CONNECT 隧道 Agent。proxy.ts 现有的 resolveProxyEnv
+ * 只产出注入给 SDK 子进程的 *_PROXY env,对引擎自己的 fetch 无效——故这里显式建隧道。
+ */
+export function createProxyTunnelAgent(proxyUrl: URL): https.Agent {
+  const proxyHost = proxyUrl.hostname;
+  const proxyPort = Number.parseInt(
+    proxyUrl.port || (proxyUrl.protocol === "https:" ? "443" : "80"),
+    10,
+  );
+  return new (class extends https.Agent {
+    createConnection(
+      options: RequestOptions,
+      callback?: (err: Error | null, stream: Duplex) => void,
+    ): Duplex | null | undefined {
+      const targetHost = String(
+        options.hostname ?? options.host ?? "api.anthropic.com",
+      );
+      const targetPort = Number(options.port) || 443;
+      let settled = false;
+      const settle = (err: Error | null, socket?: tls.TLSSocket) => {
+        if (settled) return;
+        settled = true;
+        if (callback) callback(err, socket as unknown as Duplex);
+      };
+      const proxySocket = net.connect(proxyPort, proxyHost);
+      proxySocket.once("error", (e) => settle(e));
+      proxySocket.setTimeout(15_000);
+      proxySocket.once("timeout", () => {
+        const e = new Error("Proxy CONNECT timeout");
+        proxySocket.destroy(e);
+        settle(e);
+      });
+      proxySocket.once("connect", () => {
+        proxySocket.write(
+          `CONNECT ${targetHost}:${targetPort} HTTP/1.1\r\nHost: ${targetHost}:${targetPort}\r\n\r\n`,
+        );
+        let buf = Buffer.alloc(0);
+        const onData = (chunk: Buffer) => {
+          buf = Buffer.concat([buf, chunk]);
+          const end = buf.indexOf("\r\n\r\n");
+          if (end === -1) return;
+          proxySocket.removeListener("data", onData);
+          const statusLine =
+            buf.subarray(0, end).toString("utf8").split("\r\n")[0] ?? "";
+          if (!/^HTTP\/1\.[01] 200 /.test(statusLine)) {
+            const err = new Error(`Proxy CONNECT rejected: ${statusLine}`);
+            proxySocket.destroy(err);
+            return settle(err);
+          }
+          const tlsSocket = tls.connect(
+            { socket: proxySocket, servername: targetHost },
+            () => settle(null, tlsSocket),
+          );
+          tlsSocket.once("error", (e) => {
+            tlsSocket.destroy();
+            proxySocket.destroy();
+            settle(e);
+          });
+        };
+        proxySocket.on("data", onData);
+      });
+      // Node's Agent protocol delivers the socket via callback above; returning
+      // undefined here is correct and intentional — not a bug.
+      return undefined as unknown as Duplex;
+    }
+  })();
 }
