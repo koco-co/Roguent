@@ -2,10 +2,23 @@ import { useMemo, useState } from "react";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
+import { Modal } from "./Modal";
 
+/**
+ * 聊天面板 Chat(对标设计原型 panels2.jsx 的 Chat,T3.8 由右侧抽屉重构为居中 Modal):
+ * 左会话侧栏(列表 / 新建 / 归档复活)+ 右对话区(对话流 + 输入)。
+ *
+ * **这是真数据面板,不是 mock**:会话列表 / 消息 / 发送 / 新建 / 归档复活全是真功能,
+ * 连真实引擎或回放——只换 chrome(右抽屉→居中 Modal)+ 迁触发到 activePanel 路由,
+ * 一个真实功能都没丢,不加任何 mock banner / 造假。导出名仍是 ChatDrawer(Hud 不改)。
+ *
+ * activePanel gate 的 return null 放在所有 hooks(含 useMemo)之后(React hooks 规则)。
+ * selector 守 zustand 铁律:sessions 取 store map 的稳定引用(Object.values 在 render
+ * 体 / useMemo 里做,绝不在 selector 里构造新值);其余取基元 / 单值 / 稳定函数引用。
+ */
 export function ChatDrawer() {
-  const open = useUiStore((s) => s.drawerOpen);
-  const toggle = useUiStore((s) => s.toggle);
+  const active = useUiStore((s) => s.activePanel === "chat");
+  const closePanel = useUiStore((s) => s.closePanel);
   const sessions = useRoomStore((s) => s.sessions);
   const currentId = useRoomStore((s) => s.currentSessionId);
   const switchSession = useRoomStore((s) => s.switchSession);
@@ -18,6 +31,7 @@ export function ChatDrawer() {
   const [cwd, setCwd] = useState("");
   const [search, setSearch] = useState("");
 
+  // sessions 的 Object.values 在 useMemo 里做(不在 selector 里,守 zustand 铁律)。
   const list = useMemo(() => Object.values(sessions), [sessions]);
   const activeList = list.filter((s) => !s.archived);
   const q = search.trim().toLowerCase();
@@ -30,7 +44,7 @@ export function ChatDrawer() {
         (s.project ?? "").toLowerCase().includes(q),
     );
 
-  if (!open) return null;
+  if (!active) return null;
 
   const send = () => {
     const t = text.trim();
@@ -57,55 +71,33 @@ export function ChatDrawer() {
     });
   };
 
-  const currentTitle = currentId
-    ? (sessions[currentId]?.title ?? "聊天")
-    : "聊天";
-
   return (
-    <div
-      className="px-window px-pop"
-      style={{
-        position: "absolute",
-        top: 0,
-        right: 0,
-        bottom: 0,
-        width: "min(52%, 560px)",
-        display: "flex",
-        flexDirection: "column",
-        padding: 0,
-      }}
+    <Modal
+      title="CHAT"
+      sub="与会话对话"
+      icon="chat"
+      accent="#36c5e0"
+      width={1100}
+      height={680}
+      onClose={closePanel}
     >
-      <div className="px-titlebar">
-        <span className="grow">💬 {currentTitle}</span>
-        <button
-          type="button"
-          title="关闭"
-          className="px-btn"
-          style={{ width: 26, height: 26, fontSize: 12 }}
-          onClick={() => toggle("drawerOpen")}
-        >
-          ✕
-        </button>
-      </div>
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-        <div
-          className="px-scroll"
-          style={{
-            width: 196,
-            borderRight: "3px solid var(--edge-dark)",
-            padding: 10,
-          }}
-        >
-          <div className="px-title">会话</div>
+      <div className="chat-layout">
+        {/* 左侧会话侧栏:active 列表 / 新建 / 归档复活——全部真功能,暖木风格重绘。 */}
+        <div className="chat-side scroll">
+          <div className="px" style={{ fontSize: 10, color: "var(--gold)" }}>
+            会话
+          </div>
           {activeList.map((s) => (
             <button
               key={s.id}
               type="button"
-              className={`px-row${s.id === currentId ? " sel" : ""}`}
+              className={`chat-sess${s.id === currentId ? " sel" : ""}`}
               onClick={() => switchSession(s.id)}
             >
-              <div style={{ fontSize: 11 }}>{s.title}</div>
-              <div style={{ fontSize: 9, color: "var(--muted)" }}>
+              <div style={{ fontSize: 12, color: "var(--text)" }}>
+                {s.title}
+              </div>
+              <div className="faint" style={{ fontSize: 10 }}>
                 {s.project ? `${s.project} · ` : ""}
                 {s.status}
               </div>
@@ -114,16 +106,16 @@ export function ChatDrawer() {
 
           {/* 新建会话:可选目录(cwd) → 服务端据此派生 project(房间)。 */}
           <input
-            className="px-input"
+            className="pxinput"
             value={cwd}
             onChange={(e) => setCwd(e.target.value)}
             placeholder="目录 cwd(默认服务端)"
-            style={{ width: "100%", marginBottom: 6, fontSize: 9, padding: 6 }}
+            style={{ marginTop: 8, fontSize: 10 }}
           />
           <button
             type="button"
-            className="px-btn"
-            style={{ width: "100%", padding: 8, fontSize: 10 }}
+            className="pxbtn sm cjk"
+            style={{ width: "100%", marginTop: 6 }}
             onClick={newSession}
           >
             ＋ 新会话
@@ -132,32 +124,32 @@ export function ChatDrawer() {
           {/* 已归档:从大厅退场但仍可搜可复活的会话(spec §生命周期)。 */}
           {list.some((s) => s.archived) ? (
             <>
-              <div className="px-title" style={{ marginTop: 14 }}>
+              <div
+                className="px"
+                style={{ fontSize: 10, color: "var(--gold)", marginTop: 14 }}
+              >
                 已归档
               </div>
               <input
-                className="px-input"
+                className="pxinput"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="搜索已归档…"
-                style={{
-                  width: "100%",
-                  marginBottom: 6,
-                  fontSize: 9,
-                  padding: 6,
-                }}
+                style={{ marginTop: 6, fontSize: 10 }}
               />
               {archivedList.map((s) => (
                 <button
                   key={s.id}
                   type="button"
-                  className="px-row"
+                  className="chat-sess"
                   style={{ opacity: 0.7 }}
                   title="点击复活到大厅"
                   onClick={() => unarchiveSession(s.id)}
                 >
-                  <div style={{ fontSize: 11 }}>{s.title}</div>
-                  <div style={{ fontSize: 9, color: "var(--muted)" }}>
+                  <div style={{ fontSize: 12, color: "var(--text)" }}>
+                    {s.title}
+                  </div>
+                  <div className="faint" style={{ fontSize: 10 }}>
                     {s.project ? `${s.project} · ` : ""}↺ 复活
                   </div>
                 </button>
@@ -165,48 +157,28 @@ export function ChatDrawer() {
             </>
           ) : null}
         </div>
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            padding: 12,
-          }}
-        >
-          <div
-            className="px-scroll"
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
-              fontSize: 12,
-              paddingTop: 8,
-            }}
-          >
-            {!currentId && (
-              <span style={{ color: "var(--muted)" }}>选一个会话</span>
-            )}
+
+        {/* 右侧对话区:对话流(气泡按 role)+ 输入。 */}
+        <div className="chat-wrap">
+          <div className="chat-thread scroll">
+            {!currentId && <span className="faint">选一个会话</span>}
             {currentId && (messages?.length ?? 0) === 0 && (
-              <span style={{ color: "var(--muted)" }}>
-                还没有消息,发一条开始…
-              </span>
+              <span className="faint">还没有消息,发一条开始…</span>
             )}
             {messages?.map((m) => (
+              // user → out(右、青色气泡);assistant / system → in(左、面板色气泡)。
               <div
                 key={m.id}
-                className={`px-bubble ${m.role}`}
-                style={{
-                  alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                }}
+                className={`chat-msg ${m.role === "user" ? "out" : "in"}`}
               >
-                {m.text}
+                <div className="chat-role faint">{m.role}</div>
+                <div className="chat-bubble">{m.text}</div>
               </div>
             ))}
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="chat-input">
             <input
-              className="px-input"
+              className="pxinput"
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
@@ -214,15 +186,14 @@ export function ChatDrawer() {
             />
             <button
               type="button"
-              className="px-btn"
-              style={{ width: 44, fontSize: 14, color: "var(--cyan)" }}
+              className="pxbtn primary sm cjk"
               onClick={send}
             >
-              ▶
+              发送
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

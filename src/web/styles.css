@@ -2216,3 +2216,93 @@ img {
   font-size: 10px;
   color: var(--ink-dim);
 }
+
+/* ── Chat 面板(T3.8 右抽屉 → 居中 Modal):左会话侧栏 + 右对话区 ──
+   右对话区(.chat-wrap/.chat-thread/.chat-msg/.chat-bubble/.chat-input)移植自
+   设计原型 layout.css,关键 token 转换:原型 .chat-bubble color:var(--ink)(原型 --ink
+   = 浅文本)→ 本项目 var(--text)(本项目 --ink = 深背景)。左侧栏 + 布局(.chat-layout/
+   .chat-side/.chat-sess)原型无此部分,新建,风格对齐 .set-nav/.set-navitem 暖木写法。
+   复用已有:.pxinput/.pxbtn(及 sm/primary/cjk)/.scroll/.faint/.dim/.px/.cyan。 */
+.chat-layout {
+  display: flex;
+  gap: 16px;
+  height: 100%;
+  min-height: 0;
+}
+.chat-side {
+  width: 210px;
+  flex-shrink: 0;
+  border-right: 2px solid var(--panel-edge);
+  padding-right: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.chat-sess {
+  /* button reset */
+  border: 0;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  padding: 8px 10px;
+}
+.chat-sess:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.chat-sess.sel {
+  box-shadow: inset 3px 0 0 var(--cyan);
+  background: rgba(54, 197, 224, 0.08);
+}
+.chat-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.chat-thread {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 8px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.chat-msg {
+  max-width: 78%;
+}
+.chat-msg.in {
+  align-self: flex-start;
+}
+.chat-msg.out {
+  align-self: flex-end;
+  text-align: right;
+}
+.chat-role {
+  font-size: 9px;
+  margin-bottom: 3px;
+}
+.chat-bubble {
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 10px 13px;
+  background: rgba(11, 10, 18, 0.5);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  color: var(--text);
+}
+.chat-msg.out .chat-bubble {
+  background: linear-gradient(180deg, #1f6d80, #15505e);
+  box-shadow: inset 0 0 0 2px #36c5e0;
+}
+.chat-input {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.chat-input .pxinput {
+  flex: 1;
+}
