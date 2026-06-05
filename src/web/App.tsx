@@ -1,3 +1,4 @@
+import type React from "react";
 import { useEffect } from "react";
 import { resolveEngineUrl } from "./engine-url";
 import { Hud } from "./hud/Hud";
@@ -5,6 +6,11 @@ import { NpcCard } from "./hud/NpcCard";
 import { Overworld } from "./overworld/Overworld";
 import { PortalTransition } from "./overworld/PortalTransition";
 import { Room } from "./room/Room";
+import {
+  settingsRootClass,
+  settingsRootStyle,
+  useSettingsStore,
+} from "./settings-store";
 import { useRoomStore } from "./store";
 import { useUiStore } from "./ui-store";
 import { type RoomConnection, connectRoom } from "./ws-client";
@@ -19,6 +25,9 @@ export function App() {
   const interiorGone = useRoomStore((s) =>
     interiorId ? (s.sessions[interiorId]?.archived ?? true) : false,
   );
+
+  // 用户 UI 偏好驱动根节点的主题 class 与 CSS 变量(T1.1)。
+  const settings = useSettingsStore();
 
   // 进入内景后该会话被 LRU 归档 / 删除 → 自动回落大厅,避免困在幽灵内景
   // (spec §架构: 双层缩放;§生命周期: ≤10/LRU 软归档)。
@@ -53,7 +62,17 @@ export function App() {
   }, [inInterior, interiorId, beginExit]);
 
   return (
-    <div style={{ position: "fixed", inset: 0, overflow: "hidden" }}>
+    <div
+      className={settingsRootClass(settings)}
+      style={
+        {
+          position: "fixed",
+          inset: 0,
+          overflow: "hidden",
+          ...settingsRootStyle(settings),
+        } as React.CSSProperties
+      }
+    >
       {/* 双层缩放:总览大厅 ↔ 进入的会话内景(Room 读 currentSessionId,进入时已切)。*/}
       {inInterior ? <Room /> : <Overworld />}
       <Hud />
