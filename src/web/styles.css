@@ -327,49 +327,6 @@ img {
   color: var(--pink);
 }
 
-/* ── 左上账户限额条 ─────────────────────────────────────────────────────── */
-.px-limits {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  width: 180px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.px-limits-head {
-  font-size: 9px;
-  color: var(--gold);
-  text-transform: uppercase;
-}
-.px-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 8px;
-}
-.px-bar-label {
-  width: 16px;
-  color: var(--muted);
-}
-.px-bar {
-  flex: 1;
-  height: 8px;
-  background: #0e1622;
-  border: 1px solid var(--edge-dark);
-  box-shadow: inset 1px 1px 0 0 #00000088;
-}
-.px-bar-fill {
-  height: 100%;
-  transition: width 0.3s ease;
-}
-.px-bar-reset {
-  width: 34px;
-  text-align: right;
-  color: var(--muted);
-}
-
 /* ============================================================
    PIXEL CHROME — ported from design prototype (T0.2)
    Adaptation notes:
@@ -603,6 +560,38 @@ img {
 }
 
 /* ── STAT BARS ─────────────────────────────────────────────── */
+/* ── 左上账户限额三条布局(移植自原型 layout.css)──────────────────────── */
+/* .limitbars 在 Hud 里无定位包裹,自带绝对定位维持左上角(原 .px-limits 行为) */
+.limitbars {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 312px;
+}
+.lb-body {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lb-plan {
+  font-size: 9px;
+}
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.lb-row .barframe {
+  flex: 1;
+}
+.lb-reset {
+  font-size: 8px;
+  color: var(--ink-faint);
+  min-width: 48px;
+  text-align: right;
+}
+
 .barframe {
   position: relative;
   height: 22px;
