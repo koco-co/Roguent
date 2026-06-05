@@ -12,7 +12,7 @@ import { Minimap } from "./Minimap";
 import { ModelPicker } from "./ModelPicker";
 import { RosterCard } from "./RosterCard";
 import { SessionBanner } from "./SessionBanner";
-import { SkillGrid } from "./SkillGrid";
+import { Skills } from "./Skills";
 import { TaskWindow } from "./TaskWindow";
 import { Tasks } from "./Tasks";
 import { ViewSwitch } from "./ViewSwitch";
@@ -50,7 +50,9 @@ export function Hud() {
       <LootPanel />
       <ChatDrawer />
       <ModelPicker />
-      <SkillGrid />
+      {/* SkillGrid(legacy skillsOpen 浮层)已被 T3.3 Skills Modal 取代;
+          文件 + skillsOpen 标志留待 T5 清理。这里改渲染新的 Skills。 */}
+      <Skills />
       <ImportPanel />
       <Leaderboard />
       <About />

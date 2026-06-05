@@ -5,24 +5,23 @@ import { Icon, type IconName } from "./icons";
 // 仅内景显示(组件内 view!=='overworld' gate)。
 //
 // 接线说明(过渡期混合接线):
-// - 现有 6 个面板仍走布尔标志(T3.x 各面板迁到单一路由后统一):
-//   skills→skillsOpen、backpack→lootOpen、chat→drawerOpen、model→modelOpen、
+// - 剩余 5 个面板仍走布尔标志(T3.x 各面板迁到单一路由后统一):
+//   backpack→lootOpen、chat→drawerOpen、model→modelOpen、
 //   import→importOpen、leaderboard→leaderboardOpen;lit = 对应布尔。
-// - 新增的 tasks / shop 走 openPanel(单一路由);目标 panel 是 T3.x 才建,现在点了只设
-//   activePanel、无组件渲染 = 安全空操作。lit = activePanel === id。
+// - skills / tasks / shop 走 openPanel(单一路由);skills 已迁(T3.3 Skills Modal),
+//   lit = activePanel === id。
 // - badge 角标:暂无真实徽标数据 → 不渲染(不造假);保留 .badge 渲染能力(badge?: number)
 //   以便引擎补齐后接入。
 
 // 走布尔标志的槽(过渡期遗留)。
 type FlagKey =
-  | "skillsOpen"
   | "lootOpen"
   | "drawerOpen"
   | "modelOpen"
   | "importOpen"
   | "leaderboardOpen";
-// 走单一路由 openPanel 的槽(新增,T3 占位)。
-type RoutePanel = "tasks" | "shop";
+// 走单一路由 openPanel 的槽。
+type RoutePanel = "tasks" | "shop" | "skills";
 
 type FlagSlot = { kind: "flag"; icon: IconName; flag: FlagKey; label: string };
 type RouteSlot = {
@@ -35,7 +34,7 @@ type Slot = FlagSlot | RouteSlot;
 
 // g1:技能 / 背包 / 聊天 / 模型 / 导入(对标原型 hotbar g1)。
 const GROUP1: Slot[] = [
-  { kind: "flag", icon: "spellbook", flag: "skillsOpen", label: "技能" },
+  { kind: "route", icon: "spellbook", panel: "skills", label: "技能" },
   { kind: "flag", icon: "pouch", flag: "lootOpen", label: "背包" },
   { kind: "flag", icon: "chat", flag: "drawerOpen", label: "聊天" },
   { kind: "flag", icon: "crystal", flag: "modelOpen", label: "模型" },
@@ -80,7 +79,6 @@ export function Hotbar() {
   // 仅内景 HUD 显示;总览大厅没有「操作坞」。
   const inInterior = useUiStore((s) => s.view !== "overworld");
   // 订阅各布尔标志 + 路由当前面板,用于 lit 态。
-  const skillsOpen = useUiStore((s) => s.skillsOpen);
   const lootOpen = useUiStore((s) => s.lootOpen);
   const drawerOpen = useUiStore((s) => s.drawerOpen);
   const modelOpen = useUiStore((s) => s.modelOpen);
@@ -94,7 +92,6 @@ export function Hotbar() {
 
   // 布尔标志当前值查表(用于 lit)。
   const flagValue: Record<FlagKey, boolean> = {
-    skillsOpen,
     lootOpen,
     drawerOpen,
     modelOpen,
