@@ -34,7 +34,12 @@ function loadAtlasData(): Promise<AtlasData> {
         img.src = ATLAS_IMAGE_URL;
       });
       return { frames: json.frames, image };
-    })();
+    })().catch((e) => {
+      // Don't cache a rejected promise — clear it so a later mount can retry
+      // instead of being stuck on the dark fallback until a full reload.
+      atlasDataPromise = null;
+      throw e;
+    });
   }
   return atlasDataPromise;
 }
