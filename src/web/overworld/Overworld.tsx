@@ -17,9 +17,11 @@ import {
   useRef,
   useState,
 } from "react";
+import { AnimatedDecor } from "../room/DungeonRoom";
 import { Vignette } from "../room/Lights";
 import {
   AtlasProvider,
+  anim,
   atlasErrorText,
   loadAtlas,
   resetAtlas,
@@ -76,13 +78,21 @@ interface NpcActor {
 }
 
 /**
- * Static fountain landmark marking the Hub centre. A 3-tile vertical stack
- * (top + mid + basin) anchored on hub.anchorPx, so the player spawns next to a
- * recognisable plaza feature. Minimal static implementation — frames are the
- * confirmed-present 0x72 fountain sprites; a true animation can come later.
+ * Animated fountain landmark marking the Hub centre. A 3-tile vertical stack
+ * (static top + animated mid + animated basin) anchored on hub.anchorPx, so the
+ * player spawns next to a recognisable, living plaza feature. Reuses the room's
+ * AnimatedDecor; frame arrays are memoized so the loops never reset on re-render.
  */
 function HubFountain({ anchor }: { anchor: Pos }) {
   const sheet = useAtlas();
+  const mid = useMemo(
+    () => anim(sheet, "wall_fountain_mid_blue_anim"),
+    [sheet],
+  );
+  const basin = useMemo(
+    () => anim(sheet, "wall_fountain_basin_blue_anim"),
+    [sheet],
+  );
   // anchor is the interior-centre px; stack the 3 tiles so the basin sits at it.
   const cx = anchor.x - TILE / 2; // sprites draw from top-left
   const cy = anchor.y - TILE / 2;
@@ -93,16 +103,8 @@ function HubFountain({ anchor }: { anchor: Pos }) {
         x={cx}
         y={cy - 2 * TILE}
       />
-      <pixiSprite
-        texture={tex(sheet, "wall_fountain_mid_blue_anim_f0")}
-        x={cx}
-        y={cy - TILE}
-      />
-      <pixiSprite
-        texture={tex(sheet, "wall_fountain_basin_blue_anim_f0")}
-        x={cx}
-        y={cy}
-      />
+      <AnimatedDecor textures={mid} x={cx} y={cy - TILE} speed={0.12} />
+      <AnimatedDecor textures={basin} x={cx} y={cy} speed={0.12} />
     </pixiContainer>
   );
 }

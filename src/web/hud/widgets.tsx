@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 /** A key/value row used inside the info / agent panels. */
 export function StatRow({ k, v }: { k: string; v: ReactNode }) {
@@ -19,28 +19,24 @@ export function StatRow({ k, v }: { k: string; v: ReactNode }) {
   );
 }
 
-/** A pixel-framed square icon button. When `pos` is provided the button is
- *  absolutely positioned (legacy scatter layout); when omitted it renders as
- *  an inline flow element (used inside `.px-hotbar` / `.px-dock`). */
+/** A pixel-framed square icon button. Renders as an inline flow element,
+ *  laid out by its container (`.px-hotbar` / `.px-dock`). */
 export function IconButton({
   icon,
   title,
   lit,
   onClick,
-  pos,
 }: {
   icon: string;
   title: string;
   lit?: boolean;
   onClick?: () => void;
-  pos?: CSSProperties;
 }) {
   return (
     <button
       type="button"
       title={title}
       className={`px-btn px-icon${lit ? " lit" : ""}`}
-      style={pos ? { position: "absolute", ...pos } : undefined}
       onClick={onClick}
     >
       {icon}
