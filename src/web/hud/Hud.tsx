@@ -4,6 +4,7 @@ import { AgentCard } from "./AgentCard";
 import { ButtonDock } from "./ButtonDock";
 import { ChatDrawer } from "./ChatDrawer";
 import { Currency } from "./Currency";
+import { ErrorOverlay } from "./ErrorOverlay";
 import { Hotbar } from "./Hotbar";
 import { ImportPanel } from "./ImportPanel";
 import { Leaderboard } from "./Leaderboard";
@@ -16,6 +17,7 @@ import { SessionBanner } from "./SessionBanner";
 import { Settings } from "./Settings";
 import { Shop } from "./Shop";
 import { Skills } from "./Skills";
+import { SystemMenu } from "./SystemMenu";
 import { TaskWindow } from "./TaskWindow";
 import { Tasks } from "./Tasks";
 import { ViewSwitch } from "./ViewSwitch";
@@ -67,6 +69,10 @@ export function Hud() {
       <Settings />
       {/* 商店(SHOP)面板(整面板 mock 占位,自带 activePanel gate)*/}
       <Shop />
+      {/* 系统 / 暂停菜单(全屏 scrim 覆盖层,自带 activePanel gate;menu→此组件)*/}
+      <SystemMenu />
+      {/* runtime 离线错误层(全屏 scrim,自带 activePanel gate;触发待 T4.3)*/}
+      <ErrorOverlay />
     </>
   );
 }

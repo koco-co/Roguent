@@ -2332,3 +2332,60 @@ img {
 .acct-row .sr-label {
   min-width: 70px;
 }
+
+/* 系统/暂停菜单 SystemMenu + runtime 离线错误层 ErrorOverlay(T3.12)。
+   来源:设计原型 layout.css 第 279~283 行(.sysmenu/.sysmenu-inner/.sys-logo
+   /.sys-btn)+ 345~346 行(.error-overlay/.error-spark)。都直接挂在 .scrim 上。
+   token 转换:.sys-btn 原型 color:var(--ink) → 本项目 var(--text)(浅文本)。
+   原型 .sysmenu 背景带 !important;.scrim 已是 z-index 200 的覆盖层,优先级足够,
+   故不加 !important(若日后被覆盖再补)。
+   .error-spark 复用已有 @keyframes lowblink(L660,brightness/saturate 脉冲),
+   作 spark 闪烁;不重复定义(避免破坏 .bar-low 的现有用法)。
+   复用已有:.scrim/.pxbtn(及 primary/cjk)/.px/.faint/.dim。 */
+.sysmenu {
+  background: rgba(5, 5, 12, 0.86);
+}
+.sysmenu-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.sys-logo {
+  font-size: 42px;
+  color: var(--gold);
+  text-shadow: 4px 4px 0 #000;
+  letter-spacing: 0.08em;
+}
+.sys-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 340px;
+  font-family: var(--font-cjk);
+  font-size: 16px;
+  color: var(--text);
+  background: linear-gradient(180deg, #6b4a2e, #43301f);
+  padding: 14px 22px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  border: 0;
+  box-shadow: 0 0 0 3px var(--panel-edge), inset 0 0 0 2px var(--panel-hi), 0
+    4px 0 rgba(0, 0, 0, 0.4);
+  transition: transform 0.06s, filter 0.1s;
+}
+.sys-btn:hover {
+  transform: translateX(4px);
+  filter: brightness(1.15);
+}
+.error-overlay {
+  background: linear-gradient(180deg, #2a1316, #160a12);
+  box-shadow: 0 0 0 3px #000, inset 0 0 0 3px #8c2333;
+  padding: 40px 50px;
+  text-align: center;
+  max-width: 520px;
+}
+.error-spark {
+  display: flex;
+  justify-content: center;
+  animation: lowblink 1.2s steps(2) infinite;
+}
