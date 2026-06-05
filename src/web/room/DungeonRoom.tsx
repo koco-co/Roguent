@@ -39,7 +39,13 @@ function structureName(c: number, r: number): string {
   return floorName(c, r);
 }
 
-function AnimatedDecor({
+/**
+ * An animated sprite pinned at (x,y). Memoize the `textures` array by the caller
+ * — @pixi/react diffs it by reference, and a fresh array each render reassigns
+ * `.textures` (gotoAndStop(0)), freezing the animation. Shared by DungeonRoom
+ * and the overworld Hub fountain.
+ */
+export function AnimatedDecor({
   textures,
   x,
   y,

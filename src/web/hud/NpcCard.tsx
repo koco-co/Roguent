@@ -3,6 +3,7 @@ import type { SessionStatus } from "../../shared/domain";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
+import { HeroPortrait } from "./HeroPortrait";
 import { StatRow, shortModel } from "./widgets";
 
 const STATUS_LABEL: Record<SessionStatus, string> = {
@@ -91,12 +92,7 @@ export function NpcCard() {
       }}
     >
       <div className="px-titlebar">
-        {/* v1 占位:状态色块,后续替换为像素头像 sprite */}
-        <div
-          className="px-dossier-portrait"
-          aria-hidden
-          style={{ background: STATUS_COLOR[session.status], opacity: 0.5 }}
-        />
+        <HeroPortrait sessionId={id} />
         <div
           className="pf grow"
           style={{ color: STATUS_COLOR[session.status], fontSize: 11 }}
