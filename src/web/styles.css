@@ -2389,3 +2389,107 @@ img {
   justify-content: center;
   animation: lowblink 1.2s steps(2) infinite;
 }
+
+/* ---------------- 传送门过场 / 蓝色粒子漩涡(T3.13,对标原型 layout.css 286-295) ---------------- */
+.portal-vortex {
+  position: absolute;
+  inset: 0;
+  background: #0b0a12;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 250; /* 过场是整屏接管,压过 .scrim(200)与 HUD */
+}
+.vortex-top {
+  font-size: 18px;
+  color: #cfe9f5;
+  text-shadow: 2px 2px 0 #000;
+  position: absolute;
+  top: 14%;
+}
+.vortex {
+  position: relative;
+  width: 340px;
+  height: 340px;
+  display: grid;
+  place-items: center;
+}
+.vortex-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(54, 140, 255, 0.5), transparent 62%);
+  filter: blur(4px);
+}
+.vortex-spin {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    #1f6dff,
+    #36c5e0,
+    transparent,
+    #2a52ff,
+    transparent
+  );
+  mask: radial-gradient(
+    circle,
+    transparent 26%,
+    #000 30%,
+    #000 70%,
+    transparent 74%
+  );
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent 26%,
+    #000 30%,
+    #000 70%,
+    transparent 74%
+  );
+  animation: vspin 3s linear infinite;
+  filter: blur(1px);
+}
+.vortex-core {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #0a1a3a, #020412);
+  box-shadow: 0 0 40px 6px rgba(54, 140, 255, 0.5);
+}
+.vortex-particle {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  background: #bcdcff;
+  box-shadow: 0 0 6px #6cf;
+  animation: vpart 2.4s linear infinite;
+  animation-delay: calc(var(--i) * -0.45s);
+}
+@keyframes vspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes vpart {
+  0% {
+    transform: rotate(0) translateX(120px) scale(1);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(320deg) translateX(20px) scale(0.2);
+    opacity: 0;
+  }
+}
+.vortex-bot {
+  font-size: 16px;
+  color: #cfe9f5;
+  position: absolute;
+  bottom: 13%;
+}
