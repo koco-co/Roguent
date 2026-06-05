@@ -11,6 +11,7 @@ const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /** 按封顶间隔 + speed 计时逐条发出 drafts。speed 可运行时改。 */
 export class Replayer {
   private speed: number;
+  private cancelled = false;
   constructor(
     private drafts: TimedDraft[],
     speed: number,
@@ -23,12 +24,18 @@ export class Replayer {
     if (speed > 0) this.speed = speed;
   }
 
+  cancel(): void {
+    this.cancelled = true;
+  }
+
   async run(): Promise<void> {
     const sleep = this.deps.sleep ?? realSleep;
     let prev = this.drafts[0]?.ts ?? 0;
     for (const d of this.drafts) {
+      if (this.cancelled) return;
       const gap = Math.min(Math.max(0, d.ts - prev), MAX_GAP_MS) / this.speed;
       if (gap > 0) await sleep(gap);
+      if (this.cancelled) return;
       prev = d.ts;
       this.deps.emit(d);
     }

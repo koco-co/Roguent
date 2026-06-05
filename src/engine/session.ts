@@ -102,9 +102,11 @@ export class SessionManager {
   ): Promise<void> {
     const drafts = normalizeTranscript(readTranscriptLines(path));
     if (drafts.length === 0) return;
+    // normalizeTranscript always prepends session.created → drafts[0] exists
     const created = drafts[0]!.payload as SessionCreatedPayload;
     const cwd = created.cwd?.trim() || this.cwd;
     const project = projectFor(cwd);
+    this.replayers.get(id)?.cancel();
     const replayer = new Replayer(drafts, speed, {
       sleep: deps?.sleep,
       emit: (d) => {
@@ -117,6 +119,7 @@ export class SessionManager {
     });
     this.replayers.set(id, replayer);
     await replayer.run();
+    if (this.replayers.get(id) === replayer) this.replayers.delete(id);
   }
 
   setReplaySpeed(id: string, speed: number): void {
@@ -126,6 +129,8 @@ export class SessionManager {
   // 硬删除:停掉 driver 并丢弃。归档是纯客户端可见性、driver 后台不杀(spec);
   // 删除则真正结束这个会话的 SDK query。
   deleteSession(id: string): void {
+    this.replayers.get(id)?.cancel();
+    this.replayers.delete(id);
     this.drivers.get(id)?.end();
     this.drivers.delete(id);
   }
