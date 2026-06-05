@@ -340,7 +340,7 @@ export function SessionNpc({
 
       {near && !leaving ? (
         <pixiText
-          text="[E] 进入"
+          text="[E] 查看"
           anchor={0.5}
           y={-20}
           resolution={4}
