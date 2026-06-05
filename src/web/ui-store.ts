@@ -13,6 +13,26 @@ type Panel =
 // 双层缩放(spec §架构):总览大厅 ↔ 进入某会话的内景(复用现有 Room/Scene)。
 export type View = "overworld" | { interior: string };
 
+// 互斥模态路由(对标设计原型 app.jsx 的单一 active-panel):同一时刻最多开一个面板。
+// 上方的布尔标志(drawerOpen/modelOpen/...)是过渡期遗留,各面板在 T3.x 重建时迁到此
+// 路由,T5.x 收尾删除布尔标志。现阶段两套加法共存、互不干扰。
+export type PanelId =
+  | "npc"
+  | "tasks"
+  | "settings"
+  | "skills"
+  | "shop"
+  | "leaderboard"
+  | "backpack"
+  | "chat"
+  | "model"
+  | "import"
+  | "account"
+  | "about"
+  | "menu"
+  | "error"
+  | "sessiongrid";
+
 export interface UiState {
   drawerOpen: boolean;
   modelOpen: boolean;
@@ -21,6 +41,8 @@ export interface UiState {
   infoOpen: boolean;
   importOpen: boolean;
   leaderboardOpen: boolean;
+  // 互斥模态路由的当前面板(null = 全关);见 PanelId 注释。
+  activePanel: PanelId | null;
   localSessions: LocalSessionMeta[];
   importError: string | null;
   selectedAgentId: string | null;
@@ -31,6 +53,8 @@ export interface UiState {
   // 传送门过渡:进/出内景时由 PortalTransition 驱动遮罩,中点真正切 view。
   transition: { kind: "enter" | "exit"; sessionId: string } | null;
   toggle: (k: Panel) => void;
+  openPanel: (id: PanelId) => void;
+  closePanel: () => void;
   select: (id: string | null) => void;
   selectNpc: (id: string | null) => void;
   enterInterior: (id: string) => void;
@@ -51,6 +75,7 @@ export const useUiStore = create<UiState>((set) => ({
   infoOpen: false,
   importOpen: false,
   leaderboardOpen: false,
+  activePanel: null,
   localSessions: [],
   importError: null,
   selectedAgentId: null,
@@ -58,6 +83,8 @@ export const useUiStore = create<UiState>((set) => ({
   view: "overworld",
   transition: null,
   toggle: (k) => set((s) => ({ [k]: !s[k] }) as Partial<UiState>),
+  openPanel: (id) => set({ activePanel: id }),
+  closePanel: () => set({ activePanel: null }),
   select: (id) => set({ selectedAgentId: id }),
   selectNpc: (id) => set({ selectedNpcId: id }),
   // 进入会话内景:清掉总览的 NPC 选择,切到内景视图。会话焦点切换由调用方

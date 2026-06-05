@@ -1,6 +1,7 @@
 import type { Session } from "../../shared/domain";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
+import { About } from "./About";
 import { AgentCard } from "./AgentCard";
 import { ChatDrawer } from "./ChatDrawer";
 import { ImportPanel } from "./ImportPanel";
@@ -53,6 +54,8 @@ export function Hud() {
   const modelOpen = useUiStore((s) => s.modelOpen);
   const importOpen = useUiStore((s) => s.importOpen);
   const leaderboardOpen = useUiStore((s) => s.leaderboardOpen);
+  const activePanel = useUiStore((s) => s.activePanel);
+  const openPanel = useUiStore((s) => s.openPanel);
   const session = useRoomStore((s) =>
     s.currentSessionId ? s.sessions[s.currentSessionId] : undefined,
   );
@@ -97,6 +100,13 @@ export function Hud() {
           title="会话信息"
           lit={infoOpen}
           onClick={() => toggle("infoOpen")}
+        />
+        {/* 单一面板路由入口(完整 ButtonDock 重建是 T2.4,这里仅证明路由可用)*/}
+        <IconButton
+          icon={<Icon name="account" size={28} />}
+          title="关于"
+          lit={activePanel === "about"}
+          onClick={() => openPanel("about")}
         />
       </div>
 
@@ -148,6 +158,7 @@ export function Hud() {
       <SkillGrid />
       <ImportPanel />
       <Leaderboard />
+      <About />
     </>
   );
 }

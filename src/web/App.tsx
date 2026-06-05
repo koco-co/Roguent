@@ -19,6 +19,8 @@ export function App() {
   const view = useUiStore((s) => s.view);
   const exitOverworld = useUiStore((s) => s.exitOverworld);
   const beginExit = useUiStore((s) => s.beginExit);
+  const activePanel = useUiStore((s) => s.activePanel);
+  const closePanel = useUiStore((s) => s.closePanel);
   const inInterior = view !== "overworld";
   const interiorId = typeof view === "object" ? view.interior : null;
   // 内景会话是否已不可见(被软归档或硬删除)。缺失 → 视作已离场。
@@ -51,15 +53,20 @@ export function App() {
     };
   }, []);
 
-  // Esc returns from an interior to the overworld lobby (spec §架构: Esc/门 zoom-out).
+  // Esc 集中处理:先关打开的模态面板(优先);否则从内景 zoom-out 回大厅
+  // (spec §架构: Esc/门 zoom-out)。两者互斥,避免一次 Esc 同时关面板又退内景。
   useEffect(() => {
-    if (!inInterior) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && interiorId) beginExit(interiorId);
+      if (e.key !== "Escape") return;
+      if (activePanel !== null) {
+        closePanel();
+        return;
+      }
+      if (inInterior && interiorId) beginExit(interiorId);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [inInterior, interiorId, beginExit]);
+  }, [inInterior, interiorId, beginExit, activePanel, closePanel]);
 
   return (
     <div

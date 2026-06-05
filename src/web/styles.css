@@ -382,6 +382,10 @@ img {
 /* ── WOOD PANEL CHROME ─────────────────────────────────────── */
 .panel {
   position: relative;
+  /* flex column so a Modal's titlebar + scrollable body stay bounded by the
+     panel's max-height on short viewports (body flexes + scrolls, T1.2). */
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(
       180deg,
       rgba(255, 255, 255, 0.05),
@@ -758,6 +762,14 @@ img {
     transform: scale(0.92);
     opacity: 0;
   }
+}
+
+/* 天赋蓝氛围(Skills/About);!important 保留原型写法(layout.css:158-159) */
+.vibe-talent {
+  background: radial-gradient(120% 100% at 50% 0%, #1d2a55, #0c1430) !important;
+}
+.vibe-talent .panel-body {
+  background: transparent;
 }
 
 /* close X */
