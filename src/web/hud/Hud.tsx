@@ -1,4 +1,5 @@
 import { About } from "./About";
+import { Account } from "./Account";
 import { AgentCard } from "./AgentCard";
 import { ButtonDock } from "./ButtonDock";
 import { ChatDrawer } from "./ChatDrawer";
@@ -58,6 +59,8 @@ export function Hud() {
       <ImportPanel />
       <Leaderboard />
       <About />
+      {/* 账号(ACCOUNT)面板(plan/用量真;auth 按钮占位,自带 activePanel gate)*/}
+      <Account />
       {/* 共享任务面板(整面板 mock 占位,自带 activePanel gate)*/}
       <Tasks />
       {/* 设置(CONFIG)面板(整面板 mock 占位,自带 activePanel gate)*/}

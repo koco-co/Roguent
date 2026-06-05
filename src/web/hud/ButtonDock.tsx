@@ -8,20 +8,20 @@ import { Icon, type IconName } from "./icons";
 // - gear→settings、menu→menu、pause→menu(暂代「暂停」;真正的 transition 漩涡是 T3.12)
 //   这三个目标 panel(settings/menu)是 T3.x 才建,现在点了只设 activePanel、无组件渲染 =
 //   安全空操作(单一路由 openPanel 不报错)。注释标注「panel 待 T3.x」。
-// - account→about:现有 px-dock 的 about 入口是 T1.2 临时验证入口;为不丢「关于」可达性,
-//   重建后暂以 account 槽接 openPanel('about')(About 已是 working 面板)。T3.11/T3.12 再
-//   把 account / about 拆成正式的「账号」体系。
+// - account→account:T3.11 已把账号正式接到 Account 面板(订阅 plan + 5h/周用量真数据)。
+//   原 about 入口(T1.2 临时接在账号槽上)后续由 T3.12 SystemMenu 的「关于」承接;
+//   "about" 暂保留在联合类型里(About 组件仍 working,T3.12 再正式接入口)。
 type DockBtn = {
   icon: IconName;
-  panel: "settings" | "menu" | "about";
+  panel: "settings" | "menu" | "about" | "account";
   label: string;
 };
 
 const DOCK_BTNS: DockBtn[] = [
   { icon: "gear", panel: "settings", label: "设置" }, // panel 待 T3.x
   { icon: "menu", panel: "menu", label: "菜单" }, // panel 待 T3.x
-  // account 暂接 About(working);T3.11/T3.12 正式接「账号」。
-  { icon: "account", panel: "about", label: "账号" },
+  // T3.11:账号正式接 Account 面板;原临时的 about 入口由 T3.12 SystemMenu 承接。
+  { icon: "account", panel: "account", label: "账号" },
   { icon: "pause", panel: "menu", label: "暂停" }, // 暂代,transition 漩涡是 T3.12
 ];
 

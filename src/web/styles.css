@@ -2306,3 +2306,29 @@ img {
 .chat-input .pxinput {
   flex: 1;
 }
+
+/* 账号面板 Account(T3.11)。来源:设计原型 layout.css 第 321~325 行(.account-wrap
+   /.acct-plan/.acct-usage/.acct-row/.acct-row .sr-label)。复用已有:.barframe/.barfill
+   (及 .hp/.mp)、.sr-label、.npccard-act、.pxbtn(及 .cjk)、.faint/.dim/.gold/.px。 */
+.account-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.acct-plan {
+  text-align: center;
+  padding: 10px;
+}
+.acct-usage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.acct-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.acct-row .sr-label {
+  min-width: 70px;
+}
