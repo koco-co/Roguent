@@ -41,3 +41,18 @@ test("sendCommand before any connection does not throw (command is buffered, not
   // but calling sendCommand must never throw even when active is null.
   expect(() => sendCommand({ cmd: "listLocalSessions" })).not.toThrow();
 });
+
+test("handleIncoming routes kind:limits to onLimits, not the event sink", () => {
+  const events: RoomEvent[] = [];
+  let limits: unknown = null;
+  handleIncoming(
+    '{"kind":"limits","ts":1,"limits":{"planName":"Max","fiveHour":{"utilization":30,"resetsAt":null},"sevenDay":{"utilization":80,"resetsAt":null}}}',
+    (e) => events.push(e),
+    undefined,
+    (l) => {
+      limits = l;
+    },
+  );
+  expect(events).toHaveLength(0);
+  expect((limits as { planName?: string })?.planName).toBe("Max");
+});

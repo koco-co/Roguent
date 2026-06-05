@@ -496,3 +496,50 @@ test("message.delta from a subagent records the subagent agentId in the transcri
   expect(msg?.role).toBe("assistant");
   expect(msg?.text).toBe("sub reply");
 });
+
+test("context.updated folds into session.context", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "context.updated",
+      payload: { usedTokens: 200000, windowSize: 1000000, utilization: 20 },
+    }),
+  );
+  expect(st.sessions.s1?.context).toEqual({
+    usedTokens: 200000,
+    windowSize: 1000000,
+    utilization: 20,
+  });
+});
+
+test("context.updated for unknown session is ignored", () => {
+  const st = reduce(
+    empty,
+    ev({
+      type: "context.updated",
+      sessionId: "ghost",
+      payload: { usedTokens: 1, windowSize: 2, utilization: 50 },
+    }),
+  );
+  expect(st.sessions.ghost).toBeUndefined();
+});
+
+test("setLimits stores account limits and applyEvent preserves it", () => {
+  const store = useRoomStore.getState();
+  store.setLimits({
+    planName: "Max",
+    fiveHour: { utilization: 30, resetsAt: null },
+    sevenDay: { utilization: 80, resetsAt: null },
+  });
+  expect(useRoomStore.getState().limits?.planName).toBe("Max");
+  useRoomStore
+    .getState()
+    .applyEvent(
+      ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+    );
+  expect(useRoomStore.getState().limits?.planName).toBe("Max");
+});
