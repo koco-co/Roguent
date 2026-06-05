@@ -1960,3 +1960,150 @@ img {
   color: var(--cyan);
   font-size: 16px;
 }
+
+/* ── SHOP(商店面板)──────────────────────────────────────────
+   移植自设计原型 layout.css 第 257~276 行(.shop-* / .plugin-* / .item-*)。
+   token 转换铁律:原型 var(--ink) = 浅色文本,本项目 --ink = 深色背景;故
+   .plugin-name / .item-name 里的 var(--ink) → 改 var(--text)。其余 token
+   (--ink-dim/--gold/--green/--purple/--panel-edge/--cyan/--ac)照用。
+   原型未单列、jsx 用到的容器类(.shop-wrap/.plugin-meta/.shop-items)按语义补。 */
+.shop-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.shop-market {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 18px;
+}
+.shop-side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.shop-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel-edge);
+  padding: 7px 10px;
+  margin-bottom: 8px;
+  box-shadow: inset 0 0 0 2px #000;
+}
+.shop-search .pxinput {
+  box-shadow: none;
+  background: transparent;
+  padding: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.shop-cat {
+  font-size: 13px;
+  padding: 9px 11px;
+  cursor: pointer;
+  color: var(--ink-dim);
+}
+.shop-cat:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.shop-cat.on {
+  color: var(--gold);
+  background: rgba(242, 200, 75, 0.08);
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+.shop-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  max-height: 560px;
+  padding-right: 6px;
+}
+.plugin-card {
+  background: rgba(11, 10, 18, 0.45);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.plugin-top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.plugin-ic {
+  width: 48px;
+  height: 48px;
+  background: rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+}
+.plugin-meta {
+  display: flex;
+  flex-direction: column;
+}
+.plugin-name {
+  font-size: 14px;
+  color: var(--text); /* 原型 var(--ink) → 本项目 --text(浅色文本) */
+}
+.plugin-desc {
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.6;
+  flex: 1;
+}
+.plugin-bottom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.shop-items {
+  display: block;
+}
+.shop-bal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  background: rgba(160, 108, 213, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(160, 108, 213, 0.4);
+  padding: 11px 14px;
+}
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  max-height: 520px;
+  padding-right: 6px;
+}
+.item-card {
+  background: rgba(11, 10, 18, 0.45);
+  box-shadow: inset 0 0 0 2px var(--ac, #36c5e0);
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.item-card.gacha {
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(255, 77, 109, 0.18),
+    rgba(11, 10, 18, 0.45)
+  );
+}
+.item-base {
+  width: 64px;
+  height: 64px;
+  background: rgba(0, 0, 0, 0.3);
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+  box-shadow: inset 0 0 12px var(--ac);
+}
+.item-name {
+  font-size: 12px;
+  color: var(--text); /* 原型 var(--ink) → 本项目 --text(浅色文本) */
+  margin-bottom: 6px;
+}

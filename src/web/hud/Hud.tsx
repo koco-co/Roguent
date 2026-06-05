@@ -13,6 +13,7 @@ import { ModelPicker } from "./ModelPicker";
 import { RosterCard } from "./RosterCard";
 import { SessionBanner } from "./SessionBanner";
 import { Settings } from "./Settings";
+import { Shop } from "./Shop";
 import { Skills } from "./Skills";
 import { TaskWindow } from "./TaskWindow";
 import { Tasks } from "./Tasks";
@@ -61,6 +62,8 @@ export function Hud() {
       <Tasks />
       {/* 设置(CONFIG)面板(整面板 mock 占位,自带 activePanel gate)*/}
       <Settings />
+      {/* 商店(SHOP)面板(整面板 mock 占位,自带 activePanel gate)*/}
+      <Shop />
     </>
   );
 }
