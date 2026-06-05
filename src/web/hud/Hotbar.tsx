@@ -5,16 +5,15 @@ import { Icon, type IconName } from "./icons";
 // 仅内景显示(组件内 view!=='overworld' gate)。
 //
 // 接线说明(过渡期混合接线):
-// - 剩余 2 个面板仍走布尔标志(T3.x 各面板迁到单一路由后统一):
-//   chat→drawerOpen、import→importOpen;lit = 对应布尔。
-// - skills / tasks / shop / leaderboard / backpack / model 走 openPanel(单一路由);
-//   skills(T3.3)、leaderboard(T3.4)、backpack(T3.7)、model(T3.9)已迁,
+// - 仅剩 1 个面板仍走布尔标志(T3.8 迁后清零):chat→drawerOpen;lit = 对应布尔。
+// - skills / tasks / shop / leaderboard / backpack / model / import 走 openPanel(单一路由);
+//   skills(T3.3)、leaderboard(T3.4)、backpack(T3.7)、model(T3.9)、import(T3.10)已迁,
 //   lit = activePanel === id。
 // - badge 角标:暂无真实徽标数据 → 不渲染(不造假);保留 .badge 渲染能力(badge?: number)
 //   以便引擎补齐后接入。
 
-// 走布尔标志的槽(过渡期遗留)。
-type FlagKey = "drawerOpen" | "importOpen";
+// 走布尔标志的槽(过渡期遗留,仅剩 chat)。
+type FlagKey = "drawerOpen";
 // 走单一路由 openPanel 的槽。
 type RoutePanel =
   | "tasks"
@@ -22,7 +21,8 @@ type RoutePanel =
   | "skills"
   | "leaderboard"
   | "backpack"
-  | "model";
+  | "model"
+  | "import";
 
 type FlagSlot = { kind: "flag"; icon: IconName; flag: FlagKey; label: string };
 type RouteSlot = {
@@ -39,7 +39,7 @@ const GROUP1: Slot[] = [
   { kind: "route", icon: "pouch", panel: "backpack", label: "背包" },
   { kind: "flag", icon: "chat", flag: "drawerOpen", label: "聊天" },
   { kind: "route", icon: "crystal", panel: "model", label: "模型" },
-  { kind: "flag", icon: "import", flag: "importOpen", label: "导入" },
+  { kind: "route", icon: "import", panel: "import", label: "导入" },
 ];
 // g2:任务 / 商店 / 排行榜(对标原型 hotbar g2)。
 const GROUP2: Slot[] = [
@@ -81,17 +81,15 @@ export function Hotbar() {
   const inInterior = useUiStore((s) => s.view !== "overworld");
   // 订阅各布尔标志 + 路由当前面板,用于 lit 态。
   const drawerOpen = useUiStore((s) => s.drawerOpen);
-  const importOpen = useUiStore((s) => s.importOpen);
   const activePanel = useUiStore((s) => s.activePanel);
   const toggle = useUiStore((s) => s.toggle);
   const openPanel = useUiStore((s) => s.openPanel);
 
   if (!inInterior) return null;
 
-  // 布尔标志当前值查表(用于 lit)。
+  // 布尔标志当前值查表(用于 lit,仅剩 chat→drawerOpen)。
   const flagValue: Record<FlagKey, boolean> = {
     drawerOpen,
-    importOpen,
   };
 
   const renderSlot = (slot: Slot) => {

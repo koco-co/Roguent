@@ -2180,3 +2180,39 @@ img {
 .model-meta {
   flex: 1;
 }
+
+/* ── IMPORT PANEL ───────────────────────────────────────────
+   源自原型 layout.css 第 318~320 行(ImportPanel 竖排会话行)。
+   .import-row 在本项目是 <button>(整行点击即导入,无障碍),故补
+   button reset(border/width/text-align/cursor/font/color),参考
+   .model-card / .set-navitem。.import-path 用 --ink-dim,无 var(--ink)
+   文本,无需 --ink→--text 转换。 */
+.import-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.import-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(11, 10, 18, 0.4);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  /* button reset */
+  border: 0;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.import-row:hover {
+  filter: brightness(1.12);
+}
+.import-path {
+  flex: 1;
+  font-family: var(--font-px);
+  font-size: 10px;
+  color: var(--ink-dim);
+}
