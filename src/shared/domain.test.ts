@@ -18,3 +18,8 @@ test("createAgent defaults to a spawning subagent", () => {
   expect(a.kind).toBe("subagent");
   expect(a.status).toBe("spawning");
 });
+
+test("createSession leaves context undefined until first context.updated", () => {
+  const s = createSession({ id: "s1", title: "t", model: "claude-opus-4-8" });
+  expect(s.context).toBeUndefined();
+});
