@@ -1,49 +1,13 @@
 import { useState } from "react";
 import { useUiStore } from "../ui-store";
 import { Icon } from "./icons";
+import { MOCK_TASKS, STATE_META, taskProgress } from "./mock-data";
 
 // ── mock 数据(占位待接入)──────────────────────────────────────────────────
-// 引擎暂无「共享任务清单 / TodoWrite 聚合」概念,整窗是固定示例占位;
-// 待引擎接入(把各 agent 的 TodoWrite / 任务流聚合成会话级清单)后,替换为真数据。
-// 三重防伪标注:① 本注释 ② .tw-head 里的可见「示例」角标 ③ 根 .taskwin 的 title。
-interface MockTask {
-  id: string;
-  title: string;
-  state: "pending" | "in-progress" | "completed";
-  blockedByUser?: boolean;
-}
-
-// 忠实移植原型 hud.jsx 的 DATA.tasks 这 7 条;字段与状态枚举与原型一致。
-const MOCK_TASKS: MockTask[] = [
-  { id: "t1", title: "重构大厅相机缩放逻辑", state: "in-progress" },
-  { id: "t2", title: "勘察 mapping.ts 英雄池", state: "completed" },
-  { id: "t3", title: "重绘 NPC 头顶状态槽", state: "in-progress" },
-  { id: "t4", title: "接 TodoWrite → 任务面板实时同步", state: "pending" },
-  { id: "t5", title: "写大厅空态引导文案", state: "pending" },
-  {
-    id: "t6",
-    title: "更新 README 安装步骤",
-    state: "pending",
-    blockedByUser: true,
-  },
-  { id: "t7", title: "依赖审计 bun.lock", state: "completed" },
-];
-
-// state → [圆点 / 进度条颜色, 文案];与原型 meta 一致。
-const META: Record<MockTask["state"], [string, string]> = {
-  pending: ["#8a8170", "待领"],
-  "in-progress": ["#36c5e0", "进行中"],
-  completed: ["#5fd35f", "完成"],
-};
-
-// 进度:completed→100、pending→0、in-progress 按原型固定值(t1:62 / t3:38 / 其它:50)。
-function prog(tk: MockTask): number {
-  if (tk.state === "completed") return 100;
-  if (tk.state === "pending") return 0;
-  if (tk.id === "t1") return 62;
-  if (tk.id === "t3") return 38;
-  return 50;
-}
+// 任务数据来自共享单一源 mock-data.ts(TaskWindow / Tasks 两处共用)。引擎暂无
+// 「共享任务清单 / TodoWrite 聚合」概念,整窗是固定示例占位。三重防伪标注:① 本注释
+// ② .tw-head 里的可见「示例」角标 ③ 根 .taskwin 的 title。这里只取它需要的最小视图
+// (id/title/state/blockedByUser + 颜色 + 进度),owner/model/deps/desc 由 Tasks 用。
 
 /**
  * 内景左栈底部「实时任务窗」TaskWindow(对标设计原型 hud.jsx 的 TaskWindow):
@@ -93,8 +57,8 @@ export function TaskWindow() {
       {open && (
         <div className="tw-body scroll">
           {tasks.map((tk) => {
-            const [color] = META[tk.state];
-            const p = prog(tk);
+            const [color] = STATE_META[tk.state];
+            const p = taskProgress(tk);
             const live = tk.state === "in-progress";
             return (
               <button

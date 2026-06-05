@@ -14,6 +14,7 @@ import { RosterCard } from "./RosterCard";
 import { SessionBanner } from "./SessionBanner";
 import { SkillGrid } from "./SkillGrid";
 import { TaskWindow } from "./TaskWindow";
+import { Tasks } from "./Tasks";
 import { ViewSwitch } from "./ViewSwitch";
 
 // InfoPopover(原 gear→infoOpen 触发的会话信息浮层)在 T2.4 失去触发入口:新 ButtonDock
@@ -53,6 +54,8 @@ export function Hud() {
       <ImportPanel />
       <Leaderboard />
       <About />
+      {/* 共享任务面板(整面板 mock 占位,自带 activePanel gate)*/}
+      <Tasks />
     </>
   );
 }
