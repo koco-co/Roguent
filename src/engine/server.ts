@@ -46,6 +46,7 @@ if (replayFixture) {
       process.env.ANTHROPIC_API_BASE_URL ??
       "",
   });
+  // 进程级 5 分钟轮询,随引擎生命周期常驻;无需显式 stop()(进程退出即止)。
   poller.start();
   console.log("[server] LIVE");
 }

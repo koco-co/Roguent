@@ -1,10 +1,8 @@
 import type { Session } from "../../shared/domain";
-import { sessionHero } from "../overworld/skins";
 
 export interface LeaderboardRow {
   sessionId: string;
   title: string;
-  heroSkin: string;
   tokens: number;
   cost: number;
   model: string;
@@ -19,7 +17,6 @@ export function leaderboardRows(
     .map((s) => ({
       sessionId: s.id,
       title: s.title,
-      heroSkin: sessionHero(s.id),
       tokens: s.usage.tokens,
       cost: s.usage.cost,
       model: s.model,

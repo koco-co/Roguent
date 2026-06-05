@@ -75,7 +75,7 @@ export function Hud() {
         <span className="px-stat">🪙{tokens.toLocaleString()}</span>
       </div>
 
-      {/* left-top settings dock */}
+      {/* right-top settings dock (moved right to make room for LimitBars) */}
       <div className="px-dock">
         <IconButton
           icon="⚙"
