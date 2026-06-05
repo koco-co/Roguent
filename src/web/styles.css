@@ -4,6 +4,24 @@
    styles) make it feel responsive.
    ──────────────────────────────────────────────────────────────────────── */
 
+/* ── Self-hosted pixel CJK font (T0.5) ───────────────────────────────────
+   Fusion Pixel 12px Proportional SC (TakWolf, OFL-1.1). The design prototype
+   pulls this from jsDelivr, but Tauri's `tauri://` origin can't fetch a CDN
+   (same class as the 0x72 atlas path bug), so we self-host the woff2 under
+   public/fonts and serve it by absolute path — exactly like /assets/0x72/*.
+   The single woff2 carries the FULL CJK set (~17.5k ideographs); we drop the
+   1.4MB .woff fallback the @fontsource npm package shipped (every Tauri
+   WKWebView supports woff2). License: public/fonts/*-LICENSE.txt.
+   ──────────────────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: "Fusion Pixel 12px Proportional SC";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/fusion-pixel-12px-proportional-sc-400-normal.woff2")
+    format("woff2");
+}
+
 /* ── Design tokens: WARM-WOOD RPG palette (T0.1) ─────────────────────────
    Legacy names are kept; only values were re-pointed so existing .px-*
    components recolor for free.
@@ -24,6 +42,12 @@
   --text: #f4ead7;
   --muted: #c9b79a;
   --pixel: "Press Start 2P", ui-monospace, "Cascadia Mono", Menlo, monospace;
+  --font-px: "Press Start 2P", "Fusion Pixel 12px Proportional SC",
+    "Courier New", monospace;
+  --font-cjk: "Fusion Pixel 12px Proportional SC", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-cjk-sys: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans SC", sans-serif;
 
   /* ── new design tokens (warm-wood RPG, §9 token list) ───────────────── */
   --bg-dungeon: #1f2e33;
@@ -59,7 +83,7 @@ body {
   margin: 0;
   background: var(--ink);
   color: var(--text);
-  font-family: ui-monospace, "Cascadia Mono", Menlo, monospace;
+  font-family: var(--font-cjk);
 }
 
 /* crisp upscaling for any raster the DOM shows */
@@ -70,6 +94,20 @@ img {
 .pf {
   font-family: var(--pixel);
   letter-spacing: 0.5px;
+}
+
+.px {
+  font-family: var(--font-px);
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+}
+.cjk {
+  font-family: var(--font-cjk);
+}
+/* Tweak toggle: system-CJK mode swaps the pixel CJK face out */
+.cjk-sys {
+  --font-cjk: var(--font-cjk-sys);
+  --font-px: "Press Start 2P", "Courier New", monospace;
 }
 
 /* ── beveled pixel frame ─────────────────────────────────────────────────── */
