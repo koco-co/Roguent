@@ -23,7 +23,7 @@ import { Character } from "./Character";
 import { DungeonRoom } from "./DungeonRoom";
 import { GlowLayer, Vignette } from "./Lights";
 import { Particles } from "./Particles";
-import { AtlasProvider, loadAtlas } from "./atlas";
+import { AtlasProvider, atlasErrorText, loadAtlas, resetAtlas } from "./atlas";
 import { DOOR_COL, TILE, VH, VW } from "./config";
 import { type Pos, roomLayout } from "./layout";
 import type { MotionMap } from "./motion";
@@ -170,12 +170,28 @@ function Scene({
 export function Room() {
   const hostRef = useRef<HTMLDivElement>(null);
   const [sheet, setSheet] = useState<Spritesheet | null>(null);
+  const [atlasError, setAtlasError] = useState<string | null>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
+
+  const retryAtlas = () => {
+    setAtlasError(null);
+    setSheet(null);
+    resetAtlas();
+    loadAtlas()
+      .then(setSheet)
+      .catch((e: unknown) => {
+        console.error("[atlas] load failed", e);
+        setAtlasError(atlasErrorText(e));
+      });
+  };
 
   useEffect(() => {
     loadAtlas()
       .then(setSheet)
-      .catch((e) => console.error("[atlas] load failed", e));
+      .catch((e: unknown) => {
+        console.error("[atlas] load failed", e);
+        setAtlasError(atlasErrorText(e));
+      });
   }, []);
 
   useLayoutEffect(() => {
@@ -197,6 +213,39 @@ export function Room() {
           </AtlasProvider>
         ) : null}
       </Application>
+      {atlasError ? (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(11,10,18,0.92)",
+            color: "#ff6b6b",
+            fontFamily: "monospace",
+            fontSize: 12,
+            padding: 24,
+            gap: 12,
+          }}
+        >
+          <div>⚠ atlas load failed</div>
+          <div
+            style={{
+              color: "#aaa",
+              fontSize: 10,
+              wordBreak: "break-all",
+              maxWidth: 360,
+            }}
+          >
+            {atlasError}
+          </div>
+          <button type="button" className="px-btn" onClick={retryAtlas}>
+            重试
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -441,3 +441,58 @@ test("the just-created session is never the LRU victim even if the clock went ba
   ).length;
   expect(lobby).toBe(10);
 });
+
+test("switchSession changes currentSessionId without modifying sessions", () => {
+  useRoomStore.setState({
+    sessions: {},
+    currentSessionId: null,
+    projectOrder: [],
+  });
+  const api = useRoomStore.getState();
+  api.applyEvent(
+    ev({ type: "session.created", payload: { title: "s1", model: "m" } }),
+  );
+  api.applyEvent(
+    ev({
+      sessionId: "s2",
+      type: "session.created",
+      payload: { title: "s2", model: "m" },
+    }),
+  );
+  // After two sessions, focus is on s2 (last new session wins).
+  expect(useRoomStore.getState().currentSessionId).toBe("s2");
+
+  api.switchSession("s1");
+  expect(useRoomStore.getState().currentSessionId).toBe("s1");
+  // The sessions themselves are untouched.
+  expect(Object.keys(useRoomStore.getState().sessions)).toHaveLength(2);
+  expect(useRoomStore.getState().sessions.s1?.title).toBe("s1");
+  expect(useRoomStore.getState().sessions.s2?.title).toBe("s2");
+});
+
+test("message.delta from a subagent records the subagent agentId in the transcript", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "agent.spawned",
+      agentId: "ag-sub",
+      payload: { role: "coder", parentId: ORCHESTRATOR_ID },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "message.delta",
+      agentId: "ag-sub",
+      payload: { text: "sub reply" },
+    }),
+  );
+  const msg = st.sessions.s1?.messages.at(-1);
+  expect(msg?.agentId).toBe("ag-sub");
+  expect(msg?.role).toBe("assistant");
+  expect(msg?.text).toBe("sub reply");
+});
