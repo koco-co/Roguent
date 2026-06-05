@@ -1,9 +1,9 @@
 ---
 title: 导入本地会话历史 · 设计
 date: 2026-06-05
-status: design
+status: M1-done
 milestones:
-  - M1 导入 + 压缩回放(零额度,本期实现)
+  - M1 导入 + 压缩回放(零额度)— ✅ 已实现(commit 8801c30;浏览器冒烟:719 会话列出、点击导入渲染成房间)
   - M2 从历史 resume 续命(SDK --resume,后续)
 related:
   - 2026-06-04-roguent-design.md
