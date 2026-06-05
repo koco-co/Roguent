@@ -28,7 +28,7 @@ const STATUS_COLOR: Record<SessionStatus, string> = {
 export function NpcCard() {
   const id = useUiStore((s) => s.selectedNpcId);
   const selectNpc = useUiStore((s) => s.selectNpc);
-  const enterInterior = useUiStore((s) => s.enterInterior);
+  const beginEnter = useUiStore((s) => s.beginEnter);
   const drawerOpen = useUiStore((s) => s.drawerOpen);
   const toggle = useUiStore((s) => s.toggle);
   const session = useRoomStore((s) => (id ? s.sessions[id] : undefined));
@@ -60,8 +60,8 @@ export function NpcCard() {
     .join(" · ");
 
   const enter = () => {
-    switchSession(id);
-    enterInterior(id);
+    beginEnter(id);
+    selectNpc(null);
   };
   const chat = () => {
     switchSession(id);

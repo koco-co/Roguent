@@ -1,5 +1,11 @@
 import { useTick } from "@pixi/react";
-import type { AnimatedSprite, Container, Graphics, TextStyle } from "pixi.js";
+import type {
+  AnimatedSprite,
+  Container,
+  Graphics,
+  Sprite,
+  TextStyle,
+} from "pixi.js";
 import {
   type RefObject,
   useCallback,
@@ -11,6 +17,7 @@ import {
 } from "react";
 import type { SessionStatus } from "../../shared/domain";
 import { anim, useAtlas } from "../room/atlas";
+import { glowTexture } from "../room/effects";
 import type { Pos } from "../room/layout";
 import {
   type Bounds,
@@ -115,6 +122,11 @@ export function SessionNpc({
   leavingRef.current = leaving;
   const doorRef = useRef(door);
   doorRef.current = door;
+  const nearRef = useRef(near);
+  nearRef.current = near;
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  const portalGlowRef = useRef<Sprite | null>(null);
 
   // Seed at the doorway and walk in on mount (NPC enters from its room door,
   // spec §生命周期). useLayoutEffect so position is set before first paint
@@ -218,6 +230,15 @@ export function SessionNpc({
 
       const map = motionRef.current;
       if (map) map[id] = { x: pos.current.x, y: pos.current.y };
+
+      const pg = portalGlowRef.current;
+      if (pg) {
+        const base = 0.3 + (0.15 * (Math.sin(performance.now() / 380) + 1)) / 2;
+        pg.alpha =
+          nearRef.current || selectedRef.current
+            ? Math.min(0.7, base + 0.25)
+            : base;
+      }
     },
     [id, radius, onExited, idleFrames, runFrames, motionRef, status],
   );
@@ -284,6 +305,16 @@ export function SessionNpc({
     >
       <pixiGraphics y={1} draw={shadow} />
       <pixiGraphics draw={ring} />
+      <pixiSprite
+        ref={portalGlowRef}
+        texture={glowTexture()}
+        anchor={0.5}
+        y={1}
+        scale={0.28}
+        tint={ringColor}
+        alpha={0.35}
+        blendMode="add"
+      />
       <pixiContainer ref={flipRef}>
         <pixiAnimatedSprite ref={spriteRef} textures={idleFrames} />
       </pixiContainer>
@@ -309,7 +340,7 @@ export function SessionNpc({
 
       {near && !leaving ? (
         <pixiText
-          text="[E] 信息"
+          text="[E] 进入"
           anchor={0.5}
           y={-20}
           resolution={4}
