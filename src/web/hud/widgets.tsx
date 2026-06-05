@@ -19,31 +19,6 @@ export function StatRow({ k, v }: { k: string; v: ReactNode }) {
   );
 }
 
-/** A pixel-framed square icon button. Renders as an inline flow element,
- *  laid out by its container (`.px-hotbar` / `.px-dock`). */
-export function IconButton({
-  icon,
-  title,
-  lit,
-  onClick,
-}: {
-  icon: ReactNode;
-  title: string;
-  lit?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      title={title}
-      className={`px-btn px-icon${lit ? " lit" : ""}`}
-      onClick={onClick}
-    >
-      {icon}
-    </button>
-  );
-}
-
 /** Friendly short label for a model id. */
 export function shortModel(id?: string): string {
   if (!id) return "—";

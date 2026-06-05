@@ -46,7 +46,7 @@ const STORAGE_KEY = "roguent:settings";
  *
  * CSS 消费端归属(store 在此正确产出 hook,样式规则在各自任务里补):
  *   · cjk-sys      —— 已接线(styles.css `.cjk-sys`,T0.5)
- *   · hud-compact  —— 待 T2.x 内景 HUD chrome(缩放 .px-dock/.px-hotbar/.session-banner/.currency 等)
+ *   · hud-compact  —— 待 T2.x 内景 HUD chrome(缩放 .dock/.hotbar/.session-banner/.currency 等)
  *   · no-motion    —— 待收尾补全局 `.no-motion *{animation:none}`(对标原型 layout.css)
  *   · room-*       —— 待房间主题接线(随 --core-glow 一起,见 settingsRootStyle)
  * 在对应规则落地前,这几个偏好改了暂无视觉效果(非缺陷)。
