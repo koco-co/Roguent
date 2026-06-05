@@ -4,19 +4,45 @@
    styles) make it feel responsive.
    ──────────────────────────────────────────────────────────────────────── */
 
+/* ── Design tokens: WARM-WOOD RPG palette (T0.1) ─────────────────────────
+   Legacy names are kept; only values were re-pointed so existing .px-*
+   components recolor for free.
+   NOTE: --ink intentionally stays as the DARK BACKGROUND (#0b0a12).
+         Light parchment text lives on --text, not --ink.
+   ──────────────────────────────────────────────────────────────────────── */
 :root {
+  /* ── legacy token names (values re-pointed to warm palette) ─────────── */
   --ink: #0b0a12;
-  --panel: #20283c;
-  --panel-2: #161d2c;
-  --edge-dark: #06070d;
-  --edge-light: #46597a;
-  --gold: #ffd166;
-  --cyan: #4fe0ff;
-  --pink: #ff5ea0;
-  --green: #6bf0a0;
-  --text: #dce8f2;
-  --muted: #8aa0b4;
+  --panel: #5a3f2a;
+  --panel-2: #4a3322;
+  --edge-dark: #2c1c10;
+  --edge-light: #7a5638;
+  --gold: #f2c84b;
+  --cyan: #36c5e0;
+  --pink: #ff4d6d;
+  --green: #5fd35f;
+  --text: #f4ead7;
+  --muted: #c9b79a;
   --pixel: "Press Start 2P", ui-monospace, "Cascadia Mono", Menlo, monospace;
+
+  /* ── new design tokens (warm-wood RPG, §9 token list) ───────────────── */
+  --bg-dungeon: #1f2e33;
+  --bg-dungeon-2: #2a3d44;
+  --bg-wood: #4a3322;
+  --bg-dark: #0b0a12;
+  --panel-edge: #2c1c10; /* outer dark outline; mirrors --edge-dark */
+  --panel-hi: #7a5638; /* inner highlight; mirrors --edge-light */
+  --panel-deep: #33220f; /* inner shadow */
+  --titlebar: #2c1c10;
+  --purple: #a06cd5;
+  --ink-dim: #c9b79a; /* bridge name; same value as --muted */
+  --ink-faint: #8d7c63;
+  --hp: #ff4d6d; /* bar: 5h daily limit */
+  --shield: #7c8a99; /* bar: context shield */
+  --mp: #36c5e0; /* bar: week limit */
+  --claude: #36c5e0;
+  --codex: #5fd35f;
+  --accent: #36c5e0; /* default accent; overridden at runtime per-tweak */
 }
 
 * {
