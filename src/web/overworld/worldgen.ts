@@ -44,6 +44,8 @@ export interface WorldModel {
   widthPx: number; // cols * TILE
   heightPx: number; // rows * TILE
   rooms: RoomBox[];
+  /** Always-present central plaza: player spawn + fountain landmark anchor. */
+  hub: RoomBox;
   tiles: TileKind[]; // row-major, length cols*rows
   walkable: boolean[]; // row-major, length cols*rows; true === floor (walkable)
 }
@@ -67,6 +69,12 @@ const MAX_W = SLOT_W - 3; // leave a gutter inside the slot for corridors
 const MAX_H = SLOT_H - 3;
 
 const BOUNDS_MARGIN_PX = 4; // keep wandering NPCs off the interior walls
+
+// Central Hub plaza: always present, spans a reserved top slot row so the player
+// spawns there even with zero projects. Project slots shift down by HUB_SLOT_ROWS.
+const HUB_W = 9; // Hub 内部宽(tiles)
+const HUB_H = 6; // Hub 内部高(tiles)
+const HUB_SLOT_ROWS = 1; // 顶部预留给 Hub 的槽行数
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
@@ -92,7 +100,8 @@ function roomRect(i: number, p: ProjectInput): Rect {
   const slotCol = i % SLOT_COLS;
   const slotRow = Math.floor(i / SLOT_COLS);
   const slotX = PAD + slotCol * SLOT_W;
-  const slotY = PAD + slotRow * SLOT_H;
+  // Reserve the top slot row(s) for the Hub; project slots start below it.
+  const slotY = PAD + (slotRow + HUB_SLOT_ROWS) * SLOT_H;
 
   const h = hashId(p.id);
   // Deterministic 0/1 jitter derived purely from the id hash.
@@ -132,38 +141,58 @@ function interiorCentreTile(rect: Rect): { col: number; row: number } {
   };
 }
 
+/**
+ * Build a RoomBox (anchor / wander bounds / doorway) from a tile rect. Shared by
+ * project rooms and the central Hub so both derive their px anchors identically.
+ * Pure: depends only on the projectId + rect + TILE/BOUNDS_MARGIN_PX constants.
+ */
+function makeRoomBox(projectId: string, rect: Rect): RoomBox {
+  const anchorPx: Pos = {
+    x: (rect.x + rect.w / 2) * TILE,
+    y: (rect.y + rect.h / 2) * TILE,
+  };
+  // Interior floor rect in tiles, then px, inset by a small margin.
+  const interiorMinXPx = (rect.x + 1) * TILE;
+  const interiorMinYPx = (rect.y + 1) * TILE;
+  const interiorMaxXPx = (rect.x + rect.w - 1) * TILE;
+  const interiorMaxYPx = (rect.y + rect.h - 1) * TILE;
+  const boundsPx = {
+    minX: interiorMinXPx + BOUNDS_MARGIN_PX,
+    minY: interiorMinYPx + BOUNDS_MARGIN_PX,
+    maxX: interiorMaxXPx - BOUNDS_MARGIN_PX,
+    maxY: interiorMaxYPx - BOUNDS_MARGIN_PX,
+  };
+  return {
+    projectId,
+    rect,
+    anchorPx,
+    boundsPx,
+    // 门口 = 横向居中、纵向贴 wander 区下沿。
+    doorPx: { x: anchorPx.x, y: boundsPx.maxY },
+  };
+}
+
 export function generateWorld(projects: ProjectInput[]): WorldModel {
   const n = projects.length;
+  const projRows = n === 0 ? 0 : Math.ceil(n / SLOT_COLS);
   const cols = PAD * 2 + SLOT_COLS * SLOT_W;
-  const rows = PAD * 2 + Math.ceil(Math.max(1, n) / SLOT_COLS) * SLOT_H;
+  const rows = PAD * 2 + (HUB_SLOT_ROWS + projRows) * SLOT_H;
+
+  // Central Hub: full-width-centred plaza on the reserved top slot row, with a
+  // fountain landmark at its anchorPx. Always present (even with zero projects).
+  const hubRectX = Math.floor((cols - (HUB_W + 2)) / 2);
+  const hubRectY = PAD + Math.floor((SLOT_H - (HUB_H + 2)) / 2);
+  const hub = makeRoomBox("__hub__", {
+    x: hubRectX,
+    y: hubRectY,
+    w: HUB_W + 2,
+    h: HUB_H + 2,
+  });
 
   // --- Rooms (rect depends only on slot index + id) ---------------------------
-  const rooms: RoomBox[] = projects.map((p, i) => {
-    const rect = roomRect(i, p);
-    const anchorPx: Pos = {
-      x: (rect.x + rect.w / 2) * TILE,
-      y: (rect.y + rect.h / 2) * TILE,
-    };
-    // Interior floor rect in tiles, then px, inset by a small margin.
-    const interiorMinXPx = (rect.x + 1) * TILE;
-    const interiorMinYPx = (rect.y + 1) * TILE;
-    const interiorMaxXPx = (rect.x + rect.w - 1) * TILE;
-    const interiorMaxYPx = (rect.y + rect.h - 1) * TILE;
-    const boundsPx = {
-      minX: interiorMinXPx + BOUNDS_MARGIN_PX,
-      minY: interiorMinYPx + BOUNDS_MARGIN_PX,
-      maxX: interiorMaxXPx - BOUNDS_MARGIN_PX,
-      maxY: interiorMaxYPx - BOUNDS_MARGIN_PX,
-    };
-    return {
-      projectId: p.id,
-      rect,
-      anchorPx,
-      boundsPx,
-      // 门口 = 横向居中、纵向贴 wander 区下沿。
-      doorPx: { x: anchorPx.x, y: boundsPx.maxY },
-    };
-  });
+  const rooms: RoomBox[] = projects.map((p, i) =>
+    makeRoomBox(p.id, roomRect(i, p)),
+  );
 
   // --- Floor set --------------------------------------------------------------
   const floor: boolean[] = new Array(cols * rows).fill(false);
@@ -171,6 +200,12 @@ export function generateWorld(projects: ProjectInput[]): WorldModel {
   const setFloor = (c: number, r: number) => {
     if (c >= 0 && c < cols && r >= 0 && r < rows) floor[idx(c, r)] = true;
   };
+
+  // Hub interior (inside the 1-tile wall border) — the always-present plaza.
+  for (let r = hub.rect.y + 1; r < hub.rect.y + hub.rect.h - 1; r++) {
+    for (let c = hub.rect.x + 1; c < hub.rect.x + hub.rect.w - 1; c++)
+      setFloor(c, r);
+  }
 
   // Room interiors (inside the 1-tile wall border).
   for (const room of rooms) {
@@ -207,6 +242,15 @@ export function generateWorld(projects: ProjectInput[]): WorldModel {
     const from = interiorCentreTile(a.rect);
     const to = interiorCentreTile(b.rect);
     // Horizontal first (at the source row), then vertical (at the dest col).
+    carveHSeg(from.col, to.col, from.row);
+    carveVSeg(from.row, to.row, to.col);
+  }
+
+  // Hub → first room corridor: links the central plaza into the room chain so
+  // every project is reachable from the spawn point. (Rooms chain off rooms[0].)
+  if (rooms[0]) {
+    const from = interiorCentreTile(hub.rect);
+    const to = interiorCentreTile(rooms[0].rect);
     carveHSeg(from.col, to.col, from.row);
     carveVSeg(from.row, to.row, to.col);
   }
@@ -255,6 +299,7 @@ export function generateWorld(projects: ProjectInput[]): WorldModel {
     widthPx: cols * TILE,
     heightPx: rows * TILE,
     rooms,
+    hub,
     tiles,
     walkable,
   };

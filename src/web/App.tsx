@@ -3,6 +3,7 @@ import { resolveEngineUrl } from "./engine-url";
 import { Hud } from "./hud/Hud";
 import { NpcCard } from "./hud/NpcCard";
 import { Overworld } from "./overworld/Overworld";
+import { PortalTransition } from "./overworld/PortalTransition";
 import { Room } from "./room/Room";
 import { useRoomStore } from "./store";
 import { useUiStore } from "./ui-store";
@@ -11,6 +12,7 @@ import { type RoomConnection, connectRoom } from "./ws-client";
 export function App() {
   const view = useUiStore((s) => s.view);
   const exitOverworld = useUiStore((s) => s.exitOverworld);
+  const beginExit = useUiStore((s) => s.beginExit);
   const inInterior = view !== "overworld";
   const interiorId = typeof view === "object" ? view.interior : null;
   // 内景会话是否已不可见(被软归档或硬删除)。缺失 → 视作已离场。
@@ -44,11 +46,11 @@ export function App() {
   useEffect(() => {
     if (!inInterior) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") exitOverworld();
+      if (e.key === "Escape" && interiorId) beginExit(interiorId);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [inInterior, exitOverworld]);
+  }, [inInterior, interiorId, beginExit]);
 
   return (
     <div style={{ position: "fixed", inset: 0, overflow: "hidden" }}>
@@ -67,13 +69,14 @@ export function App() {
             fontSize: 10,
             color: "var(--cyan)",
           }}
-          onClick={exitOverworld}
+          onClick={() => interiorId && beginExit(interiorId)}
         >
           ← 大厅
         </button>
       ) : (
         <NpcCard />
       )}
+      <PortalTransition />
     </div>
   );
 }

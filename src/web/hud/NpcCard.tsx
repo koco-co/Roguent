@@ -28,7 +28,7 @@ const STATUS_COLOR: Record<SessionStatus, string> = {
 export function NpcCard() {
   const id = useUiStore((s) => s.selectedNpcId);
   const selectNpc = useUiStore((s) => s.selectNpc);
-  const enterInterior = useUiStore((s) => s.enterInterior);
+  const beginEnter = useUiStore((s) => s.beginEnter);
   const drawerOpen = useUiStore((s) => s.drawerOpen);
   const toggle = useUiStore((s) => s.toggle);
   const session = useRoomStore((s) => (id ? s.sessions[id] : undefined));
@@ -60,8 +60,8 @@ export function NpcCard() {
     .join(" · ");
 
   const enter = () => {
-    switchSession(id);
-    enterInterior(id);
+    beginEnter(id);
+    selectNpc(null);
   };
   const chat = () => {
     switchSession(id);
@@ -80,103 +80,106 @@ export function NpcCard() {
 
   return (
     <div
-      className="px-panel px-pop"
+      className="px-window px-pop"
       style={{
         position: "absolute",
         left: "50%",
         bottom: 78,
         transform: "translateX(-50%)",
         width: 320,
-        padding: "14px 16px",
+        padding: 0,
       }}
     >
-      <button
-        type="button"
-        title="关闭"
-        className="px-btn"
-        style={{
-          position: "absolute",
-          top: 6,
-          right: 6,
-          width: 26,
-          height: 26,
-          fontSize: 12,
-        }}
-        onClick={() => selectNpc(null)}
-      >
-        ✕
-      </button>
-      <div
-        className="pf"
-        style={{
-          fontSize: 11,
-          color: STATUS_COLOR[session.status],
-          marginBottom: 12,
-          paddingRight: 24,
-        }}
-      >
-        ⚔ {session.title}
+      <div className="px-titlebar">
+        {/* v1 占位:状态色块,后续替换为像素头像 sprite */}
+        <div
+          className="px-dossier-portrait"
+          aria-hidden
+          style={{ background: STATUS_COLOR[session.status], opacity: 0.5 }}
+        />
+        <div
+          className="pf grow"
+          style={{ color: STATUS_COLOR[session.status], fontSize: 11 }}
+        >
+          ⚔ {session.title}
+        </div>
+        <button
+          type="button"
+          title="关闭"
+          className="px-btn"
+          style={{ width: 26, height: 26, fontSize: 12 }}
+          onClick={() => selectNpc(null)}
+        >
+          ✕
+        </button>
       </div>
-      <StatRow k="项目" v={session.project ?? "—"} />
-      <StatRow k="模型" v={shortModel(session.model)} />
-      <StatRow k="模式" v={session.permissionMode} />
-      <StatRow k="状态" v={STATUS_LABEL[session.status] ?? session.status} />
-      <StatRow
-        k="子智能体"
-        v={`${subagents.length} 个${breakdown ? ` · ${breakdown}` : ""}`}
-      />
-      <StatRow k="Token" v={session.usage.tokens.toLocaleString()} />
-      <StatRow k="花费" v={`$${session.usage.cost.toFixed(4)}`} />
+      <div style={{ padding: "12px 16px" }}>
+        <StatRow k="项目" v={session.project ?? "—"} />
+        <StatRow k="模型" v={shortModel(session.model)} />
+        <StatRow k="模式" v={session.permissionMode} />
+        <StatRow k="状态" v={STATUS_LABEL[session.status] ?? session.status} />
+        <StatRow
+          k="子智能体"
+          v={`${subagents.length} 个${breakdown ? ` · ${breakdown}` : ""}`}
+        />
+        <StatRow k="Token" v={session.usage.tokens.toLocaleString()} />
+        <StatRow k="花费" v={`$${session.usage.cost.toFixed(4)}`} />
 
-      <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
-        <button
-          type="button"
-          className="px-btn"
-          style={{ flex: 1, padding: 8, fontSize: 10, color: "var(--cyan)" }}
-          onClick={enter}
-        >
-          进入
-        </button>
-        <button
-          type="button"
-          className="px-btn"
-          style={{ flex: 1, padding: 8, fontSize: 10 }}
-          onClick={chat}
-        >
-          聊天
-        </button>
-        <button
-          type="button"
-          className="px-btn"
-          style={{ flex: 1, padding: 8, fontSize: 10 }}
-          onClick={archive}
-        >
-          归档
-        </button>
-        {confirmDel ? (
+        <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
           <button
             type="button"
             className="px-btn"
-            style={{
-              flex: 1.2,
-              padding: 8,
-              fontSize: 10,
-              color: "var(--pink)",
-            }}
-            onClick={del}
+            style={{ flex: 1, padding: 8, fontSize: 10, color: "var(--cyan)" }}
+            onClick={enter}
           >
-            确认删除
+            进入
           </button>
-        ) : (
           <button
             type="button"
             className="px-btn"
-            style={{ flex: 1, padding: 8, fontSize: 10, color: "var(--pink)" }}
-            onClick={() => setConfirmDel(true)}
+            style={{ flex: 1, padding: 8, fontSize: 10 }}
+            onClick={chat}
           >
-            删除
+            聊天
           </button>
-        )}
+          <button
+            type="button"
+            className="px-btn"
+            style={{ flex: 1, padding: 8, fontSize: 10 }}
+            onClick={archive}
+          >
+            归档
+          </button>
+          {confirmDel ? (
+            <button
+              type="button"
+              className="px-btn"
+              style={{
+                flex: 1.2,
+                padding: 8,
+                fontSize: 10,
+                color: "var(--pink)",
+              }}
+              onClick={del}
+            >
+              确认删除
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="px-btn"
+              style={{
+                flex: 1,
+                padding: 8,
+                fontSize: 10,
+                color: "var(--pink)",
+              }}
+              onClick={() => setConfirmDel(true)}
+            >
+              删除
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

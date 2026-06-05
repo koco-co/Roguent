@@ -119,10 +119,12 @@ test("walls vs floor: interior centre walkable, room corner is wall", () => {
   const cornerIdx = room.rect.y * w.cols + room.rect.x;
   expect(w.walkable[cornerIdx]).toBe(false);
   expect(w.tiles[cornerIdx]).not.toBe("floor");
-  // The wall tile directly above the interior centre (a 4-neighbour of floor)
-  // is classified as "wall".
-  const topWallRow = room.rect.y;
-  const wallIdx = topWallRow * w.cols + centre.col;
+  // The wall tile directly below the interior centre (a 4-neighbour of floor)
+  // is classified as "wall". (We probe the bottom wall, not the top: rooms[0]
+  // now receives the Hub→room corridor through its top wall, so the top-centre
+  // tile is a carved doorway, while the bottom wall stays solid.)
+  const bottomWallRow = room.rect.y + room.rect.h - 1;
+  const wallIdx = bottomWallRow * w.cols + centre.col;
   expect(w.tiles[wallIdx]).toBe("wall");
   expect(w.walkable[wallIdx]).toBe(false);
 });
@@ -152,13 +154,13 @@ test("grid invariants: tiles/walkable length and walkable matches floor tiles", 
   }
 });
 
-test("empty input yields a valid (one slot-row tall) world with no rooms", () => {
+test("空输入也产出一个有地板的中央 Hub(没有 project 房间)", () => {
   const w = generateWorld([]);
   expect(w.rooms.length).toBe(0);
-  expect(w.tiles.length).toBe(w.cols * w.rows);
-  // No floor => every tile is void.
-  expect(w.tiles.every((t) => t === "void")).toBe(true);
-  expect(w.walkable.every((v) => v === false)).toBe(true);
+  expect(w.hub).toBeDefined();
+  const hub = tileAt(w.hub.anchorPx);
+  expect(w.walkable[hub.row * w.cols + hub.col]).toBe(true);
+  expect(w.tiles[hub.row * w.cols + hub.col]).toBe("floor");
 });
 
 test("each room exposes a doorPx at the bottom-centre, inside its wander bounds", () => {
@@ -175,4 +177,29 @@ test("each room exposes a doorPx at the bottom-centre, inside its wander bounds"
     // 门口在 anchor 下方(或同高),即朝房间「下方入口」。
     expect(d.y).toBeGreaterThanOrEqual(room.anchorPx.y);
   }
+});
+
+test("Hub 恒存在,中心可行走", () => {
+  const w = generateWorld([P("alpha", 1)]);
+  const hub = tileAt(w.hub.anchorPx);
+  expect(w.walkable[hub.row * w.cols + hub.col]).toBe(true);
+});
+
+test("每个 project 房间都能从 Hub 走到", () => {
+  const w = generateWorld(
+    Array.from({ length: 5 }, (_, i) => P(`p${i}`, i % 4)),
+  );
+  const start = tileAt(w.hub.anchorPx);
+  for (const room of w.rooms) {
+    expect(reachable(w, start, tileAt(room.anchorPx))).toBe(true);
+  }
+});
+
+test("加 Hub 后 project 房间仍 append-only", () => {
+  const base = [P("alpha", 3), P("beta", 5)];
+  const w1 = generateWorld(base);
+  const w2 = generateWorld([...base, P("gamma", 2)]);
+  expect(w2.rooms[0]?.rect).toEqual(w1.rooms[0]?.rect);
+  expect(w2.rooms[1]?.rect).toEqual(w1.rooms[1]?.rect);
+  expect(w2.cols).toBe(w1.cols);
 });

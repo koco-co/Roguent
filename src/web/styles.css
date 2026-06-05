@@ -180,6 +180,63 @@ img {
   animation: px-pop 0.09s ease-out;
 }
 
+/* ── 底部居中操作坞(hotbar)+ 左上设置坞 ───────────────────────────────── */
+.px-hotbar {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--panel-2);
+  border: 3px solid var(--edge-dark);
+  box-shadow: inset 0 0 0 2px var(--edge-light), 0 5px 0 0 #00000080, 0 0 0 1px
+    #000;
+}
+.px-dock {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--panel-2);
+  border: 3px solid var(--edge-dark);
+  box-shadow: inset 0 0 0 2px var(--edge-light), 0 0 0 1px #000;
+}
+
+/* ── 游戏窗口:厚边 + 标题栏(信息卡 / 聊天抽屉共用) ─────────────────────── */
+.px-window {
+  background: var(--panel);
+  border: 3px solid var(--edge-dark);
+  box-shadow: inset 0 0 0 2px var(--edge-light), 0 6px 0 0 #00000099, 0 0 0 1px
+    #000;
+}
+.px-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--panel-2);
+  border-bottom: 3px solid var(--edge-dark);
+  font-size: 10px;
+}
+.px-titlebar .grow {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.px-dossier-portrait {
+  width: 40px;
+  height: 40px;
+  image-rendering: pixelated;
+  background: #0e1622;
+  border: 2px solid var(--edge-dark);
+}
+
 /* 抽屉对话气泡:user 靠右青色、assistant 靠左面板色、system 报错红 */
 .px-bubble {
   max-width: 85%;
