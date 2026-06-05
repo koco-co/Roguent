@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import type { RoomEvent } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
-import { handleIncoming } from "./ws-client";
+import { handleIncoming, sendCommand } from "./ws-client";
 
 test("handleIncoming applies valid events and ignores malformed", () => {
   const got: RoomEvent[] = [];
@@ -34,4 +34,10 @@ test("handleIncoming with no onControl silently ignores a control frame", () => 
       (e) => e,
     ),
   ).not.toThrow();
+});
+
+test("sendCommand before any connection does not throw (command is buffered, not dropped)", () => {
+  // No active connection yet in a fresh import is not guaranteed across tests,
+  // but calling sendCommand must never throw even when active is null.
+  expect(() => sendCommand({ cmd: "listLocalSessions" })).not.toThrow();
 });

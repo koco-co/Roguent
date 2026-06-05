@@ -31,9 +31,11 @@ export interface RoomConnection {
 }
 
 let active: RoomConnection | null = null;
+const pending: object[] = [];
 
 export function sendCommand(cmd: object): void {
-  active?.send(cmd);
+  if (active) active.send(cmd);
+  else pending.push(cmd);
 }
 
 export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
@@ -72,5 +74,6 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
     },
   };
   active = conn;
+  for (const cmd of pending.splice(0)) conn.send(cmd);
   return conn;
 }

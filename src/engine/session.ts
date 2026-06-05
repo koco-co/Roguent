@@ -100,7 +100,10 @@ export class SessionManager {
     speed: number,
     deps?: Pick<ReplayDeps, "sleep">,
   ): Promise<void> {
-    const drafts = normalizeTranscript(readTranscriptLines(path));
+    const lines = readTranscriptLines(path);
+    // 文件不存在 / 读不出 / 空 → 抛错,让 WsGateway 的 try/catch 回 importError(spec §4)。
+    if (lines.length === 0) throw new Error("transcript empty or unreadable");
+    const drafts = normalizeTranscript(lines);
     if (drafts.length === 0) return;
     // normalizeTranscript always prepends session.created → drafts[0] exists
     const created = drafts[0]!.payload as SessionCreatedPayload;

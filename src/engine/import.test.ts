@@ -82,6 +82,18 @@ test("Replayer.cancel() stops further emission", async () => {
   expect(emitted).toHaveLength(1);
 });
 
+test("importSession throws on an empty/unreadable transcript (so the gateway can surface importError)", async () => {
+  const mgr = new SessionManager();
+  const got: RoomEvent[] = [];
+  mgr.subscribe((e) => got.push(e));
+  await expect(
+    mgr.importSession("nope", "/no/such/transcript-xyz.jsonl", 1, {
+      sleep: async () => {},
+    }),
+  ).rejects.toThrow();
+  expect(got).toHaveLength(0); // no phantom session.created emitted
+});
+
 test("deleteSession cancels an in-flight import (no further events)", async () => {
   const dir = mkdtempSync(join(tmpdir(), "roguent-impdel-"));
   const path = join(dir, "t.jsonl");
