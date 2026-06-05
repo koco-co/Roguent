@@ -179,7 +179,7 @@ test("each room exposes a doorPx at the bottom-centre, inside its wander bounds"
   }
 });
 
-test("Hub 恒存在,中心可行走,且是出生点", () => {
+test("Hub 恒存在,中心可行走", () => {
   const w = generateWorld([P("alpha", 1)]);
   const hub = tileAt(w.hub.anchorPx);
   expect(w.walkable[hub.row * w.cols + hub.col]).toBe(true);
