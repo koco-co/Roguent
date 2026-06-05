@@ -4,6 +4,7 @@ import { useUiStore } from "../ui-store";
 import { AgentCard } from "./AgentCard";
 import { ChatDrawer } from "./ChatDrawer";
 import { ImportPanel } from "./ImportPanel";
+import { LimitBars } from "./LimitBars";
 import { LootPanel } from "./LootPanel";
 import { ModelPicker } from "./ModelPicker";
 import { SkillGrid } from "./SkillGrid";
@@ -51,6 +52,7 @@ export function Hud() {
 
   return (
     <>
+      <LimitBars />
       {/* top status banner */}
       <div
         className="px-panel px-topbar pf"
