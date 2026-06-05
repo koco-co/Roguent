@@ -164,7 +164,8 @@ status: living-doc
 
 - **S1 完整生命周期细化**(超出已落地部分)。
 - **S2 askuser / permission 管线**:真「?」交互 + 任务面板(信息卡占位槽接真 askuser)。
-- **S4 游戏化 HUD**:四角按钮簇、排行榜(按模型聚合 usage)、菜单系统。
+- **S4 游戏化 HUD**(雏形已落地一部分):底部 hotbar + 左上设置坞 + 顶部状态条、信息卡/聊天抽屉重皮成游戏窗口已落地;**排行榜(按模型聚合 usage)、菜单系统**仍待做。见 [plan](superpowers/plans/2026-06-05-web-lobby-game-overhaul.md) / [spec](superpowers/specs/2026-06-05-web-lobby-game-overhaul-design.md)。
+- **大厅游戏化呈现**(已落地一部分):相机整数缩放贴身跟随、中央 Hub 广场 + 喷泉 + 环境光、传送门进出过渡 + NPC 传送阵已落地;喷泉动画化、真头像缩略、走廊多路径等留作后续。见同一 [plan](superpowers/plans/2026-06-05-web-lobby-game-overhaul.md) / [spec](superpowers/specs/2026-06-05-web-lobby-game-overhaul-design.md)。
 - **S5 聊天游戏化重皮**。
 - **持久化 + SDK resume**:SQLite/本地存储、跨重启历史、复活已死会话(`--resume`)。当前纯内存、刷新即重置。
 - **桌面产品化**:代码签名 / Apple 公证 / DMG 正式分发 / 自动更新 / 通用二进制(Intel+ARM)/ 应用内 `/login` 引导 / 授权·许可证·付费·首启引导。
@@ -177,3 +178,4 @@ status: living-doc
 
 - 2026-06-05:建立本 ROADMAP;桌面打包(Tauri 第一阶段)+ macOS 代理/孤儿 sidecar/CLI 路径修复合入 `main`(merge `2070a0d`);把 `plans/` 标注为历史记录、`specs/` 加现状批注。
 - 2026-06-05:按用户决策把 Phase 1 拆成 **1A(web 端,本轮 `/goal` 范围)/ 1B(app 端打包,下一轮)**;打包 .app 黑屏定位从 P1-1 移到 1B 的 P1-4,app 验收/DMG 顺延为 P1-5/P1-6。
+- 2026-06-05:**web 端游戏化呈现重构**落地(5 task:相机整数缩放贴身跟随 / 传送门进出过渡 + NPC 传送阵 / 底部 hotbar HUD / 信息卡·聊天抽屉重皮成游戏窗口 / 中央 Hub 大厅 + 环境光)。纯客户端视觉交互层,不动 engine / 事件协议 / domain;新纯函数(`zoom`/`camera` scale/`portal`/`worldgen` hub)单测钉死,append-only/确定性不回归。见 [plan](superpowers/plans/2026-06-05-web-lobby-game-overhaul.md) / [spec](superpowers/specs/2026-06-05-web-lobby-game-overhaul-design.md)。
