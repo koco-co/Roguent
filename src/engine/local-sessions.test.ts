@@ -23,6 +23,8 @@ test("listLocalSessions returns meta per .jsonl, newest first, with first-user p
   expect(s1?.project).toBe("-Users-me-proj");
   expect(s1?.firstMessage).toBe("hello there");
   expect(s1?.msgCount).toBe(2);
+  expect(items.find((i) => i.sessionId === "broken")).toBeUndefined();
+  expect(items).toHaveLength(1); // broken.jsonl skipped (0 valid lines)
 });
 
 test("listLocalSessions on a missing root returns []", () => {
@@ -37,4 +39,10 @@ test("readTranscriptLines parses each JSON line and skips blanks/garbage", () =>
     join(root, "-Users-me-proj", "broken.jsonl"),
   );
   expect(lines).toEqual([]); // 唯一一行是坏的 → 跳过
+});
+
+test("readTranscriptLines on an unreadable path returns []", () => {
+  expect(
+    readTranscriptLines(join(tmpdir(), "roguent-no-such-file-xyz.jsonl")),
+  ).toEqual([]);
 });
