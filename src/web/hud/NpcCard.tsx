@@ -91,6 +91,7 @@ export function NpcCard() {
       }}
     >
       <div className="px-titlebar">
+        {/* v1 占位:状态色块,后续替换为像素头像 sprite */}
         <div
           className="px-dossier-portrait"
           aria-hidden
