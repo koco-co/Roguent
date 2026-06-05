@@ -2107,3 +2107,33 @@ img {
   color: var(--text); /* 原型 var(--ink) → 本项目 --text(浅色文本) */
   margin-bottom: 6px;
 }
+
+/* ── Backpack(背包,T3.7)──────────────────────────────────────────────
+   移植自设计原型 panels2.jsx Backpack + layout.css(.loot-grid/.loot-cell/
+   .loot-name)。这些类原型里未用 var(--ink) 作文本(.loot-name 用 --ink-dim,
+   本项目已有),故无需 --ink→--text 转换,直接照搬。 */
+.loot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.loot-cell {
+  aspect-ratio: 1;
+  background: rgba(11, 10, 18, 0.45);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+}
+.loot-cell.empty {
+  box-shadow: inset 0 0 0 2px rgba(44, 28, 16, 0.5);
+  background: rgba(11, 10, 18, 0.2);
+}
+.loot-name {
+  font-size: 11px;
+  color: var(--ink-dim);
+  text-align: center;
+}

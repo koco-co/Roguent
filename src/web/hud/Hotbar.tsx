@@ -5,18 +5,17 @@ import { Icon, type IconName } from "./icons";
 // 仅内景显示(组件内 view!=='overworld' gate)。
 //
 // 接线说明(过渡期混合接线):
-// - 剩余 4 个面板仍走布尔标志(T3.x 各面板迁到单一路由后统一):
-//   backpack→lootOpen、chat→drawerOpen、model→modelOpen、import→importOpen;
-//   lit = 对应布尔。
-// - skills / tasks / shop / leaderboard 走 openPanel(单一路由);skills(T3.3)、
-//   leaderboard(T3.4)已迁,lit = activePanel === id。
+// - 剩余 3 个面板仍走布尔标志(T3.x 各面板迁到单一路由后统一):
+//   chat→drawerOpen、model→modelOpen、import→importOpen;lit = 对应布尔。
+// - skills / tasks / shop / leaderboard / backpack 走 openPanel(单一路由);
+//   skills(T3.3)、leaderboard(T3.4)、backpack(T3.7)已迁,lit = activePanel === id。
 // - badge 角标:暂无真实徽标数据 → 不渲染(不造假);保留 .badge 渲染能力(badge?: number)
 //   以便引擎补齐后接入。
 
 // 走布尔标志的槽(过渡期遗留)。
-type FlagKey = "lootOpen" | "drawerOpen" | "modelOpen" | "importOpen";
+type FlagKey = "drawerOpen" | "modelOpen" | "importOpen";
 // 走单一路由 openPanel 的槽。
-type RoutePanel = "tasks" | "shop" | "skills" | "leaderboard";
+type RoutePanel = "tasks" | "shop" | "skills" | "leaderboard" | "backpack";
 
 type FlagSlot = { kind: "flag"; icon: IconName; flag: FlagKey; label: string };
 type RouteSlot = {
@@ -30,7 +29,7 @@ type Slot = FlagSlot | RouteSlot;
 // g1:技能 / 背包 / 聊天 / 模型 / 导入(对标原型 hotbar g1)。
 const GROUP1: Slot[] = [
   { kind: "route", icon: "spellbook", panel: "skills", label: "技能" },
-  { kind: "flag", icon: "pouch", flag: "lootOpen", label: "背包" },
+  { kind: "route", icon: "pouch", panel: "backpack", label: "背包" },
   { kind: "flag", icon: "chat", flag: "drawerOpen", label: "聊天" },
   { kind: "flag", icon: "crystal", flag: "modelOpen", label: "模型" },
   { kind: "flag", icon: "import", flag: "importOpen", label: "导入" },
@@ -74,7 +73,6 @@ export function Hotbar() {
   // 仅内景 HUD 显示;总览大厅没有「操作坞」。
   const inInterior = useUiStore((s) => s.view !== "overworld");
   // 订阅各布尔标志 + 路由当前面板,用于 lit 态。
-  const lootOpen = useUiStore((s) => s.lootOpen);
   const drawerOpen = useUiStore((s) => s.drawerOpen);
   const modelOpen = useUiStore((s) => s.modelOpen);
   const importOpen = useUiStore((s) => s.importOpen);
@@ -86,7 +84,6 @@ export function Hotbar() {
 
   // 布尔标志当前值查表(用于 lit)。
   const flagValue: Record<FlagKey, boolean> = {
-    lootOpen,
     drawerOpen,
     modelOpen,
     importOpen,
