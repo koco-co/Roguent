@@ -4,12 +4,14 @@ import { useUiStore } from "../ui-store";
 import { About } from "./About";
 import { AgentCard } from "./AgentCard";
 import { ChatDrawer } from "./ChatDrawer";
+import { Currency } from "./Currency";
 import { ImportPanel } from "./ImportPanel";
 import { Leaderboard } from "./Leaderboard";
 import { LimitBars } from "./LimitBars";
 import { LootPanel } from "./LootPanel";
 import { ModelPicker } from "./ModelPicker";
 import { RosterCard } from "./RosterCard";
+import { SessionBanner } from "./SessionBanner";
 import { SkillGrid } from "./SkillGrid";
 import { Icon } from "./icons";
 import { IconButton, StatRow, shortModel } from "./widgets";
@@ -60,44 +62,20 @@ export function Hud() {
   const session = useRoomStore((s) =>
     s.currentSessionId ? s.sessions[s.currentSessionId] : undefined,
   );
-  const agentCount = Object.keys(session?.agents ?? {}).length;
-  const tokens = session?.usage.tokens ?? 0;
 
   return (
     <>
       <LimitBars />
       {/* 内景左上栈:在岗轮播卡(自带绝对定位,落在 LimitBars 下方)*/}
       <RosterCard />
-      {/* top status banner */}
-      <div
-        className="px-panel px-topbar pf"
-        style={{
-          position: "absolute",
-          top: 14,
-          left: "50%",
-          transform: "translateX(-50%)",
-        }}
-      >
-        <span style={{ color: "var(--pink)", display: "flex" }}>
-          <Icon name="task" size={14} />
-        </span>
-        <span>{session?.title ?? "no session"}</span>
-        <span className="sep">·</span>
-        <span className="px-stat">{shortModel(session?.model)}</span>
-        <span className="sep">·</span>
-        <span className="px-stat cy">{agentCount}P</span>
-        <span className="sep">·</span>
-        <span
-          className="px-stat"
-          style={{ display: "flex", alignItems: "center", gap: 2 }}
-        >
-          <Icon name="coins" size={14} />
-          {tokens.toLocaleString()}
-        </span>
-      </div>
+      {/* 顶中会话横幅(仅内景显示,自带绝对定位)*/}
+      <SessionBanner />
 
-      {/* right-top settings dock (moved right to make room for LimitBars) */}
-      <div className="px-dock">
+      {/* 顶右货币条(两视图都显示,自带绝对定位 top:12 right:12)*/}
+      <Currency />
+
+      {/* right-top settings dock(下移避让 Currency,完整 ButtonDock 重建是 T2.4)*/}
+      <div className="px-dock px-dock-below-currency">
         <IconButton
           icon={<Icon name="gear" size={28} />}
           title="会话信息"

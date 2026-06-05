@@ -152,24 +152,7 @@ img {
   line-height: 1;
 }
 
-/* ── top status banner ───────────────────────────────────────────────────── */
-.px-topbar {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 14px;
-  font-size: 10px;
-  white-space: nowrap;
-}
-.px-topbar .sep {
-  color: var(--edge-light);
-}
-.px-stat {
-  color: var(--gold);
-}
-.px-stat.cy {
-  color: var(--cyan);
-}
+/* .px-topbar(旧顶中横幅)已被 SessionBanner(.session-banner)取代,T2.3 移除。 */
 
 /* ── chips / list rows ───────────────────────────────────────────────────── */
 .px-row {
@@ -771,6 +754,93 @@ img {
 .tag-codex {
   color: var(--codex);
   box-shadow: inset 0 0 0 1px var(--codex);
+}
+
+/* ── SESSION BANNER(顶中)+ CURRENCY(顶右)── ported from prototype (T2.3)
+   原型用 .hud-tc / .hud-tr 容器定位;我们组件自包含,故 .session-banner /
+   .currency 自带绝对定位。原型 color:var(--ink)=浅色文本 → 这里映射 var(--text)。 */
+.session-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 420px;
+}
+.sb-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+}
+.sb-title {
+  font-family: var(--font-cjk);
+  font-size: 15px;
+  color: var(--text);
+}
+.sb-dot {
+  color: var(--ink-faint);
+}
+
+.currency {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.cur-body {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 11px 16px;
+}
+.cur-cell {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.cur-cell .px {
+  font-size: 13px;
+}
+/* mock 「示例」角标:明确标注非真实数据(T2.3,待引擎补 gems/completed) */
+.cur-mock {
+  font-size: 7px;
+  color: var(--ink-faint);
+  background: rgba(11, 10, 18, 0.5);
+  padding: 1px 3px;
+  box-shadow: inset 0 0 0 1px var(--panel-hi);
+}
+.runtime-filter {
+  display: flex;
+  gap: 6px;
+  margin-left: 6px;
+}
+.rt-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-cjk);
+  font-size: 12px;
+  padding: 5px 9px;
+  cursor: pointer;
+  color: var(--ink-dim);
+  background: rgba(11, 10, 18, 0.5);
+  box-shadow: inset 0 0 0 1px var(--panel-hi);
+  border: 0;
+}
+.rt-chip.on {
+  color: var(--claude);
+  box-shadow: inset 0 0 0 1px var(--claude), 0 0 6px rgba(54, 197, 224, 0.4);
+}
+.rt-chip.codex.on {
+  color: var(--codex);
+  box-shadow: inset 0 0 0 1px var(--codex), 0 0 6px rgba(95, 211, 95, 0.4);
+}
+.rt-chip.dis {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+/* px-dock 下移避让 Currency(Currency 在上,dock 在其下) */
+.px-dock-below-currency {
+  top: 64px;
 }
 
 /* text-color utilities */
