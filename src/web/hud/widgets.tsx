@@ -27,7 +27,7 @@ export function IconButton({
   lit,
   onClick,
 }: {
-  icon: string;
+  icon: ReactNode;
   title: string;
   lit?: boolean;
   onClick?: () => void;

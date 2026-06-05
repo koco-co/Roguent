@@ -1,30 +1,48 @@
 import { useTick } from "@pixi/react";
-import type { Container, Graphics, TextStyle } from "pixi.js";
+import type { Container, Graphics } from "pixi.js";
 import { useCallback, useRef } from "react";
+import type { IconName } from "../hud/icons";
+import { drawIcon } from "./drawIcon";
+
+// cell size: 0.75px per grid unit → 16-grid icon ≈ 12px wide
+const CELL = 0.75;
+// The icon's top-left offset so it centres around (0, -2) inside the bubble.
+// Icon grid is 16 wide → 16*CELL = 12px; centre x → -(12/2) = -6
+// Icon grid is 16 tall → 16*CELL = 12px; centre y at -2 → -2 - 12/2 = -8
+const ICON_OX = -6;
+const ICON_OY = -8;
 
 /**
- * A speech bubble over a character's head showing the current tool emoji. Pops
+ * A speech bubble over a character's head showing the current tool icon. Pops
  * in (scale 0→1) over ~6 frames with a faint bob, and rides along as a child of
  * the moving Character. Unmounts plainly when the tool ends (spec §6.2).
  */
-export function ToolBubble({ icon }: { icon: string }) {
+export function ToolBubble({ icon }: { icon: IconName }) {
   const rootRef = useRef<Container | null>(null);
   const t = useRef(0);
 
   const bubble = useCallback((g: Graphics) => {
     g.clear();
-    // rounded body
+    // rounded body — slightly taller than original to fit the icon cleanly
     g.setFillStyle({ color: 0x20202e, alpha: 0.92 });
-    g.roundRect(-9, -9, 18, 14, 4);
+    g.roundRect(-9, -9, 18, 16, 4);
     g.fill();
     g.setStrokeStyle({ width: 1, color: 0xffffff, alpha: 0.85 });
-    g.roundRect(-9, -9, 18, 14, 4);
+    g.roundRect(-9, -9, 18, 16, 4);
     g.stroke();
     // little downward tail anchoring the bubble to the head
     g.setFillStyle({ color: 0x20202e, alpha: 0.92 });
-    g.poly([-3, 4, 3, 4, 0, 9]);
+    g.poly([-3, 6, 3, 6, 0, 11]);
     g.fill();
   }, []);
+
+  const iconDraw = useCallback(
+    (g: Graphics) => {
+      g.clear();
+      drawIcon(g, icon, CELL, ICON_OX, ICON_OY);
+    },
+    [icon],
+  );
 
   useTick((ticker: { deltaTime: number }) => {
     const c = rootRef.current;
@@ -39,13 +57,7 @@ export function ToolBubble({ icon }: { icon: string }) {
   return (
     <pixiContainer ref={rootRef} y={-26} scale={0}>
       <pixiGraphics draw={bubble} />
-      <pixiText
-        text={icon}
-        anchor={0.5}
-        y={-2}
-        resolution={4}
-        style={{ fontSize: 9 } as Partial<TextStyle>}
-      />
+      <pixiGraphics draw={iconDraw} />
     </pixiContainer>
   );
 }

@@ -2,13 +2,15 @@ import { expect, test } from "bun:test";
 import { agentTypeToSkin, toolNameToIcon } from "./mapping";
 
 test("toolNameToIcon maps known tools, mcp, and unknown", () => {
-  expect(toolNameToIcon("Read")).toBe("📖");
-  expect(toolNameToIcon("Edit")).toBe("⌨️");
-  expect(toolNameToIcon("Bash")).toBe("🧪");
-  expect(toolNameToIcon("WebSearch")).toBe("🔍");
-  expect(toolNameToIcon("Task")).toBe("🪄");
-  expect(toolNameToIcon("mcp__github__create_pr")).toBe("🔌");
-  expect(toolNameToIcon("SomethingNew")).toBe("⚡");
+  expect(toolNameToIcon("Read")).toBe("read");
+  expect(toolNameToIcon("Edit")).toBe("write");
+  expect(toolNameToIcon("Bash")).toBe("bash");
+  expect(toolNameToIcon("WebSearch")).toBe("search");
+  expect(toolNameToIcon("Task")).toBe("task");
+  expect(toolNameToIcon("Agent")).toBe("task"); // SDK renamed Task→Agent (CLAUDE.md §8.4)
+  expect(toolNameToIcon("TodoWrite")).toBe("todo");
+  expect(toolNameToIcon("mcp__foo__bar")).toBe("mcp");
+  expect(toolNameToIcon("Frobnicate")).toBe("task");
 });
 
 test("agentTypeToSkin is deterministic and within palette", () => {

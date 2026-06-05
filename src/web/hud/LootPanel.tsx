@@ -1,12 +1,13 @@
 import type { Loot } from "../../shared/domain";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
+import { Icon, type IconName } from "./icons";
 
-const KIND_ICON: Record<Loot["kind"], string> = {
-  file: "📄",
-  diff: "📝",
-  report: "📜",
-  answer: "💬",
+const KIND_ICON: Record<Loot["kind"], IconName> = {
+  file: "read",
+  diff: "write",
+  report: "quest",
+  answer: "chat",
 };
 
 // Stable reference: returning a fresh `[]` from a Zustand selector makes
@@ -35,7 +36,13 @@ export function LootPanel() {
         padding: 12,
       }}
     >
-      <div className="px-title">🎒 战利品 · {loot.length}</div>
+      <div
+        className="px-title"
+        style={{ display: "flex", alignItems: "center", gap: 4 }}
+      >
+        <Icon name="pouch" size={14} />
+        战利品 · {loot.length}
+      </div>
       {loot.length === 0 ? (
         <div style={{ color: "var(--muted)", fontSize: 11 }}>暂无掉落</div>
       ) : (
@@ -45,7 +52,7 @@ export function LootPanel() {
             className="px-row"
             style={{ cursor: "default", display: "flex", gap: 8 }}
           >
-            <span>{KIND_ICON[l.kind] ?? "❔"}</span>
+            <Icon name={KIND_ICON[l.kind]} size={16} />
             <span style={{ fontSize: 11, wordBreak: "break-all" }}>
               {l.label}
             </span>

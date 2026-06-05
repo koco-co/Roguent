@@ -2,6 +2,7 @@ import type { AgentStatus } from "../../shared/domain";
 import { toolNameToIcon } from "../../shared/mapping";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
+import { Icon, type IconName } from "./icons";
 import { StatRow } from "./widgets";
 
 const STATUS_LABEL: Record<AgentStatus, string> = {
@@ -70,9 +71,17 @@ export function AgentCard() {
       <StatRow
         k="工具"
         v={
-          agent.currentTool
-            ? `${toolNameToIcon(agent.currentTool)} ${agent.currentTool}`
-            : "—"
+          agent.currentTool ? (
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <Icon
+                name={toolNameToIcon(agent.currentTool) as IconName}
+                size={14}
+              />
+              {agent.currentTool}
+            </span>
+          ) : (
+            "—"
+          )
         }
       />
       {agent.parentId ? <StatRow k="上级" v={agent.parentId} /> : null}

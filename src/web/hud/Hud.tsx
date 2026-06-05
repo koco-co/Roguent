@@ -9,6 +9,7 @@ import { LimitBars } from "./LimitBars";
 import { LootPanel } from "./LootPanel";
 import { ModelPicker } from "./ModelPicker";
 import { SkillGrid } from "./SkillGrid";
+import { Icon } from "./icons";
 import { IconButton, StatRow, shortModel } from "./widgets";
 
 function InfoPopover({ session }: { session: Session | undefined }) {
@@ -25,7 +26,13 @@ function InfoPopover({ session }: { session: Session | undefined }) {
         padding: 12,
       }}
     >
-      <div className="px-title">⚙ 会话信息</div>
+      <div
+        className="px-title"
+        style={{ display: "flex", alignItems: "center", gap: 4 }}
+      >
+        <Icon name="gear" size={14} />
+        会话信息
+      </div>
       <StatRow k="模型" v={shortModel(session.model)} />
       <StatRow k="模式" v={session.permissionMode} />
       <StatRow k="状态" v={session.status} />
@@ -65,20 +72,28 @@ export function Hud() {
           transform: "translateX(-50%)",
         }}
       >
-        <span style={{ color: "var(--pink)" }}>⚔</span>
+        <span style={{ color: "var(--pink)", display: "flex" }}>
+          <Icon name="task" size={14} />
+        </span>
         <span>{session?.title ?? "no session"}</span>
         <span className="sep">·</span>
         <span className="px-stat">{shortModel(session?.model)}</span>
         <span className="sep">·</span>
         <span className="px-stat cy">{agentCount}P</span>
         <span className="sep">·</span>
-        <span className="px-stat">🪙{tokens.toLocaleString()}</span>
+        <span
+          className="px-stat"
+          style={{ display: "flex", alignItems: "center", gap: 2 }}
+        >
+          <Icon name="coins" size={14} />
+          {tokens.toLocaleString()}
+        </span>
       </div>
 
       {/* right-top settings dock (moved right to make room for LimitBars) */}
       <div className="px-dock">
         <IconButton
-          icon="⚙"
+          icon={<Icon name="gear" size={28} />}
           title="会话信息"
           lit={infoOpen}
           onClick={() => toggle("infoOpen")}
@@ -88,37 +103,37 @@ export function Hud() {
       {/* bottom-center action hotbar */}
       <div className="px-hotbar">
         <IconButton
-          icon="📜"
+          icon={<Icon name="spellbook" size={28} />}
           title="技能"
           lit={skillsOpen}
           onClick={() => toggle("skillsOpen")}
         />
         <IconButton
-          icon="🎒"
+          icon={<Icon name="pouch" size={28} />}
           title="背包"
           lit={lootOpen}
           onClick={() => toggle("lootOpen")}
         />
         <IconButton
-          icon="💬"
+          icon={<Icon name="chat" size={28} />}
           title="聊天"
           lit={drawerOpen}
           onClick={() => toggle("drawerOpen")}
         />
         <IconButton
-          icon="💎"
+          icon={<Icon name="crystal" size={28} />}
           title="模型"
           lit={modelOpen}
           onClick={() => toggle("modelOpen")}
         />
         <IconButton
-          icon="📂"
+          icon={<Icon name="import" size={28} />}
           title="导入会话"
           lit={importOpen}
           onClick={() => toggle("importOpen")}
         />
         <IconButton
-          icon="🏆"
+          icon={<Icon name="trophy" size={28} />}
           title="排行榜"
           lit={leaderboardOpen}
           onClick={() => toggle("leaderboardOpen")}

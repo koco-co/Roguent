@@ -1,23 +1,26 @@
-// tool_name → 头顶图标 (spec §6.2). Map is intentionally overridable.
+// tool_name → icon name (spec §6.2). Values are IconName strings from the
+// pixel icon registry (src/web/hud/icons.tsx); shared/ cannot import web/.
 export const TOOL_ICONS: Record<string, string> = {
-  Read: "📖",
-  Glob: "📖",
-  Grep: "📖",
-  Edit: "⌨️",
-  Write: "⌨️",
-  NotebookEdit: "⌨️",
-  Bash: "🧪",
-  WebSearch: "🔍",
-  WebFetch: "🔍",
-  Task: "🪄",
-  Agent: "🪄",
-  TodoWrite: "📋",
-  TaskCreate: "📋",
+  Read: "read",
+  Glob: "read",
+  Grep: "read",
+  Edit: "write",
+  Write: "write",
+  NotebookEdit: "write",
+  Bash: "bash",
+  WebSearch: "search",
+  WebFetch: "search",
+  Task: "task",
+  Agent: "task",
+  TodoWrite: "todo",
+  TaskCreate: "todo",
 };
 
+/** Returns an icon-name string (castable to IconName on the web side).
+ *  mcp__ prefix → "mcp"; unknown tools → "task". */
 export function toolNameToIcon(name: string): string {
-  if (name.startsWith("mcp__")) return "🔌";
-  return TOOL_ICONS[name] ?? "⚡";
+  if (name.startsWith("mcp__")) return "mcp";
+  return TOOL_ICONS[name] ?? "task";
 }
 
 export const SKINS = ["cyan", "mag", "grn", "gold", "purple"] as const;

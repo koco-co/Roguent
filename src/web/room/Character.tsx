@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { AgentStatus } from "../../shared/domain";
 import { toolNameToIcon } from "../../shared/mapping";
+import type { IconName } from "../hud/icons";
 import { Emote } from "./Emote";
 import { ToolBubble } from "./ToolBubble";
 import { anim, useAtlas } from "./atlas";
@@ -287,7 +288,7 @@ export function Character({
         <pixiAnimatedSprite ref={spriteRef} textures={idleFrames} />
       </pixiContainer>
       {currentTool && !leaving ? (
-        <ToolBubble icon={toolNameToIcon(currentTool)} />
+        <ToolBubble icon={toolNameToIcon(currentTool) as IconName} />
       ) : null}
       {leaving ? null : <Emote status={status} />}
     </pixiContainer>
