@@ -5,23 +5,18 @@ import { Icon, type IconName } from "./icons";
 // 仅内景显示(组件内 view!=='overworld' gate)。
 //
 // 接线说明(过渡期混合接线):
-// - 剩余 5 个面板仍走布尔标志(T3.x 各面板迁到单一路由后统一):
-//   backpack→lootOpen、chat→drawerOpen、model→modelOpen、
-//   import→importOpen、leaderboard→leaderboardOpen;lit = 对应布尔。
-// - skills / tasks / shop 走 openPanel(单一路由);skills 已迁(T3.3 Skills Modal),
-//   lit = activePanel === id。
+// - 剩余 4 个面板仍走布尔标志(T3.x 各面板迁到单一路由后统一):
+//   backpack→lootOpen、chat→drawerOpen、model→modelOpen、import→importOpen;
+//   lit = 对应布尔。
+// - skills / tasks / shop / leaderboard 走 openPanel(单一路由);skills(T3.3)、
+//   leaderboard(T3.4)已迁,lit = activePanel === id。
 // - badge 角标:暂无真实徽标数据 → 不渲染(不造假);保留 .badge 渲染能力(badge?: number)
 //   以便引擎补齐后接入。
 
 // 走布尔标志的槽(过渡期遗留)。
-type FlagKey =
-  | "lootOpen"
-  | "drawerOpen"
-  | "modelOpen"
-  | "importOpen"
-  | "leaderboardOpen";
+type FlagKey = "lootOpen" | "drawerOpen" | "modelOpen" | "importOpen";
 // 走单一路由 openPanel 的槽。
-type RoutePanel = "tasks" | "shop" | "skills";
+type RoutePanel = "tasks" | "shop" | "skills" | "leaderboard";
 
 type FlagSlot = { kind: "flag"; icon: IconName; flag: FlagKey; label: string };
 type RouteSlot = {
@@ -44,7 +39,7 @@ const GROUP1: Slot[] = [
 const GROUP2: Slot[] = [
   { kind: "route", icon: "quest", panel: "tasks", label: "任务" }, // panel 待 T3.x
   { kind: "route", icon: "shop", panel: "shop", label: "商店" }, // panel 待 T3.x
-  { kind: "flag", icon: "trophy", flag: "leaderboardOpen", label: "排行榜" },
+  { kind: "route", icon: "trophy", panel: "leaderboard", label: "排行榜" },
 ];
 
 /** 单个 hotbar 槽。lit/onClick 由父按接线方式注入。badge 暂传空(无真实数据)。 */
@@ -83,7 +78,6 @@ export function Hotbar() {
   const drawerOpen = useUiStore((s) => s.drawerOpen);
   const modelOpen = useUiStore((s) => s.modelOpen);
   const importOpen = useUiStore((s) => s.importOpen);
-  const leaderboardOpen = useUiStore((s) => s.leaderboardOpen);
   const activePanel = useUiStore((s) => s.activePanel);
   const toggle = useUiStore((s) => s.toggle);
   const openPanel = useUiStore((s) => s.openPanel);
@@ -96,7 +90,6 @@ export function Hotbar() {
     drawerOpen,
     modelOpen,
     importOpen,
-    leaderboardOpen,
   };
 
   const renderSlot = (slot: Slot) => {
