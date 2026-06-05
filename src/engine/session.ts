@@ -79,6 +79,10 @@ export class SessionManager {
               : d.payload;
           this.emit(this.seq.stamp(id, d.type, payload, ts, d.agentId));
         }
+        // 一轮结束(result → usage.updated)即取真实上下文占用,发 context.updated。
+        if (drafts.some((d) => d.type === "usage.updated")) {
+          void this.emitContextUsage(id);
+        }
       },
     };
     const driver = this.driverFactory(cb, opts.model, cwd);
@@ -125,5 +129,20 @@ export class SessionManager {
 
   async interrupt(id: string): Promise<void> {
     await this.drivers.get(id)?.interrupt();
+  }
+
+  private async emitContextUsage(id: string): Promise<void> {
+    const cu = await this.drivers.get(id)?.getContextUsage();
+    if (!cu) return;
+    const utilization =
+      cu.maxTokens > 0 ? Math.round((cu.totalTokens / cu.maxTokens) * 100) : 0;
+    this.emit(
+      this.seq.stamp(
+        id,
+        "context.updated",
+        { usedTokens: cu.totalTokens, windowSize: cu.maxTokens, utilization },
+        Date.now(),
+      ),
+    );
   }
 }
