@@ -12,6 +12,7 @@ function fakeDriverFactory(captured: { cb?: DriverCallbacks }) {
       async setModel() {},
       async interrupt() {},
       end() {},
+      getContextUsage: async () => null,
     };
   };
 }
@@ -97,6 +98,7 @@ test("deleteSession ends the driver and drops it", () => {
       end() {
         ended = true;
       },
+      getContextUsage: async () => null,
     };
   };
   const mgr = new SessionManager(factory, "/tmp");
@@ -105,4 +107,69 @@ test("deleteSession ends the driver and drops it", () => {
   expect(ended).toBe(true);
   // sending after delete is a no-op (driver gone), not a throw.
   expect(() => mgr.sendMessage("s1", "hi")).not.toThrow();
+});
+
+test("emits context.updated after a turn (usage.updated), from getContextUsage", async () => {
+  const events: RoomEvent[] = [];
+  let cb: DriverCallbacks | null = null;
+  const fakeDriver: IDriver = {
+    start() {},
+    send() {},
+    setModel: async () => {},
+    interrupt: async () => {},
+    end() {},
+    getContextUsage: async () => ({
+      totalTokens: 200_000,
+      maxTokens: 1_000_000,
+    }),
+  };
+  const mgr = new SessionManager(
+    (c: DriverCallbacks, _model: string, _cwd: string) => {
+      cb = c;
+      return fakeDriver;
+    },
+    "/tmp",
+  );
+  mgr.subscribe((e) => events.push(e));
+  mgr.createSession("s1", { title: "t", model: "claude-opus-4-8" });
+  // 模拟一轮结束:driver 回吐 usage.updated
+  (cb as DriverCallbacks | null)?.onDraft(
+    [{ type: "usage.updated", payload: { tokens: 10, cost: 0 } }],
+    123,
+  );
+  await new Promise((r) => setTimeout(r, 0)); // flush microtasks
+  const ctx = events.find((e) => e.type === "context.updated");
+  expect(ctx).toBeDefined();
+  expect(ctx?.payload).toEqual({
+    usedTokens: 200_000,
+    windowSize: 1_000_000,
+    utilization: 20,
+  });
+});
+
+test("no context.updated when getContextUsage returns null", async () => {
+  const events: RoomEvent[] = [];
+  let cb: DriverCallbacks | null = null;
+  const mgr = new SessionManager(
+    (c: DriverCallbacks, _model: string, _cwd: string) => {
+      cb = c;
+      return {
+        start() {},
+        send() {},
+        setModel: async () => {},
+        interrupt: async () => {},
+        end() {},
+        getContextUsage: async () => null,
+      };
+    },
+    "/tmp",
+  );
+  mgr.subscribe((e) => events.push(e));
+  mgr.createSession("s1", { title: "t", model: "m" });
+  (cb as DriverCallbacks | null)?.onDraft(
+    [{ type: "usage.updated", payload: { tokens: 1, cost: 0 } }],
+    1,
+  );
+  await new Promise((r) => setTimeout(r, 0));
+  expect(events.some((e) => e.type === "context.updated")).toBe(false);
 });

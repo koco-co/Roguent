@@ -1,7 +1,9 @@
 import { WebSocketServer } from "ws";
+import { readOauthCredentials } from "./credentials";
 import { resolvePort } from "./port";
 import { loadFixture, replayTimed } from "./record";
 import { SessionManager } from "./session";
+import { UsagePoller, defaultFetchUsage } from "./usage-poller";
 import { WsGateway } from "./ws-gateway";
 
 const port = resolvePort(process.env);
@@ -34,6 +36,17 @@ if (replayFixture) {
   });
 } else {
   const mgr = new SessionManager();
-  new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`));
+  const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`));
+  const poller = new UsagePoller({
+    readCredentials: () => readOauthCredentials(),
+    fetchUsage: defaultFetchUsage,
+    onLimits: (limits) => gateway.pushLimits(limits),
+    baseUrl:
+      process.env.ANTHROPIC_BASE_URL ??
+      process.env.ANTHROPIC_API_BASE_URL ??
+      "",
+  });
+  // 进程级 5 分钟轮询,随引擎生命周期常驻;无需显式 stop()(进程退出即止)。
+  poller.start();
   console.log("[server] LIVE");
 }

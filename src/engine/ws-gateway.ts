@@ -1,6 +1,6 @@
 import { basename } from "node:path";
 import { type WebSocket, WebSocketServer } from "ws";
-import type { RoomEvent } from "../shared/events";
+import type { AccountLimits, LimitsMessage, RoomEvent } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
 import { listLocalSessions } from "./local-sessions";
 import type { SessionManager } from "./session";
@@ -61,6 +61,7 @@ export class WsGateway {
   private wss: WebSocketServer;
   private clients = new Set<WebSocket>();
   private importSeq = 0;
+  private lastLimits: LimitsMessage | null = null;
 
   constructor(
     port: number,
@@ -76,6 +77,7 @@ export class WsGateway {
     }
     this.wss.on("connection", (ws) => {
       this.clients.add(ws);
+      if (this.lastLimits) ws.send(JSON.stringify(this.lastLimits));
       ws.on("message", (data) => void this.onCommand(String(data), ws));
       ws.on("close", () => this.clients.delete(ws));
     });
@@ -85,6 +87,13 @@ export class WsGateway {
   broadcast(e: RoomEvent): void {
     const msg = JSON.stringify(e);
     for (const ws of this.clients) if (ws.readyState === ws.OPEN) ws.send(msg);
+  }
+
+  pushLimits(limits: AccountLimits): void {
+    const msg: LimitsMessage = { kind: "limits", ts: Date.now(), limits };
+    this.lastLimits = msg;
+    const json = JSON.stringify(msg);
+    for (const ws of this.clients) if (ws.readyState === ws.OPEN) ws.send(json);
   }
 
   private onCommand(raw: string, ws: WebSocket): void {

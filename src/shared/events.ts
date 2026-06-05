@@ -15,7 +15,8 @@ export type RoomEventType =
   | "loot.dropped"
   | "message.delta"
   | "message.final"
-  | "usage.updated";
+  | "usage.updated"
+  | "context.updated";
 
 export interface RoomEvent<T = unknown> {
   seq: number; // server-side monotonic order key
@@ -72,6 +73,30 @@ export interface SessionErrorPayload {
 export interface UsagePayload {
   tokens: number;
   cost: number;
+}
+
+export interface ContextUpdatedPayload {
+  usedTokens: number;
+  windowSize: number;
+  utilization: number; // 0-100
+}
+
+// ── 信封之外的账户级兄弟消息(不带 seq;last-write-wins;与 (sessionId,seq) 顺序契约无关) ──
+export interface WindowUsage {
+  utilization: number | null; // 0-100;null=未知
+  resetsAt: number | null; // epoch ms
+}
+export interface AccountLimits {
+  planName: string | null; // "Pro" | "Max" | "Team" | <首字母大写> | null
+  fiveHour: WindowUsage;
+  sevenDay: WindowUsage;
+  apiError?: string; // 置位 → 前端灰显
+  stale?: boolean; // 退避期沿用旧值
+}
+export interface LimitsMessage {
+  kind: "limits";
+  ts: number;
+  limits: AccountLimits;
 }
 
 export function isToolEvent(e: RoomEvent): boolean {

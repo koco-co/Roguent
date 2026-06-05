@@ -1,4 +1,4 @@
-import type { RoomEvent } from "../shared/events";
+import type { AccountLimits, RoomEvent } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
 import { useRoomStore } from "./store";
 import { useUiStore } from "./ui-store";
@@ -7,6 +7,7 @@ export function handleIncoming(
   raw: string,
   apply: (e: RoomEvent) => void,
   onControl?: (c: ControlMessage) => void,
+  onLimits?: (l: AccountLimits) => void,
 ): void {
   let parsed: unknown;
   try {
@@ -14,11 +15,15 @@ export function handleIncoming(
   } catch {
     return; // ignore malformed frames
   }
-  if (
-    parsed &&
-    typeof parsed === "object" &&
-    (parsed as { kind?: string }).kind === "control"
-  ) {
+  const kind =
+    parsed && typeof parsed === "object"
+      ? (parsed as { kind?: string }).kind
+      : undefined;
+  if (kind === "limits") {
+    onLimits?.((parsed as { limits: AccountLimits }).limits);
+    return;
+  }
+  if (kind === "control") {
     onControl?.(parsed as ControlMessage);
     return;
   }
@@ -45,6 +50,7 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
     if (c.type === "localSessions") ui.setLocalSessions(c.items);
     else if (c.type === "importError") ui.setImportError(c.reason);
   };
+  const onLimits = (l: AccountLimits) => useRoomStore.getState().setLimits(l);
   // 连接建立前发出的命令(如 newSession)先入队,onopen 后补发;
   // 断线非主动关闭则退避重连(spec §10)。
   const buffer: object[] = [];
@@ -53,7 +59,8 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
 
   const open = () => {
     ws = new WebSocket(url);
-    ws.onmessage = (ev) => handleIncoming(String(ev.data), apply, onControl);
+    ws.onmessage = (ev) =>
+      handleIncoming(String(ev.data), apply, onControl, onLimits);
     ws.onopen = () => {
       for (const cmd of buffer.splice(0)) ws.send(JSON.stringify(cmd));
     };

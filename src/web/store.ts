@@ -6,7 +6,11 @@ import {
   createAgent,
   createSession,
 } from "../shared/domain";
-import type { RoomEvent } from "../shared/events";
+import type {
+  AccountLimits,
+  ContextUpdatedPayload,
+  RoomEvent,
+} from "../shared/events";
 import { agentTypeToSkin } from "../shared/mapping";
 
 export interface RoomState {
@@ -247,6 +251,15 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       s.usage = { tokens: p.tokens, cost: p.cost };
       break;
     }
+    case "context.updated": {
+      const p = e.payload as ContextUpdatedPayload;
+      s.context = {
+        usedTokens: p.usedTokens,
+        windowSize: p.windowSize,
+        utilization: p.utilization,
+      };
+      break;
+    }
     case "session.cleared": {
       const orch = s.agents[ORCHESTRATOR_ID];
       s.agents = orch ? { [ORCHESTRATOR_ID]: orch } : {};
@@ -274,12 +287,16 @@ export interface RoomStore extends RoomState {
   unarchiveSession: (id: string) => void;
   // 硬删除的客户端侧:从 store 移除。停 driver 的命令由调用方另发(避免 store↔ws 循环)。
   removeSession: (id: string) => void;
+  limits: AccountLimits | null;
+  setLimits: (limits: AccountLimits) => void;
 }
 
 export const useRoomStore = create<RoomStore>((set) => ({
   sessions: {},
   currentSessionId: null,
   projectOrder: [],
+  limits: null,
+  setLimits: (limits) => set({ limits }),
   applyEvent: (e) => set((st) => reduce(st, e)),
   switchSession: (id) => set({ currentSessionId: id }),
   // 乐观回显:用户发的消息没有对应服务端事件,本地直接进 transcript;同时刷新活跃度。

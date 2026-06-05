@@ -63,6 +63,7 @@ export interface IDriver {
   setModel(model: string): Promise<void>;
   interrupt(): Promise<void>;
   end(): void;
+  getContextUsage(): Promise<{ totalTokens: number; maxTokens: number } | null>;
 }
 
 export class Driver implements IDriver {
@@ -152,6 +153,19 @@ export class Driver implements IDriver {
 
   async interrupt(): Promise<void> {
     await this.q?.interrupt();
+  }
+
+  async getContextUsage(): Promise<{
+    totalTokens: number;
+    maxTokens: number;
+  } | null> {
+    try {
+      const r = await this.q?.getContextUsage();
+      if (!r) return null;
+      return { totalTokens: r.totalTokens, maxTokens: r.maxTokens };
+    } catch {
+      return null;
+    }
   }
 
   end(): void {

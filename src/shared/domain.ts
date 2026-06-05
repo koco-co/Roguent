@@ -21,6 +21,14 @@ export interface Loot {
   t: number;
 }
 
+// 当前会话上下文窗口占用(来自 SDK getContextUsage)。usedTokens/windowSize 为 token 数,
+// utilization 为 0-100 的占用百分比(/compact 后回落)。
+export interface ContextUsage {
+  usedTokens: number;
+  windowSize: number;
+  utilization: number;
+}
+
 export type ChatRole = "user" | "assistant" | "system";
 
 export interface ChatMessage {
@@ -51,6 +59,8 @@ export interface Session {
   lastActiveAt: number;
   // 软归档:客户端可见性开关(driver 后台不杀),归档后移出大厅、进 ChatDrawer。
   archived: boolean;
+  // 上下文窗口占用(每轮结束由引擎 getContextUsage 派生);首轮前为 undefined。
+  context?: ContextUsage;
 }
 
 export const ORCHESTRATOR_ID = "orchestrator";
