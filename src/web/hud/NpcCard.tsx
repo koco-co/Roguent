@@ -118,6 +118,9 @@ export function NpcCard() {
           k="子智能体"
           v={`${subagents.length} 个${breakdown ? ` · ${breakdown}` : ""}`}
         />
+        {session.context ? (
+          <StatRow k="上下文" v={`${session.context.utilization}%`} />
+        ) : null}
         <StatRow k="Token" v={session.usage.tokens.toLocaleString()} />
         <StatRow k="花费" v={`$${session.usage.cost.toFixed(4)}`} />
 

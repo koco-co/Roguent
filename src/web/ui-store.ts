@@ -7,7 +7,8 @@ type Panel =
   | "skillsOpen"
   | "lootOpen"
   | "infoOpen"
-  | "importOpen";
+  | "importOpen"
+  | "leaderboardOpen";
 
 // 双层缩放(spec §架构):总览大厅 ↔ 进入某会话的内景(复用现有 Room/Scene)。
 export type View = "overworld" | { interior: string };
@@ -19,6 +20,7 @@ export interface UiState {
   lootOpen: boolean;
   infoOpen: boolean;
   importOpen: boolean;
+  leaderboardOpen: boolean;
   localSessions: LocalSessionMeta[];
   importError: string | null;
   selectedAgentId: string | null;
@@ -48,6 +50,7 @@ export const useUiStore = create<UiState>((set) => ({
   lootOpen: false,
   infoOpen: false,
   importOpen: false,
+  leaderboardOpen: false,
   localSessions: [],
   importError: null,
   selectedAgentId: null,

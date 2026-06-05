@@ -4,6 +4,7 @@ import { useUiStore } from "../ui-store";
 import { AgentCard } from "./AgentCard";
 import { ChatDrawer } from "./ChatDrawer";
 import { ImportPanel } from "./ImportPanel";
+import { Leaderboard } from "./Leaderboard";
 import { LimitBars } from "./LimitBars";
 import { LootPanel } from "./LootPanel";
 import { ModelPicker } from "./ModelPicker";
@@ -44,6 +45,7 @@ export function Hud() {
   const drawerOpen = useUiStore((s) => s.drawerOpen);
   const modelOpen = useUiStore((s) => s.modelOpen);
   const importOpen = useUiStore((s) => s.importOpen);
+  const leaderboardOpen = useUiStore((s) => s.leaderboardOpen);
   const session = useRoomStore((s) =>
     s.currentSessionId ? s.sessions[s.currentSessionId] : undefined,
   );
@@ -115,6 +117,12 @@ export function Hud() {
           lit={importOpen}
           onClick={() => toggle("importOpen")}
         />
+        <IconButton
+          icon="🏆"
+          title="排行榜"
+          lit={leaderboardOpen}
+          onClick={() => toggle("leaderboardOpen")}
+        />
       </div>
 
       <InfoPopover session={session} />
@@ -124,6 +132,7 @@ export function Hud() {
       <ModelPicker />
       <SkillGrid />
       <ImportPanel />
+      <Leaderboard />
     </>
   );
 }
