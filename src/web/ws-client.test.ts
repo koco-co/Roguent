@@ -26,3 +26,12 @@ test("handleIncoming routes control messages to onControl, not the event sink", 
   expect(controls).toHaveLength(1);
   expect(controls[0]?.type).toBe("localSessions");
 });
+
+test("handleIncoming with no onControl silently ignores a control frame", () => {
+  expect(() =>
+    handleIncoming(
+      '{"kind":"control","type":"localSessions","items":[]}',
+      (e) => e,
+    ),
+  ).not.toThrow();
+});

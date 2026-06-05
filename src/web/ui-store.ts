@@ -31,6 +31,7 @@ export interface UiState {
   selectNpc: (id: string | null) => void;
   enterInterior: (id: string) => void;
   exitOverworld: () => void;
+  /** Replaces the session list and clears any previous importError. */
   setLocalSessions: (items: LocalSessionMeta[]) => void;
   setImportError: (reason: string | null) => void;
 }

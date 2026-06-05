@@ -40,10 +40,8 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
   const apply = useRoomStore.getState().applyEvent;
   const onControl = (c: ControlMessage) => {
     const ui = useUiStore.getState();
-    if (c.kind === "control" && c.type === "localSessions")
-      ui.setLocalSessions(c.items);
-    else if (c.kind === "control" && c.type === "importError")
-      ui.setImportError(c.reason);
+    if (c.type === "localSessions") ui.setLocalSessions(c.items);
+    else if (c.type === "importError") ui.setImportError(c.reason);
   };
   // 连接建立前发出的命令(如 newSession)先入队,onopen 后补发;
   // 断线非主动关闭则退避重连(spec §10)。
