@@ -9,6 +9,7 @@ import { Leaderboard } from "./Leaderboard";
 import { LimitBars } from "./LimitBars";
 import { LootPanel } from "./LootPanel";
 import { ModelPicker } from "./ModelPicker";
+import { RosterCard } from "./RosterCard";
 import { SkillGrid } from "./SkillGrid";
 import { Icon } from "./icons";
 import { IconButton, StatRow, shortModel } from "./widgets";
@@ -65,6 +66,8 @@ export function Hud() {
   return (
     <>
       <LimitBars />
+      {/* 内景左上栈:在岗轮播卡(自带绝对定位,落在 LimitBars 下方)*/}
+      <RosterCard />
       {/* top status banner */}
       <div
         className="px-panel px-topbar pf"

@@ -592,6 +592,72 @@ img {
   text-align: right;
 }
 
+/* ── 在岗轮播卡(移植自原型 layout.css 的 .roster*)──────────────────── */
+/* .roster 在 Hud 里自带绝对定位,落在 LimitBars 下方(原型无定位,我们左上栈) */
+.roster {
+  position: absolute;
+  top: 150px;
+  left: 12px;
+  width: 312px;
+}
+.roster-body {
+  padding: 10px 12px 12px;
+}
+.roster-h {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--ink-dim);
+  margin-bottom: 8px;
+}
+.roster-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* 原型用 <div>;我们用 <button> 做无障碍点击,故先抹掉按钮默认样式 */
+.roster-av {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: none;
+  background: rgba(11, 10, 18, 0.5);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+.roster-av.sel {
+  box-shadow: inset 0 0 0 2px var(--gold), 0 0 8px var(--gold);
+}
+.roster-portrait {
+  transform: translateY(4px);
+}
+/* 指挥官金染(对标原型 GOLD_TINT,作用在像素头像 canvas 上) */
+.roster-av.orc .roster-portrait {
+  filter: sepia(1) saturate(3.2) hue-rotate(-18deg) brightness(1.08)
+    contrast(1.05);
+}
+.roster-portrait-canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+.roster-alert {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: rgba(11, 10, 18, 0.85);
+  padding: 1px;
+  box-shadow: 0 0 0 1px #000;
+}
+.roster-empty {
+  font-size: 9px;
+  color: var(--ink-faint);
+  padding: 6px 2px;
+}
+
 .barframe {
   position: relative;
   height: 22px;

@@ -46,14 +46,34 @@ function loadAtlasData(): Promise<AtlasData> {
 
 const SIZE = 40; // matches .px-dossier-portrait box
 
+interface HeroPortraitProps {
+  /** Session id; when no explicit `hero` is given, derives the session's
+   *  deterministic NPC hero via sessionHero(sessionId). */
+  sessionId: string;
+  /** Explicit 0x72 hero base (e.g. "knight_m"); overrides sessionHero. Used by
+   *  the roster so each on-duty agent draws its own hero, matching the room. */
+  hero?: string;
+  /** Square canvas edge in px (default 40 = .px-dossier-portrait box). */
+  size?: number;
+  /** CSS class for the canvas (default the dossier dark box). Pass "" for a
+   *  bare transparent portrait (e.g. inside the roster avatar tile). */
+  className?: string;
+}
+
 /**
- * Session avatar for the NpcCard titlebar: the session's deterministic hero
- * (sessionHero) idle frame, contain-fit and centred in a 40×40 pixelated canvas.
- * Self-contained DOM render (no Pixi); falls back to the class's dark box if the
- * atlas can't be loaded.
+ * Pixel hero avatar rendered straight to a <canvas> (no Pixi): crops an idle
+ * frame from the 0x72 atlas, contain-fit and centred, kept crisp. Used by the
+ * NpcCard titlebar (session hero) and the RosterCard (per-agent hero). Falls
+ * back to the canvas class's box if the atlas can't be loaded.
  */
-export function HeroPortrait({ sessionId }: { sessionId: string }) {
+export function HeroPortrait({
+  sessionId,
+  hero,
+  size = SIZE,
+  className = "px-dossier-portrait",
+}: HeroPortraitProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const base = hero ?? sessionHero(sessionId);
   useEffect(() => {
     let cancelled = false;
     loadAtlasData()
@@ -62,7 +82,7 @@ export function HeroPortrait({ sessionId }: { sessionId: string }) {
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext("2d");
         if (!canvas || !ctx) return;
-        const f = frames[`${sessionHero(sessionId)}_idle_anim_f0.png`]?.frame;
+        const f = frames[`${base}_idle_anim_f0.png`]?.frame;
         if (!f) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.imageSmoothingEnabled = false; // keep pixels crisp
@@ -82,19 +102,19 @@ export function HeroPortrait({ sessionId }: { sessionId: string }) {
         );
       })
       .catch(() => {
-        /* leave the dark fallback box */
+        /* leave the fallback box */
       });
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [base]);
 
   return (
     <canvas
       ref={canvasRef}
-      className="px-dossier-portrait"
-      width={SIZE}
-      height={SIZE}
+      className={className}
+      width={size}
+      height={size}
       aria-hidden
     />
   );
