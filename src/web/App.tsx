@@ -21,6 +21,8 @@ export function App() {
   const beginExit = useUiStore((s) => s.beginExit);
   const activePanel = useUiStore((s) => s.activePanel);
   const closePanel = useUiStore((s) => s.closePanel);
+  const selectedNpcId = useUiStore((s) => s.selectedNpcId);
+  const selectNpc = useUiStore((s) => s.selectNpc);
   const inInterior = view !== "overworld";
   const interiorId = typeof view === "object" ? view.interior : null;
   // 内景会话是否已不可见(被软归档或硬删除)。缺失 → 视作已离场。
@@ -58,6 +60,11 @@ export function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      // NpcCard 改成 Modal 后由这里集中处理 Esc 关闭(Modal 本身不监听 Esc,T1.2 约定)。
+      if (selectedNpcId) {
+        selectNpc(null);
+        return;
+      }
       if (activePanel !== null) {
         closePanel();
         return;
@@ -66,7 +73,15 @@ export function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [inInterior, interiorId, beginExit, activePanel, closePanel]);
+  }, [
+    inInterior,
+    interiorId,
+    beginExit,
+    activePanel,
+    closePanel,
+    selectedNpcId,
+    selectNpc,
+  ]);
 
   return (
     <div

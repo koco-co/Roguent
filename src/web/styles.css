@@ -1053,6 +1053,169 @@ img {
   border-top: 1px solid rgba(120, 200, 225, 0.18);
 }
 
+/* ── 会话档案卡(NpcCard,移植自原型 layout.css 的 npccard 系列类)──
+   .pxbtn、.util、.has-tip:hover .tip、.dim、.chip、.tag-claude、.px、.gold、
+   .faint、.cyan 已在别处定义,这里不重复;只补本卡片独有的类。 */
+.npccard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.npccard-hd {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.npccard-portrait {
+  width: 100px;
+  height: 100px;
+  background: rgba(11, 10, 18, 0.5);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.npccard-name {
+  font-size: 14px;
+}
+.npccard-tags {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.statgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 28px;
+}
+.statrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 7px 0;
+  border-bottom: 1px dashed rgba(122, 86, 56, 0.35);
+}
+.sr-label {
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+.sr-val {
+  font-size: 13px;
+  /* 原型 layout.css 这里写 var(--ink)=浅色文本;在我们的 token 系统 --ink 是深色背景
+     (#0b0a12),浅色正文用 --text(见 styles.css 顶部「All design color:var(--ink)
+     text uses → color:var(--text)」)。直接照搬会变成深色文本压在深色面板上=不可见,
+     故按本项目既有约定改用 --text。 */
+  color: var(--text);
+  text-align: right;
+}
+.sr-val.gold {
+  color: var(--gold);
+  font-family: var(--font-px);
+  font-size: 11px;
+}
+.npccard-ctx {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.comp-box {
+  background: rgba(11, 10, 18, 0.4);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  padding: 14px;
+}
+.comp-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.npccard-act {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.seg {
+  display: inline-flex;
+  background: var(--panel-edge);
+  box-shadow: 0 0 0 2px var(--panel-edge);
+}
+.seg.sm .seg-opt {
+  font-size: 11px;
+  padding: 5px 10px;
+}
+.seg-opt {
+  font-family: var(--font-cjk);
+  font-size: 13px;
+  padding: 7px 14px;
+  cursor: pointer;
+  color: var(--ink-dim);
+  background: linear-gradient(180deg, #4a3322, #352314);
+  box-shadow: inset 0 0 0 1px var(--panel-hi);
+  white-space: nowrap;
+}
+.seg-opt.on {
+  color: #eafaff;
+  background: linear-gradient(180deg, #3aa6bd, #1f6d80);
+}
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.pxrange {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 14px;
+  background: var(--panel-edge);
+  box-shadow: inset 0 0 0 2px #000;
+  flex: 1;
+  cursor: pointer;
+}
+.pxrange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 22px;
+  background: linear-gradient(180deg, #e8b93e, #9c7613);
+  box-shadow: 0 0 0 2px #000;
+  cursor: pointer;
+}
+.pxrange::-moz-range-thumb {
+  width: 16px;
+  height: 22px;
+  border: 0;
+  background: #e8b93e;
+  box-shadow: 0 0 0 2px #000;
+}
+.pct-num {
+  font-size: 12px;
+  color: var(--gold);
+  min-width: 42px;
+  text-align: right;
+}
+.qmark {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  font-family: var(--font-px);
+  font-size: 8px;
+  background: var(--panel-edge);
+  box-shadow: inset 0 0 0 1px var(--cyan);
+  color: var(--cyan);
+  cursor: help;
+  margin-left: 6px;
+  position: relative;
+}
+.mock-chip {
+  font-size: 8px;
+  color: var(--gold);
+  background: rgba(11, 10, 18, 0.6);
+  padding: 1px 4px;
+  box-shadow: 0 0 0 1px #000;
+  margin-left: auto;
+}
+
 /* text-color utilities */
 .dim {
   color: var(--ink-dim);
