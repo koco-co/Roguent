@@ -3,6 +3,7 @@ import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { AgentCard } from "./AgentCard";
 import { ChatDrawer } from "./ChatDrawer";
+import { ImportPanel } from "./ImportPanel";
 import { LootPanel } from "./LootPanel";
 import { ModelPicker } from "./ModelPicker";
 import { SkillGrid } from "./SkillGrid";
@@ -78,6 +79,13 @@ export function Hud() {
         onClick={() => toggle("modelOpen")}
       />
       <IconButton
+        icon="📂"
+        title="导入会话"
+        lit={ui.importOpen}
+        pos={{ top: 70, right: 12 }}
+        onClick={() => toggle("importOpen")}
+      />
+      <IconButton
         icon="📜"
         title="技能"
         lit={ui.skillsOpen}
@@ -105,6 +113,7 @@ export function Hud() {
       <ChatDrawer />
       <ModelPicker />
       <SkillGrid />
+      <ImportPanel />
     </>
   );
 }

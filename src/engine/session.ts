@@ -1,7 +1,9 @@
-import type { RoomEvent } from "../shared/events";
+import type { RoomEvent, SessionCreatedPayload } from "../shared/events";
 import { Driver, type DriverCallbacks, type IDriver } from "./driver";
+import { readTranscriptLines } from "./local-sessions";
 import { projectFor } from "./project";
 import { Sequencer } from "./sequencer";
+import { normalizeTranscript } from "./transcript";
 
 export type DriverFactory = (
   cb: DriverCallbacks,
@@ -86,6 +88,28 @@ export class SessionManager {
 
   sendMessage(id: string, text: string): void {
     this.drivers.get(id)?.send(text);
+  }
+
+  // 第三个事件来源:导入本地 CC transcript,零额度同步。不建 Driver,把整段
+  // 会话历史(含用户轮次)瞬时折成事件灌进聊天抽屉——「云存档同步」式回看,
+  // 不做计时回放。seq 与 LIVE 会话同享 Sequencer。
+  importSession(id: string, path: string): void {
+    const lines = readTranscriptLines(path);
+    // 文件不存在 / 读不出 / 空 → 抛错,让 WsGateway 的 try/catch 回 importError(spec §4)。
+    if (lines.length === 0) throw new Error("transcript empty or unreadable");
+    const drafts = normalizeTranscript(lines);
+    if (drafts.length === 0) return;
+    // normalizeTranscript always prepends session.created → drafts[0] exists
+    const created = drafts[0]!.payload as SessionCreatedPayload;
+    const cwd = created.cwd?.trim() || this.cwd;
+    const project = projectFor(cwd);
+    for (const d of drafts) {
+      const payload =
+        d.type === "session.created"
+          ? { ...(d.payload as Record<string, unknown>), cwd, project }
+          : d.payload;
+      this.emit(this.seq.stamp(id, d.type, payload, d.ts, d.agentId));
+    }
   }
 
   // 硬删除:停掉 driver 并丢弃。归档是纯客户端可见性、driver 后台不杀(spec);

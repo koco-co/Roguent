@@ -46,3 +46,16 @@ test("parseCommand accepts deleteSession", () => {
   });
   expect(parseCommand('{"cmd":"deleteSession"}')).toBeNull();
 });
+
+test("parseCommand accepts listLocalSessions / importSession", () => {
+  expect(parseCommand('{"cmd":"listLocalSessions"}')).toEqual({
+    cmd: "listLocalSessions",
+  });
+  expect(parseCommand('{"cmd":"importSession","path":"/a/b.jsonl"}')).toEqual({
+    cmd: "importSession",
+    path: "/a/b.jsonl",
+  });
+  // 非法:path 非字符串 / 缺字段。
+  expect(parseCommand('{"cmd":"importSession","path":5}')).toBeNull();
+  expect(parseCommand('{"cmd":"importSession"}')).toBeNull();
+});

@@ -1,11 +1,13 @@
 import { create } from "zustand";
+import type { LocalSessionMeta } from "../shared/local-sessions";
 
 type Panel =
   | "drawerOpen"
   | "modelOpen"
   | "skillsOpen"
   | "lootOpen"
-  | "infoOpen";
+  | "infoOpen"
+  | "importOpen";
 
 // 双层缩放(spec §架构):总览大厅 ↔ 进入某会话的内景(复用现有 Room/Scene)。
 export type View = "overworld" | { interior: string };
@@ -16,6 +18,9 @@ export interface UiState {
   skillsOpen: boolean;
   lootOpen: boolean;
   infoOpen: boolean;
+  importOpen: boolean;
+  localSessions: LocalSessionMeta[];
+  importError: string | null;
   selectedAgentId: string | null;
   // 当前选中的 NPC(总览里打开了它的信息卡的那个会话);与 selectedAgentId(内景里
   // 选中的某个 subagent)是不同语境。
@@ -26,6 +31,9 @@ export interface UiState {
   selectNpc: (id: string | null) => void;
   enterInterior: (id: string) => void;
   exitOverworld: () => void;
+  /** Replaces the session list and clears any previous importError. */
+  setLocalSessions: (items: LocalSessionMeta[]) => void;
+  setImportError: (reason: string | null) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -34,6 +42,9 @@ export const useUiStore = create<UiState>((set) => ({
   skillsOpen: false,
   lootOpen: false,
   infoOpen: false,
+  importOpen: false,
+  localSessions: [],
+  importError: null,
   selectedAgentId: null,
   selectedNpcId: null,
   view: "overworld",
@@ -45,4 +56,6 @@ export const useUiStore = create<UiState>((set) => ({
   enterInterior: (id) => set({ view: { interior: id }, selectedNpcId: null }),
   // 返回大厅:清掉内景里选中的 subagent。
   exitOverworld: () => set({ view: "overworld", selectedAgentId: null }),
+  setLocalSessions: (items) => set({ localSessions: items, importError: null }),
+  setImportError: (reason) => set({ importError: reason }),
 }));

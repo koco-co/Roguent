@@ -224,16 +224,18 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
     }
     case "message.delta":
     case "message.final": {
-      // 助手文字进抽屉会话窗口,不进房间(spec §5/§7.3)。
-      // includePartialMessages=false 时一条 delta = 一整轮助手发言。
-      const p = e.payload as { text: string };
+      // 对话文字进抽屉会话窗口,不进房间(spec §5/§7.3)。
+      // includePartialMessages=false 时一条 delta = 一整轮发言。
+      // role 默认 "assistant";导入历史会话时用户轮次带 role:"user"。
+      const p = e.payload as { text: string; role?: "user" | "assistant" };
+      const role = p.role ?? "assistant";
       if (p.text)
         s.messages = [
           ...s.messages,
           {
             id: String(e.seq),
-            role: "assistant",
-            agentId: e.agentId,
+            role,
+            agentId: role === "user" ? undefined : e.agentId,
             text: p.text,
             t: e.ts,
           },

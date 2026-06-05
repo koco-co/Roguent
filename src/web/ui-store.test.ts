@@ -1,4 +1,5 @@
 import { beforeEach, expect, test } from "bun:test";
+import type { LocalSessionMeta } from "../shared/local-sessions";
 import { useUiStore } from "./ui-store";
 
 beforeEach(() => {
@@ -8,6 +9,9 @@ beforeEach(() => {
     skillsOpen: false,
     lootOpen: false,
     infoOpen: false,
+    importOpen: false,
+    localSessions: [],
+    importError: null,
     selectedAgentId: null,
     selectedNpcId: null,
     view: "overworld",
@@ -46,4 +50,21 @@ test("enterInterior then exitOverworld round-trips back to overworld", () => {
   expect(useUiStore.getState().view).toEqual({ interior: "sess-abc" });
   useUiStore.getState().exitOverworld();
   expect(useUiStore.getState().view).toBe("overworld");
+});
+
+test("setLocalSessions / setImportError update import state", () => {
+  const meta: LocalSessionMeta = {
+    project: "p",
+    sessionId: "s",
+    path: "/p/s.jsonl",
+    mtime: 1,
+    firstMessage: "hi",
+    msgCount: 2,
+  };
+  useUiStore.getState().setLocalSessions([meta]);
+  expect(useUiStore.getState().localSessions).toEqual([meta]);
+  useUiStore.getState().setImportError("boom");
+  expect(useUiStore.getState().importError).toBe("boom");
+  useUiStore.getState().setLocalSessions([]); // 重新列表清掉旧错误
+  expect(useUiStore.getState().importError).toBeNull();
 });
