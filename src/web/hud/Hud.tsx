@@ -35,7 +35,14 @@ function InfoPopover({ session }: { session: Session | undefined }) {
 
 export function Hud() {
   const toggle = useUiStore((s) => s.toggle);
-  const ui = useUiStore((s) => s);
+  // Subscribe only to the per-panel open flags this HUD renders, so the dock /
+  // hotbar don't re-render on unrelated ui-store changes (transition, selection…).
+  const infoOpen = useUiStore((s) => s.infoOpen);
+  const skillsOpen = useUiStore((s) => s.skillsOpen);
+  const lootOpen = useUiStore((s) => s.lootOpen);
+  const drawerOpen = useUiStore((s) => s.drawerOpen);
+  const modelOpen = useUiStore((s) => s.modelOpen);
+  const importOpen = useUiStore((s) => s.importOpen);
   const session = useRoomStore((s) =>
     s.currentSessionId ? s.sessions[s.currentSessionId] : undefined,
   );
@@ -69,7 +76,7 @@ export function Hud() {
         <IconButton
           icon="⚙"
           title="会话信息"
-          lit={ui.infoOpen}
+          lit={infoOpen}
           onClick={() => toggle("infoOpen")}
         />
       </div>
@@ -79,31 +86,31 @@ export function Hud() {
         <IconButton
           icon="📜"
           title="技能"
-          lit={ui.skillsOpen}
+          lit={skillsOpen}
           onClick={() => toggle("skillsOpen")}
         />
         <IconButton
           icon="🎒"
           title="背包"
-          lit={ui.lootOpen}
+          lit={lootOpen}
           onClick={() => toggle("lootOpen")}
         />
         <IconButton
           icon="💬"
           title="聊天"
-          lit={ui.drawerOpen}
+          lit={drawerOpen}
           onClick={() => toggle("drawerOpen")}
         />
         <IconButton
           icon="💎"
           title="模型"
-          lit={ui.modelOpen}
+          lit={modelOpen}
           onClick={() => toggle("modelOpen")}
         />
         <IconButton
           icon="📂"
           title="导入会话"
-          lit={ui.importOpen}
+          lit={importOpen}
           onClick={() => toggle("importOpen")}
         />
       </div>
