@@ -2293,30 +2293,16 @@ img {
   color: var(--ink-dim);
 }
 
-/* ── Chat 面板(T3.8 右抽屉 → 居中 Modal):左会话侧栏 + 右对话区 ──
-   右对话区(.chat-wrap/.chat-thread/.chat-msg/.chat-bubble/.chat-input)移植自
-   设计原型 layout.css,关键 token 转换:原型 .chat-bubble color:var(--ink)(原型 --ink
-   = 浅文本)→ 本项目 var(--text)(本项目 --ink = 深背景)。左侧栏 + 布局(.chat-layout/
-   .chat-side/.chat-sess)原型无此部分,新建,风格对齐 .set-nav/.set-navitem 暖木写法。
-   复用已有:.pxinput/.pxbtn(及 sm/primary/cjk)/.scroll/.faint/.dim/.px/.cyan。 */
-.chat-layout {
-  display: flex;
-  gap: 16px;
-  height: 100%;
-  min-height: 0;
-}
-.chat-side {
-  width: 210px;
-  flex-shrink: 0;
-  border-right: 2px solid var(--panel-edge);
-  padding-right: 12px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+/* ── Chat 抽屉(居中 Modal → 右侧单栏抽屉):贴右满高玻璃,头部会话名 + 「会话」
+   管理弹层 + 对话流(markdown)+ 输入。移植自设计原型 layout.css 的 cdrawer 系列、
+   cmsg 系列、md 系列。token 翻译:原型 cdrawer-name/cmsg-bubble 的 color:var(--ink)
+   (原型 --ink = 浅文本)→ 本项目 var(--text)(本项目 --ink = 深背景);其余
+   (--panel/--panel-edge/--panel-hi/--panel-2/--titlebar/--cyan/--gold/--ink-faint/
+   --ink-dim/--font-px)值已对齐,直接用。复用既有:.closex/.pxinput/.pxbtn/.scroll/
+   .faint/.px。无流式,故不移植 .md-caret/caret-blink。 */
+
+/* 会话列表项(原侧栏遗留,现由抽屉头部「会话」弹层复用) */
 .chat-sess {
-  /* button reset */
   border: 0;
   background: transparent;
   width: 100%;
@@ -2333,54 +2319,226 @@ img {
   box-shadow: inset 3px 0 0 var(--cyan);
   background: rgba(54, 197, 224, 0.08);
 }
-.chat-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+
+.cdrawer-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 5, 12, 0.5);
+  backdrop-filter: blur(1px);
+  z-index: 200;
+  animation: fadein 0.15s ease;
 }
-.chat-thread {
+.cdrawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(660px, 94vw);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.05),
+      rgba(0, 0, 0, 0.12)
+    ), var(--panel);
+  box-shadow: -3px 0 0 0 var(--panel-edge), inset 3px 0 0 0 var(--panel-hi),
+    inset 6px 0 0 0 var(--panel-2), -14px 0 34px rgba(0, 0, 0, 0.5);
+  animation: cdrawer-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+@keyframes cdrawer-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+.no-motion .cdrawer {
+  animation: none;
+}
+.cdrawer-hd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  margin: 6px 6px 0;
+  background: linear-gradient(180deg, #3a2614, var(--titlebar));
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.4), inset 0 2px 0
+    rgba(255, 255, 255, 0.06);
+}
+.cdrawer-hd-l {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+.cdrawer-titles {
+  min-width: 0;
+}
+.cdrawer-name {
+  font-size: 16px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cdrawer-meta {
+  font-size: 8px;
+  color: var(--cyan);
+  margin-top: 5px;
+  letter-spacing: 0.05em;
+}
+.cdrawer-thread {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding-right: 8px;
-  min-height: 0;
+  gap: 18px;
+  padding: 20px 18px;
   overflow-y: auto;
+  min-height: 0;
 }
-.chat-msg {
-  max-width: 78%;
+.cmsg {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 92%;
 }
-.chat-msg.in {
-  align-self: flex-start;
-}
-.chat-msg.out {
+.cmsg.me {
   align-self: flex-end;
-  text-align: right;
+  align-items: flex-end;
 }
-.chat-role {
-  font-size: 9px;
-  margin-bottom: 3px;
+.cmsg-author {
+  font-size: 8px;
+  color: var(--ink-faint);
 }
-.chat-bubble {
+.cmsg.me .cmsg-author {
+  color: var(--cyan);
+}
+.cmsg-bubble {
   font-size: 14px;
-  line-height: 1.6;
-  padding: 10px 13px;
+  line-height: 1.65;
+  padding: 12px 15px;
+  color: var(--text);
   background: rgba(11, 10, 18, 0.5);
   box-shadow: inset 0 0 0 2px var(--panel-edge);
-  color: var(--text);
 }
-.chat-msg.out .chat-bubble {
+.cmsg.me .cmsg-bubble {
   background: linear-gradient(180deg, #1f6d80, #15505e);
   box-shadow: inset 0 0 0 2px #36c5e0;
 }
-.chat-input {
+.cdrawer-input {
   display: flex;
   gap: 10px;
-  margin-top: 14px;
+  padding: 14px 15px;
+  margin: 0 6px 6px;
+  background: rgba(11, 10, 18, 0.4);
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.3);
 }
-.chat-input .pxinput {
+.cdrawer-input .pxinput {
   flex: 1;
+  min-width: 0;
+}
+
+/* 头部「会话」管理弹层:活动/归档会话列表 + 新建,浮在对话流上方 */
+.cdrawer-mgr {
+  position: absolute;
+  top: 72px;
+  right: 12px;
+  width: 280px;
+  max-height: 60%;
+  overflow-y: auto;
+  z-index: 5;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--panel-2);
+  box-shadow: 0 0 0 2px var(--panel-edge), 0 10px 30px rgba(0, 0, 0, 0.55);
+}
+
+/* markdown content(原型 layout.css 移植,类名严格对齐 mdToHtml 输出) */
+.md > *:first-child {
+  margin-top: 0;
+}
+.md > *:last-child {
+  margin-bottom: 0;
+}
+.md-p {
+  margin: 0 0 9px;
+}
+.md-h {
+  font-family: var(--font-px);
+  color: var(--gold);
+  margin: 6px 0 9px;
+  text-shadow: 1px 1px 0 #000;
+  line-height: 1.4;
+}
+.md-h1 {
+  font-size: 14px;
+}
+.md-h2 {
+  font-size: 12px;
+}
+.md-h3,
+.md-h4 {
+  font-size: 11px;
+}
+.md-ul,
+.md-ol {
+  margin: 0 0 9px;
+  padding-left: 20px;
+}
+.md-ul {
+  list-style: none;
+}
+.md-ul li {
+  position: relative;
+}
+.md-ul li::before {
+  content: "▸";
+  color: var(--cyan);
+  position: absolute;
+  left: -16px;
+}
+.md-ul li,
+.md-ol li {
+  margin: 3px 0;
+}
+.md-code {
+  font-family: var(--font-px);
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.42);
+  color: #9be7ff;
+  padding: 1px 5px;
+  box-shadow: inset 0 0 0 1px var(--panel-edge);
+}
+.md-pre {
+  margin: 0 0 9px;
+  padding: 11px 13px;
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  overflow-x: auto;
+}
+.md-pre code {
+  font-family: var(--font-px);
+  font-size: 11px;
+  line-height: 1.7;
+  color: #bfe9c4;
+  white-space: pre;
+}
+.md-bq {
+  margin: 0 0 9px;
+  padding: 6px 12px;
+  color: var(--ink-dim);
+  box-shadow: inset 3px 0 0 var(--cyan);
+  background: rgba(54, 197, 224, 0.06);
+}
+.md-hr {
+  border: 0;
+  border-top: 2px dashed rgba(122, 86, 56, 0.5);
+  margin: 10px 0;
+}
+.md a {
+  color: var(--cyan);
+  text-decoration: underline;
 }
 
 /* 账号面板 Account(T3.11)。来源:设计原型 layout.css 第 321~325 行(.account-wrap
