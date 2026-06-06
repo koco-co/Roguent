@@ -19,7 +19,7 @@ function mdInline(s: string): string {
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, text: string, url: string) =>
       /^\s*(javascript|data|vbscript):/i.test(url)
         ? text
-        : `<a href="${url}" target="_blank" rel="noopener">${text}</a>`,
+        : `<a href="${url.replace(/"/g, "%22")}" target="_blank" rel="noopener">${text}</a>`,
     );
 }
 
