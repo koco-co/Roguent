@@ -411,6 +411,54 @@ test("reconcileSessions: 在册会话与焦点原样保留(短抖重连不丢数
   expect(useRoomStore.getState().currentSessionId).toBe("s1");
 });
 
+test("reconcileSessions: 导入会话豁免对账,空花名册不删它(引擎 --watch 重启)", () => {
+  // 导入会话是客户端自有的静态存档回看,没有 Driver、不归引擎花名册管辖。
+  // dev:engine --watch 每次保存都重启引擎 → 新连接下发空花名册;若把导入会话当幽灵
+  // 清掉就回到空大厅 + 黑画布(本次 bug)。reconcile 必须豁免 imported 会话。
+  useRoomStore.setState({
+    sessions: {},
+    currentSessionId: null,
+    projectOrder: [],
+  });
+  const api = useRoomStore.getState();
+  api.applyEvent(
+    ev({
+      sessionId: "imp1",
+      type: "session.created",
+      payload: { title: "存档", model: "m", imported: true },
+    }),
+  );
+  api.reconcileSessions([]); // 引擎重启后的空花名册
+  expect(useRoomStore.getState().sessions.imp1?.title).toBe("存档"); // 没被清
+  expect(useRoomStore.getState().currentSessionId).toBe("imp1"); // 焦点保住
+});
+
+test("reconcileSessions: 导入会话与 live 会话混存,只清 live 幽灵、留导入", () => {
+  useRoomStore.setState({
+    sessions: {},
+    currentSessionId: null,
+    projectOrder: [],
+  });
+  const api = useRoomStore.getState();
+  api.applyEvent(
+    ev({
+      sessionId: "imp1",
+      type: "session.created",
+      payload: { title: "存档", model: "m", imported: true },
+    }),
+  );
+  api.applyEvent(
+    ev({
+      sessionId: "live1",
+      type: "session.created",
+      payload: { title: "活的", model: "m" },
+    }),
+  );
+  api.reconcileSessions([]); // 引擎没了 → live1 是幽灵,imp1 是存档
+  expect(useRoomStore.getState().sessions.imp1?.title).toBe("存档");
+  expect(useRoomStore.getState().sessions.live1).toBeUndefined();
+});
+
 test("SDK-init session.created merges the real permissionMode over the synthesized default", () => {
   // engine 合成的第一条 permissionMode=default;SDK init 派生的第二条带真实模式。
   let st = reduce(

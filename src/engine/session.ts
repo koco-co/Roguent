@@ -147,7 +147,13 @@ export class SessionManager {
     for (const d of drafts) {
       const payload =
         d.type === "session.created"
-          ? { ...(d.payload as Record<string, unknown>), cwd, project }
+          ? // imported:true → 客户端把这条会话豁免出 roster 对账(静态存档,无 Driver)。
+            {
+              ...(d.payload as Record<string, unknown>),
+              cwd,
+              project,
+              imported: true,
+            }
           : d.payload;
       this.emit(this.seq.stamp(id, d.type, payload, d.ts, d.agentId));
     }

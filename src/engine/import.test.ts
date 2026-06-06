@@ -23,6 +23,8 @@ test("importSession stamps seq, injects project, emits the whole history in orde
   expect(got[1]?.seq).toBe(2);
   // project 由 SessionManager 注入（projectFor(cwd)）。
   expect((got[0]?.payload as SessionCreatedPayload).project).toBeDefined();
+  // imported:true → 客户端把它豁免出 roster 对账(静态存档,引擎重启不被误删)。
+  expect((got[0]?.payload as SessionCreatedPayload).imported).toBe(true);
 
   // 用户轮次与助手轮次都进了聊天历史(云存档同步式回看)。
   const msgs = got.filter((e) => e.type === "message.delta");

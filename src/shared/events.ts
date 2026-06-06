@@ -39,6 +39,9 @@ export interface SessionCreatedPayload {
   // 可选 → replay/旧 fixture 不带也安全(spec §服务端/协议改动:均为加法)。
   cwd?: string;
   project?: string;
+  // 导入的本地 transcript(静态存档回看,无 Driver)。客户端据此把它豁免出 roster
+  // 对账:引擎 --watch 重启后花名册为空也不该清掉用户主动载入的存档。
+  imported?: boolean;
 }
 export interface AgentSpawnedPayload {
   role: string;

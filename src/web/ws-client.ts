@@ -51,10 +51,15 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
     if (c.type === "localSessions") ui.setLocalSessions(c.items);
     else if (c.type === "importError") ui.setImportError(c.reason);
     else if (c.type === "roster") {
-      // 重连对账:清掉引擎花名册外的幽灵会话;若正停在被清的内景,退回大厅。
+      // 重连对账:清掉引擎花名册外的幽灵会话(导入会话豁免,见 reconcileSessions)。
       useRoomStore.getState().reconcileSessions(c.sessionIds);
+      // 内景会话被对账清掉(既不在册、也非导入)才退回大厅;幸存则留在内景。
+      // 必须在 reconcile 后重取 state——getState() 旧快照的 sessions 是清理前的。
       const view = ui.view;
-      if (view !== "overworld" && !c.sessionIds.includes(view.interior))
+      if (
+        view !== "overworld" &&
+        !useRoomStore.getState().sessions[view.interior]
+      )
         ui.exitOverworld();
     }
   };

@@ -66,6 +66,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       cwd?: string;
       project?: string;
       permissionMode?: string;
+      imported?: boolean;
     };
     // 幂等:engine 先合成一条 session.created,SDK init 后又派生一条。第二条必须
     // 合并(补 model/slashCommands/cwd/project),绝不能重建会话——否则会清空已有
@@ -88,6 +89,8 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
           p.permissionMode && p.permissionMode !== "default"
             ? p.permissionMode
             : existing.permissionMode,
+        // 一旦是导入会话就恒为导入(幂等再导入不会把标记刷掉)。
+        imported: existing.imported || p.imported,
       };
       const projectOrder =
         proj && !state.projectOrder.includes(proj)
@@ -114,6 +117,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       // 显式回落 "default":createSession 的默认会被 partial 里的 undefined 覆盖掉。
       permissionMode: p.permissionMode ?? "default",
       lastActiveAt: e.ts, // 首次出现即视为刚活跃,供 LRU 排序
+      imported: p.imported, // 导入会话:reconcile 对账豁免它
     });
     sessions[e.sessionId] = created;
     const projectOrder =
@@ -395,22 +399,25 @@ export const useRoomStore = create<RoomStore>((set) => ({
     }),
   // 重连对账:引擎在新连接时下发当前会话花名册(ids)。本地 store 里不在册的会话是
   // 幽灵(引擎重启 / 换引擎 / replay→live 后残留),清掉;在册的原样保留(同引用,
-  // 短抖重连不丢数据)。焦点指向被清会话则归 null。projectOrder 追加式不修剪(同
-  // removeSession 的 tradeoff)。无幽灵则不动,避免无谓重渲染。
+  // 短抖重连不丢数据)。**导入会话豁免**:它是客户端自有的静态存档(无 Driver),不归
+  // 引擎花名册管辖——否则引擎 --watch 重启的空花名册会误删用户载入的存档(回看变黑屏)。
+  // 焦点指向被清会话则归 null。projectOrder 追加式不修剪(同 removeSession 的 tradeoff)。
+  // 无幽灵则不动,避免无谓重渲染。
   reconcileSessions: (ids) =>
     set((st) => {
       const keep = new Set(ids);
       const sessions: typeof st.sessions = {};
       let pruned = false;
       for (const [id, s] of Object.entries(st.sessions)) {
-        if (keep.has(id)) sessions[id] = s;
+        if (keep.has(id) || s.imported) sessions[id] = s;
         else pruned = true;
       }
       if (!pruned) return st;
       return {
         sessions,
+        // 焦点幸存(在册或导入)则保留;被清才归 null。
         currentSessionId:
-          st.currentSessionId && keep.has(st.currentSessionId)
+          st.currentSessionId && sessions[st.currentSessionId]
             ? st.currentSessionId
             : null,
       };

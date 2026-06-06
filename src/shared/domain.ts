@@ -74,6 +74,9 @@ export interface Session {
   archived: boolean;
   // 上下文窗口占用(每轮结束由引擎 getContextUsage 派生);首轮前为 undefined。
   context?: ContextUsage;
+  // 导入的本地 transcript:客户端自有的静态存档回看,无 Driver。reconcile 对账
+  // 豁免之(引擎花名册不管辖导入会话),否则引擎 --watch 重启会误删用户载入的存档。
+  imported?: boolean;
 }
 
 export const ORCHESTRATOR_ID = "orchestrator";
