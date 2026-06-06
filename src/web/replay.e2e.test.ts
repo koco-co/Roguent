@@ -119,6 +119,37 @@ test("tool.failed clears the agent's currentTool (red-light signal)", () => {
   expect(st.sessions.s1?.agents["ag-1"]?.currentTool).toBeUndefined();
 });
 
+test("e2e: TodoWrite stream → Session.todos drives task counts", () => {
+  let st: RoomState = {
+    sessions: {},
+    currentSessionId: null,
+    projectOrder: [],
+    connection: "connecting",
+  };
+  const evs: RoomEvent[] = [
+    { seq: 1, ts: 1, sessionId: "s1", type: "session.created", payload: { title: "t", model: "m", project: "p" } },
+    { seq: 2, ts: 2, sessionId: "s1", type: "agent.spawned", agentId: "ag-coder", payload: { role: "coder", parentId: "orchestrator" } },
+    // 主控的 TodoWrite 整表
+    { seq: 3, ts: 3, sessionId: "s1", type: "todos.updated", agentId: "orchestrator", payload: { todos: [
+      { content: "重构缩放", status: "in_progress" },
+      { content: "接 TodoWrite", status: "pending" },
+    ] } },
+    // subagent 的 TodoWrite 整表
+    { seq: 4, ts: 4, sessionId: "s1", type: "todos.updated", agentId: "ag-coder", payload: { todos: [
+      { content: "写 normalize 测试", status: "completed" },
+    ] } },
+  ];
+  for (const e of evs) st = reduce(st, e);
+
+  const s = st.sessions.s1;
+  expect(s?.todos.orchestrator).toHaveLength(2);
+  expect(s?.todos["ag-coder"]).toHaveLength(1);
+  // 跨 agent 展平计数(供 TaskWindow / Currency 完成数)
+  const all = Object.values(s?.todos ?? {}).flat();
+  expect(all.filter((t) => t.status === "completed")).toHaveLength(1);
+  expect(all.filter((t) => t.status === "in_progress")).toHaveLength(1);
+});
+
 test("multi-session fixture: two projects → two overworld room slots; per-session state isolated", async () => {
   const events = await loadFixture("fixtures/multi-session.jsonl");
   let st: RoomState = {
