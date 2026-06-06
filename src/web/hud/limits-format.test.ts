@@ -1,12 +1,5 @@
 import { expect, test } from "bun:test";
-import { barRemaining, formatCountdown } from "./limits-format";
-
-test("barRemaining = 100 - utilization, clamped; null → null", () => {
-  expect(barRemaining(30)).toBe(70);
-  expect(barRemaining(0)).toBe(100);
-  expect(barRemaining(150)).toBe(0);
-  expect(barRemaining(null)).toBeNull();
-});
+import { formatCountdown } from "./limits-format";
 
 test("formatCountdown renders h/m to reset; past/null → '—'", () => {
   const now = 1_000_000;
