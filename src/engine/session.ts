@@ -169,6 +169,24 @@ export class SessionManager {
 
   async setModel(id: string, model: string): Promise<void> {
     await this.drivers.get(id)?.setModel(model);
+    // 广播模型变更:前端 store 对 session.created 做幂等合并(不清 transcript),
+    // 只要 payload 携带非空 model 字符串就会更新 session.model。
+    if (this.knownSessions.has(id)) {
+      this.emit(
+        this.seq.stamp(
+          id,
+          "session.created",
+          {
+            title: "",
+            model,
+            permissionMode: "",
+            apiKeySource: "",
+            slashCommands: [],
+          },
+          Date.now(),
+        ),
+      );
+    }
   }
 
   async interrupt(id: string): Promise<void> {
