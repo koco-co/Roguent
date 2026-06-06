@@ -197,6 +197,8 @@ export function Room() {
   useLayoutEffect(() => {
     const el = hostRef.current;
     if (!el) return;
+    // 量 clientWidth/Height(layout 尺寸,不受外层 #stage 的 CSS transform:scale 影响):
+    // Pixi 始终按舞台逻辑尺寸渲染,屏幕缩放由 #stage 统一负责,故此处不能用 getBoundingClientRect。
     const measure = () => setSize({ w: el.clientWidth, h: el.clientHeight });
     measure();
     const ro = new ResizeObserver(measure);

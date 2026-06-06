@@ -1,4 +1,5 @@
 import { ORCHESTRATOR_ID } from "../shared/domain";
+import type { TodoItem, TodoStatus } from "../shared/domain";
 import type { RoomEventType } from "../shared/events";
 
 export interface DraftEvent {
@@ -36,22 +37,27 @@ export interface SdkMessageLike {
 // 从 TodoWrite 的 tool_input 里防御性解析 todos 表。SDK 的 TodoWrite 输入形如
 // { todos: [{ content, status, activeForm? }] };status ∈ pending|in_progress|
 // completed。任何非法项丢弃,非数组直接返回空(不抛、不阻塞 agent)。
-const TODO_STATUSES = new Set(["pending", "in_progress", "completed"]);
-export function parseTodos(
-  input: unknown,
-): Array<{ content: string; status: string; activeForm?: string }> {
+const TODO_STATUSES = new Set<TodoStatus>([
+  "pending",
+  "in_progress",
+  "completed",
+]);
+export function parseTodos(input: unknown): TodoItem[] {
   const o = (input ?? {}) as Record<string, unknown>;
   const raw = o.todos;
   if (!Array.isArray(raw)) return [];
-  const out: Array<{ content: string; status: string; activeForm?: string }> =
-    [];
+  const out: TodoItem[] = [];
   for (const it of raw) {
     const t = (it ?? {}) as Record<string, unknown>;
     if (typeof t.content !== "string") continue;
-    if (typeof t.status !== "string" || !TODO_STATUSES.has(t.status)) continue;
+    if (
+      typeof t.status !== "string" ||
+      !TODO_STATUSES.has(t.status as TodoStatus)
+    )
+      continue;
     out.push({
       content: t.content,
-      status: t.status,
+      status: t.status as TodoStatus,
       ...(typeof t.activeForm === "string" ? { activeForm: t.activeForm } : {}),
     });
   }
