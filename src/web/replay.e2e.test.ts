@@ -127,17 +127,46 @@ test("e2e: TodoWrite stream → Session.todos drives task counts", () => {
     connection: "connecting",
   };
   const evs: RoomEvent[] = [
-    { seq: 1, ts: 1, sessionId: "s1", type: "session.created", payload: { title: "t", model: "m", project: "p" } },
-    { seq: 2, ts: 2, sessionId: "s1", type: "agent.spawned", agentId: "ag-coder", payload: { role: "coder", parentId: "orchestrator" } },
+    {
+      seq: 1,
+      ts: 1,
+      sessionId: "s1",
+      type: "session.created",
+      payload: { title: "t", model: "m", project: "p" },
+    },
+    {
+      seq: 2,
+      ts: 2,
+      sessionId: "s1",
+      type: "agent.spawned",
+      agentId: "ag-coder",
+      payload: { role: "coder", parentId: "orchestrator" },
+    },
     // 主控的 TodoWrite 整表
-    { seq: 3, ts: 3, sessionId: "s1", type: "todos.updated", agentId: "orchestrator", payload: { todos: [
-      { content: "重构缩放", status: "in_progress" },
-      { content: "接 TodoWrite", status: "pending" },
-    ] } },
+    {
+      seq: 3,
+      ts: 3,
+      sessionId: "s1",
+      type: "todos.updated",
+      agentId: "orchestrator",
+      payload: {
+        todos: [
+          { content: "重构缩放", status: "in_progress" },
+          { content: "接 TodoWrite", status: "pending" },
+        ],
+      },
+    },
     // subagent 的 TodoWrite 整表
-    { seq: 4, ts: 4, sessionId: "s1", type: "todos.updated", agentId: "ag-coder", payload: { todos: [
-      { content: "写 normalize 测试", status: "completed" },
-    ] } },
+    {
+      seq: 4,
+      ts: 4,
+      sessionId: "s1",
+      type: "todos.updated",
+      agentId: "ag-coder",
+      payload: {
+        todos: [{ content: "写 normalize 测试", status: "completed" }],
+      },
+    },
   ];
   for (const e of evs) st = reduce(st, e);
 
