@@ -264,11 +264,21 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
     case "message.delta":
     case "message.final": {
       // 对话文字进抽屉会话窗口,不进房间(spec §5/§7.3)。
-      // includePartialMessages=false 时一条 delta = 一整轮发言。
       // role 默认 "assistant";导入历史会话时用户轮次带 role:"user"。
+      // includePartialMessages=true:同一 agent 的 assistant partial 替换最后一条
+      // 气泡而不是追加新条,实现逐字流式效果。
       const p = e.payload as { text: string; role?: "user" | "assistant" };
       const role = p.role ?? "assistant";
-      if (p.text)
+      if (!p.text) break;
+      const last = s.messages[s.messages.length - 1];
+      if (
+        role === "assistant" &&
+        last &&
+        last.role === "assistant" &&
+        last.agentId === e.agentId
+      ) {
+        s.messages = [...s.messages.slice(0, -1), { ...last, text: p.text }];
+      } else {
         s.messages = [
           ...s.messages,
           {
@@ -279,6 +289,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
             t: e.ts,
           },
         ];
+      }
       break;
     }
     case "usage.updated": {

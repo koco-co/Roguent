@@ -110,7 +110,7 @@ export class Driver implements IDriver {
       cwd: this.cwd,
       env,
       pathToClaudeCodeExecutable: cliPathFromEnv(process.env),
-      includePartialMessages: false,
+      includePartialMessages: true,
       hooks: buildHooks(onHook),
     };
     this.q = query({ prompt: this.userStream(), options });
