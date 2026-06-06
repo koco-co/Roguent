@@ -519,7 +519,7 @@ specs:
 
 **Files:** Create `docs/prds/§11-import.md`
 
-- [ ] **Step 1: 核实** — `grep -nE "scan|parse|import" src/engine/local-sessions.ts src/engine/import.ts`;`Read` `src/web/hud/ImportPanel.tsx` 顶部;确认 `src/shared/local-sessions.ts`、`transcript.ts`。
+- [ ] **Step 1: 核实** — `grep -nE "scan|parse|import" src/engine/local-sessions.ts src/engine/session.ts`(导入逻辑在 `SessionManager.importSession`,无独立 `import.ts`);`Read` `src/web/hud/ImportPanel.tsx` 顶部;确认 `src/shared/local-sessions.ts`、`transcript.ts`。
 
 - [ ] **Step 2: 写文件** — frontmatter:
 
@@ -534,7 +534,7 @@ depends_on: ["§2", "§7"]
 related: ["§5"]
 code_refs:
   - src/engine/local-sessions.ts
-  - src/engine/import.ts
+  - src/engine/session.ts
   - src/engine/transcript.ts
   - src/shared/local-sessions.ts
   - src/web/hud/ImportPanel.tsx
@@ -550,7 +550,7 @@ specs:
 - **交互边界**:上游 §2(导入注入事件流/会话)、§7(面板宿主);related §5(导入成会话进 SessionManager)。
 - **数据流**:扫描 → 解析 transcript → 注入为 session + 事件 → store。
 - **现状与边界**:全真。
-- **代码锚点**:`local-sessions.ts`、`import.ts`、`transcript.ts`、`ImportPanel.tsx`。
+- **代码锚点**:`local-sessions.ts`、`session.ts`(`SessionManager.importSession`)、`transcript.ts`、`ImportPanel.tsx`。
 - **验收**:`local-sessions.test.ts`、`import.test.ts`、`transcript.test.ts`、`import.e2e.test.ts`。
 
 - [ ] **Step 3: 自检** — 套规约。

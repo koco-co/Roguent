@@ -31,7 +31,7 @@ status: living-doc
 ### 1.1 已实现并合入 `main`
 - **核心主链路(MVP)**:Bun engine 用 Claude Agent SDK streaming-input 驱动**订阅模式**会话;hooks + SDK 消息经 `normalize.ts` 归一化成 `RoomEvent`,`Sequencer` 打 `(sessionId, seq)`,`WsGateway` broadcast;前端 `store.ts` reduce 成 `sessions`。(`src/engine/*`、`src/shared/*`、`src/web/store.ts`)
 - **房间渲染 + 视觉打磨**:PixiJS v8 房间渲染主控★ + subagent 小人;游走 / 朝向翻转 / 工具气泡 / 门口进出 / 脚步扬尘 / 待命表情。(`src/web/room/*`;spec:`room-visual-polish-design.md`)
-- **总览世界(Overworld Hub, S3)**:双层缩放(大厅 ↔ 内景);项目=房间、走廊连通、相机跟随;主角 WASD + A\* 寻路;会话=NPC、信息卡、进出会话;生命周期 ≤10/LRU/归档/删除 + 门动画。(`src/web/overworld/*`、`hud/NpcCard.tsx`;spec:`overworld-hub-design.md`)
+- **总览大厅 + 内景双层(Hub, S3)**:双层缩放(大厅 ↔ 内景);DOM 大厅(`lobby/HubPlaza.tsx`)= 可操控 avatar(WASD + 点击直线移动)+ 装饰广场 + 黑猫/漫步小人 + 交互结构(走到结构按 E:中央任务台→SessionGrid 进会话 / 商店 / 排行榜 / 设置);会话生命周期 ≤10/LRU/归档/删除 + 进出内景门过场(`overworld/PortalTransition.tsx`)。⚠️ 原 PixiJS Overworld 的「项目=房间走廊连通、主角 A\* 寻路、会话=NPC 走到信息卡进出」模型已被 **web-lobby-overhaul 重构取代**(无 A\* 寻路;会话改经任务台 SessionGrid 进入,而非走到 NPC);该旧模型见历史 spec `overworld-hub-design.md`。(`src/web/lobby/*`、`overworld/portal.ts`、`hud/NpcCard.tsx`=会话信息卡 Modal)
 - **图标 HUD + 聊天抽屉 + 多会话**:`src/web/hud/*`(Hud/ChatDrawer/ModelPicker/AgentCard/SkillGrid/LootPanel…);切会话联动渲染源。
 - **桌面打包(Tauri 第一阶段)**:Tauri 2 壳 + Bun sidecar(`bun build --compile`)+ 218MB claude CLI 作资源;端口经 stdout `PORT=` 握手 → `engine_url` 命令 → 前端 `resolveEngineUrl`。(`src-tauri/*`、`scripts/build-sidecar.ts`、`scripts/stage-cli.ts`、`src/web/engine-url.ts`;spec:`tauri-sidecar-migration-design.md`)
 - **打包后真机修复**:macOS 系统代理注入(`src/engine/proxy.ts`——LaunchServices 启动的 .app 不继承 shell 代理,需代理的网络下会 403)、孤儿 sidecar 退出回收、bundled CLI 路径修正、Press Start 2P 字体本地化。(合入于 merge `2070a0d`)

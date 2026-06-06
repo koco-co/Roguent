@@ -43,7 +43,7 @@ export function Hud() {
       {/* 底中操作坞(仅内景显示)*/}
       <Hotbar />
 
-      {/* 内景左栈底部:实时任务窗(玻璃,mock 占位,自带绝对定位 + 内景 gate)*/}
+      {/* 内景左栈底部:实时任务窗(玻璃,真数据 sessionTodos,自带绝对定位 + 内景 gate)*/}
       <TaskWindow />
       {/* 内景左下:小地图(真 agents,复用房间布局,自带绝对定位 + 内景 gate)*/}
       <Minimap />
