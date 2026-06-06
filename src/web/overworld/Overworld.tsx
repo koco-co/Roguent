@@ -8,6 +8,7 @@ import {
   Sprite,
   type Spritesheet,
   Text,
+  type TextStyle,
 } from "pixi.js";
 import {
   useCallback,
@@ -44,6 +45,7 @@ import { type ProjectInput, type WorldModel, generateWorld } from "./worldgen";
 extend({ Container, Graphics, Sprite, AnimatedSprite, Text });
 
 const PROX = 26; // px: how close the player must be for the NPC interaction hint
+const ALTAR_PROX = 40; // px: 任务台(3 格喷泉)半径比 NPC 大些
 
 type NpcDesc = { hero: string; home: Pos; bounds: Bounds; door: Pos };
 
@@ -109,11 +111,42 @@ function HubFountain({ anchor }: { anchor: Pos }) {
   );
 }
 
+/**
+ * 任务台铭牌:在中央喷泉(HubFountain)顶上方挂「任务台」标签,玩家靠近时补一行
+ * 「[E] 打开会话」提示(near 由 OverworldScene 的低频邻近检测驱动,变化才 setState)。
+ * 中文走 canvas 默认字体,与 SessionNpc 铭牌同源,合理(不强求像素中文字体)。
+ */
+function HubAltarLabel({ anchor, near }: { anchor: Pos; near: boolean }) {
+  const titleStyle = useMemo(
+    () => ({ fontSize: 8, fill: 0xffd166 }) as Partial<TextStyle>,
+    [],
+  );
+  const hintStyle = useMemo(
+    () => ({ fontSize: 7, fill: 0x4fe0ff }) as Partial<TextStyle>,
+    [],
+  );
+  return (
+    <pixiContainer x={anchor.x} y={anchor.y - TILE / 2 - 2 * TILE - 12}>
+      <pixiText text="任务台" anchor={0.5} resolution={4} style={titleStyle} />
+      {near ? (
+        <pixiText
+          text="[E] 打开会话"
+          anchor={0.5}
+          y={14}
+          resolution={4}
+          style={hintStyle}
+        />
+      ) : null}
+    </pixiContainer>
+  );
+}
+
 function OverworldScene({ view }: { view: { w: number; h: number } }) {
   const sessions = useRoomStore((s) => s.sessions);
   const projectOrder = useRoomStore((s) => s.projectOrder);
   const selectNpc = useUiStore((s) => s.selectNpc);
   const selectedNpcId = useUiStore((s) => s.selectedNpcId);
+  const openPanel = useUiStore((s) => s.openPanel);
 
   // Active (non-archived) sessions are the lobby population.
   const active = useMemo(
@@ -235,12 +268,17 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
   const worldRef = useRef(world);
   worldRef.current = world;
 
-  // ── proximity: which NPC is the player standing next to (low-freq state) ──
+  // ── proximity: which NPC / 任务台 is the player standing next to (low-freq) ──
+  // 任务台与 NPC 互斥提示:谁更近就提示谁(站任务台旁时 nearbyId=null,反之亦然),
+  // 避免两个 [E] 提示同时出现、E 键归属不明。
   const [nearbyId, setNearbyId] = useState<string | null>(null);
   const nearbyRef = useRef<string | null>(null);
+  const [nearAltar, setNearAltar] = useState(false);
+  const nearAltarRef = useRef(false);
   useTick(() => {
     const pp = playerPosRef.current;
     if (!pp) return;
+    // 最近 NPC(命中半径内)。
     let best: string | null = null;
     let bestD = PROX * PROX;
     for (const [id, p] of Object.entries(npcMotionRef.current ?? {})) {
@@ -252,9 +290,32 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
         best = id;
       }
     }
-    if (best !== nearbyRef.current) {
-      nearbyRef.current = best;
-      setNearbyId(best);
+    // 玩家到任务台(hub 中心)的距离平方。
+    const hub = worldRef.current.hub.anchorPx;
+    const adx = hub.x - pp.x;
+    const ady = hub.y - pp.y;
+    const aD = adx * adx + ady * ady;
+    const altarHit = aD < ALTAR_PROX * ALTAR_PROX;
+
+    // 谁更近定目标:NPC 与任务台都命中时取更近者;否则取唯一命中者。
+    let nextNearby: string | null = null;
+    let nextAltar = false;
+    if (best != null && altarHit) {
+      if (bestD <= aD) nextNearby = best;
+      else nextAltar = true;
+    } else if (best != null) {
+      nextNearby = best;
+    } else if (altarHit) {
+      nextAltar = true;
+    }
+
+    if (nextNearby !== nearbyRef.current) {
+      nearbyRef.current = nextNearby;
+      setNearbyId(nextNearby);
+    }
+    if (nextAltar !== nearAltarRef.current) {
+      nearAltarRef.current = nextAltar;
+      setNearAltar(nextAltar);
     }
   });
 
@@ -283,7 +344,9 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
       const k = e.key.toLowerCase();
       if (move.has(k)) keysRef.current.add(k);
       else if (k === "e" || k === "enter") {
-        if (nearbyRef.current) selectNpc(nearbyRef.current);
+        // 任务台优先:靠近任务台 → 打开全会话总览;否则靠近 NPC → 选中其信息卡。
+        if (nearAltarRef.current) openPanel("sessiongrid");
+        else if (nearbyRef.current) selectNpc(nearbyRef.current);
       }
     };
     const up = (e: KeyboardEvent) => {
@@ -299,7 +362,7 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
       window.removeEventListener("keyup", up);
       window.removeEventListener("blur", blur);
     };
-  }, [selectNpc]);
+  }, [selectNpc, openPanel]);
 
   // Click-to-walk: A* from the player's tile to the clicked tile.
   const onTap = useCallback((e: FederatedPointerEvent) => {
@@ -329,6 +392,7 @@ function OverworldScene({ view }: { view: { w: number; h: number } }) {
       >
         <WorldTilemap world={world} />
         <HubFountain anchor={world.hub.anchorPx} />
+        <HubAltarLabel anchor={world.hub.anchorPx} near={nearAltar} />
         {actors.map((a) => {
           const s = sessions[a.id];
           return (

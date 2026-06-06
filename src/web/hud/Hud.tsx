@@ -14,6 +14,7 @@ import { Minimap } from "./Minimap";
 import { ModelPicker } from "./ModelPicker";
 import { RosterCard } from "./RosterCard";
 import { SessionBanner } from "./SessionBanner";
+import { SessionGrid } from "./SessionGrid";
 import { Settings } from "./Settings";
 import { Shop } from "./Shop";
 import { Skills } from "./Skills";
@@ -60,6 +61,8 @@ export function Hud() {
       <Skills />
       <ImportPanel />
       <Leaderboard />
+      {/* 全会话总览(真数据:会话列表/进入/导入/error 角标;由大厅中央任务台 E 键触发,自带 activePanel gate)*/}
+      <SessionGrid />
       <About />
       {/* 账号(ACCOUNT)面板(plan/用量真;auth 按钮占位,自带 activePanel gate)*/}
       <Account />
