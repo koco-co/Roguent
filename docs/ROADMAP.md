@@ -42,7 +42,8 @@ status: living-doc
 - e2e:回放驱动(`replay.e2e.test.ts` 扩展)+ store/reducer 级断言;聚合 / 映射 / 格式化 / 图标 / 阈值等可测逻辑全部下沉纯函数单测。UI 组件按约定走 `tsc + check + 回放/preview 冒烟`。
 
 ### 1.3 已知损坏 / 未验证(Phase 1 要解决)
-- **打包 .app 主画布疑似黑屏 / 空**(用户报告;根因**未确认**)。已确认的真实缺陷:atlas 加载失败被**静默吞掉**(`src/web/room/Room.tsx:178` / `src/web/overworld/Overworld.tsx:341` 仅 `console.error`;`sheet && size.w>0` 守卫在 `:194`/`:357`,sheet 为 null 时场景**永不渲染**,只剩深色背景 `0x0b0a12`,UI 无任何错误提示)。→ web 端可见性 + 渲染见 **P1-1**;打包端定位见 **P1-4**。
+- **打包 .app 主画布疑似黑屏 / 空**(用户报告;根因**未确认**)。→ 打包端定位见 **P1-4**。
+  - ⚠️ **历史线索更新(2026-06-06 核实)**:此前记的「atlas 静默吞掉黑屏」根因已变,旧文件引用过时。① 内景 atlas 失败**已由 P1-1 修复**——`src/web/room/Room.tsx:182-193` 现 `console.error` + `setAtlasError`,并在 `:218` 渲染错误覆盖层,不再静默。② 原 PixiJS `src/web/overworld/Overworld.tsx`(旧引用 `:341/:357`)**已不存在**——web-lobby-overhaul 后大厅改为 DOM 渲染的 `src/web/lobby/HubPlaza.tsx` + `src/web/lobby/atlas-dom.ts`(DOM `background-image`,非 PixiJS spritesheet;atlas 失败在 `atlas-dom.ts:71` 静默回退、不致黑屏)。③ 故仍存在的 .app 黑屏应按 **P1-4** 聚焦资源路径 / `tauri://` 协议(`src/web/room/atlas.ts` 的 `ATLAS_URL` 绝对路径),而非已移除的 Overworld 组件。
 - **每个已实现功能缺 e2e**:目前靠单测 + 人工浏览器冒烟,回归风险高。→ 见 **P1-2 / P1-3**。
 - **DMG 打包失败**:`.app` 本身能出,但 DMG(`bundle_dmg.sh`)报错、残留 `rw.*.dmg` 临时文件。→ 见 **P1-6**。
 
@@ -103,7 +104,7 @@ status: living-doc
 ### [x] P1-1 游戏画面渲染可靠性(web 端)— 最高优先
 - **目标**:① 让 atlas/资源加载失败**可见**(不再静默黑屏);② 确认并保证**浏览器端**房间 + overworld 在各场景(空会话 / 有 subagent / 多项目)都稳定渲染。
 - **为什么**:atlas 加载失败当前表现为纯黑画布、零提示,无从排查;这是确定的缺陷,先在 web 端修掉。
-- **涉及文件**:`src/web/room/atlas.ts`、`src/web/room/Room.tsx:176-194`、`src/web/overworld/Overworld.tsx:339-357`。
+- **涉及文件**:`src/web/room/atlas.ts`、`src/web/room/Room.tsx:176-194`、`src/web/overworld/Overworld.tsx:339-357`(历史:后者已于 web-lobby-overhaul 重构为 DOM 渲染的 `src/web/lobby/HubPlaza.tsx`,此引用仅存档)。
 - **步骤**:
   1. **失败可见**:`loadAtlas()` 失败时渲染错误覆盖层(含原因 + 重试),替换当前 `.catch(console.error)` + 黑背景。
   2. **逐场景核渲染**:空会话内景是否有地板 + 主控★;overworld 是否有房间 / NPC / 主角;有 subagent 时小人 / 头顶图标是否出。
