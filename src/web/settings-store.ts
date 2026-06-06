@@ -15,9 +15,9 @@ export interface Settings {
   /** 像素中文字体;false → cjk-sys class(回落系统字体)。 */
   cjkPixel: boolean;
   /**
-   * 玩家英雄皮肤;null 表示回退到默认 PLAYER_HERO("knight_f",见
-   * src/web/overworld/skins.ts)。英雄池见 src/shared/mapping.ts 的 HERO_POOL。
-   * 实际由大厅玩家在 T4.2 消费,此处先占位持久化。
+   * 玩家英雄皮肤;null 表示回退到默认 "knight_m"(= CharacterSelect 首选「骑士」,
+   * 见 src/web/lobby/HubPlaza.tsx 的 avatarHero 回落)。英雄池见 CharacterSelect 的
+   * CHARSEL_HEROES。由大厅玩家(HubPlaza)消费并持久化。
    */
   avatarHero: string | null;
 }

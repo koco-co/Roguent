@@ -1,10 +1,7 @@
-// Overworld character skins. The player (the user's avatar) gets a fixed hero
-// distinct from both the interior orchestrator (ORCHESTRATOR_HERO = knight_m)
-// and the NPC pool, so "you" always read as a single recognisable character.
-// Each session NPC hashes its id into the pool for a stable per-session look
-// (spec §架构: 主角另选;NPC 用 hash(sessionId) 取英雄池).
-export const PLAYER_HERO = "knight_f";
-
+// Session NPC skins. Each session hashes its id into the pool for a stable
+// per-session look (spec §架构: NPC 用 hash(sessionId) 取英雄池). The player's
+// own avatar is chosen in CharacterSelect and persisted as settings.avatarHero
+// (default "knight_m"), so it is not resolved here.
 const NPC_HEROES = [
   "wizzard_m",
   "elf_f",
