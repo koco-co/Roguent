@@ -1,6 +1,7 @@
 import type React from "react";
 import { useEffect } from "react";
 import { resolveEngineUrl } from "./engine-url";
+import { CharacterSelect } from "./hud/CharacterSelect";
 import { Hud } from "./hud/Hud";
 import { NpcCard } from "./hud/NpcCard";
 import { Overworld } from "./overworld/Overworld";
@@ -118,6 +119,8 @@ export function App() {
         <NpcCard />
       )}
       <PortalTransition />
+      {/* 首次进入的强制角色选择门(avatarHero === null 时显示,覆盖 overworld + HUD)。*/}
+      <CharacterSelect />
     </div>
   );
 }

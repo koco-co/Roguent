@@ -12,6 +12,7 @@ import { anim, useAtlas } from "../room/atlas";
 import { TILE } from "../room/config";
 import type { Pos } from "../room/layout";
 import { type Facing, faceDir } from "../room/motion";
+import { useSettingsStore } from "../settings-store";
 import { cameraOffset } from "./camera";
 import type { Tile } from "./pathfind";
 import { PLAYER_HERO } from "./skins";
@@ -54,13 +55,16 @@ export function Player({
   viewRef: RefObject<{ w: number; h: number }>;
 }) {
   const sheet = useAtlas();
+  // 玩家头像皮肤:首启选过则用 avatarHero,否则回落默认 PLAYER_HERO。
+  const avatarHero = useSettingsStore((s) => s.avatarHero);
+  const hero = avatarHero ?? PLAYER_HERO;
   const idleFrames = useMemo(
-    () => anim(sheet, `${PLAYER_HERO}_idle_anim`),
-    [sheet],
+    () => anim(sheet, `${hero}_idle_anim`),
+    [sheet, hero],
   );
   const runFrames = useMemo(
-    () => anim(sheet, `${PLAYER_HERO}_run_anim`),
-    [sheet],
+    () => anim(sheet, `${hero}_run_anim`),
+    [sheet, hero],
   );
 
   const rootRef = useRef<Container | null>(null);
