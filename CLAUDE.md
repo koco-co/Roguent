@@ -37,7 +37,7 @@ Roguent —— Claude Code agent 活动的游戏化实时可视化平台。把**
 
 ## 测试纪律
 
-改后即测:动了代码 / 配置 / runtime 就跑 `bun test` + `bun run check`,失败先修;**不把局部通过说成全量通过**。端到端验证用回放 fixture,不烧额度。
+改后即测:动了代码 / 配置 / runtime 就跑 `bun test` + `bun run check` + `bunx tsc --noEmit`,失败先修;**不把局部通过说成全量通过**。注意 `bun run check` 只是 Biome(lint+format)、**不查类型**,改 TS 必须单独跑 `bunx tsc --noEmit`(仓库强约束 `noUncheckedIndexedAccess`,Biome 抓不到的类型错只有 tsc 抓得到)。端到端验证用回放 fixture,不烧额度。
 
 ## 工作流
 
