@@ -3,22 +3,10 @@ import { useEffect, useMemo, useRef } from "react";
 import { anim, tex, useAtlas } from "./atlas";
 import { COLS, DOOR_COL, FOUNTAIN_COLS, ROWS, TILE } from "./config";
 
-// Deterministic per-tile floor variant: mostly plain, a few cracks/grates so
-// the floor has texture without looking noisy or shimmering between renders.
-function floorName(c: number, r: number): string {
-  const h = ((c * 73856093) ^ (r * 19349663)) >>> 0;
-  if (h % 100 < 86) return "floor_1";
-  const variants = [
-    "floor_2",
-    "floor_3",
-    "floor_4",
-    "floor_5",
-    "floor_6",
-    "floor_7",
-    "floor_8",
-  ];
-  return variants[h % variants.length] as string;
-}
+// 原型 room.jsx 刻意只用单一干净 floor_1(注释明写 "single clean tile"):0x72 的
+// floor_2..8 是裂纹/血迹/格栅 decal,散布会让地板发暗、发脏、跳花——设计稿的交互记录
+// 里专门把它们清掉了。这里对齐原型,全室一张干净暖调地砖。
+const FLOOR_TILE = "floor_1"; // 0x72 干净暖调地砖(单砖)
 
 // A wall/floor tile name for the brick border + interior floor. Top wall is two
 // rows tall (cap + face) for a pseudo-3D look; the other sides are one tile.
@@ -36,7 +24,7 @@ function structureName(c: number, r: number): string {
   }
   if (c === 0) return "wall_left";
   if (c === last) return "wall_right";
-  return floorName(c, r);
+  return FLOOR_TILE;
 }
 
 /**
@@ -166,17 +154,8 @@ export function DungeonRoom() {
         y={0}
       />
 
-      {/* stone columns framing the sides of the room */}
-      <pixiSprite
-        texture={tex(sheet, "column_wall")}
-        x={1 * TILE}
-        y={(ROWS - 5) * TILE}
-      />
-      <pixiSprite
-        texture={tex(sheet, "column_wall")}
-        x={(COLS - 2) * TILE}
-        y={(ROWS - 5) * TILE}
-      />
+      {/* 侧柱已移除:原型 room.jsx 注「frame mis-slices in this atlas mirror」专门
+          删掉了 column_wall(误切成花),这里对齐原型不再渲染。 */}
 
       {/* a treasure chest tucked in the corner */}
       <AnimatedDecor

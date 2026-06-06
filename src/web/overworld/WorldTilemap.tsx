@@ -3,22 +3,9 @@ import { tex, useAtlas } from "../room/atlas";
 import { TILE } from "../room/config";
 import type { WorldModel } from "./worldgen";
 
-// Deterministic per-tile floor variant (same scheme as the interior DungeonRoom):
-// mostly plain, a few cracks/grates so the floor has texture without shimmering.
-function floorName(c: number, r: number): string {
-  const h = ((c * 73856093) ^ (r * 19349663)) >>> 0;
-  if (h % 100 < 86) return "floor_1";
-  const variants = [
-    "floor_2",
-    "floor_3",
-    "floor_4",
-    "floor_5",
-    "floor_6",
-    "floor_7",
-    "floor_8",
-  ];
-  return variants[h % variants.length] ?? "floor_1";
-}
+// 对齐原型:大厅地板也只用单一干净 floor_1(同 DungeonRoom)。0x72 的 floor_2..8 是
+// 裂纹/血迹 decal,散布会让地板发暗发脏(原型刻意只用一张干净砖)。
+const FLOOR_TILE = "floor_1";
 
 /**
  * Pick a 0x72 wall frame for a wall tile by looking at its 4 orthogonal floor
@@ -68,8 +55,7 @@ export function WorldTilemap({ world }: { world: WorldModel }) {
       for (let c = 0; c < cols; c++) {
         const kind = tiles[r * cols + c];
         if (kind === "void" || kind === undefined) continue; // dark background shows through
-        const name =
-          kind === "floor" ? floorName(c, r) : wallName(isFloor, c, r);
+        const name = kind === "floor" ? FLOOR_TILE : wallName(isFloor, c, r);
         out.push({ key: `${c}_${r}`, name, x: c * TILE, y: r * TILE });
       }
     }
