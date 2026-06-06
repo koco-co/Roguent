@@ -90,7 +90,7 @@ export function ChatDrawer() {
       cmd: "newSession",
       sessionId: `s${n}`,
       title: `会话 ${n}`,
-      model: "claude-opus-4-8",
+      model: session?.model ?? "claude-opus-4-8",
       ...(dir ? { cwd: dir } : {}),
     });
     setCwd("");
