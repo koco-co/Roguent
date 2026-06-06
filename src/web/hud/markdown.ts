@@ -16,9 +16,10 @@ function mdInline(s: string): string {
     .replace(/`([^`]+)`/g, '<code class="md-code">$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
-    .replace(
-      /\[([^\]]+)\]\(([^)\s]+)\)/g,
-      '<a href="$2" target="_blank" rel="noopener">$1</a>',
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, text: string, url: string) =>
+      /^\s*(javascript|data|vbscript):/i.test(url)
+        ? text
+        : `<a href="${url}" target="_blank" rel="noopener">${text}</a>`,
     );
 }
 

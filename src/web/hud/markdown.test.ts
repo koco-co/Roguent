@@ -59,3 +59,19 @@ test("escapes raw html to prevent injection", () => {
 test("returns empty string for empty input", () => {
   expect(mdToHtml("")).toBe("");
 });
+
+test("strips javascript: scheme links to plain text", () => {
+  // URL regex [^)\s]+ stops at the first ')'; the trailing ')' leaks into text.
+  expect(mdToHtml("[x](javascript:alert(1))")).toBe('<p class="md-p">x)</p>');
+});
+
+test("strips data: and vbscript: scheme links to plain text", () => {
+  expect(mdToHtml("[a](data:text/html,x)")).toBe('<p class="md-p">a</p>');
+  expect(mdToHtml("[b](vbscript:msgbox)")).toBe('<p class="md-p">b</p>');
+});
+
+test("keeps safe http/https links", () => {
+  expect(mdToHtml("[t](https://x.dev)")).toBe(
+    '<p class="md-p"><a href="https://x.dev" target="_blank" rel="noopener">t</a></p>',
+  );
+});
