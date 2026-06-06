@@ -529,6 +529,90 @@ test("context.updated for unknown session is ignored", () => {
   expect(st.sessions.ghost).toBeUndefined();
 });
 
+test("todos.updated populates Session.todos by agentId and replaces on re-send", () => {
+  let st: RoomState = {
+    sessions: {},
+    currentSessionId: null,
+    projectOrder: [],
+    connection: "connecting",
+  };
+  st = reduce(st, {
+    seq: 1,
+    ts: 1,
+    sessionId: "s1",
+    type: "session.created",
+    payload: { title: "t", model: "m", project: "p" },
+  });
+  // 主控发一版 todos
+  st = reduce(st, {
+    seq: 2,
+    ts: 2,
+    sessionId: "s1",
+    type: "todos.updated",
+    agentId: "orchestrator",
+    payload: {
+      todos: [
+        { content: "A", status: "in_progress" },
+        { content: "B", status: "pending" },
+      ],
+    },
+  });
+  expect(st.sessions.s1?.todos.orchestrator).toHaveLength(2);
+  // 同 agent 再发 → 整表覆盖(不累加)
+  st = reduce(st, {
+    seq: 3,
+    ts: 3,
+    sessionId: "s1",
+    type: "todos.updated",
+    agentId: "orchestrator",
+    payload: { todos: [{ content: "A", status: "completed" }] },
+  });
+  expect(st.sessions.s1?.todos.orchestrator).toHaveLength(1);
+  expect(st.sessions.s1?.todos.orchestrator?.[0]?.status).toBe("completed");
+});
+
+test("agent.done clears that subagent's todos (no ghosts)", () => {
+  let st: RoomState = {
+    sessions: {},
+    currentSessionId: null,
+    projectOrder: [],
+    connection: "connecting",
+  };
+  st = reduce(st, {
+    seq: 1,
+    ts: 1,
+    sessionId: "s1",
+    type: "session.created",
+    payload: { title: "t", model: "m", project: "p" },
+  });
+  st = reduce(st, {
+    seq: 2,
+    ts: 2,
+    sessionId: "s1",
+    type: "agent.spawned",
+    agentId: "ag-x",
+    payload: { role: "coder", parentId: "orchestrator" },
+  });
+  st = reduce(st, {
+    seq: 3,
+    ts: 3,
+    sessionId: "s1",
+    type: "todos.updated",
+    agentId: "ag-x",
+    payload: { todos: [{ content: "X", status: "pending" }] },
+  });
+  expect(st.sessions.s1?.todos["ag-x"]).toHaveLength(1);
+  st = reduce(st, {
+    seq: 4,
+    ts: 4,
+    sessionId: "s1",
+    type: "agent.done",
+    agentId: "ag-x",
+    payload: { stopReason: "normal" },
+  });
+  expect(st.sessions.s1?.todos["ag-x"]).toBeUndefined();
+});
+
 test("setLimits stores account limits and applyEvent preserves it", () => {
   const store = useRoomStore.getState();
   store.setLimits({
