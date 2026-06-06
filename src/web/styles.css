@@ -85,6 +85,33 @@ body {
   font-family: var(--font-cjk);
 }
 
+/* ── 固定 1920×1080 逻辑舞台 + 等比贴屏(屏幕自适应)──────────────────────
+   整个 UI 在 1920×1080 设计像素里布局;#stage 由 --stage-scale =
+   min(W/1920, H/1080)(App 的 useStageScale 在 resize 时写入)等比缩放,使
+   房间/人物/HUD/模态在任意屏幕保持恒定比例并 letterbox 居中,而非在小屏渲染过大。
+   对齐设计原型 styles.css 的 #viewport/#stage + app.jsx 的 useStageScale。
+   注:styles.css 全文无 position:fixed,HUD/.scrim 均为 position:absolute,
+   故 #stage 的 transform 不会改变任何后代定位语义,只是统一缩放。 */
+.viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--ink);
+}
+.stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: center center;
+  transform: translate(-50%, -50%) scale(var(--stage-scale, 1));
+}
+/* Pixi 房间 canvas:舞台放大/缩小它时保持像素图锐利(对齐原型 .room-canvas)。 */
+.stage canvas {
+  image-rendering: pixelated;
+}
+
 /* crisp upscaling for any raster the DOM shows */
 img {
   image-rendering: pixelated;
@@ -958,13 +985,6 @@ img {
   font-family: var(--font-px);
   font-size: 9px;
   color: var(--cyan);
-}
-.tw-mock {
-  font-size: 8px;
-  color: var(--gold);
-  background: rgba(11, 10, 18, 0.6);
-  padding: 1px 4px;
-  box-shadow: 0 0 0 1px #000;
 }
 .tw-chev {
   color: #bfeaf5;

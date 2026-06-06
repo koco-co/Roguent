@@ -169,7 +169,7 @@ status: living-doc
 | --- | --- | --- |
 | **T0** 视觉系统 | 暖木 RPG token(重指向旧名)+ 像素 chrome 类 + 自绘像素 SVG 图标注册表(`icons.tsx`,~33 个)+ 工具/loot/状态→图标名映射 + 自托管 Fusion Pixel 中文字体(`public/fonts/`,**不走 CDN**) | 全真(基础设施) |
 | **T1** 壳 | settings-store(accent/theme/motion/density/cjkPixel/avatarHero,持久化)+ 复用 `Modal` + `activePanel` 单一路由 | 真 |
-| **T2** 内景 HUD | LimitBars 三条(5h/CTX/周)· RosterCard 在岗 · SessionBanner · Currency · ButtonDock · Hotbar · Minimap · TaskWindow | 真(gems/完成数/任务窗标注 mock) |
+| **T2** 内景 HUD | LimitBars 三条(5h/CTX/周)· RosterCard 在岗 · SessionBanner · Currency · ButtonDock · Hotbar · Minimap · TaskWindow | 真(gems 标注 mock;TaskWindow/Tasks **已接真(Session.todos / TodoWrite)**;Currency「完成数」接真) |
 | **T3** 面板 | NpcCard · Skills(slash 真)· Leaderboard(按会话真 + 按模型/runtime 聚合)· Backpack(loot 真)· Chat(居中 Modal,会话/消息/新建/归档全真)· Model 真 · Import(localSessions 真)· Account(limits 真)· SystemMenu · ErrorOverlay · **漩涡过场**(T3.13)· Tasks/Settings/Shop(整面板 mock 标注) | 真假分明 |
 | **T4** 大厅 | SessionGrid(接 `store.sessions`)+ **Pixi 中央任务台 E 键**触发 · CharacterSelect → `avatarHero` 驱动玩家头像 · 空态(召唤小队→真 newSession)+ 错误态(接真 WS 连接状态、去抖、真重连) | 真(Codex tab 占位) |
 | **T5** 收尾 | 删 legacy ui-store 布尔/`toggle`/SkillGrid/`error` PanelId/孤儿 `--bg-*` token/遗留 `⚠`emoji · 补 roleToHero/HERO_POOL 测试 · 本节 | — |
@@ -178,7 +178,8 @@ status: living-doc
 - **大厅 UX**:保留现有 Pixi `Overworld` 作唯一可玩 hub(已有 WASD+A\*、传送门、项目房、会话 NPC);只从原型采纳 SessionGrid(DOM 面板)、角色选择、空/错态;**未**在 DOM 里重建原型的走动大厅。
 - **Codex**:徽标 / runtime 筛选片 / 设置页签 / SessionGrid 的 Codex tab 全为视觉占位(引擎只跑 Claude)。
 - **会话级 askuser 角标**:无真数据,SessionGrid/NpcCard 只做 error 角标,不造 askuser。
-- **mock 面板**(Tasks 共享任务清单 / Settings·CONFIG / Shop):引擎无对应能力,整面板 mock + banner;待引擎补 askuser/todo/任务清单/宝石经济后再接真。
+- **Tasks 已接真(当前会话 TodoWrite)**;**仅信箱**仍为标注 mock(引擎无 inter-agent 信箱)。**mock 面板**(Settings·CONFIG / Shop / gems):引擎无对应能力,整面板 mock + banner;待引擎补宝石经济/askuser/任务清单后再接真。
+- 全 UI 按固定 1920×1080 逻辑舞台等比缩放贴屏(`src/web/stage-scale.ts` + App `#viewport/#stage`),修复小屏人物过大。
 - **冷蓝死 token**:已在 T0.1 重指向时消除(旧名改暖木值且仍被 `.px-*` 引用,非死);§9 暖木调色板里 `--hp/--shield/--mp/--purple` 等带语义注释的 token 暂未消费但保留为设计调色板。
 
 ---
@@ -205,3 +206,4 @@ status: living-doc
 - 2026-06-05:按用户决策把 Phase 1 拆成 **1A(web 端,本轮 `/goal` 范围)/ 1B(app 端打包,下一轮)**;打包 .app 黑屏定位从 P1-1 移到 1B 的 P1-4,app 验收/DMG 顺延为 P1-5/P1-6。
 - 2026-06-05:**web 端游戏化呈现重构**落地(5 task:相机整数缩放贴身跟随 / 传送门进出过渡 + NPC 传送阵 / 底部 hotbar HUD / 信息卡·聊天抽屉重皮成游戏窗口 / 中央 Hub 大厅 + 环境光)。纯客户端视觉交互层,不动 engine / 事件协议 / domain;新纯函数(`zoom`/`camera` scale/`portal`/`worldgen` hub)单测钉死,append-only/确定性不回归。见 [plan](superpowers/plans/2026-06-05-web-lobby-game-overhaul.md) / [spec](superpowers/specs/2026-06-05-web-lobby-game-overhaul-design.md)。
 - 2026-06-06:**Claude Design `Roguent.html` 像素原型落地**(T0–T5,严格按原型样式含字体,真/假分明)。暖木 token + 像素 chrome + 自绘 SVG 图标 + Fusion Pixel 中文字体;settings-store + Modal 路由;内景 HUD 全套;12+ 面板(排行榜聚合 / 账号 / 导入 / 模型 / 背包 / 聊天 Modal / 技能 / 系统菜单 / 漩涡过场,Tasks/Settings/Shop 为标注 mock);SessionGrid + Pixi 中央任务台 E 键 + 角色选择 → avatarHero + 空/错态(错误态接真 WS 连接状态 + 去抖 + 真重连);收尾删死代码/token/emoji + 补 roleToHero 测试。212 单测 + tsc + biome 全绿;preview 截图 + 杀引擎 e2e 核验。详见 §3.5。设计落地保留现有 Pixi Overworld 作 hub,Codex 全为视觉占位。
+- 2026-06-06:**真实数据接入 + 屏幕自适应缩放**。① 新增 `todos.updated` 事件管线(events/normalize/store),捕获各 agent 真实 TodoWrite → Session.todos;TaskWindow / Tasks 面板由 mock 改接真,Currency「完成数」接真(已完成 todo 计数);信箱按无源决策保留为局部标注 mock;gems/Shop/Settings CONFIG 仍标注 mock。② 全 UI 包进固定 1920×1080 逻辑舞台(`#viewport/#stage` + `stageScale=min(W/1920,H/1080)`,对齐设计原型 useStageScale),房间/人物/HUD/模态等比缩放 letterbox 居中,修复小屏人物/HUD 过大。纯函数(stage-scale / todos-view / parseTodos)+ reduce 级 e2e 钉死;tsc + biome + bun test 全绿。

@@ -215,9 +215,27 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
         s.agents[e.agentId] = { ...a, status: "idle", currentTool: undefined };
       break;
     }
+    case "todos.updated": {
+      const p = e.payload as {
+        todos: Array<{
+          content: string;
+          status: "pending" | "in_progress" | "completed";
+          activeForm?: string;
+        }>;
+      };
+      const owner = e.agentId ?? ORCHESTRATOR_ID;
+      s.todos = { ...prev.todos, [owner]: p.todos };
+      break;
+    }
     case "agent.done": {
-      if (e.agentId && e.agentId !== ORCHESTRATOR_ID)
+      if (e.agentId && e.agentId !== ORCHESTRATOR_ID) {
         delete s.agents[e.agentId];
+        if (s.todos[e.agentId]) {
+          const todos = { ...prev.todos };
+          delete todos[e.agentId];
+          s.todos = todos;
+        }
+      }
       break;
     }
     case "loot.dropped": {

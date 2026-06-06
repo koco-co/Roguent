@@ -1,4 +1,4 @@
-import type { Loot } from "./domain";
+import type { Loot, TodoItem } from "./domain";
 
 export type RoomEventType =
   | "session.created"
@@ -16,7 +16,8 @@ export type RoomEventType =
   | "message.delta"
   | "message.final"
   | "usage.updated"
-  | "context.updated";
+  | "context.updated"
+  | "todos.updated";
 
 export interface RoomEvent<T = unknown> {
   seq: number; // server-side monotonic order key
@@ -79,6 +80,12 @@ export interface ContextUpdatedPayload {
   usedTokens: number;
   windowSize: number;
   utilization: number; // 0-100
+}
+
+// 某 agent 的 TodoWrite 整表快照(引擎在该 agent 调 TodoWrite 时下发;事件 agentId =
+// 该 agent)。reducer 用它覆盖 Session.todos[agentId]。
+export interface TodosUpdatedPayload {
+  todos: TodoItem[];
 }
 
 // ── 信封之外的账户级兄弟消息(不带 seq;last-write-wins;与 (sessionId,seq) 顺序契约无关) ──

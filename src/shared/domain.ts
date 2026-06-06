@@ -21,6 +21,16 @@ export interface Loot {
   t: number;
 }
 
+// TodoWrite 工具的真实待办项(引擎从 PreToolUse 的 tool_input.todos 捕获)。
+// status 沿用 SDK 的枚举(pending | in_progress | completed)。activeForm =
+// 进行时文案(可选)。
+export type TodoStatus = "pending" | "in_progress" | "completed";
+export interface TodoItem {
+  content: string;
+  status: TodoStatus;
+  activeForm?: string;
+}
+
 // 当前会话上下文窗口占用(来自 SDK getContextUsage)。usedTokens/windowSize 为 token 数,
 // utilization 为 0-100 的占用百分比(/compact 后回落)。
 export interface ContextUsage {
@@ -49,6 +59,9 @@ export interface Session {
   agents: Record<string, Agent>;
   messages: ChatMessage[];
   loot: Loot[];
+  // 每 agent 的 TodoWrite 真实待办,按 agentId 归集(每次 TodoWrite 整体覆盖该
+  // agent 的清单)。供 TaskWindow / Tasks / Currency「完成数」消费。
+  todos: Record<string, TodoItem[]>;
   usage: { tokens: number; cost: number };
   createdAt: number;
   // 总览世界(S1 最小数据,spec 2026-06-04-overworld-hub):
@@ -88,6 +101,7 @@ export function createSession(
     },
     messages: [],
     loot: [],
+    todos: {},
     slashCommands: [],
     usage: { tokens: 0, cost: 0 },
     createdAt: 0,
