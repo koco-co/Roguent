@@ -60,12 +60,12 @@ specs:
 
 | 命令 | 经路 | 实现 |
 |---|---|---|
-| `send_message` | `SessionManager.sendMessage` → `Driver.send` | `session.ts:129` |
-| `set_model` | `SessionManager.setModel` → `Driver.setModel` | `session.ts:170` |
+| `sendMessage` | `SessionManager.sendMessage` → `Driver.send` | `session.ts:129` |
+| `setModel` | `SessionManager.setModel` → `Driver.setModel` | `session.ts:170` |
 | `interrupt` | `SessionManager.interrupt` → `Driver.interrupt` | `session.ts:174` |
-| `create_session` | `SessionManager.createSession` | `session.ts:65` |
-| `delete_session` | `SessionManager.deleteSession` | `session.ts:164` |
-| `import_session` | `SessionManager.importSession` | `session.ts:136` |
+| `newSession` | `SessionManager.createSession` | `session.ts:65` |
+| `deleteSession` | `SessionManager.deleteSession` | `session.ts:164` |
+| `importSession` | `SessionManager.importSession` | `session.ts:136` |
 
 **依赖 §13 (Tauri 打包层)**
 
