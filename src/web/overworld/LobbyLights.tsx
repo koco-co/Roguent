@@ -5,13 +5,23 @@ import type { WorldModel } from "./worldgen";
 export function LobbyLights({ world }: { world: WorldModel }) {
   const gTex = glowTexture();
   const lights = [
+    // 大型柔和暖光铺底:Hub 是「城镇中心」(brief §3.1 城镇偏暖棕),给整片广场一层
+    // 暖色环境光,让大厅观感更接近原型暖亮的城镇基调(而非冷暗地牢)。
+    {
+      key: "hub-ambient",
+      x: world.hub.anchorPx.x,
+      y: world.hub.anchorPx.y,
+      r: 150,
+      tint: 0xffce8a,
+      a: 0.16,
+    },
     {
       key: "hub",
       x: world.hub.anchorPx.x,
       y: world.hub.anchorPx.y,
-      r: 48,
+      r: 56,
       tint: 0xffd166,
-      a: 0.4,
+      a: 0.45,
     },
     ...world.rooms.map((rm) => ({
       key: `door_${rm.projectId}`,
