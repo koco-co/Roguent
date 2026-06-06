@@ -53,14 +53,14 @@ export function Currency() {
       ? (s.sessions[s.currentSessionId]?.usage.tokens ?? 0)
       : 0,
   );
-  // 已完成数 = 当前会话已完成的 TodoWrite 计数(真)。selector 返回 number(基元),
-  // 不在 selector 里构造新对象(zustand 铁律)。
-  const completed = useRoomStore((s) => {
-    const sess = s.currentSessionId
-      ? s.sessions[s.currentSessionId]
-      : undefined;
-    return sess ? todoCounts(sessionTodos(sess)).completed : 0;
-  });
+  // 取当前会话对象引用(稳定:同一会话同一引用),派生在渲染体里算,
+  // 不在 selector 里构造新值(zustand 铁律)。
+  const session = useRoomStore((s) =>
+    s.currentSessionId ? s.sessions[s.currentSessionId] : undefined,
+  );
+
+  // 已完成数 = 当前会话已完成的 TodoWrite 计数(真)。派生在渲染体里算,不在 selector 里。
+  const completed = session ? todoCounts(sessionTodos(session)).completed : 0;
 
   const claudeOn = runtime === "claude" || runtime === "all";
 
