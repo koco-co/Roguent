@@ -41,7 +41,7 @@ export function NpcCard() {
   const id = useUiStore((s) => s.selectedNpcId);
   const selectNpc = useUiStore((s) => s.selectNpc);
   const beginEnter = useUiStore((s) => s.beginEnter);
-  // T3.8:聊天面板已迁到 activePanel 路由(原 drawerOpen 布尔废弃,待 T5 删 store 字段)。
+  // 聊天面板走 activePanel 路由(openPanel("chat"))。
   const openPanel = useUiStore((s) => s.openPanel);
   const session = useRoomStore((s) => (id ? s.sessions[id] : undefined));
   const switchSession = useRoomStore((s) => s.switchSession);

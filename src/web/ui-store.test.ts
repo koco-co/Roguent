@@ -4,13 +4,6 @@ import { useUiStore } from "./ui-store";
 
 beforeEach(() => {
   useUiStore.setState({
-    drawerOpen: false,
-    modelOpen: false,
-    skillsOpen: false,
-    lootOpen: false,
-    infoOpen: false,
-    importOpen: false,
-    leaderboardOpen: false,
     activePanel: null,
     localSessions: [],
     importError: null,
@@ -39,14 +32,6 @@ test("exitOverworld returns to overworld view and clears selectedAgentId", () =>
   expect(useUiStore.getState().selectedAgentId).toBeNull();
 });
 
-test("toggle opens and closes a HUD panel", () => {
-  expect(useUiStore.getState().drawerOpen).toBe(false);
-  useUiStore.getState().toggle("drawerOpen");
-  expect(useUiStore.getState().drawerOpen).toBe(true);
-  useUiStore.getState().toggle("drawerOpen");
-  expect(useUiStore.getState().drawerOpen).toBe(false);
-});
-
 test("enterInterior then exitOverworld round-trips back to overworld", () => {
   useUiStore.getState().enterInterior("sess-abc");
   expect(useUiStore.getState().view).toEqual({ interior: "sess-abc" });
@@ -67,20 +52,6 @@ test("openPanel is mutually exclusive — later id overrides earlier", () => {
   expect(useUiStore.getState().activePanel).toBe("about");
   useUiStore.getState().openPanel("skills");
   expect(useUiStore.getState().activePanel).toBe("skills");
-});
-
-test("panel route and legacy boolean flags do not interfere", () => {
-  // 打开布尔标志面板不应动 activePanel
-  useUiStore.getState().toggle("drawerOpen");
-  expect(useUiStore.getState().drawerOpen).toBe(true);
-  expect(useUiStore.getState().activePanel).toBeNull();
-  // 打开/关闭路由面板不应动布尔标志
-  useUiStore.getState().openPanel("about");
-  expect(useUiStore.getState().activePanel).toBe("about");
-  expect(useUiStore.getState().drawerOpen).toBe(true);
-  useUiStore.getState().closePanel();
-  expect(useUiStore.getState().activePanel).toBeNull();
-  expect(useUiStore.getState().drawerOpen).toBe(true);
 });
 
 test("setLocalSessions / setImportError update import state", () => {

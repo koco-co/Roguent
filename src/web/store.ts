@@ -149,7 +149,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       status: "error",
       messages: [
         ...base.messages,
-        { id: String(e.seq), role: "system", text: `⚠ ${p.message}`, t: e.ts },
+        { id: String(e.seq), role: "system", text: p.message, t: e.ts },
       ],
     };
     return {

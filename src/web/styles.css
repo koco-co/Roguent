@@ -50,10 +50,9 @@
     "Noto Sans SC", sans-serif;
 
   /* ── new design tokens (warm-wood RPG, §9 token list) ───────────────── */
-  --bg-dungeon: #1f2e33;
-  --bg-dungeon-2: #2a3d44;
-  --bg-wood: #4a3322;
-  --bg-dark: #0b0a12;
+  /* 注:冷蓝旧调色板已在 T0.1 重指向时消除(旧名改暖木值、仍被 .px-* 引用,非死)。
+     地牢/木质背景由 Pixi(hex)与 --ink/--panel 承担,故 §9 的 --bg-* 纯属未消费的
+     孤儿 token,T5 收尾删除。--hp/--shield/--mp/--purple 等带语义注释的调色板保留。 */
   --panel-edge: #2c1c10; /* outer dark outline; mirrors --edge-dark */
   --panel-hi: #7a5638; /* inner highlight; mirrors --edge-light */
   --panel-deep: #33220f; /* inner shadow */

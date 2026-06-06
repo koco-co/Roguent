@@ -230,7 +230,7 @@ export function Room() {
             gap: 12,
           }}
         >
-          <div>⚠ atlas load failed</div>
+          <div>atlas load failed</div>
           <div
             style={{
               color: "#aaa",

@@ -5,8 +5,6 @@ import { Icon, type IconName } from "./icons";
 // 仅内景显示(组件内 view!=='overworld' gate)。
 //
 // 接线说明:全部槽已走单一路由 openPanel(activePanel === panel ⇒ lit)。
-// 过渡期的布尔标志机制(chat→drawerOpen 是最后一个)已于 T3.8 随聊天面板迁移移除;
-// ui-store 的遗留布尔字段(drawerOpen 等)待 T5 收尾删除。
 // badge 角标:暂无真实徽标数据 → 不渲染(不造假);保留 .badge 渲染能力(badge?: number)
 // 以便引擎补齐后接入。
 

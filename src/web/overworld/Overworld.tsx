@@ -499,7 +499,7 @@ export function Overworld() {
             gap: 12,
           }}
         >
-          <div>⚠ atlas load failed</div>
+          <div>atlas load failed</div>
           <div
             style={{
               color: "#aaa",

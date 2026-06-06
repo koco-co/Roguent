@@ -23,10 +23,6 @@ import { TaskWindow } from "./TaskWindow";
 import { Tasks } from "./Tasks";
 import { ViewSwitch } from "./ViewSwitch";
 
-// InfoPopover(原 gear→infoOpen 触发的会话信息浮层)在 T2.4 失去触发入口:新 ButtonDock
-// 的 gear 改开 settings(T3.5)。组件文件暂保留待 T5 清理,这里先不渲染——它的内容由
-// T3.5 Settings 取代。infoOpen 布尔标志同步留在 ui-store 待收尾。
-
 export function Hud() {
   return (
     <>
@@ -56,8 +52,6 @@ export function Hud() {
       <LootPanel />
       <ChatDrawer />
       <ModelPicker />
-      {/* SkillGrid(legacy skillsOpen 浮层)已被 T3.3 Skills Modal 取代;
-          文件 + skillsOpen 标志留待 T5 清理。这里改渲染新的 Skills。 */}
       <Skills />
       <ImportPanel />
       <Leaderboard />

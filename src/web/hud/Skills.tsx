@@ -117,7 +117,7 @@ export function Skills() {
         命令,点击即运行。
       </div>
 
-      {/* 真实技能格:每格 = 一条真 slash 命令,点击发命令(沿用 SkillGrid 逻辑)。 */}
+      {/* 真实技能格:每格 = 一条真 slash 命令,点击发命令。 */}
       {cmds.length === 0 ? (
         <div className="faint">当前会话无可用 slash 命令</div>
       ) : (
