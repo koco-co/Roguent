@@ -201,3 +201,32 @@ test("no context.updated when getContextUsage returns null", async () => {
   await new Promise((r) => setTimeout(r, 0));
   expect(events.some((e) => e.type === "context.updated")).toBe(false);
 });
+
+test("setModel broadcasts session.created with updated model (idempotent merge)", async () => {
+  const captured: { cb?: DriverCallbacks } = {};
+  const mgr = new SessionManager(fakeDriverFactory(captured), "/tmp");
+  const got: RoomEvent[] = [];
+  mgr.subscribe((e) => got.push(e));
+
+  mgr.createSession("s1", { title: "t", model: "claude-opus-4-8" });
+  const before = got.length; // 1 (session.created from createSession)
+
+  await mgr.setModel("s1", "claude-sonnet-4-5");
+
+  // setModel must emit exactly one more session.created with the new model.
+  expect(got.length).toBe(before + 1);
+  const ev = got.at(-1)!;
+  expect(ev.type).toBe("session.created");
+  expect(ev.sessionId).toBe("s1");
+  expect((ev.payload as { model: string }).model).toBe("claude-sonnet-4-5");
+});
+
+test("setModel on unknown session does not emit", async () => {
+  const mgr = new SessionManager(fakeDriverFactory({}), "/tmp");
+  const got: RoomEvent[] = [];
+  mgr.subscribe((e) => got.push(e));
+
+  // No createSession — session does not exist.
+  await mgr.setModel("ghost", "claude-opus-4-8");
+  expect(got).toHaveLength(0);
+});
