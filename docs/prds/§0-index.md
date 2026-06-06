@@ -91,7 +91,7 @@ frontmatter 字段含义:
 
 ## 真假分明速查
 
-以下为 `status: partial` 的五篇及其 mock / planned 子项:
+以下为 `status: partial` 的四篇及其 mock / planned 子项:
 
 **§8 模型·权限模式·技能控制**
 - `setPermissionMode` 运行时切换:**(planned)** — Driver 无此方法,`permissionMode` 在 Options 构造时固定为 `"default"`,SDK Query 未暴露运行时切换接口;切换需销毁重建 Driver 并丢失对话上下文,待产品决策。
@@ -101,7 +101,7 @@ frontmatter 字段含义:
 - TaskWindow / Tasks 主体 / LootPanel / Leaderboard(会话·模型):**(真数据)** — 直接读 `useRoomStore`。
 - 底部 inter-agent 信箱:**(mock)** — `.task-mock-banner` 显式标注「信箱为示例 · 引擎暂无 inter-agent 信箱」。
 - Shop / gems:**(整体 mock 占位)** — 不接任何真实 store。
-- Currency 完成数展示在 HUD:**(planned)** — 引擎尚不支持。
+- Currency 完成数(桂冠):**(真数据)** — 当前会话已完成 TodoWrite 计数;同栏 gems 为 **(mock 占位)**,带「示例」角标 + title 提示。
 
 **§12 视觉系统·主题·设置**
 - Settings CONFIG 面板:**(整体 mock 占位)** — 面板顶部 `.task-mock-banner` 标注「示例数据,引擎不读写真实配置」;控件中的模型列表/Hooks/自定义配置为静态 mock,增删按钮不绑真实逻辑,底部「还原/保存」不写盘。
@@ -115,4 +115,4 @@ frontmatter 字段含义:
 - 仅 Apple Silicon(darwin-arm64):第一阶段硬编码,Intel Mac 未测试、未列入 DoD。
 
 其余 §1 / §2 / §3 / §4 / §5 / §6 / §7 / §9 / §11 均为 `implemented`。
-注:§4 大厅核心为真实实现;A\* 寻路 / 会话 NPC 自主走动为 planned 增强,已在 §4 功能点中显式标注。
+注:§4 大厅核心为真实实现(传送门过场 / 方向键移动 / SessionGrid 进出会话);会话 NPC 在大厅自主走动为 planned 增强(当前进出会话经 SessionGrid 面板,非走近 NPC),已在 §4 §3 功能点 / §6 现状中标注。

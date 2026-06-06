@@ -5,7 +5,7 @@ status: implemented
 layer: web
 updated: 2026-06-06
 depends_on: ["§2"]
-related: ["§8", "§9", "§10", "§11", "§12"]
+related: ["§4", "§5", "§8", "§9", "§10", "§11", "§12"]
 code_refs:
   - src/web/hud/Hud.tsx
   - src/web/hud/icons.tsx
@@ -61,14 +61,20 @@ specs:
 
 | 面板 | PanelId | 归属 PRD |
 |------|---------|----------|
-| NpcCard / RosterCard 扩展 | `npc` | §8 NPC 与会话管理 |
-| ChatDrawer | `chat` | §9 聊天抽屉 |
-| Tasks / TaskWindow | `tasks` | §10 任务面板 |
-| Skills / Shop / Leaderboard | `skills / shop / leaderboard` | §11 游戏化进度面板 |
-| Account / Settings / SystemMenu / About | `account / settings / menu / about` | §12 账户与设置 |
-| SessionGrid | `sessiongrid` | §8 |
-| ModelPicker | `model` | §12 |
-| ImportPanel | `import` | §8 |
+| NpcCard | `npc` | §4 总览世界(会话 NPC 信息卡) |
+| ChatDrawer | `chat` | §5 多会话与聊天抽屉 |
+| Tasks / TaskWindow | `tasks` | §10 任务·背包·排行榜 |
+| Skills | `skills` | §8 模型·权限模式·技能控制 |
+| Shop | `shop` | §10 任务·背包·排行榜(mock 占位) |
+| Leaderboard | `leaderboard` | §10 任务·背包·排行榜 |
+| LootPanel(背包) | `backpack` | §10 任务·背包·排行榜 |
+| Account | `account` | §9 用量与限额(账户用量) |
+| Settings | `settings` | §12 视觉系统·主题·设置(CONFIG mock) |
+| ModelPicker | `model` | §8 模型·权限模式·技能控制 |
+| ImportPanel | `import` | §11 本地会话导入 |
+| SessionGrid | `sessiongrid` | §5 多会话(总览面板)/ §4 |
+| SystemMenu | `menu` | §7 本篇(系统 / 暂停菜单) |
+| About | `about` | §7 本篇(关于) |
 
 ### 面板路由契约
 

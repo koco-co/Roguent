@@ -56,7 +56,7 @@ specs:
 - `Driver.cb.onDraft(drafts: DraftEvent[], ts)`:每条 SDK 消息 / hook 经 `normalizeHook` / `normalizeSdkMessage` 转成 `DraftEvent[]` 后回调给 `SessionManager.onDraft`,再经 `§2 Sequencer` 打 `(sessionId, seq)` 信封广播。
 - `Driver.cb.onRateLimit(info)`:SDK `rate_limit_event` 携带的 `rate_limit_info` 直接交给 `LimitsAggregator`,不进归一化管线。
 
-**接收来自 §8 (WsGateway / 命令层)**
+**接收来自 §2 (WsGateway / 命令层)**(命令最初由 §5 聊天抽屉 / §8 模型·技能面板等 UI 发起)
 
 | 命令 | 经路 | 实现 |
 |---|---|---|
