@@ -2688,3 +2688,206 @@ img {
   box-shadow: 0 0 24px rgba(54, 197, 224, 0.6), 0 0 0 2px
     rgba(54, 197, 224, 0.4);
 }
+
+/* ============================================================
+   HUB 暖色开放广场(可操控)— 对标原型 layout.css §HUB / lobby.jsx
+   坐标逻辑在虚拟 1920×1080;avatar/pet/structure 渲染按 % 映射视口。
+   ============================================================ */
+.pxsprite {
+  image-rendering: pixelated;
+}
+.hub {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #2c2013;
+}
+.hub-floor {
+  position: absolute;
+  inset: 0;
+  background-color: #3a2a1c;
+  background-image: radial-gradient(
+      circle at 50% 40%,
+      rgba(96, 74, 48, 0.55),
+      transparent 52%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.16) 0 2px,
+      transparent 2px 80px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.16) 0 2px,
+      transparent 2px 80px
+    );
+  image-rendering: pixelated;
+}
+.hub-bigglow {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 680px;
+  height: 680px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    var(--core-glow, rgba(54, 170, 210, 0.22)),
+    transparent 60%
+  );
+  mix-blend-mode: screen;
+}
+.hub-bigglow::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 420px;
+  height: 420px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(54, 197, 224, 0.12);
+}
+.hub-controls {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #cdb89a;
+  background: rgba(11, 10, 18, 0.6);
+  padding: 7px 14px;
+  box-shadow: 0 0 0 2px #000;
+  z-index: 30;
+}
+.hub-decor {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  opacity: 0.85;
+  filter: saturate(0.9);
+  pointer-events: none;
+}
+
+/* structures */
+.structure {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  z-index: 6;
+}
+.structure.near {
+  filter: drop-shadow(0 0 10px var(--cyan));
+}
+.struct-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(11, 10, 18, 0.7);
+  padding: 5px 10px;
+  box-shadow: 0 0 0 2px #000;
+}
+.struct-label > span:first-child {
+  font-size: 13px;
+  color: var(--ink);
+}
+.struct-sub {
+  font-size: 8px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+.structure.near .struct-label {
+  box-shadow: 0 0 0 2px var(--cyan);
+}
+.tower-base {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.tower-base .pxsprite {
+  margin-top: -30px;
+  filter: drop-shadow(0 0 8px rgba(54, 197, 224, 0.5));
+}
+.struct-vendor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.vendor-ic {
+  background: rgba(11, 10, 18, 0.6);
+  padding: 12px;
+  box-shadow: 0 0 20px var(--ac), 0 0 0 2px var(--ac);
+}
+.vendor-ped {
+  width: 64px;
+  height: 18px;
+  background: linear-gradient(180deg, #5a3f2a, #33220f);
+  box-shadow: 0 0 0 2px #2c1c10;
+  margin-top: 4px;
+}
+.struct-door {
+  position: relative;
+}
+.door-flag {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px;
+  box-shadow: 0 0 0 2px #000;
+  z-index: 2;
+}
+
+/* avatar + pet(position 走命令式 left/top %,故 transform 只做锚点偏移) */
+.hub-avatar {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 15;
+  will-change: left, top;
+}
+.hub-avatar-ring {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  width: 46px;
+  height: 20px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgba(242, 200, 75, 0.35),
+    transparent 70%
+  );
+}
+.hub-prompt {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  white-space: nowrap;
+  background: rgba(11, 10, 18, 0.85);
+  color: var(--ink);
+  font-size: 12px;
+  padding: 5px 9px;
+  box-shadow: 0 0 0 2px var(--cyan);
+  animation: askpulse 1.2s ease-in-out infinite;
+}
+.hub-prompt .px {
+  font-size: 9px;
+  color: var(--gold);
+  background: #2c1c10;
+  padding: 2px 5px;
+  margin-right: 5px;
+}
+.hub-pet {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  z-index: 14;
+  will-change: left, top;
+}

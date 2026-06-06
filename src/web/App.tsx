@@ -4,7 +4,7 @@ import { resolveEngineUrl } from "./engine-url";
 import { CharacterSelect } from "./hud/CharacterSelect";
 import { Hud } from "./hud/Hud";
 import { NpcCard } from "./hud/NpcCard";
-import { Overworld } from "./overworld/Overworld";
+import { LobbyView } from "./lobby/HubPlaza";
 import { PortalTransition } from "./overworld/PortalTransition";
 import { Room } from "./room/Room";
 import {
@@ -97,8 +97,8 @@ export function App() {
         } as React.CSSProperties
       }
     >
-      {/* 双层缩放:总览大厅 ↔ 进入的会话内景(Room 读 currentSessionId,进入时已切)。*/}
-      {inInterior ? <Room /> : <Overworld />}
+      {/* 双层缩放:总览大厅(暖色 DOM 广场)↔ 进入的会话内景(Pixi Room)。*/}
+      {inInterior ? <Room /> : <LobbyView />}
       <Hud />
       {inInterior ? (
         <button
