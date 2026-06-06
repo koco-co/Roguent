@@ -1,6 +1,7 @@
 import { ORCHESTRATOR_ID } from "../shared/domain";
 import type { TodoItem, TodoStatus } from "../shared/domain";
 import type { RoomEventType } from "../shared/events";
+import type { RateLimitInfoLike } from "./limits-aggregator";
 
 export interface DraftEvent {
   type: RoomEventType;
@@ -32,6 +33,8 @@ export interface SdkMessageLike {
   message?: { content?: Array<{ type: string; text?: string }> };
   total_cost_usd?: number;
   usage?: { input_tokens?: number; output_tokens?: number };
+  // SDK 的 rate_limit_event 携带订阅用量(driver 直接转给 LimitsAggregator,不进 RoomEvent 信封)。
+  rate_limit_info?: RateLimitInfoLike;
 }
 
 // 从 TodoWrite 的 tool_input 里防御性解析 todos 表。SDK 的 TodoWrite 输入形如
