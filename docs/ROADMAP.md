@@ -1,7 +1,7 @@
 ---
 title: Roguent 主线 ROADMAP · 现状与 backlog
-date: 2026-06-05
-baseline_commit: 2070a0d (本地 main;领先 origin/main)
+date: 2026-06-06
+baseline_commit: 6698293 (本地 main;领先 origin/main;Claude Design Roguent.html 落地 T0–T5 已合入)
 status: living-doc
 ---
 
@@ -35,10 +35,11 @@ status: living-doc
 - **图标 HUD + 聊天抽屉 + 多会话**:`src/web/hud/*`(Hud/ChatDrawer/ModelPicker/AgentCard/SkillGrid/LootPanel…);切会话联动渲染源。
 - **桌面打包(Tauri 第一阶段)**:Tauri 2 壳 + Bun sidecar(`bun build --compile`)+ 218MB claude CLI 作资源;端口经 stdout `PORT=` 握手 → `engine_url` 命令 → 前端 `resolveEngineUrl`。(`src-tauri/*`、`scripts/build-sidecar.ts`、`scripts/stage-cli.ts`、`src/web/engine-url.ts`;spec:`tauri-sidecar-migration-design.md`)
 - **打包后真机修复**:macOS 系统代理注入(`src/engine/proxy.ts`——LaunchServices 启动的 .app 不继承 shell 代理,需代理的网络下会 403)、孤儿 sidecar 退出回收、bundled CLI 路径修正、Press Start 2P 字体本地化。(合入于 merge `2070a0d`)
+- **Claude Design `Roguent.html` 像素原型落地(T0–T5,2026-06-06)**:把设计稿的《元气骑士》暖木 RPG 观感与全套面板落到真实 React/Pixi/Zustand 代码,**严格按原型样式(含字体)**,真/假分明(真数据面板不造假、mock 面板显著标注)。详见 §3.5「设计落地状态」。涉及 `src/web/styles.css`(暖木 token + 全部面板样式)、`src/web/hud/*`(图标注册表 + 12+ 面板)、`src/web/overworld/*`(漩涡过场 / 中央任务台 / 角色头像)、`src/web/settings-store.ts`。
 
 ### 1.2 测试现状
-- **105 单测全绿、biome 干净**(`bun test` / `bun run check`,2026-06-05 核实)。
-- **e2e 只有 1 个**:`src/web/replay.e2e.test.ts`。**绝大多数功能没有端到端覆盖**——这正是 Phase 1 要补的。
+- **212 单测全绿、biome 干净、`bunx tsc --noEmit` 干净**(2026-06-06 核实;`bun run check`/build 不做类型检查,tsc 须单独跑)。
+- e2e:回放驱动(`replay.e2e.test.ts` 扩展)+ store/reducer 级断言;聚合 / 映射 / 格式化 / 图标 / 阈值等可测逻辑全部下沉纯函数单测。UI 组件按约定走 `tsc + check + 回放/preview 冒烟`。
 
 ### 1.3 已知损坏 / 未验证(Phase 1 要解决)
 - **打包 .app 主画布疑似黑屏 / 空**(用户报告;根因**未确认**)。已确认的真实缺陷:atlas 加载失败被**静默吞掉**(`src/web/room/Room.tsx:178` / `src/web/overworld/Overworld.tsx:341` 仅 `console.error`;`sheet && size.w>0` 守卫在 `:194`/`:357`,sheet 为 null 时场景**永不渲染**,只剩深色背景 `0x0b0a12`,UI 无任何错误提示)。→ web 端可见性 + 渲染见 **P1-1**;打包端定位见 **P1-4**。
@@ -158,15 +159,39 @@ status: living-doc
 
 ---
 
+## 3.5 Claude Design `Roguent.html` 落地状态(T0–T5,2026-06-06)
+
+> 用户用 Claude Design 把游戏化 UI 做成高完成度像素原型(`Roguent.html` + 一套 jsx/css),要求**功能及样式严格按原型来,包括字体**。本轮按 plan `fetch-this-design-file-frolicking-tome.md`(T0–T5)落地;实现走 subagent-driven-development(逐任务派子代理 → 复核 → 提交),非 Workflow 批量。
+>
+> **真/假分明铁律**:接真 store 数据的面板**一个功能不丢、不造假、不挂 mock banner**;引擎暂无数据的面板用**显著标注的 mock**(`.task-mock-banner` + 独立 `*-data.ts`/`*-schema.ts` 顶部注释「全为 mock,引擎不消费」)。Codex 一律做**视觉占位**(引擎只跑 Claude)。
+
+| 阶段 | 内容 | 真 / 占位 |
+| --- | --- | --- |
+| **T0** 视觉系统 | 暖木 RPG token(重指向旧名)+ 像素 chrome 类 + 自绘像素 SVG 图标注册表(`icons.tsx`,~33 个)+ 工具/loot/状态→图标名映射 + 自托管 Fusion Pixel 中文字体(`public/fonts/`,**不走 CDN**) | 全真(基础设施) |
+| **T1** 壳 | settings-store(accent/theme/motion/density/cjkPixel/avatarHero,持久化)+ 复用 `Modal` + `activePanel` 单一路由 | 真 |
+| **T2** 内景 HUD | LimitBars 三条(5h/CTX/周)· RosterCard 在岗 · SessionBanner · Currency · ButtonDock · Hotbar · Minimap · TaskWindow | 真(gems/完成数/任务窗标注 mock) |
+| **T3** 面板 | NpcCard · Skills(slash 真)· Leaderboard(按会话真 + 按模型/runtime 聚合)· Backpack(loot 真)· Chat(居中 Modal,会话/消息/新建/归档全真)· Model 真 · Import(localSessions 真)· Account(limits 真)· SystemMenu · ErrorOverlay · **漩涡过场**(T3.13)· Tasks/Settings/Shop(整面板 mock 标注) | 真假分明 |
+| **T4** 大厅 | SessionGrid(接 `store.sessions`)+ **Pixi 中央任务台 E 键**触发 · CharacterSelect → `avatarHero` 驱动玩家头像 · 空态(召唤小队→真 newSession)+ 错误态(接真 WS 连接状态、去抖、真重连) | 真(Codex tab 占位) |
+| **T5** 收尾 | 删 legacy ui-store 布尔/`toggle`/SkillGrid/`error` PanelId/孤儿 `--bg-*` token/遗留 `⚠`emoji · 补 roleToHero/HERO_POOL 测试 · 本节 | — |
+
+**未尽 / 已知取舍**:
+- **大厅 UX**:保留现有 Pixi `Overworld` 作唯一可玩 hub(已有 WASD+A\*、传送门、项目房、会话 NPC);只从原型采纳 SessionGrid(DOM 面板)、角色选择、空/错态;**未**在 DOM 里重建原型的走动大厅。
+- **Codex**:徽标 / runtime 筛选片 / 设置页签 / SessionGrid 的 Codex tab 全为视觉占位(引擎只跑 Claude)。
+- **会话级 askuser 角标**:无真数据,SessionGrid/NpcCard 只做 error 角标,不造 askuser。
+- **mock 面板**(Tasks 共享任务清单 / Settings·CONFIG / Shop):引擎无对应能力,整面板 mock + banner;待引擎补 askuser/todo/任务清单/宝石经济后再接真。
+- **冷蓝死 token**:已在 T0.1 重指向时消除(旧名改暖木值且仍被 `.px-*` 引用,非死);§9 暖木调色板里 `--hp/--shield/--mp/--purple` 等带语义注释的 token 暂未消费但保留为设计调色板。
+
+---
+
 ## 4. Phase 2 —— 原愿景未实现功能(后续,先不展开)
 
 > Phase 1 收口后再排。多数有独立 spec 设想(见 `overworld-hub-design.md` §"明确不在本 spec")。
 
 - **S1 完整生命周期细化**(超出已落地部分)。
 - **S2 askuser / permission 管线**:真「?」交互 + 任务面板(信息卡占位槽接真 askuser)。
-- **S4 游戏化 HUD**(雏形已落地一部分):底部 hotbar + 左上设置坞 + 顶部状态条、信息卡/聊天抽屉重皮成游戏窗口已落地;**排行榜(按模型聚合 usage)、菜单系统**仍待做。见 [plan](superpowers/plans/2026-06-05-web-lobby-game-overhaul.md) / [spec](superpowers/specs/2026-06-05-web-lobby-game-overhaul-design.md)。
-- **大厅游戏化呈现**(已落地一部分):相机整数缩放贴身跟随、中央 Hub 广场 + 喷泉 + 环境光、传送门进出过渡 + NPC 传送阵已落地;喷泉动画化、真头像缩略、走廊多路径等留作后续。见同一 [plan](superpowers/plans/2026-06-05-web-lobby-game-overhaul.md) / [spec](superpowers/specs/2026-06-05-web-lobby-game-overhaul-design.md)。
-- **S5 聊天游戏化重皮**。
+- **S4 游戏化 HUD**:底部 hotbar + 设置坞 + 状态条、信息卡/聊天重皮、**排行榜(按模型/runtime 聚合)、系统/暂停菜单**均已随设计落地完成(见 §3.5 T2/T3)。剩:真实徽标/角标数据(hotbar badge 等待引擎补)。
+- **大厅游戏化呈现**:相机整数缩放跟随、中央 Hub 广场 + 喷泉 + 环境光、传送门进出过渡 + NPC 传送阵已落地;设计落地又补**蓝色粒子漩涡过场、中央任务台(E 键开 SessionGrid)、角色选择头像、空/错态屏**(§3.5 T3.13/T4)。剩:喷泉动画化已有、走廊多路径等留作后续。
+- **S5 聊天游戏化重皮**:Chat 已重皮为居中游戏 Modal(§3.5 T3.8);深度游戏化(气泡特效等)留作后续。
 - **持久化 + SDK resume**:SQLite/本地存储、跨重启历史、复活已死会话(`--resume`)。当前纯内存、刷新即重置。
 - **桌面产品化**:代码签名 / Apple 公证 / DMG 正式分发 / 自动更新 / 通用二进制(Intel+ARM)/ 应用内 `/login` 引导 / 授权·许可证·付费·首启引导。
 - **Fallback CLI 方案 B**(`claude -p` 子进程 + HTTP hooks),非 Node 编排时退用。
@@ -179,3 +204,4 @@ status: living-doc
 - 2026-06-05:建立本 ROADMAP;桌面打包(Tauri 第一阶段)+ macOS 代理/孤儿 sidecar/CLI 路径修复合入 `main`(merge `2070a0d`);把 `plans/` 标注为历史记录、`specs/` 加现状批注。
 - 2026-06-05:按用户决策把 Phase 1 拆成 **1A(web 端,本轮 `/goal` 范围)/ 1B(app 端打包,下一轮)**;打包 .app 黑屏定位从 P1-1 移到 1B 的 P1-4,app 验收/DMG 顺延为 P1-5/P1-6。
 - 2026-06-05:**web 端游戏化呈现重构**落地(5 task:相机整数缩放贴身跟随 / 传送门进出过渡 + NPC 传送阵 / 底部 hotbar HUD / 信息卡·聊天抽屉重皮成游戏窗口 / 中央 Hub 大厅 + 环境光)。纯客户端视觉交互层,不动 engine / 事件协议 / domain;新纯函数(`zoom`/`camera` scale/`portal`/`worldgen` hub)单测钉死,append-only/确定性不回归。见 [plan](superpowers/plans/2026-06-05-web-lobby-game-overhaul.md) / [spec](superpowers/specs/2026-06-05-web-lobby-game-overhaul-design.md)。
+- 2026-06-06:**Claude Design `Roguent.html` 像素原型落地**(T0–T5,严格按原型样式含字体,真/假分明)。暖木 token + 像素 chrome + 自绘 SVG 图标 + Fusion Pixel 中文字体;settings-store + Modal 路由;内景 HUD 全套;12+ 面板(排行榜聚合 / 账号 / 导入 / 模型 / 背包 / 聊天 Modal / 技能 / 系统菜单 / 漩涡过场,Tasks/Settings/Shop 为标注 mock);SessionGrid + Pixi 中央任务台 E 键 + 角色选择 → avatarHero + 空/错态(错误态接真 WS 连接状态 + 去抖 + 真重连);收尾删死代码/token/emoji + 补 roleToHero 测试。212 单测 + tsc + biome 全绿;preview 截图 + 杀引擎 e2e 核验。详见 §3.5。设计落地保留现有 Pixi Overworld 作 hub,Codex 全为视觉占位。
