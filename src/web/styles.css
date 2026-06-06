@@ -986,13 +986,6 @@ img {
   font-size: 9px;
   color: var(--cyan);
 }
-.tw-mock {
-  font-size: 8px;
-  color: var(--gold);
-  background: rgba(11, 10, 18, 0.6);
-  padding: 1px 4px;
-  box-shadow: 0 0 0 1px #000;
-}
 .tw-chev {
   color: #bfeaf5;
   font-size: 12px;
