@@ -124,3 +124,52 @@ test("assistant message with no text blocks returns []", () => {
     normalizeSdkMessage({ type: "assistant", message: { content: [] } }),
   ).toEqual([]);
 });
+
+test("PreToolUse on TodoWrite emits tool.started AND todos.updated with parsed todos", () => {
+  const drafts = normalizeHook({
+    hook_event_name: "PreToolUse",
+    agent_id: "ag-coder",
+    tool_name: "TodoWrite",
+    tool_use_id: "tu-1",
+    tool_input: {
+      todos: [
+        { content: "重构缩放", status: "in_progress", activeForm: "正在重构缩放" },
+        { content: "写测试", status: "pending" },
+        { content: "提交", status: "completed" },
+      ],
+    },
+  });
+  const started = drafts.find((d) => d.type === "tool.started");
+  const todos = drafts.find((d) => d.type === "todos.updated");
+  expect(started).toBeDefined();
+  expect(started?.agentId).toBe("ag-coder");
+  expect(todos).toBeDefined();
+  expect(todos?.agentId).toBe("ag-coder");
+  const payload = todos?.payload as { todos: Array<{ content: string; status: string }> };
+  expect(payload.todos).toHaveLength(3);
+  expect(payload.todos[1]).toEqual({ content: "写测试", status: "pending" });
+});
+
+test("PreToolUse on TodoWrite with malformed input emits no todos (defensive)", () => {
+  const drafts = normalizeHook({
+    hook_event_name: "PreToolUse",
+    agent_id: "ag-coder",
+    tool_name: "TodoWrite",
+    tool_use_id: "tu-2",
+    tool_input: { todos: "not-an-array" },
+  });
+  expect(drafts.some((d) => d.type === "todos.updated")).toBe(false);
+  // tool.started 仍照常产出
+  expect(drafts.some((d) => d.type === "tool.started")).toBe(true);
+});
+
+test("PreToolUse on a non-TodoWrite tool emits no todos.updated", () => {
+  const drafts = normalizeHook({
+    hook_event_name: "PreToolUse",
+    agent_id: "ag-coder",
+    tool_name: "Edit",
+    tool_use_id: "tu-3",
+    tool_input: { file_path: "a.ts" },
+  });
+  expect(drafts.some((d) => d.type === "todos.updated")).toBe(false);
+});

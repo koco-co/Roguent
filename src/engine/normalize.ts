@@ -33,6 +33,31 @@ export interface SdkMessageLike {
   usage?: { input_tokens?: number; output_tokens?: number };
 }
 
+// 从 TodoWrite 的 tool_input 里防御性解析 todos 表。SDK 的 TodoWrite 输入形如
+// { todos: [{ content, status, activeForm? }] };status ∈ pending|in_progress|
+// completed。任何非法项丢弃,非数组直接返回空(不抛、不阻塞 agent)。
+const TODO_STATUSES = new Set(["pending", "in_progress", "completed"]);
+export function parseTodos(
+  input: unknown,
+): Array<{ content: string; status: string; activeForm?: string }> {
+  const o = (input ?? {}) as Record<string, unknown>;
+  const raw = o.todos;
+  if (!Array.isArray(raw)) return [];
+  const out: Array<{ content: string; status: string; activeForm?: string }> =
+    [];
+  for (const it of raw) {
+    const t = (it ?? {}) as Record<string, unknown>;
+    if (typeof t.content !== "string") continue;
+    if (typeof t.status !== "string" || !TODO_STATUSES.has(t.status)) continue;
+    out.push({
+      content: t.content,
+      status: t.status,
+      ...(typeof t.activeForm === "string" ? { activeForm: t.activeForm } : {}),
+    });
+  }
+  return out;
+}
+
 export function summarizeToolInput(input: unknown): string {
   const o = (input ?? {}) as Record<string, unknown>;
   const s = (k: string) =>
@@ -70,8 +95,8 @@ export function normalizeHook(h: HookLike): DraftEvent[] {
           payload: { stopReason: h.stop_reason ?? "normal" },
         },
       ];
-    case "PreToolUse":
-      return [
+    case "PreToolUse": {
+      const drafts: DraftEvent[] = [
         {
           type: "tool.started",
           agentId,
@@ -82,6 +107,15 @@ export function normalizeHook(h: HookLike): DraftEvent[] {
           },
         },
       ];
+      // TodoWrite:把真实待办表同时下发(供任务面板/任务窗实时同步)。
+      if (h.tool_name === "TodoWrite") {
+        const todos = parseTodos(h.tool_input);
+        if (todos.length > 0) {
+          drafts.push({ type: "todos.updated", agentId, payload: { todos } });
+        }
+      }
+      return drafts;
+    }
     case "PostToolUse":
       return [
         {
