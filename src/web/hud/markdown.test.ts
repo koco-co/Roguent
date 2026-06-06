@@ -75,3 +75,11 @@ test("keeps safe http/https links", () => {
     '<p class="md-p"><a href="https://x.dev" target="_blank" rel="noopener">t</a></p>',
   );
 });
+
+test("escapes double quotes in href to block attribute injection", () => {
+  // 含 " 的 url 不得逃出 href 边界注入事件处理属性(XSS via attribute injection)。
+  // url 正则 [^)\s]+ 在空格处停下,故攻击载荷用无空格的引号闭合形式。
+  expect(mdToHtml('[click](https://evil.com"onmouseover="alert(1))')).toBe(
+    '<p class="md-p"><a href="https://evil.com%22onmouseover=%22alert(1" target="_blank" rel="noopener">click</a>)</p>',
+  );
+});
