@@ -173,7 +173,7 @@ export function Leaderboard() {
                       {r.tokens.toLocaleString()}
                     </span>
                   </div>
-                  <div className="lb-cost px">${r.cost.toFixed(1)}</div>
+                  <div className="lb-cost px">${r.cost.toFixed(2)}</div>
                   <div className="chip px">
                     {tab === "runtime" ? r.model : shortModel(r.model)}
                   </div>
