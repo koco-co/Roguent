@@ -1,5 +1,10 @@
-import type { RoomEvent, SessionCreatedPayload } from "../shared/events";
+import type {
+  AccountLimits,
+  RoomEvent,
+  SessionCreatedPayload,
+} from "../shared/events";
 import { Driver, type DriverCallbacks, type IDriver } from "./driver";
+import { LimitsAggregator } from "./limits-aggregator";
 import { readTranscriptLines } from "./local-sessions";
 import { projectFor } from "./project";
 import { Sequencer } from "./sequencer";
@@ -11,6 +16,7 @@ export type DriverFactory = (
   cwd: string,
 ) => IDriver;
 export type EventSink = (e: RoomEvent) => void;
+export type LimitsSink = (limits: AccountLimits) => void;
 
 const defaultFactory: DriverFactory = (cb, model, cwd) =>
   new Driver(cb, model, cwd);
@@ -19,6 +25,10 @@ export class SessionManager {
   private seq = new Sequencer();
   private drivers = new Map<string, IDriver>();
   private sinks = new Set<EventSink>();
+  private limitsSinks = new Set<LimitsSink>();
+  // 账户级订阅用量聚合器:合并 SDK rate_limit_event(实时窗口用量)与 keychain
+  // 轮询(planName + 兜底),变更即推给订阅方(server 接到 gateway.pushLimits)。
+  private limits = new LimitsAggregator((l) => this.emitLimits(l));
 
   constructor(
     private driverFactory: DriverFactory = defaultFactory,
@@ -32,6 +42,21 @@ export class SessionManager {
 
   private emit(e: RoomEvent): void {
     for (const sink of this.sinks) sink(e);
+  }
+
+  // 账户级账号限额订阅(独立于 (sessionId,seq) 事件流)。
+  subscribeLimits(sink: LimitsSink): () => void {
+    this.limitsSinks.add(sink);
+    return () => this.limitsSinks.delete(sink);
+  }
+
+  private emitLimits(l: AccountLimits): void {
+    for (const sink of this.limitsSinks) sink(l);
+  }
+
+  // keychain 轮询的整份快照(server 把 UsagePoller.onLimits 接到这里)。
+  applyPollLimits(l: AccountLimits): void {
+    this.limits.applyPoll(l);
   }
 
   createSession(
@@ -63,6 +88,8 @@ export class SessionManager {
       ),
     );
     const cb: DriverCallbacks = {
+      // SDK 每轮回包的订阅用量 → 聚合器(账户级,不进该会话的 seq 事件流)。
+      onRateLimit: (info) => this.limits.applyRateLimit(info),
       onDraft: (drafts, ts) => {
         for (const d of drafts) {
           // SDK system:init 派生的 session.created 不带用户标题 / cwd / project

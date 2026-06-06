@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { RoomEvent } from "../shared/events";
+import type { AccountLimits, RoomEvent } from "../shared/events";
 import type { DriverCallbacks, IDriver } from "./driver";
 import { SessionManager } from "./session";
 
@@ -144,6 +144,34 @@ test("emits context.updated after a turn (usage.updated), from getContextUsage",
     usedTokens: 200_000,
     windowSize: 1_000_000,
     utilization: 20,
+  });
+});
+
+test("driver rate_limit_event → subscribeLimits 收到合并后的 AccountLimits", () => {
+  const captured: { cb?: DriverCallbacks } = {};
+  const mgr = new SessionManager(fakeDriverFactory(captured), "/tmp");
+  const limits: AccountLimits[] = [];
+  mgr.subscribeLimits((l) => limits.push(l));
+  mgr.createSession("s1", { title: "t", model: "m" });
+
+  // keychain 轮询先给 planName(SDK 流里没有 plan 名)
+  mgr.applyPollLimits({
+    planName: "Max",
+    fiveHour: { utilization: null, resetsAt: null },
+    sevenDay: { utilization: null, resetsAt: null },
+  });
+  // SDK 每轮 API 回包的真实用量(经 driver.onRateLimit 流进来)
+  captured.cb?.onRateLimit?.({
+    rateLimitType: "five_hour",
+    utilization: 58,
+    resetsAt: 1_700_000_000,
+  });
+
+  const last = limits.at(-1);
+  expect(last?.planName).toBe("Max");
+  expect(last?.fiveHour).toEqual({
+    utilization: 58,
+    resetsAt: 1_700_000_000_000,
   });
 });
 

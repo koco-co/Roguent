@@ -4,6 +4,7 @@ import {
   type SDKUserMessage,
   query,
 } from "@anthropic-ai/claude-agent-sdk";
+import type { RateLimitInfoLike } from "./limits-aggregator";
 import {
   type DraftEvent,
   type HookLike,
@@ -55,6 +56,9 @@ export function buildHooks(onHook: (h: HookLike) => void): Options["hooks"] {
 
 export interface DriverCallbacks {
   onDraft: (drafts: DraftEvent[], ts: number) => void;
+  // SDK 的 rate_limit_event:订阅用量(5h/7d util + 重置时刻)。账户级,不进 seq 信封,
+  // 由 SessionManager 喂给 LimitsAggregator → pushLimits。可选 → 旧测试假 driver 不实现也不破。
+  onRateLimit?: (info: RateLimitInfoLike) => void;
 }
 
 export interface IDriver {
@@ -118,6 +122,11 @@ export class Driver implements IDriver {
     try {
       for await (const msg of this.q) {
         const m = msg as unknown as SdkMessageLike;
+        // 订阅用量:转给 LimitsAggregator(账户级、非 seq 事件),不走 normalize/onDraft。
+        if (m.type === "rate_limit_event") {
+          if (m.rate_limit_info) this.cb.onRateLimit?.(m.rate_limit_info);
+          continue;
+        }
         if (
           m.type === "system" &&
           m.subtype === "init" &&
