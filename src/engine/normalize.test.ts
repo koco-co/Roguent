@@ -133,7 +133,11 @@ test("PreToolUse on TodoWrite emits tool.started AND todos.updated with parsed t
     tool_use_id: "tu-1",
     tool_input: {
       todos: [
-        { content: "重构缩放", status: "in_progress", activeForm: "正在重构缩放" },
+        {
+          content: "重构缩放",
+          status: "in_progress",
+          activeForm: "正在重构缩放",
+        },
         { content: "写测试", status: "pending" },
         { content: "提交", status: "completed" },
       ],
@@ -145,7 +149,9 @@ test("PreToolUse on TodoWrite emits tool.started AND todos.updated with parsed t
   expect(started?.agentId).toBe("ag-coder");
   expect(todos).toBeDefined();
   expect(todos?.agentId).toBe("ag-coder");
-  const payload = todos?.payload as { todos: Array<{ content: string; status: string }> };
+  const payload = todos?.payload as {
+    todos: Array<{ content: string; status: string }>;
+  };
   expect(payload.todos).toHaveLength(3);
   expect(payload.todos[1]).toEqual({ content: "写测试", status: "pending" });
 });

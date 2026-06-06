@@ -19,7 +19,8 @@ export function sessionTodos(session: Session | undefined): TodoRow[] {
   );
   const rows: TodoRow[] = [];
   for (const id of ids) {
-    for (const item of session.todos[id] ?? []) rows.push({ ...item, agentId: id });
+    for (const item of session.todos[id] ?? [])
+      rows.push({ ...item, agentId: id });
   }
   return rows;
 }
@@ -31,7 +32,12 @@ export interface TodoCounts {
   total: number;
 }
 export function todoCounts(rows: TodoRow[]): TodoCounts {
-  const c: TodoCounts = { pending: 0, in_progress: 0, completed: 0, total: rows.length };
+  const c: TodoCounts = {
+    pending: 0,
+    in_progress: 0,
+    completed: 0,
+    total: rows.length,
+  };
   for (const r of rows) c[r.status]++;
   return c;
 }

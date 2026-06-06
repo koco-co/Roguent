@@ -2,7 +2,12 @@ import { expect, test } from "bun:test";
 import { ORCHESTRATOR_ID, createSession } from "../../shared/domain";
 import { TODO_META, sessionTodos, todoCounts } from "./todos-view";
 
-function sessionWith(todos: Record<string, Array<{ content: string; status: "pending" | "in_progress" | "completed" }>>) {
+function sessionWith(
+  todos: Record<
+    string,
+    Array<{ content: string; status: "pending" | "in_progress" | "completed" }>
+  >,
+) {
   const s = createSession({ id: "s1", title: "t", model: "m" });
   return { ...s, todos };
 }

@@ -1,5 +1,10 @@
 import { expect, test } from "bun:test";
-import { type RoomEvent, type RoomEventType, type TodosUpdatedPayload, isToolEvent } from "./events";
+import {
+  type RoomEvent,
+  type RoomEventType,
+  type TodosUpdatedPayload,
+  isToolEvent,
+} from "./events";
 
 test("todos.updated is a known RoomEventType with a TodoItem[] payload", () => {
   const t: RoomEventType = "todos.updated";
