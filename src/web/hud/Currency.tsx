@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useRoomStore } from "../store";
 import { Icon, type IconName } from "./icons";
+import { sessionTodos, todoCounts } from "./todos-view";
 
-// ── mock 占位:引擎暂无「宝石 / 完成数」概念,先用固定示例值,待引擎补齐后接真数据。
-// 这两格在 UI 上明确标注「示例」(角标 + title 提示),绝不冒充真实数据。
+// ── mock 占位:引擎暂无「宝石」经济,gems 用固定示例值并显式标注「示例」(角标 +
+// title)。完成数已接真(当前会话已完成 TodoWrite 计数,见下),不再 mock。
 const MOCK_GEMS = 1280; // 待引擎补:gems 经济
-const MOCK_COMPLETED = 7; // 待引擎补:已完成任务计数
 
 // runtime 筛选可选值;当前引擎只有 claude,codex 为禁用占位。
 type Runtime = "all" | "claude" | "codex";
@@ -38,9 +38,10 @@ function CurCell({
 
 /**
  * 顶右货币条(对标设计原型 hud.jsx Currency):金币(tokens 真)/ 宝石(示例)/
- * 桂冠(完成数 示例)+ runtime 筛选。两视图都显示。
+ * 桂冠(完成数 真)+ runtime 筛选。两视图都显示。
  * - coins = 当前会话 usage.tokens(真)。
- * - gemcur / laurel = mock 占位,带「示例」角标 + title 提示。
+ * - gemcur = mock 占位,带「示例」角标 + title 提示。
+ * - laurel 真 = 当前会话已完成 TodoWrite 计数。
  * - runtime-filter:claude 可点(真;切 all↔claude),codex 禁用占位(置灰、不可点)。
  */
 export function Currency() {
@@ -52,6 +53,14 @@ export function Currency() {
       ? (s.sessions[s.currentSessionId]?.usage.tokens ?? 0)
       : 0,
   );
+  // 已完成数 = 当前会话已完成的 TodoWrite 计数(真)。selector 返回 number(基元),
+  // 不在 selector 里构造新对象(zustand 铁律)。
+  const completed = useRoomStore((s) => {
+    const sess = s.currentSessionId
+      ? s.sessions[s.currentSessionId]
+      : undefined;
+    return sess ? todoCounts(sessionTodos(sess)).completed : 0;
+  });
 
   const claudeOn = runtime === "claude" || runtime === "all";
 
@@ -65,12 +74,7 @@ export function Currency() {
           color="#a06cd5"
           mock
         />
-        <CurCell
-          icon="laurel"
-          value={String(MOCK_COMPLETED)}
-          color="#5fd35f"
-          mock
-        />
+        <CurCell icon="laurel" value={String(completed)} color="#5fd35f" />
         <div className="runtime-filter">
           <button
             type="button"
