@@ -38,9 +38,10 @@ if (replayFixture) {
   const mgr = new SessionManager();
   const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`));
   // 限额两源都汇进 SessionManager 的 LimitsAggregator,合并后由它推 gateway:
-  //   1) SDK rate_limit_event(主源、实时窗口用量)—— driver → aggregator(见 session.ts)
-  //   2) keychain 轮询(兜底 + 唯一 planName 源)—— poller → applyPollLimits
-  // SDK 源不依赖 keychain,Tauri sidecar / 受限环境读不到 keychain 时仍有真实用量。
+  //   1) keychain 轮询 /api/oauth/usage(权威源、两窗口完整快照 + 唯一 planName 源)
+  //      —— poller → applyPollLimits;和 claude-hud 同源同语义。
+  //   2) SDK rate_limit_event(仅兜底:poll 未认领的窗口才用)—— driver → aggregator(见 session.ts)。
+  // poll 一旦认领某窗口即锁定权威值,SDK 不再覆盖;受限环境读不到 keychain 时才退化到 SDK。
   mgr.subscribeLimits((limits) => gateway.pushLimits(limits));
   const poller = new UsagePoller({
     readCredentials: () => readOauthCredentials(),

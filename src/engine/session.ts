@@ -26,8 +26,8 @@ export class SessionManager {
   private drivers = new Map<string, IDriver>();
   private sinks = new Set<EventSink>();
   private limitsSinks = new Set<LimitsSink>();
-  // 账户级订阅用量聚合器:合并 SDK rate_limit_event(实时窗口用量)与 keychain
-  // 轮询(planName + 兜底),变更即推给订阅方(server 接到 gateway.pushLimits)。
+  // 账户级订阅用量聚合器:合并 keychain 轮询 /api/oauth/usage(权威窗口用量 +
+  // planName)与 SDK rate_limit_event(仅兜底),变更即推给订阅方(server 接 gateway.pushLimits)。
   private limits = new LimitsAggregator((l) => this.emitLimits(l));
 
   constructor(

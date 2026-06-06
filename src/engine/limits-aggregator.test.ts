@@ -74,7 +74,7 @@ test("重复相同值不重复广播(去抖)", () => {
   expect(out).toHaveLength(1);
 });
 
-test("applyPoll 提供 planName + 两窗口;后续 SDK rate_limit 保留 planName 并刷新窗口", () => {
+test("applyPoll 权威:认领过的窗口不被后续 SDK rate_limit 覆盖,planName 保留", () => {
   const { agg, out } = collect();
   agg.applyPoll({
     planName: "Max",
@@ -84,11 +84,46 @@ test("applyPoll 提供 planName + 两窗口;后续 SDK rate_limit 保留 planNam
   expect(out[0]?.planName).toBe("Max");
   expect(out[0]?.fiveHour.utilization).toBe(42);
 
+  // poll 已认领两个窗口 → SDK 高频回包不得覆盖(否则把权威值刷成陈旧/异义值)
   agg.applyRateLimit({ rateLimitType: "five_hour", utilization: 60 });
+  agg.applyRateLimit({ rateLimitType: "seven_day", utilization: 88 });
+  expect(out).toHaveLength(1); // 两次都被挡,无新广播
   const last = out.at(-1);
   expect(last?.planName).toBe("Max"); // planName 不被 SDK 抹掉
-  expect(last?.fiveHour.utilization).toBe(60); // 窗口被实时值刷新
-  expect(last?.sevenDay.utilization).toBe(73); // 另一窗口保持 poll 值
+  expect(last?.fiveHour.utilization).toBe(42); // poll 权威,不被 SDK 覆盖
+  expect(last?.sevenDay.utilization).toBe(73);
+});
+
+test("rate_limit 仅在 poll 未认领该窗口时兜底填充(逐窗口)", () => {
+  const { agg, out } = collect();
+  // poll 只成功拿到 sevenDay;fiveHour util 缺失(部分响应/受限)→ 未认领 fiveHour
+  agg.applyPoll({
+    planName: "Max",
+    fiveHour: { utilization: null, resetsAt: null },
+    sevenDay: { utilization: 69, resetsAt: 222 },
+  });
+  agg.applyRateLimit({ rateLimitType: "seven_day", utilization: 88 }); // 已认领 → 忽略
+  agg.applyRateLimit({ rateLimitType: "five_hour", utilization: 30 }); // 未认领 → 兜底
+  const last = out.at(-1);
+  expect(last?.sevenDay.utilization).toBe(69); // poll 权威
+  expect(last?.fiveHour.utilization).toBe(30); // SDK 兜底
+});
+
+test("复现报告 bug:poll 成功后接管窗口,之后高频 SDK 陈旧值不再覆盖回去", () => {
+  const { agg, out } = collect();
+  // poll 尚未成功(启动初期):SDK 先兜底 fiveHour=42
+  agg.applyRateLimit({ rateLimitType: "five_hour", utilization: 42 });
+  expect(out.at(-1)?.fiveHour.utilization).toBe(42);
+  // poll 成功(/api/oauth/usage 权威值 14)→ 接管并锁定该窗口
+  agg.applyPoll({
+    planName: "Max",
+    fiveHour: { utilization: 14, resetsAt: 111 },
+    sevenDay: { utilization: 69, resetsAt: 222 },
+  });
+  expect(out.at(-1)?.fiveHour.utilization).toBe(14); // poll 覆盖 SDK 兜底
+  // 此后高频 SDK 回包(可能是跨 reset 的陈旧值)不得把它刷回 42
+  agg.applyRateLimit({ rateLimitType: "five_hour", utilization: 42 });
+  expect(out.at(-1)?.fiveHour.utilization).toBe(14); // 仍是 poll 权威值
 });
 
 test("退化的 poll(窗口为 null)不覆盖 SDK 已有真值,只更新 planName", () => {
