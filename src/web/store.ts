@@ -318,6 +318,8 @@ export interface RoomStore extends RoomState {
   unarchiveSession: (id: string) => void;
   // 硬删除的客户端侧:从 store 移除。停 driver 的命令由调用方另发(避免 store↔ws 循环)。
   removeSession: (id: string) => void;
+  // 重连对账:只保留引擎花名册(ids)里的会话,清掉本地残留的幽灵会话。
+  reconcileSessions: (ids: string[]) => void;
   limits: AccountLimits | null;
   setLimits: (limits: AccountLimits) => void;
   setConnection: (c: ConnectionStatus) => void;
@@ -389,6 +391,28 @@ export const useRoomStore = create<RoomStore>((set) => ({
         sessions,
         currentSessionId:
           st.currentSessionId === id ? null : st.currentSessionId,
+      };
+    }),
+  // 重连对账:引擎在新连接时下发当前会话花名册(ids)。本地 store 里不在册的会话是
+  // 幽灵(引擎重启 / 换引擎 / replay→live 后残留),清掉;在册的原样保留(同引用,
+  // 短抖重连不丢数据)。焦点指向被清会话则归 null。projectOrder 追加式不修剪(同
+  // removeSession 的 tradeoff)。无幽灵则不动,避免无谓重渲染。
+  reconcileSessions: (ids) =>
+    set((st) => {
+      const keep = new Set(ids);
+      const sessions: typeof st.sessions = {};
+      let pruned = false;
+      for (const [id, s] of Object.entries(st.sessions)) {
+        if (keep.has(id)) sessions[id] = s;
+        else pruned = true;
+      }
+      if (!pruned) return st;
+      return {
+        sessions,
+        currentSessionId:
+          st.currentSessionId && keep.has(st.currentSessionId)
+            ? st.currentSessionId
+            : null,
       };
     }),
 }));

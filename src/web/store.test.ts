@@ -343,6 +343,74 @@ test("archive/unarchive/remove session actions", () => {
   expect(useRoomStore.getState().currentSessionId).toBeNull();
 });
 
+test("reconcileSessions: 清掉花名册外的幽灵会话,保留在册的;焦点被清→null", () => {
+  useRoomStore.setState({
+    sessions: {},
+    currentSessionId: null,
+    projectOrder: [],
+  });
+  const api = useRoomStore.getState();
+  api.applyEvent(
+    ev({
+      sessionId: "s1",
+      type: "session.created",
+      payload: { title: "a", model: "m" },
+    }),
+  );
+  api.applyEvent(
+    ev({
+      sessionId: "s2",
+      type: "session.created",
+      payload: { title: "b", model: "m" },
+    }),
+  );
+  expect(useRoomStore.getState().currentSessionId).toBe("s2"); // 新建即跳焦
+  // 引擎花名册只剩 s1 → s2 是幽灵,清掉;焦点(s2)被清 → null
+  api.reconcileSessions(["s1"]);
+  expect(useRoomStore.getState().sessions.s1?.title).toBe("a");
+  expect(useRoomStore.getState().sessions.s2).toBeUndefined();
+  expect(useRoomStore.getState().currentSessionId).toBeNull();
+});
+
+test("reconcileSessions: 空花名册清空所有会话(引擎重启/换引擎)", () => {
+  useRoomStore.setState({
+    sessions: {},
+    currentSessionId: null,
+    projectOrder: [],
+  });
+  const api = useRoomStore.getState();
+  api.applyEvent(
+    ev({
+      sessionId: "s1",
+      type: "session.created",
+      payload: { title: "a", model: "m" },
+    }),
+  );
+  api.reconcileSessions([]);
+  expect(Object.keys(useRoomStore.getState().sessions)).toHaveLength(0);
+  expect(useRoomStore.getState().currentSessionId).toBeNull();
+});
+
+test("reconcileSessions: 在册会话与焦点原样保留(短抖重连不丢数据)", () => {
+  useRoomStore.setState({
+    sessions: {},
+    currentSessionId: null,
+    projectOrder: [],
+  });
+  const api = useRoomStore.getState();
+  api.applyEvent(
+    ev({
+      sessionId: "s1",
+      type: "session.created",
+      payload: { title: "a", model: "m" },
+    }),
+  );
+  const before = useRoomStore.getState().sessions.s1;
+  api.reconcileSessions(["s1"]);
+  expect(useRoomStore.getState().sessions.s1).toBe(before); // 同引用,未重建
+  expect(useRoomStore.getState().currentSessionId).toBe("s1");
+});
+
 test("SDK-init session.created merges the real permissionMode over the synthesized default", () => {
   // engine 合成的第一条 permissionMode=default;SDK init 派生的第二条带真实模式。
   let st = reduce(

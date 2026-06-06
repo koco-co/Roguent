@@ -78,6 +78,12 @@ export class WsGateway {
     this.wss.on("connection", (ws) => {
       this.clients.add(ws);
       if (this.lastLimits) ws.send(JSON.stringify(this.lastLimits));
+      // 当前会话花名册 → 客户端对账清幽灵(重连/换引擎后残留的旧会话)。
+      this.reply(ws, {
+        kind: "control",
+        type: "roster",
+        sessionIds: this.mgr.sessionIds(),
+      });
       ws.on("message", (data) => void this.onCommand(String(data), ws));
       ws.on("close", () => this.clients.delete(ws));
     });

@@ -24,6 +24,9 @@ const defaultFactory: DriverFactory = (cb, model, cwd) =>
 export class SessionManager {
   private seq = new Sequencer();
   private drivers = new Map<string, IDriver>();
+  // 当前引擎认识的所有会话 id(live driver + 已导入的 transcript)。新连接对账用:
+  // gateway 把它下发给客户端清幽灵会话。进程重启即清零(会话确实没了)。
+  private knownSessions = new Set<string>();
   private sinks = new Set<EventSink>();
   private limitsSinks = new Set<LimitsSink>();
   // 账户级订阅用量聚合器:合并 keychain 轮询 /api/oauth/usage(权威窗口用量 +
@@ -114,7 +117,13 @@ export class SessionManager {
     };
     const driver = this.driverFactory(cb, opts.model, cwd);
     this.drivers.set(id, driver);
+    this.knownSessions.add(id);
     driver.start();
+  }
+
+  // 引擎当前认识的会话 id(新连接花名册;gateway 下发给客户端对账清幽灵)。
+  sessionIds(): string[] {
+    return [...this.knownSessions];
   }
 
   sendMessage(id: string, text: string): void {
@@ -130,6 +139,7 @@ export class SessionManager {
     if (lines.length === 0) throw new Error("transcript empty or unreadable");
     const drafts = normalizeTranscript(lines);
     if (drafts.length === 0) return;
+    this.knownSessions.add(id); // 导入的会话也进花名册,重连不被当幽灵清掉
     // normalizeTranscript always prepends session.created → drafts[0] exists
     const created = drafts[0]!.payload as SessionCreatedPayload;
     const cwd = created.cwd?.trim() || this.cwd;
@@ -148,6 +158,7 @@ export class SessionManager {
   deleteSession(id: string): void {
     this.drivers.get(id)?.end();
     this.drivers.delete(id);
+    this.knownSessions.delete(id);
   }
 
   async setModel(id: string, model: string): Promise<void> {

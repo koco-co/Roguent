@@ -50,6 +50,13 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
     const ui = useUiStore.getState();
     if (c.type === "localSessions") ui.setLocalSessions(c.items);
     else if (c.type === "importError") ui.setImportError(c.reason);
+    else if (c.type === "roster") {
+      // 重连对账:清掉引擎花名册外的幽灵会话;若正停在被清的内景,退回大厅。
+      useRoomStore.getState().reconcileSessions(c.sessionIds);
+      const view = ui.view;
+      if (view !== "overworld" && !c.sessionIds.includes(view.interior))
+        ui.exitOverworld();
+    }
   };
   const onLimits = (l: AccountLimits) => useRoomStore.getState().setLimits(l);
   // 连接建立前发出的命令(如 newSession)先入队,onopen 后补发;

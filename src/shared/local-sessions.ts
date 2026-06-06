@@ -10,4 +10,6 @@ export interface LocalSessionMeta {
 // engine → client 的定向控制消息（非 RoomEvent 信封）。
 export type ControlMessage =
   | { kind: "control"; type: "localSessions"; items: LocalSessionMeta[] }
-  | { kind: "control"; type: "importError"; path: string; reason: string };
+  | { kind: "control"; type: "importError"; path: string; reason: string }
+  // 新连接时引擎下发的当前会话花名册,客户端据此对账清幽灵会话(重连健壮性)。
+  | { kind: "control"; type: "roster"; sessionIds: string[] };
