@@ -1,4 +1,5 @@
 import { useRoomStore } from "../store";
+import { useUiStore } from "../ui-store";
 import { Icon, type IconName } from "./icons";
 import { formatCountdown } from "./limits-format";
 
@@ -47,9 +48,10 @@ function BarRow({
 }
 
 /**
- * 左上账户限额三条(对标设计原型),三条统一显示「已用%」(对齐 claude-hud / Claude Code):
- * - 5h(❤ hp) / CTX(💎 shield,当前会话上下文占用%) / WEEK(💠 mp)。
- * 真数据:store.limits(5h/WEEK,源自 SDK rate_limit_event)+ 当前会话 context.utilization(CTX)。
+ * 左上账户限额条,统一显示「已用%」(对齐 claude-hud / Claude Code):
+ * - 5h(❤ hp) / WEEK(💠 mp) 是**账户级**(源自 OAuth /api/oauth/usage poll),两视图都显。
+ * - CTX(💎 shield,当前会话上下文占用%)是**会话级**,只在**内景**显示;大厅(overworld)
+ *   没有「当前会话」语境,故隐藏(见用户规则:大厅不展示 CTX)。
  */
 export function LimitBars() {
   const limits = useRoomStore((s) => s.limits);
@@ -58,6 +60,8 @@ export function LimitBars() {
       ? (s.sessions[s.currentSessionId]?.context?.utilization ?? null)
       : null,
   );
+  // 内景才有会话语境 → 才显 CTX。返回布尔基元,不构造新值(见 store 渲染纪律)。
+  const inInterior = useUiStore((s) => s.view !== "overworld");
   const now = Date.now();
 
   return (
@@ -78,15 +82,17 @@ export function LimitBars() {
           resetsAt={limits?.fiveHour.resetsAt ?? null}
           now={now}
         />
-        <BarRow
-          icon="gem"
-          kind="shield"
-          label="CTX"
-          value={ctxUtil}
-          resetsAt={null}
-          now={now}
-          isShield
-        />
+        {inInterior && (
+          <BarRow
+            icon="gem"
+            kind="shield"
+            label="CTX"
+            value={ctxUtil}
+            resetsAt={null}
+            now={now}
+            isShield
+          />
+        )}
         <BarRow
           icon="gemcur"
           kind="mp"
