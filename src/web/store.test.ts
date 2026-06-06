@@ -7,6 +7,7 @@ const empty: RoomState = {
   sessions: {},
   currentSessionId: null,
   projectOrder: [],
+  connection: "connecting",
 };
 const ev = (p: Partial<RoomEvent>): RoomEvent => ({
   seq: 1,

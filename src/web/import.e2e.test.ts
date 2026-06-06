@@ -14,6 +14,7 @@ test("imported transcript drives spawn → tool cycle → done → message", () 
     sessions: {},
     currentSessionId: null,
     projectOrder: [],
+    connection: "connecting",
   };
   let seq = 0;
   for (const d of drafts) {
@@ -53,6 +54,7 @@ test("subagent appears mid-stream before its result", () => {
     sessions: {},
     currentSessionId: null,
     projectOrder: [],
+    connection: "connecting",
   };
   let seq = 0;
   // 只放到 agent.spawned 之前那条之后(spawn 已发、done 未发)。

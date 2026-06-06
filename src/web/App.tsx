@@ -48,7 +48,8 @@ export function App() {
         if (!cancelled) conn = connectRoom(url);
       })
       .catch(() => {
-        /* engine 不可达(Tauri 重试耗尽)——错误 UX 后续阶段处理 */
+        // engine 不可达(如 Tauri 重试耗尽)→ 置 closed,触发 ErrorOverlay 离线错误层。
+        useRoomStore.getState().setConnection("closed");
       });
     return () => {
       cancelled = true;

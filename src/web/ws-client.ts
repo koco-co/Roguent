@@ -33,6 +33,7 @@ export function handleIncoming(
 export interface RoomConnection {
   send: (cmd: object) => void;
   close: () => void;
+  reconnect: () => void;
 }
 
 let active: RoomConnection | null = null;
@@ -56,16 +57,22 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
   const buffer: object[] = [];
   let ws: WebSocket;
   let closedByUser = false;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   const open = () => {
+    useRoomStore.getState().setConnection("connecting");
     ws = new WebSocket(url);
     ws.onmessage = (ev) =>
       handleIncoming(String(ev.data), apply, onControl, onLimits);
     ws.onopen = () => {
+      useRoomStore.getState().setConnection("open");
       for (const cmd of buffer.splice(0)) ws.send(JSON.stringify(cmd));
     };
     ws.onclose = () => {
-      if (!closedByUser) setTimeout(open, 1000);
+      useRoomStore.getState().setConnection("closed");
+      if (closedByUser) return;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(open, 1000);
     };
   };
   open();
@@ -79,8 +86,24 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
       closedByUser = true;
       ws.close();
     },
+    reconnect: () => {
+      if (closedByUser) return;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      // 已在连接中 / 已连上 → 不重复开 socket(避免双 socket 竞态)。
+      if (ws && (ws.readyState === ws.CONNECTING || ws.readyState === ws.OPEN))
+        return;
+      open(); // 当前是 closed 态,旧 socket 已关,直接开新的
+    },
   };
   active = conn;
   for (const cmd of pending.splice(0)) conn.send(cmd);
   return conn;
+}
+
+/** 立即重连(清掉退避定时器、马上开新 socket);engine 离线错误层的「重试连接」用。 */
+export function reconnectRoom(): void {
+  active?.reconnect();
 }

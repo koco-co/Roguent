@@ -13,12 +13,17 @@ import type {
 } from "../shared/events";
 import { agentTypeToSkin } from "../shared/mapping";
 
+// WS 连接生命周期状态:connecting(建连/退避重连中)/ open(已连)/ closed(已断,
+// 含 engine URL 解析失败)。ErrorOverlay 据此去抖显示离线错误层(T4.3)。
+export type ConnectionStatus = "connecting" | "open" | "closed";
+
 export interface RoomState {
   sessions: Record<string, Session>;
   currentSessionId: string | null;
   // 项目首见顺序 —— 总览世界房间的槽位顺序。追加式:新项目入尾,既有项目永不
   // 重排,房间因此不抖动(spec §总览世界:布局对已存在项目稳定/追加式)。
   projectOrder: string[];
+  connection: ConnectionStatus;
 }
 
 // 大厅最多同时显示这么多活跃(未归档)会话;新建/激活第 11 个会把活跃度最低者
@@ -89,10 +94,12 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
           ? [...state.projectOrder, proj]
           : state.projectOrder;
       // SDK init 派生的第二条 session.created 绝不能抢焦点。
+      // connection 是传输层状态,事件折叠从不改它 —— 原样透传。
       return {
         sessions,
         projectOrder,
         currentSessionId: state.currentSessionId,
+        connection: state.connection,
       };
     }
 
@@ -115,8 +122,13 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
         : state.projectOrder;
     // 新建即跳第 11 个 → 软归档活跃度最低者;新会话受保护,绝不被自己挤掉。
     enforceActiveCap(sessions, e.sessionId);
-    // 新建即跳转:会话首次出现就把焦点切过去。
-    return { sessions, projectOrder, currentSessionId: e.sessionId };
+    // 新建即跳转:会话首次出现就把焦点切过去。connection 透传(见上)。
+    return {
+      sessions,
+      projectOrder,
+      currentSessionId: e.sessionId,
+      connection: state.connection,
+    };
   }
 
   // session.error 可能在 system:init 之前就到达(如订阅 auth 直接失败),
@@ -144,6 +156,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       sessions,
       projectOrder: state.projectOrder,
       currentSessionId: state.currentSessionId ?? e.sessionId,
+      connection: state.connection,
     };
   }
 
@@ -289,14 +302,17 @@ export interface RoomStore extends RoomState {
   removeSession: (id: string) => void;
   limits: AccountLimits | null;
   setLimits: (limits: AccountLimits) => void;
+  setConnection: (c: ConnectionStatus) => void;
 }
 
 export const useRoomStore = create<RoomStore>((set) => ({
   sessions: {},
   currentSessionId: null,
   projectOrder: [],
+  connection: "connecting",
   limits: null,
   setLimits: (limits) => set({ limits }),
+  setConnection: (connection) => set({ connection }),
   applyEvent: (e) => set((st) => reduce(st, e)),
   switchSession: (id) => set({ currentSessionId: id }),
   // 乐观回显:用户发的消息没有对应服务端事件,本地直接进 transcript;同时刷新活跃度。

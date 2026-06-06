@@ -18,6 +18,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { EmptyState } from "../hud/EmptyState";
 import { AnimatedDecor } from "../room/DungeonRoom";
 import { Vignette } from "../room/Lights";
 import {
@@ -480,25 +481,7 @@ export function Overworld() {
           </AtlasProvider>
         ) : null}
       </Application>
-      {projectCount === 0 && !atlasError ? (
-        <div
-          className="px-panel pf"
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            padding: "16px 20px",
-            fontSize: 11,
-            textAlign: "center",
-            color: "var(--muted)",
-          }}
-        >
-          还没有会话
-          <br />
-          <span style={{ fontSize: 9 }}>点右下角 💬 新建一个开始</span>
-        </div>
-      ) : null}
+      {projectCount === 0 && !atlasError ? <EmptyState /> : null}
       {atlasError ? (
         <div
           style={{

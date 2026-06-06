@@ -12,6 +12,7 @@ test("replaying sample fixture drives room chain + transcript", async () => {
     sessions: {},
     currentSessionId: null,
     projectOrder: [],
+    connection: "connecting",
   };
   for (const e of events) st = reduce(st, e);
 
@@ -37,6 +38,7 @@ test("step-by-step replay: agent.spawned → in agents; tool.started/ended → c
     sessions: {},
     currentSessionId: null,
     projectOrder: [],
+    connection: "connecting",
   };
 
   // seq 1: session.created
@@ -89,6 +91,7 @@ test("tool.failed clears the agent's currentTool (red-light signal)", () => {
     sessions: {},
     currentSessionId: null,
     projectOrder: [],
+    connection: "connecting",
   };
   st = reduce(
     st,
@@ -122,6 +125,7 @@ test("multi-session fixture: two projects → two overworld room slots; per-sess
     sessions: {},
     currentSessionId: null,
     projectOrder: [],
+    connection: "connecting",
   };
   for (const e of events) st = reduce(st, e);
 

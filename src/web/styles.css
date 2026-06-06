@@ -2623,3 +2623,69 @@ img {
   font-size: 13px;
   color: var(--text);
 }
+
+/* ---------------- 大厅空态(T4.3,对标原型 layout.css 341-386) ---------------- */
+.empty-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.empty-title {
+  font-size: 20px;
+  color: var(--text);
+  text-shadow: 3px 3px 0 #000;
+}
+.empty-sub {
+  font-size: 15px;
+  color: var(--ink-dim);
+  margin-bottom: 10px;
+}
+.struct-tower {
+  position: relative;
+  width: 160px;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+.struct-tower.big {
+  height: 240px;
+}
+.tower-ring {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 130px;
+  height: 130px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgba(54, 197, 224, 0.5),
+    transparent,
+    rgba(54, 140, 255, 0.45),
+    transparent
+  );
+  mask: radial-gradient(circle, transparent 54%, #000 58%);
+  -webkit-mask: radial-gradient(circle, transparent 54%, #000 58%);
+  animation: vspin 6s linear infinite;
+}
+.tower-orb {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  background: rgba(11, 20, 30, 0.7);
+  padding: 10px;
+  box-shadow: 0 0 24px rgba(54, 197, 224, 0.6), 0 0 0 2px
+    rgba(54, 197, 224, 0.4);
+}

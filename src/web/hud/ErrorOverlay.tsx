@@ -1,32 +1,40 @@
-import { useUiStore } from "../ui-store";
+import { useEffect, useState } from "react";
+import { useRoomStore } from "../store";
+import { reconnectRoom } from "../ws-client";
 import { Icon } from "./icons";
 
 /**
- * runtime 离线错误层 ErrorOverlay(T3.12,对标设计原型 lobby.jsx 的 ErrorOverlay)。
- *
- * 不是 Modal,而是直接的全屏 `.scrim` 覆盖层:资源 / 连接失败时显示可见错误层,
- * 绝不静默黑屏。点空白处关闭(Esc 关闭由 App 集中处理)。
- *
- * **触发入口待 T4.3 接真实连接状态**(WS 断线 → openPanel('error'));本任务只建
- * 组件 + 走 activePanel 路由。现可由 openPanel('error') 手动打开验证。`'error'`
- * 已在 ui-store 的 PanelId union 里。
- *
- * 「重试连接」「返回」当前都仅 closePanel —— 真实重连逻辑同样待 T4.3 接入,届时
- * 「重试连接」改触发 WS 重连。
- *
- * selector 守 zustand 铁律:只取单值 / 稳定函数引用,不在 selector 里构造新值。
- * activePanel gate 的 `if (!active) return null` 放在所有 hooks 之后(hooks 规则)。
+ * runtime 离线错误层 ErrorOverlay(T4.3 接真实连接状态):
+ * 由 store.connection 驱动 —— 连接非 open 持续超过宽限期(GRACE_MS)才显示,
+ * 避免正常 1s 退避重连时闪烁。绝不静默黑屏。
+ * - 「重试连接」→ reconnectRoom()(立即重连);连上后 connection→open,本层自动隐。
+ * - 「返回」→ 手动忽略本次(dismissed),离线时也先放用户进去;下次断线(重新 open 过)再弹。
+ * selector 守铁律;gate 放所有 hooks 之后。
  */
-export function ErrorOverlay() {
-  const active = useUiStore((s) => s.activePanel === "error");
-  const closePanel = useUiStore((s) => s.closePanel);
+const GRACE_MS = 2500;
 
-  if (!active) return null;
+export function ErrorOverlay() {
+  const connection = useRoomStore((s) => s.connection);
+  const [show, setShow] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (connection === "open") {
+      setShow(false);
+      setDismissed(false); // 恢复在线 → 重置忽略,下次断线可再弹
+      return;
+    }
+    // 非 open(connecting/closed)持续 GRACE_MS 才显示
+    const t = setTimeout(() => setShow(true), GRACE_MS);
+    return () => clearTimeout(t);
+  }, [connection]);
+
+  if (!show || dismissed) return null;
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: scrim 是覆盖遮罩,点空白处关闭;键盘关闭由 App 的 Esc 集中处理
-    <div className="scrim" onClick={closePanel}>
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: 内层吞掉冒泡,防止点错误层时误触 scrim 关闭 */}
+    // biome-ignore lint/a11y/useKeyWithClickEvents: scrim 是覆盖遮罩;键盘关闭由 App 的 Esc 集中处理
+    <div className="scrim" onClick={() => setDismissed(true)}>
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: 内层吞掉冒泡 */}
       <div className="error-overlay" onClick={(e) => e.stopPropagation()}>
         <div className="error-spark">
           <Icon name="error" size={64} glow="#ff4d6d" />
@@ -43,22 +51,19 @@ export function ErrorOverlay() {
         <div className="faint" style={{ fontSize: 12, marginBottom: 22 }}>
           资源/连接失败时显示可见错误层,绝不静默黑屏。
         </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            justifyContent: "center",
-          }}
-        >
-          {/* 重试连接 / 返回:真实重连待 T4.3,当前两按钮均仅关闭错误层。 */}
+        <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
           <button
             type="button"
             className="pxbtn primary cjk"
-            onClick={closePanel}
+            onClick={() => reconnectRoom()}
           >
             重试连接
           </button>
-          <button type="button" className="pxbtn cjk" onClick={closePanel}>
+          <button
+            type="button"
+            className="pxbtn cjk"
+            onClick={() => setDismissed(true)}
+          >
             返回
           </button>
         </div>
