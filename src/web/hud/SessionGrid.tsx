@@ -84,6 +84,12 @@ export function SessionGrid() {
           </button>
         </div>
 
+        {list.length === 0 && (
+          <div className="sg-empty faint">
+            还没有会话——按「＋ 新会话」或到聊天抽屉新建第一个
+          </div>
+        )}
+
         <div className="sg-grid scroll">
           {/* 导入卡(左上第一个):进真导入流程 */}
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: 像素卡片,键盘 a11y 由 App 集中处理 */}

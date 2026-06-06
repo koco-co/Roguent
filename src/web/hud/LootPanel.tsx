@@ -73,7 +73,17 @@ export function LootPanel() {
         {/* 真 loot 格:每格 = 一件真实产出的工件。 */}
         {ordered.map((l) => (
           <div key={l.id} className="loot-cell">
-            <Icon name={KIND_ICON[l.kind]} size={30} glow={KIND_GLOW[l.kind]} />
+            <Icon
+              name={
+                (KIND_ICON as Record<string, IconName | undefined>)[l.kind] ??
+                "quest"
+              }
+              size={30}
+              glow={
+                (KIND_GLOW as Record<string, string | undefined>)[l.kind] ??
+                "var(--cyan)"
+              }
+            />
             <div className="loot-name">{l.label}</div>
           </div>
         ))}
