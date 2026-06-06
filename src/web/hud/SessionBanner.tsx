@@ -12,6 +12,7 @@ import { shortModel } from "./widgets";
 export function SessionBanner() {
   // 与 RosterCard 一致的内景 gate:overworld = 大厅,其余 = 内景。
   const inInterior = useUiStore((s) => s.view !== "overworld");
+  const openPanel = useUiStore((s) => s.openPanel);
   const session = useRoomStore((s) =>
     s.currentSessionId ? s.sessions[s.currentSessionId] : undefined,
   );
@@ -22,7 +23,11 @@ export function SessionBanner() {
 
   return (
     <div className="panel session-banner">
-      <div className="sb-body">
+      <button
+        type="button"
+        className="sb-body"
+        onClick={() => openPanel("sessiongrid")}
+      >
         <Icon name="task" size={20} />
         <span className="sb-title">{session?.title ?? "no session"}</span>
         <span className="sb-dot">·</span>
@@ -39,7 +44,7 @@ export function SessionBanner() {
           <Icon name="claude" size={13} style={{ marginRight: 4 }} />
           Claude
         </span>
-      </div>
+      </button>
     </div>
   );
 }
