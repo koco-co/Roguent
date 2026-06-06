@@ -943,18 +943,27 @@ img {
   height: 10px;
 }
 
-/* ── 玻璃质感(移植自原型 layout.css 的 .glass,供 TaskWindow 用)──────── */
+/* ── 玻璃质感(移植自原型 layout.css 的 .glass,供 TaskWindow 用)──────────
+   深炭板岩近不透明底(浅 blur 留玻璃感、不让亮地板透成浅青)+ 冷青双层斜角边
+   (外暗 1px → 青框 2px → 内高光)+ 顶部内青辉光 / 底部内阴影做立体 + 外投影
+   悬浮 + 微青外辉光。对齐原型「深色发光科技 HUD 卡」质感。 */
 .glass {
   background: linear-gradient(
-    160deg,
-    rgba(34, 74, 86, 0.42),
-    rgba(11, 20, 26, 0.62)
+    158deg,
+    rgba(28, 37, 49, 0.94),
+    rgba(12, 17, 24, 0.97)
   );
-  backdrop-filter: blur(7px);
-  -webkit-backdrop-filter: blur(7px);
-  box-shadow: 0 0 0 2px rgba(54, 197, 224, 0.35), inset 0 0 0 1px
-    rgba(160, 230, 245, 0.18), inset 0 18px 30px rgba(120, 210, 235, 0.06), 0
-    6px 18px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px) saturate(1.1);
+  -webkit-backdrop-filter: blur(6px) saturate(1.1);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px rgba(6, 10, 14, 0.9),
+    0 0 0 2px rgba(74, 138, 162, 0.4),
+    inset 0 0 0 1px rgba(150, 222, 242, 0.16),
+    inset 0 22px 38px -18px rgba(80, 180, 210, 0.16),
+    inset 0 -18px 30px -14px rgba(0, 0, 0, 0.5),
+    0 12px 28px rgba(0, 0, 0, 0.55),
+    0 0 22px rgba(54, 197, 224, 0.12);
 }
 
 /* ── 内景实时任务窗(TaskWindow,移植自原型 layout.css 的 .taskwin/.tw-*)── */
@@ -966,20 +975,44 @@ img {
   width: 312px;
   pointer-events: auto;
 }
+/* 顶角铆钉(对齐 .panel.rivets 约定,但用冷青光):科技卡角点缀。 */
+.taskwin::before,
+.taskwin::after {
+  content: "";
+  position: absolute;
+  top: 7px;
+  width: 3px;
+  height: 3px;
+  border-radius: 1px;
+  background: rgba(160, 226, 244, 0.8);
+  box-shadow: 0 0 4px rgba(54, 197, 224, 0.7), 0 0 0 1px rgba(6, 10, 14, 0.8);
+  z-index: 3;
+}
+.taskwin::before {
+  left: 7px;
+}
+.taskwin::after {
+  right: 7px;
+}
 .tw-head {
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 11px 13px;
+  width: 100%;
+  padding: 12px 14px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(120, 200, 225, 0.18);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(120, 200, 225, 0.22);
+  font-family: inherit;
 }
 .tw-title {
   font-size: 10px;
-  color: #bfeaf5;
+  color: #8fe9fb;
   flex: 1;
   text-align: left;
-  text-shadow: 0 0 6px rgba(54, 197, 224, 0.5);
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(54, 197, 224, 0.65), 0 1px 0 #000;
 }
 .tw-count {
   font-family: var(--font-px);
@@ -998,14 +1031,21 @@ img {
 /* 原型 max-height:300;我们左栈是固定定位(非 flex),为不与左下 Minimap 在矮视口重叠,收到 220 + scroll */
 .tw-body {
   max-height: 220px;
-  padding: 10px 12px;
+  padding: 11px 13px;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 11px;
 }
+/* <button> 默认带 UA 浅灰底 / 边框 / 内边距,且不继承 font-family(会落到 Arial)。
+   全部重置:透明底齐平贴深面板,任务名继承像素 CJK 字体(--font-cjk),与原型一致。 */
 .tw-item {
   cursor: pointer;
   text-align: left;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
 }
 .tw-item:hover .tw-name {
   color: #fff;
@@ -1014,26 +1054,30 @@ img {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 .tw-dot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   flex-shrink: 0;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 0 0 1px
+    rgba(0, 0, 0, 0.55);
 }
 .tw-name {
   font-size: 12px;
-  color: var(--ink-dim);
+  color: #cfe3ec;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
 }
 .tw-bar {
-  height: 6px;
-  background: rgba(0, 0, 0, 0.4);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  height: 7px;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55), inset 0 1px 2px
+    rgba(0, 0, 0, 0.4);
   position: relative;
   overflow: hidden;
 }
@@ -1042,7 +1086,20 @@ img {
   left: 0;
   top: 0;
   bottom: 0;
+  border-radius: 2px;
   transition: width 0.5s;
+}
+/* 任意填充色上叠一道顶部高光,做出原型那种玻璃质进度条 */
+.tw-fill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.32),
+    rgba(255, 255, 255, 0) 60%
+  );
 }
 .tw-fill.live::after {
   content: "";
@@ -1067,9 +1124,9 @@ img {
 .tw-foot {
   display: flex;
   justify-content: space-between;
-  padding: 9px 13px;
+  padding: 10px 14px;
   font-size: 11px;
-  border-top: 1px solid rgba(120, 200, 225, 0.18);
+  border-top: 1px solid rgba(120, 200, 225, 0.22);
 }
 
 /* ── 会话档案卡(NpcCard,移植自原型 layout.css 的 npccard 系列类)──
