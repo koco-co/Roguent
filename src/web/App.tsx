@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { resolveEngineUrl } from "./engine-url";
 import { CharacterSelect } from "./hud/CharacterSelect";
 import { Hud } from "./hud/Hud";
@@ -12,9 +12,28 @@ import {
   settingsRootStyle,
   useSettingsStore,
 } from "./settings-store";
+import { stageScale } from "./stage-scale";
 import { useRoomStore } from "./store";
 import { useUiStore } from "./ui-store";
 import { type RoomConnection, connectRoom } from "./ws-client";
+
+// 把固定 1920×1080 舞台等比缩放到当前窗口(对齐原型 useStageScale)。把缩放因子写进
+// #viewport 的 --stage-scale CSS 变量(命令式,避免 resize 每帧触发 React 重渲染)。
+function useStageScale(ref: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.setProperty(
+        "--stage-scale",
+        String(stageScale(window.innerWidth, window.innerHeight)),
+      );
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [ref]);
+}
 
 export function App() {
   const view = useUiStore((s) => s.view);
@@ -33,6 +52,9 @@ export function App() {
 
   // 用户 UI 偏好驱动根节点的主题 class 与 CSS 变量(T1.1)。
   const settings = useSettingsStore();
+
+  const viewportRef = useRef<HTMLDivElement>(null);
+  useStageScale(viewportRef);
 
   // 进入内景后该会话被 LRU 归档 / 删除 → 自动回落大厅,避免困在幽灵内景
   // (spec §架构: 双层缩放;§生命周期: ≤10/LRU 软归档)。
@@ -86,42 +108,38 @@ export function App() {
   ]);
 
   return (
-    <div
-      className={settingsRootClass(settings)}
-      style={
-        {
-          position: "fixed",
-          inset: 0,
-          overflow: "hidden",
-          ...settingsRootStyle(settings),
-        } as React.CSSProperties
-      }
-    >
-      {/* 双层缩放:总览大厅(暖色 DOM 广场)↔ 进入的会话内景(Pixi Room)。*/}
-      {inInterior ? <Room /> : <LobbyView />}
-      <Hud />
-      {inInterior ? (
-        <button
-          type="button"
-          className="px-btn pf"
-          style={{
-            position: "absolute",
-            top: 14,
-            left: 70,
-            padding: "8px 12px",
-            fontSize: 10,
-            color: "var(--cyan)",
-          }}
-          onClick={() => interiorId && beginExit(interiorId)}
-        >
-          ← 大厅
-        </button>
-      ) : (
-        <NpcCard />
-      )}
-      <PortalTransition />
-      {/* 首次进入的强制角色选择门(avatarHero === null 时显示,覆盖 overworld + HUD)。*/}
-      <CharacterSelect />
+    <div id="viewport" ref={viewportRef} className="viewport">
+      <div
+        id="stage"
+        className={`stage ${settingsRootClass(settings)}`}
+        style={settingsRootStyle(settings) as React.CSSProperties}
+      >
+        {/* 双层缩放:总览大厅(暖色 DOM 广场)↔ 进入的会话内景(Pixi Room)。*/}
+        {inInterior ? <Room /> : <LobbyView />}
+        <Hud />
+        {inInterior ? (
+          <button
+            type="button"
+            className="px-btn pf"
+            style={{
+              position: "absolute",
+              top: 14,
+              left: 70,
+              padding: "8px 12px",
+              fontSize: 10,
+              color: "var(--cyan)",
+            }}
+            onClick={() => interiorId && beginExit(interiorId)}
+          >
+            ← 大厅
+          </button>
+        ) : (
+          <NpcCard />
+        )}
+        <PortalTransition />
+        {/* 首次进入的强制角色选择门(avatarHero === null 时显示,覆盖 overworld + HUD)。*/}
+        <CharacterSelect />
+      </div>
     </div>
   );
 }
