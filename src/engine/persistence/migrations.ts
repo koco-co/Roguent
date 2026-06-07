@@ -216,8 +216,12 @@ function migrateToVersion1(db: Database): void {
       FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE SET NULL
     );
 
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_achievement_progress_key_session
-      ON achievement_progress(achievement_key, session_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_achievement_progress_global_key
+      ON achievement_progress(achievement_key)
+      WHERE session_id IS NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_achievement_progress_session_key
+      ON achievement_progress(achievement_key, session_id)
+      WHERE session_id IS NOT NULL;
 
     CREATE TABLE IF NOT EXISTS audit_records (
       id TEXT PRIMARY KEY,

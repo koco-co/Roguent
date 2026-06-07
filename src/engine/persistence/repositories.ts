@@ -245,6 +245,7 @@ export function createRepositories(db: Database) {
             session_id = excluded.session_id,
             status = excluded.status,
             forwarding_enabled = excluded.forwarding_enabled,
+            bound_at = excluded.bound_at,
             updated_at = excluded.updated_at,
             external_user_id = excluded.external_user_id,
             display_name = excluded.display_name,

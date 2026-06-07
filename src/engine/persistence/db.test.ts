@@ -24,6 +24,10 @@ type IndexInfoRow = {
   name: string;
 };
 
+type CountRow = {
+  count: number;
+};
+
 const FORBIDDEN_SECRET_COLUMNS = new Set([
   "token",
   "password",
@@ -230,6 +234,129 @@ test("repositories can upsert sessions and pairing bindings and append audit rec
       metadataJson: '{"reason":"smoke-test"}',
       createdAt: now,
     });
+  } finally {
+    testDb.cleanup();
+  }
+});
+
+test("pairing binding rebinding replaces boundAt with the new input", () => {
+  const testDb = createTestDatabase();
+  try {
+    migrate(testDb.db);
+
+    const repositories = createRepositories(testDb.db);
+    const firstBoundAt = 1_717_452_000_000;
+    const reboundAt = firstBoundAt + 60_000;
+
+    repositories.sessions.upsert({
+      id: "session-original",
+      runtime: "claude",
+      title: "Original session",
+      model: "claude-opus-4-8",
+      cwd: "/tmp/original",
+      permissionMode: "default",
+      sandboxMode: "workspace-write",
+      reasoningEffort: null,
+      networkAccess: true,
+      approvalPolicy: null,
+      metadataJson: null,
+      createdAt: firstBoundAt,
+      updatedAt: firstBoundAt,
+    });
+    repositories.sessions.upsert({
+      id: "session-rebound",
+      runtime: "claude",
+      title: "Rebound session",
+      model: "claude-opus-4-8",
+      cwd: "/tmp/rebound",
+      permissionMode: "default",
+      sandboxMode: "workspace-write",
+      reasoningEffort: null,
+      networkAccess: true,
+      approvalPolicy: null,
+      metadataJson: null,
+      createdAt: reboundAt,
+      updatedAt: reboundAt,
+    });
+
+    repositories.pairingBindings.upsert({
+      id: "binding-original",
+      channel: "wechat",
+      externalChatId: "external-chat-rebound",
+      sessionId: "session-original",
+      status: "active",
+      forwardingEnabled: true,
+      boundAt: firstBoundAt,
+      updatedAt: firstBoundAt,
+      externalUserId: null,
+      displayName: "Original Chat",
+      secretRef: "keychain://wechat/original",
+      metadataJson: null,
+    });
+    repositories.pairingBindings.upsert({
+      id: "binding-rebound",
+      channel: "wechat",
+      externalChatId: "external-chat-rebound",
+      sessionId: "session-rebound",
+      status: "active",
+      forwardingEnabled: true,
+      boundAt: reboundAt,
+      updatedAt: reboundAt,
+      externalUserId: null,
+      displayName: "Rebound Chat",
+      secretRef: "keychain://wechat/rebound",
+      metadataJson: null,
+    });
+
+    expect(
+      repositories.pairingBindings.getByExternalKey(
+        "wechat",
+        "external-chat-rebound",
+      ),
+    ).toMatchObject({
+      id: "binding-rebound",
+      sessionId: "session-rebound",
+      boundAt: reboundAt,
+      updatedAt: reboundAt,
+    });
+  } finally {
+    testDb.cleanup();
+  }
+});
+
+test("achievement_progress enforces one global row per achievement key", () => {
+  const testDb = createTestDatabase();
+  try {
+    migrate(testDb.db);
+
+    const insertGlobalAchievement = (id: string) => {
+      testDb.db
+        .query<unknown, [string, string, number, number, number]>(`
+          INSERT INTO achievement_progress (
+            id,
+            achievement_key,
+            session_id,
+            progress,
+            target,
+            updated_at
+          )
+          VALUES (?, ?, NULL, ?, ?, ?)
+        `)
+        .run(id, "first-global-win", 1, 10, 1_717_452_000_000);
+    };
+
+    insertGlobalAchievement("achievement-global-1");
+    expect(() => insertGlobalAchievement("achievement-global-2")).toThrow();
+
+    const row = testDb.db
+      .query<CountRow, [string]>(`
+        SELECT COUNT(*) AS count
+        FROM achievement_progress
+        WHERE achievement_key = ? AND session_id IS NULL
+      `)
+      .get("first-global-win");
+
+    expect(row?.count).toBe(1);
   } finally {
     testDb.cleanup();
   }
