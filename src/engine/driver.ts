@@ -1,5 +1,7 @@
 import {
+  type CanUseTool,
   type Options,
+  type PermissionResult,
   type Query,
   type SDKUserMessage,
   query,
@@ -11,6 +13,7 @@ import {
   type SdkMessageLike,
   normalizeHook,
   normalizeSdkMessage,
+  summarizeToolInput,
 } from "./normalize";
 import { readMacSystemProxy, resolveProxyEnv } from "./proxy";
 
@@ -68,6 +71,16 @@ export interface IDriver {
   interrupt(): Promise<void>;
   end(): void;
   getContextUsage(): Promise<{ totalTokens: number; maxTokens: number } | null>;
+  askPermission(opts: {
+    toolName: string;
+    input: Record<string, unknown>;
+    toolUseID: string;
+    title?: string;
+    displayName?: string;
+    description?: string;
+    agentID?: string;
+  }): Promise<PermissionResult>;
+  respondPermission(promptId: string, result: PermissionResult): void;
 }
 
 export class Driver implements IDriver {
@@ -75,6 +88,7 @@ export class Driver implements IDriver {
   private queue: SDKUserMessage[] = [];
   private resolveNext: (() => void) | null = null;
   private ended = false;
+  private pendingPrompts = new Map<string, (r: PermissionResult) => void>();
 
   constructor(
     private cb: DriverCallbacks,
@@ -112,6 +126,7 @@ export class Driver implements IDriver {
       pathToClaudeCodeExecutable: cliPathFromEnv(process.env),
       includePartialMessages: true,
       hooks: buildHooks(onHook),
+      canUseTool: this.buildCanUseTool(),
     };
     this.q = query({ prompt: this.userStream(), options });
     void this.pump();
@@ -181,5 +196,90 @@ export class Driver implements IDriver {
     this.ended = true;
     this.resolveNext?.();
     this.resolveNext = null;
+    // Auto-deny all pending permission prompts when session ends
+    for (const [id, resolve] of this.pendingPrompts) {
+      resolve({ behavior: "deny", message: "session ended" });
+      this.cb.onDraft(
+        [
+          {
+            type: "prompt.resolved",
+            payload: { promptId: id, result: "dismissed" },
+          },
+        ],
+        Date.now(),
+      );
+    }
+    this.pendingPrompts.clear();
+  }
+
+  private buildCanUseTool(): CanUseTool {
+    return async (toolName, input, opts) => {
+      return this.askPermission({
+        toolName,
+        input,
+        toolUseID: opts.toolUseID,
+        title: opts.title,
+        displayName: opts.displayName,
+        description: opts.description,
+        agentID: opts.agentID,
+      });
+    };
+  }
+
+  askPermission(opts: {
+    toolName: string;
+    input: Record<string, unknown>;
+    toolUseID: string;
+    title?: string;
+    displayName?: string;
+    description?: string;
+    agentID?: string;
+  }): Promise<PermissionResult> {
+    const {
+      toolUseID,
+      toolName,
+      input,
+      title,
+      displayName,
+      description,
+      agentID,
+    } = opts;
+    const inputSummary = summarizeToolInput(input);
+    this.cb.onDraft(
+      [
+        {
+          type: "prompt.requested",
+          agentId: agentID,
+          payload: {
+            promptId: toolUseID,
+            promptKind: "permission" as const,
+            data: {
+              toolName,
+              inputSummary,
+              title,
+              displayName,
+              description,
+              agentId: agentID,
+            },
+          },
+        },
+      ],
+      Date.now(),
+    );
+    return new Promise<PermissionResult>((resolve) => {
+      this.pendingPrompts.set(toolUseID, resolve);
+    });
+  }
+
+  respondPermission(promptId: string, result: PermissionResult): void {
+    const resolve = this.pendingPrompts.get(promptId);
+    if (resolve) {
+      this.pendingPrompts.delete(promptId);
+      resolve(result);
+    }
+    this.cb.onDraft(
+      [{ type: "prompt.resolved", payload: { promptId, result: "answered" } }],
+      Date.now(),
+    );
   }
 }

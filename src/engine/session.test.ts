@@ -13,6 +13,8 @@ function fakeDriverFactory(captured: { cb?: DriverCallbacks }) {
       async interrupt() {},
       end() {},
       getContextUsage: async () => null,
+      askPermission: async () => ({ behavior: "allow" as const }),
+      respondPermission() {},
     };
   };
 }
@@ -99,6 +101,8 @@ test("deleteSession ends the driver and drops it", () => {
         ended = true;
       },
       getContextUsage: async () => null,
+      askPermission: async () => ({ behavior: "allow" as const }),
+      respondPermission() {},
     };
   };
   const mgr = new SessionManager(factory, "/tmp");
@@ -122,6 +126,8 @@ test("emits context.updated after a turn (usage.updated), from getContextUsage",
       totalTokens: 200_000,
       maxTokens: 1_000_000,
     }),
+    askPermission: async () => ({ behavior: "allow" as const }),
+    respondPermission() {},
   };
   const mgr = new SessionManager(
     (c: DriverCallbacks, _model: string, _cwd: string) => {
@@ -188,6 +194,8 @@ test("no context.updated when getContextUsage returns null", async () => {
         interrupt: async () => {},
         end() {},
         getContextUsage: async () => null,
+        askPermission: async () => ({ behavior: "allow" as const }),
+        respondPermission() {},
       };
     },
     "/tmp",
