@@ -1,3 +1,4 @@
+import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AccountLimits,
   RoomEvent,
@@ -191,6 +192,42 @@ export class SessionManager {
 
   async interrupt(id: string): Promise<void> {
     await this.drivers.get(id)?.interrupt();
+  }
+
+  respondPermission(
+    id: string,
+    promptId: string,
+    result: PermissionResult,
+  ): void {
+    this.drivers.get(id)?.respondPermission(promptId, result);
+  }
+
+  respondQuestion(
+    id: string,
+    promptId: string,
+    selectedLabels: string[],
+  ): void {
+    // Send the selection back to the agent as a user message
+    const text = selectedLabels.join("、");
+    this.drivers.get(id)?.send(text);
+    // Let the UI know the prompt is resolved
+    this.emit(
+      this.seq.stamp(
+        id,
+        "prompt.resolved",
+        { promptId, result: "answered" },
+        Date.now(),
+      ),
+    );
+  }
+
+  async setPermissionMode(id: string, mode: string): Promise<void> {
+    const driver = this.drivers.get(id);
+    if (driver && "setPermissionMode" in driver) {
+      await (
+        driver as unknown as { setPermissionMode(m: string): Promise<void> }
+      ).setPermissionMode(mode);
+    }
   }
 
   private async emitContextUsage(id: string): Promise<void> {
