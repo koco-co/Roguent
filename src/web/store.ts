@@ -343,6 +343,33 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       );
       break;
     }
+    case "thinking.delta":
+    case "thinking.final": {
+      const p = e.payload as { text: string };
+      if (!p.text) break;
+      // Find last thinking item from same agent to update (streaming replace), or append new
+      const lastThinkingIdx = [...s.timeline]
+        .reverse()
+        .findIndex((i) => i.kind === "thinking" && i.agentId === e.agentId);
+      if (lastThinkingIdx !== -1) {
+        const idx = s.timeline.length - 1 - lastThinkingIdx;
+        s.timeline = s.timeline.map((item, i) =>
+          i === idx ? { ...item, text: p.text } : item,
+        );
+      } else {
+        s.timeline = [
+          ...s.timeline,
+          {
+            kind: "thinking" as const,
+            id: String(e.seq),
+            agentId: e.agentId,
+            text: p.text,
+            ts: e.ts,
+          },
+        ];
+      }
+      break;
+    }
     default:
       break;
   }

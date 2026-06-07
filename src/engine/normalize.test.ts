@@ -225,3 +225,18 @@ test("PreToolUse normal tool still emits tool.started (AskUserQuestion guard doe
   expect(drafts.some((d) => d.type === "tool.started")).toBe(true);
   expect(drafts.some((d) => d.type === "prompt.requested")).toBe(false);
 });
+
+test("assistant message with thinking block → both thinking.final and message.delta", () => {
+  const drafts = normalizeSdkMessage({
+    type: "assistant",
+    message: {
+      content: [
+        { type: "thinking", text: "let me reason..." },
+        { type: "text", text: "final answer" },
+      ],
+    },
+  });
+  const types = drafts.map((d) => d.type);
+  expect(types).toContain("thinking.final");
+  expect(types).toContain("message.delta");
+});

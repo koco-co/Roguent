@@ -199,19 +199,39 @@ export function normalizeSdkMessage(m: SdkMessageLike): DraftEvent[] {
     ];
   }
   if (m.type === "assistant") {
-    const text = (m.message?.content ?? [])
+    const content = (m.message?.content ?? []) as Array<{
+      type: string;
+      text?: string;
+    }>;
+    const results: DraftEvent[] = [];
+
+    // 捕获 thinking 块(被动,不开扩展思考)
+    const thinkingText = content
+      .filter((b) => b.type === "thinking")
+      .map((b) => b.text ?? "")
+      .join("");
+    if (thinkingText) {
+      results.push({
+        type: "thinking.final",
+        agentId: m.parent_tool_use_id ? undefined : ORCHESTRATOR_ID,
+        payload: { text: thinkingText },
+      });
+    }
+
+    // 文本块(原有逻辑)
+    const text = content
       .filter((b) => b.type === "text")
       .map((b) => b.text ?? "")
       .join("");
-    if (!text) return [];
-    // parent_tool_use_id != null → from a subagent; MVP routes all text to the orchestrator's drawer chat.
-    return [
-      {
+    if (text) {
+      results.push({
         type: "message.delta",
         agentId: m.parent_tool_use_id ? undefined : ORCHESTRATOR_ID,
         payload: { text },
-      },
-    ];
+      });
+    }
+
+    return results;
   }
   if (m.type === "result") {
     const tokens = (m.usage?.input_tokens ?? 0) + (m.usage?.output_tokens ?? 0);

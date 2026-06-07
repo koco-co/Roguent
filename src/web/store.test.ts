@@ -209,6 +209,24 @@ test("message.final also appends an assistant bubble", () => {
   );
 });
 
+test("thinking.final adds thinking item to timeline", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "thinking.final",
+      agentId: ORCHESTRATOR_ID,
+      payload: { text: "hmm..." },
+    }),
+  );
+  const item = st.sessions.s1?.timeline[0];
+  expect(item?.kind).toBe("thinking");
+  expect((item as { text: string })?.text).toBe("hmm...");
+});
+
 test("session.error surfaces and marks error even before session.created", () => {
   const st = reduce(
     empty,
