@@ -279,16 +279,15 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       const role = p.role ?? "assistant";
       if (!p.text) break;
       const last = s.timeline[s.timeline.length - 1];
+      const lastMsg =
+        last?.kind === "message" ? (last as TimelineMessageItem) : undefined;
       const lastIsAssistantMsg =
-        last?.kind === "message" &&
-        (last as TimelineMessageItem).role === "assistant" &&
-        (last as TimelineMessageItem).agentId === e.agentId;
-      if (role === "assistant" && lastIsAssistantMsg) {
+        lastMsg !== undefined &&
+        lastMsg.role === "assistant" &&
+        lastMsg.agentId === e.agentId;
+      if (role === "assistant" && lastIsAssistantMsg && lastMsg) {
         // streaming: replace last assistant bubble from same agent
-        s.timeline = [
-          ...s.timeline.slice(0, -1),
-          { ...last, text: p.text } as TimelineMessageItem,
-        ];
+        s.timeline = [...s.timeline.slice(0, -1), { ...lastMsg, text: p.text }];
       } else {
         const item: TimelineMessageItem = {
           kind: "message",

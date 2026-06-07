@@ -801,6 +801,9 @@ test("prompt.requested adds pending prompt item", () => {
   const item = st.sessions.s1?.timeline[0];
   expect(item?.kind).toBe("prompt");
   expect((item as { status: string })?.status).toBe("pending");
+  // NEW assertions:
+  expect((item as { promptKind: string })?.promptKind).toBe("permission");
+  expect((item as { id: string })?.id).toBe("p1");
 });
 
 test("prompt.resolved marks prompt as answered", () => {
