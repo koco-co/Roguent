@@ -13,7 +13,7 @@ import { modelLabel } from "./model-label";
  * markdown 渲染**真实整轮消息**,输入框发真 sendMessage。**真数据面板,不是 mock**。
  *
  * 原左侧会话侧栏删除,其独有的「新建会话 / 归档复活」收进头部「会话」弹层(真功能一个不丢)。
- * 不接 token 流式(引擎 includePartialMessages=false,整轮到达),不加假光标。导出名仍
+ * 接 token 流式 + 完整整轮消息(引擎 includePartialMessages=true),markdown 全渲染。导出名仍
  * ChatDrawer(Hud 不改)。
  *
  * activePanel gate 的 return null 放在所有 hooks 之后(React hooks 规则)。selector 守
