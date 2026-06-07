@@ -32,7 +32,7 @@
 - Modify: `src/engine/session.ts` — runtime-aware session lifecycle、external input routing、scheduler starts。
 - Modify: `src/engine/ws-gateway.ts` — 新增 runtime、integration、scheduler、economy、settings commands。
 - Modify: `src/engine/normalize.ts` — Claude/Codex 事件归一化。
-- Create: `src/engine/runtime/types.ts` — `RuntimeDriver`、`RuntimeEventDraft`、driver lifecycle。
+- Create: `src/engine/runtime/types.ts` — `RuntimeEventDraft`、`RuntimeDriver`、driver lifecycle;`RuntimeEventDraft` 只定义在这里,不要放到 `src/shared/runtime.ts`。
 - Create: `src/engine/runtime/claude-driver.ts` — 从旧 `driver.ts` 抽出的 Claude adapter。
 - Create: `src/engine/runtime/codex-app-server.ts` — Codex app-server JSON-RPC/client adapter。
 - Create: `src/engine/runtime/codex-exec-fallback.ts` — `codex exec --json` 降级 adapter。
@@ -133,7 +133,7 @@
 - Create: `bunfig.toml` — bun:test DOM preload。
 - Create: `playwright.config.ts`
 - Create: `src/web/hud/_smoke.test.tsx` — 验证 testing-library + DOM 环境可跑的最小样例。
-- Create: `src/shared/runtime.ts` 里的 `RuntimeEventDraft`(与 Task 7 协调;此处只定形状)。
+- Create: `src/engine/runtime/types.ts` — 先固定 `RuntimeEventDraft` 单一位置和形状;Task 7 在同一文件补 `RuntimeDriver`。
 - Read(盘点,不改): `src/web/hud/`、`src/web/lobby/`、`src/web/room/` 现有组件。
 
 **Output Standard:**
@@ -158,6 +158,36 @@
 
 - **后端已实现、勿重做**:`canUseTool`/`respondPermission`/`respondQuestion`/`setPermissionMode`(commits `fd2b8f2`/`9493259`/`55653d2`),协议 `prompt.requested`/`prompt.resolved`([events.ts:28-29](../../../src/shared/events.ts))已存在 → Task 17 是扩展。
 - **事件命名锁定表**(Task 3 以此为准,不再各写各的):见 Task 3 更新后的对照表。
+- **`RuntimeEventDraft` 单一位置与形状锁定**:`RuntimeEventDraft` 定义在 `src/engine/runtime/types.ts`;当前 `src/engine/normalize.ts` 的局部 `DraftEvent` 在 Task 7 迁移为这个类型的 alias/import。不要在 `src/shared/runtime.ts` 或 Codex/Claude adapter 中重复定义同名类型。
+
+  ```ts
+  import type { RoomEventType } from "../../shared/events";
+
+  export type RuntimeEventSource =
+    | "claude-sdk"
+    | "claude-hook"
+    | "codex-app-server"
+    | "codex-exec"
+    | "replay";
+
+  export interface SanitizedRuntimeRawRef {
+    source: RuntimeEventSource;
+    eventType: string;
+    eventId?: string;
+    payloadHash?: string;
+    auditRef?: string;
+  }
+
+  export interface RuntimeEventDraft<TPayload = unknown> {
+    type: RoomEventType;
+    payload: TPayload;
+    agentId?: string;
+    ts?: number;
+    raw?: SanitizedRuntimeRawRef;
+  }
+
+  export type DraftEvent = RuntimeEventDraft;
+  ```
 
 **Acceptance Standard:**
 - `bun test src/web/hud/_smoke.test.tsx` exit code 0(证明 DOM + testing-library 可跑)。
@@ -484,7 +514,7 @@
 **Feature:** 保留现有 Claude 功能，将其接到新的 `RuntimeDriver` interface 下。
 
 **Files:**
-- Create: `src/engine/runtime/types.ts`
+- Modify: `src/engine/runtime/types.ts`
 - Create: `src/engine/runtime/claude-driver.ts`
 - Modify: `src/engine/driver.ts`
 - Modify: `src/engine/session.ts`
@@ -500,7 +530,7 @@
 - `bun test src/engine/runtime/claude-driver.test.ts src/engine/session.test.ts` exit code 0。
 - 现有 Claude replay fixture 行为不回退。
 
-- [ ] Define runtime interface:
+- [ ] Keep the Task 0 `RuntimeEventDraft` shape unchanged and add the runtime interface in the same file:
   ```ts
   export interface RuntimeDriver {
     start(): void;
@@ -512,6 +542,10 @@
     interrupt(): Promise<void>;
     end(): void;
   }
+  ```
+- [ ] Migrate the local `DraftEvent` interface from `src/engine/normalize.ts` to import/export the alias from `src/engine/runtime/types.ts`:
+  ```ts
+  export type { DraftEvent } from "./runtime/types";
   ```
 - [ ] Move old Claude implementation to `claude-driver.ts`.
 - [ ] Keep `driver.ts` exporting:
@@ -1970,32 +2004,31 @@
 
 ---
 
-### Task 48: Add Playwright E2E Harness
+### Task 48: Add Playwright E2E Cases On The Task 0 Harness
 
-**Feature:** 浏览器端到端验证聊天、配对、邮箱、定时任务、经济、场景视觉。
+**Feature:** 在 Task 0 已安装并配置好的 Playwright 基建上补浏览器端到端 case,验证聊天、配对、邮箱、定时任务、经济、场景视觉。不要在本 task 重复修改 `package.json` 的 `test:e2e` 脚本或重建 `playwright.config.ts`。
 
 **Files:**
+- Read: `playwright.config.ts` — Task 0 已创建;本 task 只按需扩展 project/use/webServer。
 - Create: `tests/e2e/helpers.ts`
 - Create: `tests/e2e/roguent.e2e.ts`
-- Modify: `package.json`
 - Create: `tests/e2e/artifacts/.gitkeep`
 
 **Output Standard:**
+- 复用 Task 0 的 `test:e2e` script、Chromium 安装和 `playwright.config.ts`。
 - E2E 启动 engine replay 和 Vite web。
 - 每个 case 输出 screenshot 或 trace。
 - Artifact 路径固定在 `tests/e2e/artifacts/<timestamp>/`。
 
 **Acceptance Standard:**
+- Precondition: Task 0 已通过,`bunx playwright --version` exit code 0。
 - `bun run test:e2e -- --project=chromium` exit code 0 for replay subset。
 - 报告中列出 passed/failed/skipped counts 和 artifact dir。
 
-- [ ] Add script:
-  ```json
-  {
-    "scripts": {
-      "test:e2e": "playwright test"
-    }
-  }
+- [ ] Confirm Task 0 harness is available:
+  ```bash
+  bunx playwright --version
+  test -f playwright.config.ts
   ```
 - [ ] Add cases:
   ```ts
