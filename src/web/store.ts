@@ -17,7 +17,13 @@ import type {
   RoomEvent,
 } from "../shared/events";
 import { agentTypeToSkin } from "../shared/mapping";
-import { normalizePermissionMode } from "../shared/runtime";
+import {
+  isCodexApprovalPolicy,
+  isReasoningEffort,
+  isRuntimeKind,
+  isSandboxMode,
+  normalizePermissionMode,
+} from "../shared/runtime";
 
 // WS 连接生命周期状态:connecting(建连/退避重连中)/ open(已连)/ closed(已断,
 // 含 engine URL 解析失败)。ErrorOverlay 据此去抖显示离线错误层(T4.3)。
@@ -72,6 +78,11 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       cwd?: string;
       project?: string;
       permissionMode?: string;
+      runtime?: unknown;
+      approvalPolicy?: unknown;
+      sandboxMode?: unknown;
+      reasoningEffort?: unknown;
+      networkAccess?: unknown;
       imported?: boolean;
     };
     // 幂等:engine 先合成一条 session.created,SDK init 后又派生一条。第二条必须
@@ -95,6 +106,20 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
           p.permissionMode && p.permissionMode !== "default"
             ? normalizePermissionMode(p.permissionMode, existing.permissionMode)
             : existing.permissionMode,
+        runtime: isRuntimeKind(p.runtime) ? p.runtime : existing.runtime,
+        approvalPolicy: isCodexApprovalPolicy(p.approvalPolicy)
+          ? p.approvalPolicy
+          : existing.approvalPolicy,
+        sandboxMode: isSandboxMode(p.sandboxMode)
+          ? p.sandboxMode
+          : existing.sandboxMode,
+        reasoningEffort: isReasoningEffort(p.reasoningEffort)
+          ? p.reasoningEffort
+          : existing.reasoningEffort,
+        networkAccess:
+          typeof p.networkAccess === "boolean"
+            ? p.networkAccess
+            : existing.networkAccess,
         // 一旦是导入会话就恒为导入(幂等再导入不会把标记刷掉)。
         imported: existing.imported || p.imported,
       };
@@ -122,6 +147,16 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       // 合成的第一条恒为 "default";若首条已带真实模式(如 init 先于合成到达)则尊重之。
       // event payload 是字符串边界,进 domain 前收敛到 Claude SDK 合法枚举。
       permissionMode: normalizePermissionMode(p.permissionMode),
+      runtime: isRuntimeKind(p.runtime) ? p.runtime : undefined,
+      approvalPolicy: isCodexApprovalPolicy(p.approvalPolicy)
+        ? p.approvalPolicy
+        : undefined,
+      sandboxMode: isSandboxMode(p.sandboxMode) ? p.sandboxMode : undefined,
+      reasoningEffort: isReasoningEffort(p.reasoningEffort)
+        ? p.reasoningEffort
+        : undefined,
+      networkAccess:
+        typeof p.networkAccess === "boolean" ? p.networkAccess : undefined,
       lastActiveAt: e.ts, // 首次出现即视为刚活跃,供 LRU 排序
       imported: p.imported, // 导入会话:reconcile 对账豁免它
     });

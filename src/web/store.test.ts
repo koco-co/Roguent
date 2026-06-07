@@ -30,6 +30,31 @@ test("session.created adds a session and sets currentSessionId once", () => {
   expect(st.currentSessionId).toBe("s1");
 });
 
+test("session.created stores Codex runtime config", () => {
+  const st = reduce(
+    empty,
+    ev({
+      type: "session.created",
+      payload: {
+        title: "codex",
+        model: "gpt-5",
+        runtime: "codex",
+        approvalPolicy: "on-request",
+        sandboxMode: "read-only",
+        reasoningEffort: "high",
+        networkAccess: false,
+      },
+    }),
+  );
+
+  expect(st.sessions.s1?.runtime).toBe("codex");
+  expect(st.sessions.s1?.model).toBe("gpt-5");
+  expect(st.sessions.s1?.approvalPolicy).toBe("on-request");
+  expect(st.sessions.s1?.sandboxMode).toBe("read-only");
+  expect(st.sessions.s1?.reasoningEffort).toBe("high");
+  expect(st.sessions.s1?.networkAccess).toBe(false);
+});
+
 test("a second session.created (from SDK init) merges, keeping messages and filling slashCommands", () => {
   // engine 先合成 session.created;SDK init 到来后又派生一个 session.created。
   // 后者必须合并(补 slashCommands/model),绝不能重建会话清空已有 transcript。
@@ -61,6 +86,53 @@ test("a second session.created (from SDK init) merges, keeping messages and fill
     "first reply",
   );
   expect(st.sessions.s1?.slashCommands).toEqual(["/review"]);
+});
+
+test("session.created merges runtime config without resetting timeline", () => {
+  let st = reduce(
+    empty,
+    ev({
+      type: "session.created",
+      payload: {
+        title: "codex",
+        model: "gpt-5",
+        runtime: "codex",
+        sandboxMode: "workspace-write",
+        networkAccess: false,
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "message.delta",
+      agentId: ORCHESTRATOR_ID,
+      payload: { text: "kept" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 9,
+      type: "session.created",
+      payload: {
+        title: "codex",
+        model: "gpt-5",
+        runtime: "codex",
+        approvalPolicy: "never",
+        sandboxMode: "danger-full-access",
+        reasoningEffort: "medium",
+        networkAccess: true,
+      },
+    }),
+  );
+
+  expect(st.sessions.s1?.timeline).toHaveLength(1);
+  expect(st.sessions.s1?.runtime).toBe("codex");
+  expect(st.sessions.s1?.approvalPolicy).toBe("never");
+  expect(st.sessions.s1?.sandboxMode).toBe("danger-full-access");
+  expect(st.sessions.s1?.reasoningEffort).toBe("medium");
+  expect(st.sessions.s1?.networkAccess).toBe(true);
 });
 
 test("creating a new session steals focus; a re-init of another session does not", () => {
