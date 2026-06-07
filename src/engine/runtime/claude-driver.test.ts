@@ -8,6 +8,16 @@ import {
   usesApiKey,
 } from "./claude-driver";
 
+type FakePermissionQuery = {
+  setPermissionMode?: (mode: string) => Promise<void>;
+};
+
+function driverWithQuery(query: FakePermissionQuery): ClaudeDriver {
+  const driver = new ClaudeDriver({ onDraft: () => {} }, "m", "/tmp");
+  (driver as unknown as { q: FakePermissionQuery }).q = query;
+  return driver;
+}
+
 test("usesApiKey: subscription OAuth ('none'/'oauth'/undefined) is not flagged", () => {
   expect(usesApiKey("none")).toBe(false);
   expect(usesApiKey(undefined)).toBe(false);
@@ -113,4 +123,36 @@ test("ClaudeDriver.end() auto-denies pending permissions", async () => {
       (d.payload as { result: string }).result === "dismissed",
   );
   expect(dismissed).toBeDefined();
+});
+
+test("setPermissionMode forwards a supported Claude mode to the query", async () => {
+  const modes: string[] = [];
+  const driver = driverWithQuery({
+    setPermissionMode: async (mode) => {
+      modes.push(mode);
+    },
+  });
+
+  await driver.setPermissionMode("acceptEdits");
+
+  expect(modes).toEqual(["acceptEdits"]);
+});
+
+test("setPermissionMode ignores unsupported runtime modes without calling the query", async () => {
+  const modes: string[] = [];
+  const driver = driverWithQuery({
+    setPermissionMode: async (mode) => {
+      modes.push(mode);
+    },
+  });
+
+  await driver.setPermissionMode("codex-auto");
+
+  expect(modes).toEqual([]);
+});
+
+test("setPermissionMode does not throw when the SDK query lacks the optional method", async () => {
+  const driver = driverWithQuery({});
+
+  await driver.setPermissionMode("plan");
 });

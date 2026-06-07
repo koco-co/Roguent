@@ -35,6 +35,22 @@ export function usesApiKey(apiKeySource: string | undefined): boolean {
   return apiKeySource != null && API_KEY_SOURCES.has(apiKeySource);
 }
 
+const CLAUDE_PERMISSION_MODES = [
+  "default",
+  "acceptEdits",
+  "bypassPermissions",
+  "plan",
+] as const satisfies readonly PermissionMode[];
+type ClaudePermissionMode = (typeof CLAUDE_PERMISSION_MODES)[number];
+const CLAUDE_PERMISSION_MODE_SET: ReadonlySet<string> = new Set(
+  CLAUDE_PERMISSION_MODES,
+);
+export function isClaudePermissionMode(
+  mode: string,
+): mode is ClaudePermissionMode {
+  return CLAUDE_PERMISSION_MODE_SET.has(mode);
+}
+
 // Tauri 打包后,host 把 .app 内的 claude CLI 资源路径经 env 传进来;dev(未设)
 // 则回落 SDK 默认解析(node_modules 平台包)。返回 undefined 即"不覆盖默认"。
 export function cliPathFromEnv(
@@ -175,10 +191,11 @@ export class ClaudeDriver implements IDriver {
   }
 
   async setPermissionMode(mode: string): Promise<void> {
+    if (!isClaudePermissionMode(mode)) return;
     const q = this.q as {
-      setPermissionMode?: (mode: PermissionMode) => Promise<void>;
+      setPermissionMode?: (mode: ClaudePermissionMode) => Promise<void>;
     } | null;
-    await q?.setPermissionMode?.(mode as PermissionMode);
+    await q?.setPermissionMode?.(mode);
   }
 
   async interrupt(): Promise<void> {

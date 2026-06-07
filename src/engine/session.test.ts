@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import type { AccountLimits, RoomEvent } from "../shared/events";
 import type { DriverCallbacks, IDriver } from "./driver";
+import { ClaudeDriver } from "./runtime/claude-driver";
 import { SessionManager } from "./session";
 
 function fakeDriverFactory(captured: { cb?: DriverCallbacks }) {
@@ -264,4 +265,36 @@ test("setPermissionMode forwards to driver adapter when supported", async () => 
   await mgr.setPermissionMode("s1", "acceptEdits");
 
   expect(modes).toEqual(["acceptEdits"]);
+});
+
+test("setPermissionMode does not throw for an unsupported Claude adapter mode", async () => {
+  const modes: string[] = [];
+  const adapter = new ClaudeDriver({ onDraft: () => {} }, "m", "/tmp");
+  (
+    adapter as unknown as {
+      q: { setPermissionMode: (mode: string) => Promise<void> };
+    }
+  ).q = {
+    setPermissionMode: async (mode) => {
+      modes.push(mode);
+    },
+  };
+  const driver: IDriver = {
+    start() {},
+    send: adapter.send.bind(adapter),
+    setModel: adapter.setModel.bind(adapter),
+    setPermissionMode: adapter.setPermissionMode.bind(adapter),
+    interrupt: adapter.interrupt.bind(adapter),
+    end: adapter.end.bind(adapter),
+    getContextUsage: adapter.getContextUsage.bind(adapter),
+    askPermission: adapter.askPermission.bind(adapter),
+    respondPermission: adapter.respondPermission.bind(adapter),
+  };
+  const mgr = new SessionManager(() => driver, "/tmp");
+  mgr.createSession("s1", { title: "t", model: "m" });
+
+  await mgr.setPermissionMode("s1", "codex-auto");
+  await mgr.setPermissionMode("ghost", "codex-auto");
+
+  expect(modes).toEqual([]);
 });
