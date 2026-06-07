@@ -87,6 +87,19 @@ test("parseCommand accepts newSession runtime config and defaults runtime to Cla
   );
 });
 
+test("parseCommand rejects type-only newSession protocol", () => {
+  expect(
+    parseCommand(
+      JSON.stringify({
+        type: "newSession",
+        sessionId: "s1",
+        title: "Wrong protocol",
+        model: "claude-sonnet-4",
+      }),
+    ),
+  ).toBeNull();
+});
+
 test("parseCommand rejects invalid newSession runtime config fields", () => {
   const base = {
     cmd: "newSession",
