@@ -3,12 +3,18 @@ import {
   type Loot,
   ORCHESTRATOR_ID,
   type Session,
+  type TimelineItem,
+  type TimelineMessageItem,
+  type TimelinePromptItem,
+  type TimelineToolItem,
   createAgent,
   createSession,
 } from "../shared/domain";
 import type {
   AccountLimits,
   ContextUpdatedPayload,
+  PromptRequestedPayload,
+  PromptResolvedPayload,
   RoomEvent,
 } from "../shared/events";
 import { agentTypeToSkin } from "../shared/mapping";
@@ -148,13 +154,17 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
         model: "",
         lastActiveAt: e.ts,
       });
+    const errItem: TimelineMessageItem = {
+      kind: "message",
+      id: String(e.seq),
+      role: "system",
+      text: p.message,
+      ts: e.ts,
+    };
     sessions[e.sessionId] = {
       ...base,
       status: "error",
-      messages: [
-        ...base.messages,
-        { id: String(e.seq), role: "system", text: p.message, t: e.ts },
-      ],
+      timeline: [...base.timeline, errItem],
     };
     return {
       sessions,
@@ -270,25 +280,27 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       const p = e.payload as { text: string; role?: "user" | "assistant" };
       const role = p.role ?? "assistant";
       if (!p.text) break;
-      const last = s.messages[s.messages.length - 1];
-      if (
-        role === "assistant" &&
-        last &&
-        last.role === "assistant" &&
-        last.agentId === e.agentId
-      ) {
-        s.messages = [...s.messages.slice(0, -1), { ...last, text: p.text }];
-      } else {
-        s.messages = [
-          ...s.messages,
-          {
-            id: String(e.seq),
-            role,
-            agentId: role === "user" ? undefined : e.agentId,
-            text: p.text,
-            t: e.ts,
-          },
+      const last = s.timeline[s.timeline.length - 1];
+      const lastIsAssistantMsg =
+        last?.kind === "message" &&
+        (last as TimelineMessageItem).role === "assistant" &&
+        (last as TimelineMessageItem).agentId === e.agentId;
+      if (role === "assistant" && lastIsAssistantMsg) {
+        // streaming: replace last assistant bubble from same agent
+        s.timeline = [
+          ...s.timeline.slice(0, -1),
+          { ...last, text: p.text } as TimelineMessageItem,
         ];
+      } else {
+        const item: TimelineMessageItem = {
+          kind: "message",
+          id: String(e.seq),
+          role,
+          agentId: role === "user" ? undefined : e.agentId,
+          text: p.text,
+          ts: e.ts,
+        };
+        s.timeline = [...s.timeline, item];
       }
       break;
     }
@@ -310,6 +322,28 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       const orch = s.agents[ORCHESTRATOR_ID];
       s.agents = orch ? { [ORCHESTRATOR_ID]: orch } : {};
       s.status = "done";
+      break;
+    }
+    case "prompt.requested": {
+      const p = e.payload as PromptRequestedPayload;
+      const item: TimelinePromptItem = {
+        kind: "prompt",
+        id: p.promptId,
+        promptKind: p.promptKind,
+        data: p.data,
+        status: "pending",
+        ts: e.ts,
+      };
+      s.timeline = [...s.timeline, item];
+      break;
+    }
+    case "prompt.resolved": {
+      const p = e.payload as PromptResolvedPayload;
+      s.timeline = s.timeline.map((item) =>
+        item.kind === "prompt" && item.id === p.promptId
+          ? { ...item, status: p.result }
+          : item,
+      );
       break;
     }
     default:
@@ -355,21 +389,20 @@ export const useRoomStore = create<RoomStore>((set) => ({
     set((st) => {
       const prev = st.sessions[sessionId];
       if (!prev) return st;
+      const item: TimelineMessageItem = {
+        kind: "message",
+        id: `u-${prev.timeline.length}-${Date.now()}`,
+        role: "user",
+        text,
+        ts: Date.now(),
+      };
       return {
         sessions: {
           ...st.sessions,
           [sessionId]: {
             ...prev,
             lastActiveAt: Date.now(),
-            messages: [
-              ...prev.messages,
-              {
-                id: `u-${prev.messages.length}-${Date.now()}`,
-                role: "user",
-                text,
-                t: Date.now(),
-              },
-            ],
+            timeline: [...prev.timeline, item],
           },
         },
       };

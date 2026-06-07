@@ -36,7 +36,9 @@ test("imported transcript drives spawn → tool cycle → done → message", () 
   expect(Object.keys(s?.agents ?? {})).toEqual([ORCHESTRATOR_ID]);
 
   // 完整对话进了聊天历史:用户提问 + 助手回复都在(云存档同步式回看)。
-  const msgs = s?.messages ?? [];
+  const msgs = (s?.timeline ?? []).filter(
+    (item) => item.kind === "message",
+  ) as Array<{ role: string; text: string }>;
   expect(msgs.filter((m) => m.role === "user").length).toBeGreaterThan(0);
   expect(msgs.filter((m) => m.role === "assistant").length).toBeGreaterThan(0);
   // 第一条人类提问应是 transcript 首行内容。
