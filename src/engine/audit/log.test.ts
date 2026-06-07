@@ -187,6 +187,37 @@ test("appendAuditRecord redacts secret-like values from persisted summary", () =
   }
 });
 
+test("appendAuditRecord redacts JSON-style secret pairs from persisted summary", () => {
+  const testDb = createTestDatabase();
+  try {
+    migrate(testDb.db);
+
+    appendAuditRecord(testDb.db, {
+      id: "audit-summary-json-1",
+      source: "integration.wechat",
+      action: "external.input.received",
+      payload: { text: "visible body" },
+      summary:
+        'payload {"api_key":"json-secret","password":"json-password","visible":"keep"}',
+      createdAt: 1_717_452_000_000,
+    });
+
+    const row = testDb.db
+      .query<AuditRow, [string]>(
+        "SELECT * FROM audit_records WHERE id = ? LIMIT 1",
+      )
+      .get("audit-summary-json-1");
+    const persisted = JSON.stringify(row);
+    expect(persisted).toContain("visible");
+    expect(persisted).toContain("keep");
+    expect(persisted).toContain("[REDACTED]");
+    expect(persisted).not.toContain("json-secret");
+    expect(persisted).not.toContain("json-password");
+  } finally {
+    testDb.cleanup();
+  }
+});
+
 test("payloadHash is stable and ignores sanitized sensitive values", () => {
   const testDb = createTestDatabase();
   try {
@@ -265,6 +296,29 @@ test("appendAuditRecordSafe returns a session warning event instead of throwing"
   } finally {
     testDb.cleanup();
   }
+});
+
+test("createAuditWarningEvent redacts JSON-style secret pairs in diagnostics", () => {
+  const warningEvent = createAuditWarningEvent(
+    {
+      source: 'runtime {"api_key":"source-json-secret"}',
+      action: 'runtime.status.changed {"password":"action-json-password"}',
+      sessionId: "session-1",
+      payload: { status: "idle" },
+      summary: "runtime idled",
+    },
+    new Error(
+      'database failed {"api_key":"error-json-secret","password":"error-json-password"}',
+    ),
+  );
+
+  const warningEventJson = JSON.stringify(warningEvent);
+  expect(warningEventJson).toContain("Audit log write failed");
+  expect(warningEventJson).toContain("[REDACTED]");
+  expect(warningEventJson).not.toContain("source-json-secret");
+  expect(warningEventJson).not.toContain("action-json-password");
+  expect(warningEventJson).not.toContain("error-json-secret");
+  expect(warningEventJson).not.toContain("error-json-password");
 });
 
 test("createAuditWarningEvent redacts warning diagnostics and metadata", () => {
