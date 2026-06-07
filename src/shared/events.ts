@@ -1,4 +1,9 @@
-import type { Loot, TodoItem } from "./domain";
+import type {
+  Loot,
+  PermissionPromptData,
+  QuestionData,
+  TodoItem,
+} from "./domain";
 
 export type RoomEventType =
   | "session.created"
@@ -17,7 +22,11 @@ export type RoomEventType =
   | "message.final"
   | "usage.updated"
   | "context.updated"
-  | "todos.updated";
+  | "todos.updated"
+  | "thinking.delta"
+  | "thinking.final"
+  | "prompt.requested"
+  | "prompt.resolved";
 
 export interface RoomEvent<T = unknown> {
   seq: number; // server-side monotonic order key
@@ -89,6 +98,21 @@ export interface ContextUpdatedPayload {
 // 该 agent)。reducer 用它覆盖 Session.todos[agentId]。
 export interface TodosUpdatedPayload {
   todos: TodoItem[];
+}
+
+export interface ThinkingPayload {
+  text: string;
+}
+
+export interface PromptRequestedPayload {
+  promptId: string;
+  promptKind: "permission" | "question";
+  data: PermissionPromptData | QuestionData;
+}
+
+export interface PromptResolvedPayload {
+  promptId: string;
+  result: "answered" | "dismissed";
 }
 
 // ── 信封之外的账户级兄弟消息(不带 seq;last-write-wins;与 (sessionId,seq) 顺序契约无关) ──
