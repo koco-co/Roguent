@@ -1,5 +1,6 @@
 import type { Session, TimelineItem as TItem } from "../../shared/domain";
 import { MessageBubble } from "./MessageBubble";
+import { PromptCard } from "./PromptCard";
 
 interface Props {
   item: TItem;
@@ -7,10 +8,13 @@ interface Props {
   sessionId: string;
 }
 
-export function TimelineItem({ item, session }: Props) {
+export function TimelineItem({ item, session, sessionId }: Props) {
   if (item.kind === "message") {
     return <MessageBubble item={item} session={session} />;
   }
-  // thinking / tool / prompt: rendered in later tasks
+  if (item.kind === "prompt") {
+    return <PromptCard item={item} sessionId={sessionId} />;
+  }
+  // thinking / tool: rendered in later tasks
   return null;
 }
