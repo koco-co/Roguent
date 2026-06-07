@@ -15,11 +15,31 @@ const SENSITIVE_AUDIT_KEYS = new Set([
   "token",
   "authorization",
   "cookie",
+  "cookies",
   "password",
   "secret",
+  "apikey",
+  "authtoken",
+  "bearertoken",
   "accesstoken",
   "refreshtoken",
+  "clientsecret",
+  "webhooksecret",
+  "setcookie",
 ]);
+
+const SENSITIVE_TEXT_KEY_PATTERN =
+  "authorization|access[-_.\\s]*token|refresh[-_.\\s]*token|api[-_.\\s]*key|auth[-_.\\s]*token|bearer[-_.\\s]*token|client[-_.\\s]*secret|webhook[-_.\\s]*secret|set[-_.\\s]*cookie|cookies?|password|secret|token";
+const SENSITIVE_TEXT_VALUE_PATTERN = String.raw`Bearer\s+[^\s,;]+|Basic\s+[^\s,;]+|"[^"]*"|'[^']*'|[^\s,;]+`;
+const SENSITIVE_TEXT_ASSIGNMENT = new RegExp(
+  `\\b(${SENSITIVE_TEXT_KEY_PATTERN})(\\s*[:=]\\s*)(${SENSITIVE_TEXT_VALUE_PATTERN})`,
+  "gi",
+);
+const SENSITIVE_TEXT_QUERY_PARAM = new RegExp(
+  `([?&](${SENSITIVE_TEXT_KEY_PATTERN})=)([^&#\\s]+)`,
+  "gi",
+);
+const SENSITIVE_TEXT_BEARER = /\bBearer\s+[^\s,;]+/gi;
 
 export interface AuditRecordInput {
   id?: string;
@@ -70,7 +90,32 @@ function canonicalizeAuditKey(key: string): string {
 }
 
 function isSensitiveAuditKey(key: string): boolean {
-  return SENSITIVE_AUDIT_KEYS.has(canonicalizeAuditKey(key));
+  const canonicalKey = canonicalizeAuditKey(key);
+  if (SENSITIVE_AUDIT_KEYS.has(canonicalKey)) {
+    return true;
+  }
+
+  return (
+    canonicalKey.endsWith("token") ||
+    canonicalKey.endsWith("secret") ||
+    canonicalKey.endsWith("password") ||
+    canonicalKey.endsWith("apikey") ||
+    canonicalKey.endsWith("cookie")
+  );
+}
+
+export function redactAuditText(value: string): string {
+  return value
+    .replace(
+      SENSITIVE_TEXT_ASSIGNMENT,
+      (_match, key: string, separator: string) =>
+        `${key}${separator}[REDACTED]`,
+    )
+    .replace(
+      SENSITIVE_TEXT_QUERY_PARAM,
+      (_match, prefix: string) => `${prefix}[REDACTED]`,
+    )
+    .replace(SENSITIVE_TEXT_BEARER, "Bearer [REDACTED]");
 }
 
 function sanitizeValue(value: unknown, seen: WeakSet<object>): unknown {
@@ -147,6 +192,57 @@ export function sanitizeAuditPayload(payload: unknown): unknown {
   return sanitizeValue(payload, new WeakSet<object>());
 }
 
+function sanitizeWarningValue(value: unknown, seen: WeakSet<object>): unknown {
+  const sanitizedValue = sanitizeValue(value, seen);
+  return redactStrings(sanitizedValue, new WeakSet<object>());
+}
+
+function redactStrings(value: unknown, seen: WeakSet<object>): unknown {
+  if (typeof value === "string") {
+    return redactAuditText(value);
+  }
+
+  if (value === null || typeof value !== "object") {
+    return value;
+  }
+
+  if (seen.has(value)) {
+    return "[Circular]";
+  }
+
+  seen.add(value);
+  try {
+    if (Array.isArray(value)) {
+      return value.map((item) => redactStrings(item, seen));
+    }
+
+    const redacted: Record<string, unknown> = {};
+    for (const [key, nestedValue] of Object.entries(value)) {
+      redacted[key] = redactStrings(nestedValue, seen);
+    }
+    return redacted;
+  } finally {
+    seen.delete(value);
+  }
+}
+
+function warningMetadata(
+  metadata: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const sanitizedMetadata = sanitizeWarningValue(
+    metadata ?? {},
+    new WeakSet<object>(),
+  );
+  if (
+    sanitizedMetadata !== null &&
+    typeof sanitizedMetadata === "object" &&
+    !Array.isArray(sanitizedMetadata)
+  ) {
+    return sanitizedMetadata as Record<string, unknown>;
+  }
+  return {};
+}
+
 function sortJsonValue(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(sortJsonValue);
@@ -175,8 +271,20 @@ export function hashAuditPayload(payload: unknown): string {
 }
 
 function describeAuditWriteFailure(input: AuditRecordInput, error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  return `Audit log write failed for ${input.source}/${input.action}: ${message}`;
+  return redactAuditText(
+    `Audit log write failed for ${input.source}/${input.action}: ${safeErrorMessage(error)}`,
+  );
+}
+
+function safeErrorMessage(error: unknown): string {
+  try {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return String(error);
+  } catch {
+    return "unreadable error";
+  }
 }
 
 export function createAuditWarningEvent(
@@ -196,13 +304,19 @@ export function createAuditWarningEvent(
           id: target.integration.id,
           channel: target.integration.channel,
           state: "degraded",
-          label: target.integration.label,
-          account: target.integration.account,
+          label:
+            target.integration.label === undefined
+              ? undefined
+              : redactAuditText(target.integration.label),
+          account:
+            target.integration.account === undefined
+              ? undefined
+              : redactAuditText(target.integration.account),
           error: message,
           metadata: {
-            ...target.integration.metadata,
-            auditAction: input.action,
-            auditSource: input.source,
+            ...warningMetadata(target.integration.metadata),
+            auditAction: redactAuditText(input.action),
+            auditSource: redactAuditText(input.source),
           },
         },
       },
@@ -229,7 +343,7 @@ export function appendAuditRecord(
       sessionId: input.sessionId ?? null,
       deliveryId: input.deliveryId ?? null,
       payloadHash: hashAuditPayload(input.payload),
-      summary: input.summary,
+      summary: redactAuditText(input.summary),
       createdAt: input.createdAt ?? Date.now(),
     };
 

@@ -6,6 +6,7 @@ import { createRepositories } from "../persistence/repositories";
 import {
   appendAuditRecord,
   appendAuditRecordSafe,
+  createAuditWarningEvent,
   sanitizeAuditPayload,
 } from "./log";
 
@@ -54,6 +55,47 @@ test("sanitizeAuditPayload removes sensitive fields deeply", () => {
   expect(serialized).not.toContain("refresh-token");
   expect(serialized).not.toContain("secret-value");
   expect(serialized).not.toContain("session-cookie");
+});
+
+test("sanitizeAuditPayload removes common sensitive key variants", () => {
+  const sanitized = sanitizeAuditPayload({
+    api_key: "api-key-value",
+    apiKey: "api-key-camel-value",
+    auth_token: "auth-token-value",
+    bearer_token: "bearer-token-value",
+    client_secret: "client-secret-value",
+    webhook_secret: "webhook-secret-value",
+    set_cookie: "set-cookie-value",
+    cookies: "cookies-value",
+    "AUTH.TOKEN": "punctuated-auth-token-value",
+    "Client Secret": "punctuated-client-secret-value",
+    nested: {
+      "Webhook-Secret": "punctuated-webhook-secret-value",
+      visible: "keep",
+    },
+  });
+
+  expect(sanitized).toEqual({
+    nested: {
+      visible: "keep",
+    },
+  });
+  const serialized = JSON.stringify(sanitized);
+  for (const leakedValue of [
+    "api-key-value",
+    "api-key-camel-value",
+    "auth-token-value",
+    "bearer-token-value",
+    "client-secret-value",
+    "webhook-secret-value",
+    "set-cookie-value",
+    "cookies-value",
+    "punctuated-auth-token-value",
+    "punctuated-client-secret-value",
+    "punctuated-webhook-secret-value",
+  ]) {
+    expect(serialized).not.toContain(leakedValue);
+  }
 });
 
 test("appendAuditRecord stores new audit shape without persisting raw payload", () => {
@@ -108,6 +150,38 @@ test("appendAuditRecord stores new audit shape without persisting raw payload", 
     const persisted = JSON.stringify(row);
     expect(persisted).not.toContain("access-token-value");
     expect(persisted).not.toContain("password-value");
+  } finally {
+    testDb.cleanup();
+  }
+});
+
+test("appendAuditRecord redacts secret-like values from persisted summary", () => {
+  const testDb = createTestDatabase();
+  try {
+    migrate(testDb.db);
+
+    const record = appendAuditRecord(testDb.db, {
+      id: "audit-summary-1",
+      source: "integration.wechat",
+      action: "external.input.received",
+      payload: { text: "visible body" },
+      summary:
+        "received chat password=hunter2 accessToken=access-summary Authorization: Bearer auth-summary keep visible",
+      createdAt: 1_717_452_000_000,
+    });
+
+    expect(record.summary).toContain("received chat");
+    expect(record.summary).toContain("keep visible");
+    expect(record.summary).toContain("[REDACTED]");
+    const row = testDb.db
+      .query<AuditRow, [string]>(
+        "SELECT * FROM audit_records WHERE id = ? LIMIT 1",
+      )
+      .get("audit-summary-1");
+    const persisted = JSON.stringify(row);
+    expect(persisted).not.toContain("hunter2");
+    expect(persisted).not.toContain("access-summary");
+    expect(persisted).not.toContain("auth-summary");
   } finally {
     testDb.cleanup();
   }
@@ -191,6 +265,43 @@ test("appendAuditRecordSafe returns a session warning event instead of throwing"
   } finally {
     testDb.cleanup();
   }
+});
+
+test("createAuditWarningEvent redacts warning diagnostics and metadata", () => {
+  const warningEvent = createAuditWarningEvent(
+    {
+      id: "audit-warning-1",
+      source: "runtime token=source-secret",
+      action: "runtime.status.changed webhook_secret=action-secret",
+      sessionId: "session-1",
+      payload: { status: "idle" },
+      summary: "runtime idled",
+      createdAt: 1_717_452_000_000,
+    },
+    new Error("database failed password=diagnostic-secret"),
+    {
+      type: "integration.status",
+      sessionId: "session-1",
+      integration: {
+        id: "wechat",
+        channel: "wechat",
+        metadata: {
+          visible: "keep",
+          password: "metadata-password",
+          nested: { apiKey: "metadata-api-key" },
+        },
+      },
+    },
+  );
+
+  const warningEventJson = JSON.stringify(warningEvent);
+  expect(warningEventJson).toContain("Audit log write failed");
+  expect(warningEventJson).toContain("keep");
+  expect(warningEventJson).not.toContain("source-secret");
+  expect(warningEventJson).not.toContain("action-secret");
+  expect(warningEventJson).not.toContain("diagnostic-secret");
+  expect(warningEventJson).not.toContain("metadata-password");
+  expect(warningEventJson).not.toContain("metadata-api-key");
 });
 
 test("migration upgrades v2 audit rows into the Task 6 shape", () => {
