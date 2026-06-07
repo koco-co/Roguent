@@ -2,6 +2,21 @@ import { basename } from "node:path";
 import { type WebSocket, WebSocketServer } from "ws";
 import type { AccountLimits, LimitsMessage, RoomEvent } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
+import {
+  isCodexApprovalPolicy,
+  isPermissionMode,
+  isReasoningEffort,
+  isRuntimeKind,
+  isSandboxMode,
+  normalizeRuntimeKind,
+} from "../shared/runtime";
+import type {
+  CodexApprovalPolicy,
+  PermissionMode,
+  ReasoningEffort,
+  RuntimeKind,
+  SandboxMode,
+} from "../shared/runtime";
 import { listLocalSessions } from "./local-sessions";
 import type { SessionManager } from "./session";
 
@@ -11,7 +26,13 @@ export type Command =
       sessionId: string;
       title: string;
       model: string;
+      runtime?: RuntimeKind;
       cwd?: string;
+      permissionMode?: PermissionMode;
+      approvalPolicy?: CodexApprovalPolicy;
+      sandboxMode?: SandboxMode;
+      reasoningEffort?: ReasoningEffort;
+      networkAccess?: boolean;
     }
   | { cmd: "sendMessage"; sessionId: string; text: string }
   | { cmd: "setModel"; sessionId: string; model: string }
@@ -44,12 +65,44 @@ export function parseCommand(raw: string): Command | null {
   switch (o.cmd) {
     case "newSession":
       // cwd 可选(默认服务端 cwd);带了就必须是字符串。
-      return typeof o.sessionId === "string" &&
-        typeof o.title === "string" &&
-        typeof o.model === "string" &&
-        (o.cwd === undefined || typeof o.cwd === "string")
-        ? (o as Command)
-        : null;
+      if (
+        typeof o.sessionId !== "string" ||
+        typeof o.title !== "string" ||
+        typeof o.model !== "string" ||
+        (o.cwd !== undefined && typeof o.cwd !== "string") ||
+        (o.runtime !== undefined && !isRuntimeKind(o.runtime)) ||
+        (o.permissionMode !== undefined &&
+          !isPermissionMode(o.permissionMode)) ||
+        (o.approvalPolicy !== undefined &&
+          !isCodexApprovalPolicy(o.approvalPolicy)) ||
+        (o.sandboxMode !== undefined && !isSandboxMode(o.sandboxMode)) ||
+        (o.reasoningEffort !== undefined &&
+          !isReasoningEffort(o.reasoningEffort)) ||
+        (o.networkAccess !== undefined && typeof o.networkAccess !== "boolean")
+      ) {
+        return null;
+      }
+      return {
+        cmd: "newSession",
+        sessionId: o.sessionId,
+        title: o.title,
+        model: o.model,
+        runtime: normalizeRuntimeKind(o.runtime),
+        ...(o.cwd !== undefined ? { cwd: o.cwd } : {}),
+        ...(o.permissionMode !== undefined
+          ? { permissionMode: o.permissionMode }
+          : {}),
+        ...(o.approvalPolicy !== undefined
+          ? { approvalPolicy: o.approvalPolicy }
+          : {}),
+        ...(o.sandboxMode !== undefined ? { sandboxMode: o.sandboxMode } : {}),
+        ...(o.reasoningEffort !== undefined
+          ? { reasoningEffort: o.reasoningEffort }
+          : {}),
+        ...(o.networkAccess !== undefined
+          ? { networkAccess: o.networkAccess }
+          : {}),
+      };
     case "sendMessage":
       return typeof o.sessionId === "string" && typeof o.text === "string"
         ? (o as Command)
@@ -139,7 +192,13 @@ export class WsGateway {
       this.mgr.createSession(c.sessionId, {
         title: c.title,
         model: c.model,
+        runtime: c.runtime,
         cwd: c.cwd,
+        permissionMode: c.permissionMode,
+        approvalPolicy: c.approvalPolicy,
+        sandboxMode: c.sandboxMode,
+        reasoningEffort: c.reasoningEffort,
+        networkAccess: c.networkAccess,
       });
     else if (c.cmd === "sendMessage") this.mgr.sendMessage(c.sessionId, c.text);
     else if (c.cmd === "setModel") void this.mgr.setModel(c.sessionId, c.model);

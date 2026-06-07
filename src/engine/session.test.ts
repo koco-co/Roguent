@@ -2,28 +2,46 @@ import { expect, test } from "bun:test";
 import type { AccountLimits, RoomEvent } from "../shared/events";
 import type { DriverCallbacks, IDriver } from "./driver";
 import { ClaudeDriver } from "./runtime/claude-driver";
+import type {
+  RuntimeDriverConfigInput,
+  RuntimeDriverCreator,
+} from "./runtime/manager";
 import { SessionManager } from "./session";
 
-function fakeDriverFactory(captured: { cb?: DriverCallbacks }) {
-  return (cb: DriverCallbacks): IDriver => {
-    captured.cb = cb;
-    return {
-      start() {},
-      send() {},
-      async setModel() {},
-      async setPermissionMode() {},
-      async interrupt() {},
-      end() {},
-      getContextUsage: async () => null,
-      askPermission: async () => ({ behavior: "allow" as const }),
-      respondPermission() {},
-    };
+function driverStub(overrides: Partial<IDriver> = {}): IDriver {
+  return {
+    start() {},
+    send() {},
+    async setModel() {},
+    async setPermissionMode() {},
+    async interrupt() {},
+    end() {},
+    getContextUsage: async () => null,
+    askPermission: async () => ({ behavior: "allow" as const }),
+    respondPermission() {},
+    ...overrides,
+  };
+}
+
+function fakeRuntimeManager(captured: {
+  cb?: DriverCallbacks;
+  config?: RuntimeDriverConfigInput;
+}): RuntimeDriverCreator {
+  return {
+    createDriver(
+      cb: DriverCallbacks,
+      config: RuntimeDriverConfigInput,
+    ): IDriver {
+      captured.cb = cb;
+      captured.config = config;
+      return driverStub();
+    },
   };
 }
 
 test("createSession wires a driver; drafts become sequenced RoomEvents", () => {
   const captured: { cb?: DriverCallbacks } = {};
-  const mgr = new SessionManager(fakeDriverFactory(captured), "/tmp");
+  const mgr = new SessionManager(fakeRuntimeManager(captured), "/tmp");
   const got: RoomEvent[] = [];
   mgr.subscribe((e) => got.push(e));
 
@@ -43,7 +61,7 @@ test("createSession wires a driver; drafts become sequenced RoomEvents", () => {
 
 test("createSession synthesizes session.created up-front (no SDK init needed)", () => {
   const captured: { cb?: DriverCallbacks } = {};
-  const mgr = new SessionManager(fakeDriverFactory(captured), "/tmp");
+  const mgr = new SessionManager(fakeRuntimeManager(captured), "/tmp");
   const got: RoomEvent[] = [];
   mgr.subscribe((e) => got.push(e));
 
@@ -59,28 +77,45 @@ test("createSession synthesizes session.created up-front (no SDK init needed)", 
 
 test("session.created draft from SDK init is enriched with the user title", () => {
   const captured: { cb?: DriverCallbacks } = {};
-  const mgr = new SessionManager(fakeDriverFactory(captured), "/tmp");
+  const mgr = new SessionManager(fakeRuntimeManager(captured), "/tmp");
   const got: RoomEvent[] = [];
   mgr.subscribe((e) => got.push(e));
 
   mgr.createSession("s1", { title: "code-review · kata", model: "m" });
   // SDK init 派生的 session.created 不带 title;engine 应注入建会话时的标题。
   captured.cb?.onDraft(
-    [{ type: "session.created", payload: { title: "", model: "m" } }],
+    [
+      {
+        type: "session.created",
+        payload: {
+          title: "",
+          model: "sdk-model",
+          permissionMode: "acceptEdits",
+          slashCommands: ["/compact"],
+        },
+      },
+    ],
     0,
   );
 
   // got[0] 是 createSession 合成的;got[1] 是 SDK init 派生并被注入 title 的。
   expect(got[1]?.type).toBe("session.created");
-  expect((got[1]?.payload as { title: string }).title).toBe(
-    "code-review · kata",
-  );
+  const payload = got[1]?.payload as {
+    title: string;
+    model: string;
+    permissionMode: string;
+    slashCommands: string[];
+  };
+  expect(payload.title).toBe("code-review · kata");
+  expect(payload.model).toBe("sdk-model");
+  expect(payload.permissionMode).toBe("acceptEdits");
+  expect(payload.slashCommands).toEqual(["/compact"]);
 });
 
 test("createSession stamps cwd + derived project onto session.created", () => {
   const captured: { cb?: DriverCallbacks } = {};
   // "/tmp" isn't a git repo → project falls back to the dir basename "tmp".
-  const mgr = new SessionManager(fakeDriverFactory(captured), "/tmp");
+  const mgr = new SessionManager(fakeRuntimeManager(captured), "/tmp");
   const got: RoomEvent[] = [];
   mgr.subscribe((e) => got.push(e));
 
@@ -90,25 +125,118 @@ test("createSession stamps cwd + derived project onto session.created", () => {
   expect(p.project).toBe("tmp");
 });
 
+test("createSession emits Claude default runtime config in session.created", () => {
+  const captured: { cb?: DriverCallbacks; config?: RuntimeDriverConfigInput } =
+    {};
+  const mgr = new SessionManager(fakeRuntimeManager(captured), "/tmp");
+  const got: RoomEvent[] = [];
+  mgr.subscribe((e) => got.push(e));
+
+  mgr.createSession("s1", { title: "t", model: "claude-opus-4-8" });
+
+  expect(captured.config).toEqual({
+    runtime: "claude",
+    model: "claude-opus-4-8",
+    cwd: "/tmp",
+    permissionMode: "default",
+    sandboxMode: "workspace-write",
+    networkAccess: true,
+  });
+  const p = got[0]?.payload as {
+    runtime: string;
+    model: string;
+    permissionMode: string;
+    sandboxMode: string;
+    networkAccess: boolean;
+    approvalPolicy?: string;
+    reasoningEffort?: string;
+    cwd: string;
+    project: string;
+  };
+  expect(p.runtime).toBe("claude");
+  expect(p.model).toBe("claude-opus-4-8");
+  expect(p.permissionMode).toBe("default");
+  expect(p.sandboxMode).toBe("workspace-write");
+  expect(p.networkAccess).toBe(true);
+  expect(p.approvalPolicy).toBeUndefined();
+  expect(p.reasoningEffort).toBeUndefined();
+  expect(p.cwd).toBe("/tmp");
+  expect(p.project).toBe("tmp");
+});
+
+test("createSession emits Codex runtime config and uses the Codex stub path", () => {
+  const got: RoomEvent[] = [];
+  const mgr = new SessionManager(
+    {
+      createDriver: (cb: DriverCallbacks, config: RuntimeDriverConfigInput) =>
+        driverStub({
+          start() {
+            cb.onDraft(
+              [
+                {
+                  type: "runtime.status",
+                  payload: {
+                    runtime: config.runtime,
+                    status: "idle",
+                    config,
+                    cwd: config.cwd,
+                  },
+                },
+              ],
+              111,
+            );
+          },
+        }),
+    },
+    "/tmp",
+  );
+  mgr.subscribe((e) => got.push(e));
+
+  mgr.createSession("s-codex", {
+    title: "Codex",
+    runtime: "codex",
+    model: "gpt-5",
+    cwd: "/tmp/project",
+    permissionMode: "default",
+    approvalPolicy: "on-request",
+    sandboxMode: "workspace-write",
+    reasoningEffort: "medium",
+    networkAccess: false,
+  });
+
+  const created = got[0]?.payload as {
+    runtime: string;
+    model: string;
+    approvalPolicy?: string;
+    sandboxMode: string;
+    reasoningEffort?: string;
+    networkAccess: boolean;
+    cwd: string;
+    project: string;
+  };
+  expect(got[0]?.type).toBe("session.created");
+  expect(created.runtime).toBe("codex");
+  expect(created.model).toBe("gpt-5");
+  expect(created.approvalPolicy).toBe("on-request");
+  expect(created.sandboxMode).toBe("workspace-write");
+  expect(created.reasoningEffort).toBe("medium");
+  expect(created.networkAccess).toBe(false);
+  expect(created.cwd).toBe("/tmp/project");
+  expect(created.project).toBe("project");
+  expect(got[1]?.type).toBe("runtime.status");
+});
+
 test("deleteSession ends the driver and drops it", () => {
   let ended = false;
-  const factory = (cb: DriverCallbacks): IDriver => {
-    void cb;
-    return {
-      start() {},
-      send() {},
-      async setModel() {},
-      async setPermissionMode() {},
-      async interrupt() {},
-      end() {
-        ended = true;
-      },
-      getContextUsage: async () => null,
-      askPermission: async () => ({ behavior: "allow" as const }),
-      respondPermission() {},
-    };
+  const runtimeManager: RuntimeDriverCreator = {
+    createDriver: () =>
+      driverStub({
+        end() {
+          ended = true;
+        },
+      }),
   };
-  const mgr = new SessionManager(factory, "/tmp");
+  const mgr = new SessionManager(runtimeManager, "/tmp");
   mgr.createSession("s1", { title: "t", model: "m" });
   mgr.deleteSession("s1");
   expect(ended).toBe(true);
@@ -120,23 +248,18 @@ test("emits context.updated after a turn (usage.updated), from getContextUsage",
   const events: RoomEvent[] = [];
   let cb: DriverCallbacks | null = null;
   const fakeDriver: IDriver = {
-    start() {},
-    send() {},
-    setModel: async () => {},
-    setPermissionMode: async () => {},
-    interrupt: async () => {},
-    end() {},
+    ...driverStub(),
     getContextUsage: async () => ({
       totalTokens: 200_000,
       maxTokens: 1_000_000,
     }),
-    askPermission: async () => ({ behavior: "allow" as const }),
-    respondPermission() {},
   };
   const mgr = new SessionManager(
-    (c: DriverCallbacks, _model: string, _cwd: string) => {
-      cb = c;
-      return fakeDriver;
+    {
+      createDriver(c: DriverCallbacks) {
+        cb = c;
+        return fakeDriver;
+      },
     },
     "/tmp",
   );
@@ -159,7 +282,7 @@ test("emits context.updated after a turn (usage.updated), from getContextUsage",
 
 test("driver rate_limit_event → subscribeLimits 收到合并后的 AccountLimits", () => {
   const captured: { cb?: DriverCallbacks } = {};
-  const mgr = new SessionManager(fakeDriverFactory(captured), "/tmp");
+  const mgr = new SessionManager(fakeRuntimeManager(captured), "/tmp");
   const limits: AccountLimits[] = [];
   mgr.subscribeLimits((l) => limits.push(l));
   mgr.createSession("s1", { title: "t", model: "m" });
@@ -189,19 +312,13 @@ test("no context.updated when getContextUsage returns null", async () => {
   const events: RoomEvent[] = [];
   let cb: DriverCallbacks | null = null;
   const mgr = new SessionManager(
-    (c: DriverCallbacks, _model: string, _cwd: string) => {
-      cb = c;
-      return {
-        start() {},
-        send() {},
-        setModel: async () => {},
-        setPermissionMode: async () => {},
-        interrupt: async () => {},
-        end() {},
-        getContextUsage: async () => null,
-        askPermission: async () => ({ behavior: "allow" as const }),
-        respondPermission() {},
-      };
+    {
+      createDriver(c: DriverCallbacks) {
+        cb = c;
+        return driverStub({
+          getContextUsage: async () => null,
+        });
+      },
     },
     "/tmp",
   );
@@ -217,7 +334,7 @@ test("no context.updated when getContextUsage returns null", async () => {
 
 test("setModel broadcasts session.created with updated model (idempotent merge)", async () => {
   const captured: { cb?: DriverCallbacks } = {};
-  const mgr = new SessionManager(fakeDriverFactory(captured), "/tmp");
+  const mgr = new SessionManager(fakeRuntimeManager(captured), "/tmp");
   const got: RoomEvent[] = [];
   mgr.subscribe((e) => got.push(e));
 
@@ -235,7 +352,7 @@ test("setModel broadcasts session.created with updated model (idempotent merge)"
 });
 
 test("setModel on unknown session does not emit", async () => {
-  const mgr = new SessionManager(fakeDriverFactory({}), "/tmp");
+  const mgr = new SessionManager(fakeRuntimeManager({}), "/tmp");
   const got: RoomEvent[] = [];
   mgr.subscribe((e) => got.push(e));
 
@@ -247,19 +364,12 @@ test("setModel on unknown session does not emit", async () => {
 test("setPermissionMode forwards to driver adapter when supported", async () => {
   const modes: string[] = [];
   const driver: IDriver & { setPermissionMode(mode: string): Promise<void> } = {
-    start() {},
-    send() {},
-    async setModel() {},
+    ...driverStub(),
     async setPermissionMode(mode: string) {
       modes.push(mode);
     },
-    async interrupt() {},
-    end() {},
-    getContextUsage: async () => null,
-    askPermission: async () => ({ behavior: "allow" as const }),
-    respondPermission() {},
   };
-  const mgr = new SessionManager(() => driver, "/tmp");
+  const mgr = new SessionManager({ createDriver: () => driver }, "/tmp");
   mgr.createSession("s1", { title: "t", model: "m" });
 
   await mgr.setPermissionMode("s1", "acceptEdits");
@@ -280,7 +390,7 @@ test("setPermissionMode does not throw for an unsupported Claude adapter mode", 
     },
   };
   const driver: IDriver = {
-    start() {},
+    ...driverStub(),
     send: adapter.send.bind(adapter),
     setModel: adapter.setModel.bind(adapter),
     setPermissionMode: adapter.setPermissionMode.bind(adapter),
@@ -290,7 +400,7 @@ test("setPermissionMode does not throw for an unsupported Claude adapter mode", 
     askPermission: adapter.askPermission.bind(adapter),
     respondPermission: adapter.respondPermission.bind(adapter),
   };
-  const mgr = new SessionManager(() => driver, "/tmp");
+  const mgr = new SessionManager({ createDriver: () => driver }, "/tmp");
   mgr.createSession("s1", { title: "t", model: "m" });
 
   await mgr.setPermissionMode("s1", "codex-auto");

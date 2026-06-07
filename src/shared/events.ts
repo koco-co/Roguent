@@ -18,7 +18,13 @@ import type {
   PairingBindingUpdatedPayload,
   PairingQrUpdatedPayload,
 } from "./integrations";
-import type { RuntimeConfig, RuntimeKind } from "./runtime";
+import type {
+  CodexApprovalPolicy,
+  ReasoningEffort,
+  RuntimeConfig,
+  RuntimeKind,
+  SandboxMode,
+} from "./runtime";
 import type {
   SchedulerRunFinishedPayload,
   SchedulerRunStartedPayload,
@@ -124,6 +130,11 @@ export interface SessionCreatedPayload {
   title: string;
   model: string;
   permissionMode: string;
+  runtime?: RuntimeKind;
+  approvalPolicy?: CodexApprovalPolicy;
+  sandboxMode?: SandboxMode;
+  reasoningEffort?: ReasoningEffort;
+  networkAccess?: boolean;
   apiKeySource: string;
   slashCommands: string[];
   // 总览世界:服务端把会话 cwd + 算出的 project(git 根 basename)随会话一起下发。

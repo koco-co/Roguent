@@ -4,27 +4,53 @@ import type {
   RoomEvent,
   SessionCreatedPayload,
 } from "../shared/events";
-import { Driver, type DriverCallbacks, type IDriver } from "./driver";
+import type {
+  CodexApprovalPolicy,
+  PermissionMode,
+  ReasoningEffort,
+  RuntimeKind,
+  SandboxMode,
+} from "../shared/runtime";
+import { isPermissionMode, normalizePermissionMode } from "../shared/runtime";
+import type { DriverCallbacks, IDriver } from "./driver";
 import { LimitsAggregator } from "./limits-aggregator";
 import { readTranscriptLines } from "./local-sessions";
 import { projectFor } from "./project";
+import {
+  type RuntimeDriverConfig,
+  type RuntimeDriverCreator,
+  RuntimeManager,
+  resolveRuntimeDriverConfig,
+} from "./runtime/manager";
 import { Sequencer } from "./sequencer";
 import { normalizeTranscript } from "./transcript";
 
-export type DriverFactory = (
-  cb: DriverCallbacks,
-  model: string,
-  cwd: string,
-) => IDriver;
+export interface CreateSessionOptions {
+  title: string;
+  model?: string;
+  cwd?: string;
+  runtime?: RuntimeKind;
+  permissionMode?: PermissionMode;
+  approvalPolicy?: CodexApprovalPolicy;
+  sandboxMode?: SandboxMode;
+  reasoningEffort?: ReasoningEffort;
+  networkAccess?: boolean;
+}
+
+interface SessionRuntimeState {
+  title: string;
+  cwd: string;
+  project: string;
+  config: RuntimeDriverConfig;
+}
+
 export type EventSink = (e: RoomEvent) => void;
 export type LimitsSink = (limits: AccountLimits) => void;
-
-const defaultFactory: DriverFactory = (cb, model, cwd) =>
-  new Driver(cb, model, cwd);
 
 export class SessionManager {
   private seq = new Sequencer();
   private drivers = new Map<string, IDriver>();
+  private runtimeStates = new Map<string, SessionRuntimeState>();
   // 当前引擎认识的所有会话 id(live driver + 已导入的 transcript)。新连接对账用:
   // gateway 把它下发给客户端清幽灵会话。进程重启即清零(会话确实没了)。
   private knownSessions = new Set<string>();
@@ -35,7 +61,7 @@ export class SessionManager {
   private limits = new LimitsAggregator((l) => this.emitLimits(l));
 
   constructor(
-    private driverFactory: DriverFactory = defaultFactory,
+    private runtimeManager: RuntimeDriverCreator = new RuntimeManager(),
     private cwd: string = process.cwd(),
   ) {}
 
@@ -63,14 +89,27 @@ export class SessionManager {
     this.limits.applyPoll(l);
   }
 
-  createSession(
-    id: string,
-    opts: { title: string; model: string; cwd?: string },
-  ): void {
+  createSession(id: string, opts: CreateSessionOptions): void {
     // 每会话带自己的 cwd(默认服务端 cwd);project = 该 cwd 的 git 根 basename,
     // 是总览世界里「项目 = 房间」的分组键(spec §总览世界/生命周期)。
     const cwd = opts.cwd?.trim() || this.cwd;
     const project = projectFor(cwd);
+    const state: SessionRuntimeState = {
+      title: opts.title,
+      cwd,
+      project,
+      config: resolveRuntimeDriverConfig({
+        runtime: opts.runtime,
+        model: opts.model,
+        cwd,
+        permissionMode: opts.permissionMode,
+        approvalPolicy: opts.approvalPolicy,
+        sandboxMode: opts.sandboxMode,
+        reasoningEffort: opts.reasoningEffort,
+        networkAccess: opts.networkAccess,
+      }),
+    };
+    this.runtimeStates.set(id, state);
     // 会话的存在性必须立刻可见,不能依赖 SDK 的 system:init —— SDK 在 streaming
     // 输入下要等第一条 user 消息才发 init,否则就「没会话 → 发不了消息 → 不发 init
     // → 没会话」死锁,新建会话与对话都失效。先合成一条 session.created,把建会话时
@@ -79,15 +118,7 @@ export class SessionManager {
       this.seq.stamp(
         id,
         "session.created",
-        {
-          title: opts.title,
-          model: opts.model,
-          permissionMode: "default",
-          apiKeySource: "",
-          slashCommands: [],
-          cwd,
-          project,
-        },
+        this.sessionCreatedPayload(state),
         Date.now(),
       ),
     );
@@ -99,15 +130,12 @@ export class SessionManager {
           // SDK system:init 派生的 session.created 不带用户标题 / cwd / project
           //(spec §5),在这里把建会话时的值注入,避免抽屉里显示成 sessionId、
           // 也保证 reducer 拿得到 project 用于房间归属。
-          const payload =
-            d.type === "session.created"
-              ? {
-                  ...(d.payload as Record<string, unknown>),
-                  title: opts.title,
-                  cwd,
-                  project,
-                }
-              : d.payload;
+          const payload = (() => {
+            if (d.type !== "session.created") return d.payload;
+            const incoming = d.payload as Record<string, unknown>;
+            this.applySessionCreatedIncoming(state, incoming);
+            return this.sessionCreatedPayload(state, incoming);
+          })();
           this.emit(this.seq.stamp(id, d.type, payload, ts, d.agentId));
         }
         // 一轮结束(result → usage.updated)即取真实上下文占用,发 context.updated。
@@ -116,10 +144,59 @@ export class SessionManager {
         }
       },
     };
-    const driver = this.driverFactory(cb, opts.model, cwd);
+    const driver = this.runtimeManager.createDriver(cb, state.config);
     this.drivers.set(id, driver);
     this.knownSessions.add(id);
     driver.start();
+  }
+
+  private applySessionCreatedIncoming(
+    state: SessionRuntimeState,
+    incoming: Record<string, unknown>,
+  ): void {
+    const model =
+      typeof incoming.model === "string" ? incoming.model.trim() : "";
+    if (model) state.config = { ...state.config, model };
+    if (
+      isPermissionMode(incoming.permissionMode) &&
+      incoming.permissionMode !== "default"
+    ) {
+      state.config = {
+        ...state.config,
+        permissionMode: incoming.permissionMode,
+      };
+    }
+  }
+
+  private sessionCreatedPayload(
+    state: SessionRuntimeState,
+    incoming: Record<string, unknown> = {},
+  ): SessionCreatedPayload {
+    const slashCommands = Array.isArray(incoming.slashCommands)
+      ? incoming.slashCommands.filter(
+          (item): item is string => typeof item === "string",
+        )
+      : [];
+    const payload: SessionCreatedPayload = {
+      title: state.title,
+      model: state.config.model,
+      runtime: state.config.runtime,
+      permissionMode: state.config.permissionMode,
+      apiKeySource:
+        typeof incoming.apiKeySource === "string" ? incoming.apiKeySource : "",
+      slashCommands,
+      cwd: state.cwd,
+      project: state.project,
+      sandboxMode: state.config.sandboxMode,
+      networkAccess: state.config.networkAccess,
+    };
+    if (state.config.approvalPolicy !== undefined) {
+      payload.approvalPolicy = state.config.approvalPolicy;
+    }
+    if (state.config.reasoningEffort !== undefined) {
+      payload.reasoningEffort = state.config.reasoningEffort;
+    }
+    return payload;
   }
 
   // 引擎当前认识的会话 id(新连接花名册;gateway 下发给客户端对账清幽灵)。
@@ -165,6 +242,7 @@ export class SessionManager {
   deleteSession(id: string): void {
     this.drivers.get(id)?.end();
     this.drivers.delete(id);
+    this.runtimeStates.delete(id);
     this.knownSessions.delete(id);
   }
 
@@ -173,17 +251,15 @@ export class SessionManager {
     // 广播模型变更:前端 store 对 session.created 做幂等合并(不清 transcript),
     // 只要 payload 携带非空 model 字符串就会更新 session.model。
     if (this.knownSessions.has(id)) {
+      const state = this.runtimeStates.get(id);
+      if (!state) return;
+      state.config = { ...state.config, model };
+      this.runtimeStates.set(id, state);
       this.emit(
         this.seq.stamp(
           id,
           "session.created",
-          {
-            title: "",
-            model,
-            permissionMode: "",
-            apiKeySource: "",
-            slashCommands: [],
-          },
+          this.sessionCreatedPayload(state),
           Date.now(),
         ),
       );
@@ -223,6 +299,23 @@ export class SessionManager {
 
   async setPermissionMode(id: string, mode: string): Promise<void> {
     await this.drivers.get(id)?.setPermissionMode(mode);
+    const state = this.runtimeStates.get(id);
+    if (!state || !this.knownSessions.has(id)) return;
+    const permissionMode = normalizePermissionMode(
+      mode,
+      state.config.permissionMode,
+    );
+    if (permissionMode === state.config.permissionMode) return;
+    state.config = { ...state.config, permissionMode };
+    this.runtimeStates.set(id, state);
+    this.emit(
+      this.seq.stamp(
+        id,
+        "session.created",
+        this.sessionCreatedPayload(state),
+        Date.now(),
+      ),
+    );
   }
 
   private async emitContextUsage(id: string): Promise<void> {

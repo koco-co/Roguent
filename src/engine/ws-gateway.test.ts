@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+import type { SessionManager } from "./session";
 import { parseCommand } from "./ws-gateway";
+import { WsGateway } from "./ws-gateway";
 
 test("parseCommand accepts known commands and rejects junk", () => {
   expect(
@@ -24,6 +26,7 @@ test("parseCommand accepts newSession with an optional cwd", () => {
     sessionId: "s1",
     title: "t",
     model: "m",
+    runtime: "claude",
     cwd: "/repo",
   });
   // cwd omitted is fine (server defaults); a non-string cwd is rejected.
@@ -37,6 +40,122 @@ test("parseCommand accepts newSession with an optional cwd", () => {
       '{"cmd":"newSession","sessionId":"s1","title":"t","model":"m","cwd":5}',
     ),
   ).toBeNull();
+});
+
+test("parseCommand accepts newSession runtime config and defaults runtime to Claude", () => {
+  expect(
+    parseCommand(
+      JSON.stringify({
+        cmd: "newSession",
+        sessionId: "s1",
+        title: "t",
+        model: "claude-sonnet-4-5",
+        cwd: "/repo",
+        permissionMode: "acceptEdits",
+        sandboxMode: "danger-full-access",
+        reasoningEffort: "high",
+        networkAccess: false,
+        approvalPolicy: "never",
+      }),
+    ),
+  ).toEqual({
+    cmd: "newSession",
+    sessionId: "s1",
+    title: "t",
+    model: "claude-sonnet-4-5",
+    runtime: "claude",
+    cwd: "/repo",
+    permissionMode: "acceptEdits",
+    sandboxMode: "danger-full-access",
+    reasoningEffort: "high",
+    networkAccess: false,
+    approvalPolicy: "never",
+  });
+
+  const codexCommand = parseCommand(
+    JSON.stringify({
+      cmd: "newSession",
+      sessionId: "s2",
+      title: "t",
+      model: "gpt-5",
+      runtime: "codex",
+    }),
+  );
+  expect(codexCommand?.cmd).toBe("newSession");
+  expect(codexCommand?.cmd === "newSession" && codexCommand.runtime).toBe(
+    "codex",
+  );
+});
+
+test("parseCommand rejects invalid newSession runtime config fields", () => {
+  const base = {
+    cmd: "newSession",
+    sessionId: "s1",
+    title: "t",
+    model: "m",
+  };
+  for (const patch of [
+    { runtime: "other" },
+    { permissionMode: "ask" },
+    { sandboxMode: "unsafe" },
+    { reasoningEffort: "extreme" },
+    { approvalPolicy: "always" },
+    { networkAccess: "true" },
+    { cwd: 5 },
+  ]) {
+    expect(parseCommand(JSON.stringify({ ...base, ...patch }))).toBeNull();
+  }
+});
+
+test("WsGateway passes newSession runtime config through to SessionManager", () => {
+  const calls: Array<{ id: string; opts: unknown }> = [];
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    createSession: (id: string, opts: unknown) => calls.push({ id, opts }),
+  } as unknown as SessionManager;
+  const gateway = new WsGateway(0, mgr);
+  try {
+    (
+      gateway as unknown as {
+        onCommand(raw: string, ws: unknown): void;
+      }
+    ).onCommand(
+      JSON.stringify({
+        cmd: "newSession",
+        sessionId: "s-codex",
+        title: "Codex",
+        runtime: "codex",
+        model: "gpt-5",
+        cwd: "/repo",
+        permissionMode: "default",
+        approvalPolicy: "on-request",
+        sandboxMode: "workspace-write",
+        reasoningEffort: "medium",
+        networkAccess: false,
+      }),
+      {},
+    );
+  } finally {
+    (gateway as unknown as { wss: { close(): void } }).wss.close();
+  }
+
+  expect(calls).toEqual([
+    {
+      id: "s-codex",
+      opts: {
+        title: "Codex",
+        runtime: "codex",
+        model: "gpt-5",
+        cwd: "/repo",
+        permissionMode: "default",
+        approvalPolicy: "on-request",
+        sandboxMode: "workspace-write",
+        reasoningEffort: "medium",
+        networkAccess: false,
+      },
+    },
+  ]);
 });
 
 test("parseCommand accepts deleteSession", () => {
