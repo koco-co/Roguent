@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import type { SecretStore } from "./types";
 
 const SECURITY_PATH = "/usr/bin/security";
@@ -86,7 +87,7 @@ export function buildKeychainCommand(
         account,
         "-w",
       ],
-      stdin: `${input.value}\n`,
+      stdin: promptInput(input.value),
     };
   }
 
@@ -108,7 +109,7 @@ export function describeKeychainCommand(
 ): SafeKeychainCommandDescriptor {
   return {
     path: command.path,
-    args: [...command.args],
+    args: redactArgs(command.args),
     stdin: command.stdin == null ? "none" : "present",
   };
 }
@@ -116,6 +117,7 @@ export function describeKeychainCommand(
 export class KeychainSecretStore implements SecretStore {
   private readonly service: string;
   private readonly run: KeychainRunner;
+  private indexQueue: Promise<void> = Promise.resolve();
 
   constructor(options: KeychainSecretStoreOptions = {}) {
     this.service = options.service ?? DEFAULT_SERVICE;
@@ -123,12 +125,14 @@ export class KeychainSecretStore implements SecretStore {
   }
 
   async put(ref: string, value: string): Promise<void> {
-    await this.writeValue("put", ref, value);
-    const refs = await this.readIndex(ref);
-    if (!refs.includes(ref)) {
-      refs.push(ref);
-      await this.writeIndex("put", ref, refs);
-    }
+    await this.withIndexLock(async () => {
+      await this.writeValue("put", ref, value);
+      const refs = await this.readIndex(ref);
+      if (!refs.includes(ref)) {
+        refs.push(ref);
+        await this.writeIndex("put", ref, refs);
+      }
+    });
   }
 
   async get(ref: string): Promise<string | undefined> {
@@ -139,7 +143,7 @@ export class KeychainSecretStore implements SecretStore {
     });
 
     try {
-      return await this.run(command);
+      return stripSecurityLineEnding(await this.run(command));
     } catch (err) {
       if (isNotFound(err)) return undefined;
       throw secretStoreError("get", ref);
@@ -147,28 +151,32 @@ export class KeychainSecretStore implements SecretStore {
   }
 
   async delete(ref: string): Promise<void> {
-    const command = buildKeychainCommand({
-      operation: "delete",
-      service: this.service,
-      ref,
+    await this.withIndexLock(async () => {
+      const command = buildKeychainCommand({
+        operation: "delete",
+        service: this.service,
+        ref,
+      });
+
+      try {
+        await this.run(command);
+      } catch (err) {
+        if (!isNotFound(err)) throw secretStoreError("delete", ref);
+      }
+
+      const refs = await this.readIndex(ref);
+      const nextRefs = refs.filter((existing) => existing !== ref);
+      if (nextRefs.length !== refs.length) {
+        await this.writeIndex("delete", ref, nextRefs);
+      }
     });
-
-    try {
-      await this.run(command);
-    } catch (err) {
-      if (!isNotFound(err)) throw secretStoreError("delete", ref);
-    }
-
-    const refs = await this.readIndex(ref);
-    const nextRefs = refs.filter((existing) => existing !== ref);
-    if (nextRefs.length !== refs.length) {
-      await this.writeIndex("delete", ref, nextRefs);
-    }
   }
 
   async listRefs(prefix: string): Promise<string[]> {
-    const refs = await this.readIndex(prefix);
-    return refs.filter((ref) => ref.startsWith(prefix)).sort();
+    return this.withIndexLock(async () => {
+      const refs = await this.readIndex(prefix);
+      return refs.filter((ref) => ref.startsWith(prefix)).sort();
+    });
   }
 
   private async writeValue(
@@ -197,7 +205,7 @@ export class KeychainSecretStore implements SecretStore {
     });
 
     try {
-      return parseIndex(await this.run(command));
+      return parseIndex(stripSecurityLineEnding(await this.run(command)));
     } catch (err) {
       if (isNotFound(err)) return [];
       throw secretStoreError("listRefs", refForError);
@@ -221,6 +229,20 @@ export class KeychainSecretStore implements SecretStore {
       throw secretStoreError(operation, refForError);
     }
   }
+
+  private async withIndexLock<T>(fn: () => Promise<T>): Promise<T> {
+    const previous = this.indexQueue;
+    let release: () => void = () => {};
+    this.indexQueue = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      return await fn();
+    } finally {
+      release();
+    }
+  }
 }
 
 async function defaultKeychainRunner(
@@ -242,6 +264,25 @@ async function defaultKeychainRunner(
 
 function accountForRef(ref: string): string {
   return `${SECRET_ACCOUNT_PREFIX}${ref}`;
+}
+
+function promptInput(value: string): string {
+  if (value.includes("\n") || value.includes("\r")) {
+    throw new Error("keychain secret values must not contain line breaks");
+  }
+  return `${value}\n${value}\n`;
+}
+
+function stripSecurityLineEnding(value: string): string {
+  if (value.endsWith("\r\n")) return value.slice(0, -2);
+  if (value.endsWith("\n")) return value.slice(0, -1);
+  return value;
+}
+
+function redactArgs(args: string[]): string[] {
+  return args.map((arg, index) =>
+    args[index - 1] === "-a" ? "[redacted]" : arg,
+  );
 }
 
 function parseIndex(raw: string): string[] {
@@ -276,5 +317,10 @@ function exitCodeFrom(err: unknown): number | undefined {
 }
 
 function secretStoreError(operation: string, ref: string): Error {
-  return new Error(`keychain ${operation} failed for ref ${ref}`);
+  return new Error(`keychain ${operation} failed for ref ${redactRef(ref)}`);
+}
+
+function redactRef(ref: string): string {
+  const digest = createHash("sha256").update(ref).digest("hex").slice(0, 8);
+  return `[redacted:${digest}]`;
 }

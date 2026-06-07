@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import {
   KeychainCommandFailure,
   KeychainSecretStore,
@@ -7,8 +8,37 @@ import {
 } from "./keychain";
 
 const SECRET = "secret-value-that-must-not-appear";
+const INDEX_ACCOUNT = "__roguent_secret_index__";
 
-test("put command passes secret through stdin and not command args", () => {
+function digest(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function accountArg(command: { args: string[] }): string {
+  const index = command.args.indexOf("-a");
+  if (index === -1) throw new Error("missing account arg");
+  return command.args[index + 1] ?? "";
+}
+
+function promptValue(command: { stdin?: string }): string {
+  expect(command.stdin).toBeString();
+  const lines = command.stdin?.split("\n");
+  expect(lines).toHaveLength(3);
+  expect(lines?.[0]).toBe(lines?.[1]);
+  expect(lines?.[2]).toBe("");
+  return lines?.[0] ?? "";
+}
+
+function legacyOrPromptValue(command: { stdin?: string }): string {
+  const lines = command.stdin?.split("\n") ?? [];
+  if (lines.length === 3 && lines[0] === lines[1] && lines[2] === "") {
+    return lines[0] ?? "";
+  }
+  if (lines.length === 2 && lines[1] === "") return lines[0] ?? "";
+  throw new Error("invalid stdin prompt");
+}
+
+test("put command passes password and retype through stdin and not command args", () => {
   const command = buildKeychainCommand({
     operation: "put",
     service: "Roguent Test Secrets",
@@ -19,11 +49,14 @@ test("put command passes secret through stdin and not command args", () => {
   expect(command.path).toBe("/usr/bin/security");
   expect(command.args).toContain("add-generic-password");
   expect(command.args.at(-1)).toBe("-w");
-  expect(command.stdin).toBe(`${SECRET}\n`);
+  const password = promptValue(command);
+  expect(password.length).toBe(SECRET.length);
+  expect(digest(password)).toBe(digest(SECRET));
   expect(JSON.stringify(command.args)).not.toContain(SECRET);
 
   const safeDescriptor = describeKeychainCommand(command);
   expect(JSON.stringify(safeDescriptor)).not.toContain(SECRET);
+  expect(JSON.stringify(safeDescriptor)).not.toContain("github:token");
   expect(safeDescriptor).toMatchInlineSnapshot(`
     {
       "args": [
@@ -32,7 +65,7 @@ test("put command passes secret through stdin and not command args", () => {
         "-s",
         "Roguent Test Secrets",
         "-a",
-        "secret:github:token",
+        "[redacted]",
         "-w",
       ],
       "path": "/usr/bin/security",
@@ -55,6 +88,30 @@ test("get, delete, and list commands never include secret values", () => {
   }
 });
 
+test("safe command descriptors redact arbitrary refs", () => {
+  const unsafeRef = "literal-secret-token-value";
+  const command = buildKeychainCommand({
+    operation: "get",
+    service: "Roguent Test Secrets",
+    ref: unsafeRef,
+  });
+
+  expect(JSON.stringify(command.args)).toContain(unsafeRef);
+  expect(JSON.stringify(describeKeychainCommand(command))).not.toContain(
+    unsafeRef,
+  );
+});
+
+test("get strips the command-added line ending and preserves interior data", async () => {
+  const value = "first-line\nsecond-line";
+  const store = new KeychainSecretStore({
+    service: "Roguent Test Secrets",
+    run: async () => `${value}\r\n`,
+  });
+
+  expect(await store.get("github:token")).toBe(value);
+});
+
 test("store uses injected runner and never accesses the system keychain in tests", async () => {
   const commands: ReturnType<typeof describeKeychainCommand>[] = [];
   const stored = new Map<string, string>();
@@ -62,16 +119,15 @@ test("store uses injected runner and never accesses the system keychain in tests
     service: "Roguent Test Secrets",
     run: async (command) => {
       commands.push(describeKeychainCommand(command));
-      const account = command.args[command.args.indexOf("-a") + 1];
+      const account = accountArg(command);
       if (!account) throw new Error("missing account");
       if (command.args[0] === "find-generic-password") {
         const value = stored.get(account);
         if (value == null) throw new KeychainCommandFailure(44);
-        return value;
+        return `${value}\n`;
       }
       if (command.args[0] === "add-generic-password") {
-        if (command.stdin == null) throw new Error("missing stdin");
-        stored.set(account, command.stdin.slice(0, -1));
+        stored.set(account, promptValue(command));
         return "";
       }
       if (command.args[0] === "delete-generic-password") {
@@ -94,7 +150,8 @@ test("store uses injected runner and never accesses the system keychain in tests
   expect(JSON.stringify(commands)).not.toContain(SECRET);
 });
 
-test("keychain errors include operation and ref but not secret values", async () => {
+test("keychain errors include operation but not raw refs or secret values", async () => {
+  const unsafeRef = "literal-secret-token-value";
   const store = new KeychainSecretStore({
     service: "Roguent Test Secrets",
     run: async () => {
@@ -102,8 +159,43 @@ test("keychain errors include operation and ref but not secret values", async ()
     },
   });
 
-  await expect(store.put("github:token", SECRET)).rejects.toThrow(
-    "keychain put failed for ref github:token",
+  await expect(store.put(unsafeRef, SECRET)).rejects.toThrow(
+    "keychain put failed",
   );
-  await expect(store.put("github:token", SECRET)).rejects.not.toThrow(SECRET);
+  await expect(store.put(unsafeRef, SECRET)).rejects.not.toThrow(unsafeRef);
+  await expect(store.put(unsafeRef, SECRET)).rejects.not.toThrow(SECRET);
+});
+
+test("concurrent puts preserve both refs in the keychain index", async () => {
+  const stored = new Map<string, string>();
+  const store = new KeychainSecretStore({
+    service: "Roguent Test Secrets",
+    run: async (command) => {
+      const account = accountArg(command);
+      if (command.args[0] === "find-generic-password") {
+        const snapshot = stored.get(account);
+        if (account === INDEX_ACCOUNT) {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+        if (snapshot == null) throw new KeychainCommandFailure(44);
+        return `${snapshot}\n`;
+      }
+      if (command.args[0] === "add-generic-password") {
+        stored.set(account, legacyOrPromptValue(command));
+        return "";
+      }
+      if (command.args[0] === "delete-generic-password") {
+        stored.delete(account);
+        return "";
+      }
+      throw new Error(`unexpected command ${command.args[0]}`);
+    },
+  });
+
+  await Promise.all([
+    store.put("github:a", "secret-a"),
+    store.put("github:b", "secret-b"),
+  ]);
+
+  expect(await store.listRefs("github:")).toEqual(["github:a", "github:b"]);
 });
