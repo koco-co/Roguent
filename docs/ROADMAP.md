@@ -125,7 +125,7 @@ status: living-doc
 ### [x] P1-3 已实现交互功能逐项 e2e(每个子项 = 一个任务,逐个做)
 - [x] **多会话**:新建 / 切换会话 → 渲染源切换、HUD 联动。已自动化(store.test.ts switchSession test)
 - [x] **聊天**:发消息 → `message.delta`/`message.final` 进抽屉会话窗口(主屏零正文)。已自动化(store.test.ts message.delta agentId test + 已有 message.delta/final test)
-- [x] **切模型 `setModel` / 切模式 `setPermissionMode`**:运行时切换生效(streaming-input 专属能力)。已自动化(ws-gateway.test.ts parseCommand setModel;注:setPermissionMode WS 命令未实现,permissionMode 通过 session.created payload 传递,store 侧已覆盖)
+- [x] **切模型 `setModel` / 切模式 `setPermissionMode`**:运行时切换生效(streaming-input 专属能力)。已自动化(ws-gateway.test.ts parseCommand setModel/setPermissionMode;Driver 响应 WS 命令,实时切换权限模式,store 侧联动覆盖)
 - [x] **生命周期**:归档 / 删除 / LRU ≤10 / 门动画进出 / 再激活走回。已自动化(store.test.ts archive/LRU/unarchive/remove 各 test)
 - [x] **进出内景**:NPC 信息卡 → 进入会话 → Esc/门返回大厅原位。已自动化(ui-store.test.ts enterInterior/exitOverworld test)
 - **约定**:能在 store/reducer 或纯函数层 e2e 的就写断言;纯 `.tsx` 组件按本仓库既有约定用 `bun run build` + `bun run check` + 回放冒烟,并尽量把可测逻辑下沉到可单测的纯函数。

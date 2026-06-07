@@ -1,3 +1,4 @@
+import type { Command } from "../engine/ws-gateway";
 import type { AccountLimits, RoomEvent } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
 import { useRoomStore } from "./store";
@@ -39,7 +40,7 @@ export interface RoomConnection {
 let active: RoomConnection | null = null;
 const pending: object[] = [];
 
-export function sendCommand(cmd: object): void {
+export function sendCommand(cmd: Command): void {
   if (active) active.send(cmd);
   else pending.push(cmd);
 }

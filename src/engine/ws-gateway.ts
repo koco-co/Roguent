@@ -18,7 +18,21 @@ export type Command =
   | { cmd: "interrupt"; sessionId: string }
   | { cmd: "deleteSession"; sessionId: string }
   | { cmd: "listLocalSessions" }
-  | { cmd: "importSession"; path: string };
+  | { cmd: "importSession"; path: string }
+  | {
+      cmd: "respondPermission";
+      sessionId: string;
+      promptId: string;
+      behavior: "allow" | "deny";
+      message?: string;
+    }
+  | {
+      cmd: "respondQuestion";
+      sessionId: string;
+      promptId: string;
+      selectedLabels: string[];
+    }
+  | { cmd: "setPermissionMode"; sessionId: string; mode: string };
 
 export function parseCommand(raw: string): Command | null {
   let o: Record<string, unknown>;
@@ -52,6 +66,22 @@ export function parseCommand(raw: string): Command | null {
       return { cmd: "listLocalSessions" };
     case "importSession":
       return typeof o.path === "string" ? (o as Command) : null;
+    case "respondPermission":
+      return typeof o.sessionId === "string" &&
+        typeof o.promptId === "string" &&
+        (o.behavior === "allow" || o.behavior === "deny")
+        ? (o as Command)
+        : null;
+    case "respondQuestion":
+      return typeof o.sessionId === "string" &&
+        typeof o.promptId === "string" &&
+        Array.isArray(o.selectedLabels)
+        ? (o as Command)
+        : null;
+    case "setPermissionMode":
+      return typeof o.sessionId === "string" && typeof o.mode === "string"
+        ? (o as Command)
+        : null;
     default:
       return null;
   }
@@ -133,6 +163,16 @@ export class WsGateway {
           reason: e instanceof Error ? e.message : String(e),
         });
       }
+    } else if (c.cmd === "respondPermission") {
+      const result =
+        c.behavior === "allow"
+          ? { behavior: "allow" as const }
+          : { behavior: "deny" as const, message: c.message ?? "denied" };
+      this.mgr.respondPermission(c.sessionId, c.promptId, result);
+    } else if (c.cmd === "respondQuestion") {
+      this.mgr.respondQuestion(c.sessionId, c.promptId, c.selectedLabels);
+    } else if (c.cmd === "setPermissionMode") {
+      void this.mgr.setPermissionMode(c.sessionId, c.mode);
     }
   }
 

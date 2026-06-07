@@ -59,3 +59,64 @@ test("parseCommand accepts listLocalSessions / importSession", () => {
   expect(parseCommand('{"cmd":"importSession","path":5}')).toBeNull();
   expect(parseCommand('{"cmd":"importSession"}')).toBeNull();
 });
+
+test("parseCommand respondPermission valid", () => {
+  const c = parseCommand(
+    JSON.stringify({
+      cmd: "respondPermission",
+      sessionId: "s1",
+      promptId: "p1",
+      behavior: "allow",
+    }),
+  );
+  expect(c?.cmd).toBe("respondPermission");
+});
+
+test("parseCommand respondPermission deny with message", () => {
+  const c = parseCommand(
+    JSON.stringify({
+      cmd: "respondPermission",
+      sessionId: "s1",
+      promptId: "p1",
+      behavior: "deny",
+      message: "no",
+    }),
+  );
+  expect(c?.cmd).toBe("respondPermission");
+  expect((c as { behavior: string })?.behavior).toBe("deny");
+});
+
+test("parseCommand respondPermission invalid behavior → null", () => {
+  const c = parseCommand(
+    JSON.stringify({
+      cmd: "respondPermission",
+      sessionId: "s1",
+      promptId: "p1",
+      behavior: "maybe",
+    }),
+  );
+  expect(c).toBeNull();
+});
+
+test("parseCommand respondQuestion valid", () => {
+  const c = parseCommand(
+    JSON.stringify({
+      cmd: "respondQuestion",
+      sessionId: "s1",
+      promptId: "p1",
+      selectedLabels: ["A"],
+    }),
+  );
+  expect(c?.cmd).toBe("respondQuestion");
+});
+
+test("parseCommand setPermissionMode valid", () => {
+  const c = parseCommand(
+    JSON.stringify({
+      cmd: "setPermissionMode",
+      sessionId: "s1",
+      mode: "acceptEdits",
+    }),
+  );
+  expect(c?.cmd).toBe("setPermissionMode");
+});

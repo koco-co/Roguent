@@ -1,11 +1,12 @@
 import { expect, test } from "bun:test";
 import {
+  Driver,
   buildHooks,
   cliPathFromEnv,
   stripSubscriptionEnv,
   usesApiKey,
 } from "./driver";
-import type { HookLike } from "./normalize";
+import type { DraftEvent, HookLike } from "./normalize";
 
 test("usesApiKey: subscription OAuth ('none'/'oauth'/undefined) is not flagged", () => {
   // 订阅模式实测 apiKeySource='none';这些都不应被当成"用了 API key"
@@ -56,4 +57,65 @@ test("buildHooks forwards hook input and returns a non-blocking {}", async () =>
   );
   expect(out).toEqual({});
   expect(seen[0]?.tool_name).toBe("Bash");
+});
+
+test("askPermission emits prompt.requested draft and resolves on respondPermission", async () => {
+  const drafts: DraftEvent[] = [];
+  const driver = new Driver(
+    { onDraft: (ds) => drafts.push(...ds) },
+    "claude-opus-4-8",
+    "/tmp",
+  );
+
+  const pending = driver.askPermission({
+    toolName: "Bash",
+    input: { command: "ls" },
+    toolUseID: "t1",
+    title: "Run bash",
+    displayName: "Bash",
+    description: "ls /tmp",
+  });
+
+  // prompt.requested should have been emitted
+  const req = drafts.find((d) => d.type === "prompt.requested");
+  expect(req).toBeDefined();
+  expect((req?.payload as { promptId: string }).promptId).toBe("t1");
+  expect((req?.payload as { promptKind: string }).promptKind).toBe(
+    "permission",
+  );
+
+  // resolve it
+  driver.respondPermission("t1", { behavior: "allow" });
+  const result = await pending;
+  expect(result.behavior).toBe("allow");
+
+  // prompt.resolved should have been emitted
+  const res = drafts.find((d) => d.type === "prompt.resolved");
+  expect(res).toBeDefined();
+});
+
+test("Driver.end() auto-denies pending permissions", async () => {
+  const drafts: DraftEvent[] = [];
+  const driver = new Driver(
+    { onDraft: (ds) => drafts.push(...ds) },
+    "m",
+    "/tmp",
+  );
+
+  const pending = driver.askPermission({
+    toolName: "Write",
+    input: {},
+    toolUseID: "t2",
+  });
+
+  driver.end();
+  const result = await pending;
+  expect(result.behavior).toBe("deny");
+
+  const dismissed = drafts.find(
+    (d) =>
+      d.type === "prompt.resolved" &&
+      (d.payload as { result: string }).result === "dismissed",
+  );
+  expect(dismissed).toBeDefined();
 });

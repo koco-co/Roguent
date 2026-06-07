@@ -105,6 +105,43 @@ export function normalizeHook(h: HookLike): DraftEvent[] {
         },
       ];
     case "PreToolUse": {
+      // AskUserQuestion 特判: 不走普通工具卡，直接发 prompt.requested(kind=question)
+      if (h.tool_name === "AskUserQuestion") {
+        const input = (h.tool_input ?? {}) as Record<string, unknown>;
+        const rawQs = Array.isArray(input.questions) ? input.questions : [];
+        const questions = rawQs.map((q: unknown) => {
+          const qi = (q ?? {}) as Record<string, unknown>;
+          const rawOpts = Array.isArray(qi.options) ? qi.options : [];
+          return {
+            question: typeof qi.question === "string" ? qi.question : "",
+            header: typeof qi.header === "string" ? qi.header : "",
+            options: rawOpts.map((o: unknown) => {
+              const oi = (o ?? {}) as Record<string, unknown>;
+              return {
+                label: typeof oi.label === "string" ? oi.label : "",
+                description:
+                  typeof oi.description === "string"
+                    ? oi.description
+                    : undefined,
+              };
+            }),
+            multiSelect:
+              typeof qi.multiSelect === "boolean" ? qi.multiSelect : false,
+          };
+        });
+        return [
+          {
+            type: "prompt.requested" as const,
+            agentId,
+            payload: {
+              promptId: h.tool_use_id ?? "",
+              promptKind: "question" as const,
+              data: { questions },
+            },
+          },
+        ];
+      }
+
       const drafts: DraftEvent[] = [
         {
           type: "tool.started",
@@ -162,19 +199,39 @@ export function normalizeSdkMessage(m: SdkMessageLike): DraftEvent[] {
     ];
   }
   if (m.type === "assistant") {
-    const text = (m.message?.content ?? [])
+    const content = (m.message?.content ?? []) as Array<{
+      type: string;
+      text?: string;
+    }>;
+    const results: DraftEvent[] = [];
+
+    // 捕获 thinking 块(被动,不开扩展思考)
+    const thinkingText = content
+      .filter((b) => b.type === "thinking")
+      .map((b) => b.text ?? "")
+      .join("");
+    if (thinkingText) {
+      results.push({
+        type: "thinking.final",
+        agentId: m.parent_tool_use_id ? undefined : ORCHESTRATOR_ID,
+        payload: { text: thinkingText },
+      });
+    }
+
+    // 文本块(原有逻辑)
+    const text = content
       .filter((b) => b.type === "text")
       .map((b) => b.text ?? "")
       .join("");
-    if (!text) return [];
-    // parent_tool_use_id != null → from a subagent; MVP routes all text to the orchestrator's drawer chat.
-    return [
-      {
+    if (text) {
+      results.push({
         type: "message.delta",
         agentId: m.parent_tool_use_id ? undefined : ORCHESTRATOR_ID,
         payload: { text },
-      },
-    ];
+      });
+    }
+
+    return results;
   }
   if (m.type === "result") {
     const tokens = (m.usage?.input_tokens ?? 0) + (m.usage?.output_tokens ?? 0);

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ChatMessage } from "../../shared/domain";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
+import { SlashMenu } from "./SlashMenu";
+import { TimelineItem } from "./TimelineItem";
 import { Icon } from "./icons";
-import { mdToHtml } from "./markdown";
 import { modelLabel } from "./model-label";
 
 /**
@@ -13,7 +13,7 @@ import { modelLabel } from "./model-label";
  * markdown 渲染**真实整轮消息**,输入框发真 sendMessage。**真数据面板,不是 mock**。
  *
  * 原左侧会话侧栏删除,其独有的「新建会话 / 归档复活」收进头部「会话」弹层(真功能一个不丢)。
- * 不接 token 流式(引擎 includePartialMessages=false,整轮到达),不加假光标。导出名仍
+ * 接 token 流式 + 完整整轮消息(引擎 includePartialMessages=true),markdown 全渲染。导出名仍
  * ChatDrawer(Hud 不改)。
  *
  * activePanel gate 的 return null 放在所有 hooks 之后(React hooks 规则)。selector 守
@@ -36,18 +36,19 @@ export function ChatDrawer() {
   const [cwd, setCwd] = useState("");
   const [search, setSearch] = useState("");
   const [mgrOpen, setMgrOpen] = useState(false);
+  const [slashOpen, setSlashOpen] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
 
   // sessions 的 Object.values 在 useMemo 里做(不在 selector 里,守 zustand 铁律)。
   const list = useMemo(() => Object.values(sessions), [sessions]);
-  const messages = session?.messages;
+  const timeline = session?.timeline;
 
-  // 新消息到达 / 切会话后自动滚到底(对标原型 threadRef)。messages 引用变即触发。
-  // biome-ignore lint/correctness/useExhaustiveDependencies: messages 是触发条件,非回调内使用的值;threadRef.current 是 DOM ref,不加入 deps 是 React 惯例
+  // 新消息到达 / 切会话后自动滚到底(对标原型 threadRef)。timeline 引用变即触发。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: timeline 是触发条件,非回调内使用的值;threadRef.current 是 DOM ref,不加入 deps 是 React 惯例
   useEffect(() => {
     const el = threadRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages]);
+  }, [timeline]);
 
   if (!active) return null;
 
@@ -63,12 +64,6 @@ export function ChatDrawer() {
     );
 
   const agentCount = session ? Object.keys(session.agents).length : 0;
-  const authorName = (m: ChatMessage): string =>
-    m.role === "user"
-      ? "你"
-      : ((m.agentId ? session?.agents[m.agentId]?.role : undefined) ??
-        m.agentId ??
-        m.role);
 
   const send = () => {
     const t = text.trim();
@@ -213,36 +208,73 @@ export function ChatDrawer() {
 
         <div className="cdrawer-thread scroll" ref={threadRef}>
           {!currentId && <span className="faint">选一个会话</span>}
-          {currentId && (messages?.length ?? 0) === 0 && (
+          {currentId && (timeline?.length ?? 0) === 0 && (
             <span className="faint">还没有消息,发一条开始…</span>
           )}
-          {messages?.map((m) => (
-            // user → me(右、青气泡);assistant / system → agent(左、面板色气泡)。
-            <div
-              key={m.id}
-              className={`cmsg ${m.role === "user" ? "me" : "agent"}`}
-            >
-              <div className="cmsg-author px">{authorName(m)}</div>
-              <div
-                className="cmsg-bubble md"
-                // biome-ignore lint/security/noDangerouslySetInnerHtml: mdToHtml 先 escHtml 再渲染,输入为本会话消息文本
-                dangerouslySetInnerHTML={{ __html: mdToHtml(m.text) }}
-              />
-            </div>
+          {timeline?.map((item) => (
+            <TimelineItem
+              key={item.id}
+              item={item}
+              session={session!}
+              sessionId={currentId!}
+            />
           ))}
         </div>
 
-        <div className="cdrawer-input">
-          <input
+        <div className="cdrawer-input" style={{ position: "relative" }}>
+          {slashOpen && (session?.slashCommands?.length ?? 0) > 0 ? (
+            <SlashMenu
+              commands={session!.slashCommands}
+              filter={text.slice(1)}
+              onSelect={(cmd) => {
+                setText(`${cmd} `);
+                setSlashOpen(false);
+              }}
+              onClose={() => setSlashOpen(false)}
+            />
+          ) : null}
+          <textarea
             className="pxinput"
+            rows={1}
             value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="输入消息…"
+            onChange={(e) => {
+              const val = e.target.value;
+              setText(val);
+              setSlashOpen(val.startsWith("/"));
+              e.target.style.height = "auto";
+              e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+            placeholder="输入消息… (Enter 发送, Shift+Enter 换行)"
+            style={{ resize: "none", overflowY: "auto" }}
           />
-          <button type="button" className="pxbtn primary sm cjk" onClick={send}>
-            发送
-          </button>
+          {session?.status === "busy" ? (
+            <button
+              type="button"
+              className="pxbtn sm cjk"
+              style={{ color: "var(--red, #e05)" }}
+              onClick={() =>
+                currentId &&
+                sendCommand({ cmd: "interrupt", sessionId: currentId })
+              }
+            >
+              停止
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="pxbtn primary sm cjk"
+              onClick={send}
+              disabled={!text.trim()}
+            >
+              发送
+            </button>
+          )}
         </div>
       </div>
     </div>

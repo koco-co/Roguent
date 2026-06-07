@@ -56,8 +56,10 @@ test("a second session.created (from SDK init) merges, keeping messages and fill
       payload: { title: "会话 1", model: "m", slashCommands: ["/review"] },
     }),
   );
-  expect(st.sessions.s1?.messages).toHaveLength(1);
-  expect(st.sessions.s1?.messages[0]?.text).toBe("first reply");
+  expect(st.sessions.s1?.timeline).toHaveLength(1);
+  expect((st.sessions.s1?.timeline[0] as { text: string })?.text).toBe(
+    "first reply",
+  );
   expect(st.sessions.s1?.slashCommands).toEqual(["/review"]);
 });
 
@@ -186,11 +188,11 @@ test("message.delta appends an assistant bubble to the session transcript", () =
       payload: { text: "hello world" },
     }),
   );
-  const msgs = st.sessions.s1?.messages ?? [];
-  expect(msgs).toHaveLength(1);
-  expect(msgs[0]?.role).toBe("assistant");
-  expect(msgs[0]?.text).toBe("hello world");
-  expect(msgs[0]?.agentId).toBe(ORCHESTRATOR_ID);
+  const items = st.sessions.s1?.timeline ?? [];
+  expect(items).toHaveLength(1);
+  expect((items[0] as { role: string })?.role).toBe("assistant");
+  expect((items[0] as { text: string })?.text).toBe("hello world");
+  expect((items[0] as { agentId: string })?.agentId).toBe(ORCHESTRATOR_ID);
 });
 
 test("message.final also appends an assistant bubble", () => {
@@ -202,7 +204,27 @@ test("message.final also appends an assistant bubble", () => {
     st,
     ev({ type: "message.final", payload: { text: "done thinking" } }),
   );
-  expect(st.sessions.s1?.messages.at(-1)?.text).toBe("done thinking");
+  expect((st.sessions.s1?.timeline.at(-1) as { text: string })?.text).toBe(
+    "done thinking",
+  );
+});
+
+test("thinking.final adds thinking item to timeline", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "thinking.final",
+      agentId: ORCHESTRATOR_ID,
+      payload: { text: "hmm..." },
+    }),
+  );
+  const item = st.sessions.s1?.timeline[0];
+  expect(item?.kind).toBe("thinking");
+  expect((item as { text: string })?.text).toBe("hmm...");
 });
 
 test("session.error surfaces and marks error even before session.created", () => {
@@ -212,9 +234,9 @@ test("session.error surfaces and marks error even before session.created", () =>
   );
   expect(st.sessions.s1?.status).toBe("error");
   expect(st.currentSessionId).toBe("s1");
-  const last = st.sessions.s1?.messages.at(-1);
-  expect(last?.role).toBe("system");
-  expect(last?.text).toContain("auth failed");
+  const last = st.sessions.s1?.timeline.at(-1);
+  expect((last as { role: string })?.role).toBe("system");
+  expect((last as { text: string })?.text).toContain("auth failed");
 });
 
 test("appendUserMessage adds a user bubble optimistically", () => {
@@ -229,9 +251,9 @@ test("appendUserMessage adds a user bubble optimistically", () => {
       ev({ type: "session.created", payload: { title: "t", model: "m" } }),
     );
   useRoomStore.getState().appendUserMessage("s1", "hi there");
-  const last = useRoomStore.getState().sessions.s1?.messages.at(-1);
-  expect(last?.role).toBe("user");
-  expect(last?.text).toBe("hi there");
+  const last = useRoomStore.getState().sessions.s1?.timeline.at(-1);
+  expect((last as { role: string })?.role).toBe("user");
+  expect((last as { text: string })?.text).toBe("hi there");
 });
 
 // ── 总览世界:会话生命周期 / 项目派生 / ≤10 LRU(spec §生命周期 & 最小数据) ──
@@ -608,10 +630,10 @@ test("message.delta from a subagent records the subagent agentId in the transcri
       payload: { text: "sub reply" },
     }),
   );
-  const msg = st.sessions.s1?.messages.at(-1);
-  expect(msg?.agentId).toBe("ag-sub");
-  expect(msg?.role).toBe("assistant");
-  expect(msg?.text).toBe("sub reply");
+  const item = st.sessions.s1?.timeline.at(-1);
+  expect((item as { agentId: string })?.agentId).toBe("ag-sub");
+  expect((item as { role: string })?.role).toBe("assistant");
+  expect((item as { text: string })?.text).toBe("sub reply");
 });
 
 test("context.updated folds into session.context", () => {
@@ -743,4 +765,131 @@ test("setLimits stores account limits and applyEvent preserves it", () => {
       ev({ type: "session.created", payload: { title: "t", model: "m" } }),
     );
   expect(useRoomStore.getState().limits?.planName).toBe("Max");
+});
+
+test("message.delta builds timeline message item, streaming replaces last assistant", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "message.delta",
+      agentId: ORCHESTRATOR_ID,
+      payload: { text: "hello" },
+    }),
+  );
+  expect(st.sessions.s1?.timeline).toHaveLength(1);
+  const item = st.sessions.s1?.timeline[0];
+  expect(item?.kind).toBe("message");
+  expect((item as { text: string })?.text).toBe("hello");
+
+  // streaming: second delta from same agent replaces (not appends)
+  st = reduce(
+    st,
+    ev({
+      type: "message.delta",
+      agentId: ORCHESTRATOR_ID,
+      payload: { text: "hello world" },
+    }),
+  );
+  expect(st.sessions.s1?.timeline).toHaveLength(1);
+  expect((st.sessions.s1?.timeline[0] as { text: string })?.text).toBe(
+    "hello world",
+  );
+});
+
+test("prompt.requested adds pending prompt item", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "prompt.requested",
+      payload: {
+        promptId: "p1",
+        promptKind: "permission",
+        data: { toolName: "Bash", inputSummary: "ls" },
+      },
+    }),
+  );
+  const item = st.sessions.s1?.timeline[0];
+  expect(item?.kind).toBe("prompt");
+  expect((item as { status: string })?.status).toBe("pending");
+  // NEW assertions:
+  expect((item as { promptKind: string })?.promptKind).toBe("permission");
+  expect((item as { id: string })?.id).toBe("p1");
+});
+
+test("tool.started adds running ToolCard to timeline (non-AskUserQuestion)", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "tool.started",
+      agentId: ORCHESTRATOR_ID,
+      payload: { toolName: "Bash", inputSummary: "ls", toolUseId: "tu-1" },
+    }),
+  );
+  const item = st.sessions.s1?.timeline[0];
+  expect(item?.kind).toBe("tool");
+  expect((item as { status: string })?.status).toBe("running");
+});
+
+test("tool.ended updates timeline ToolCard status to ok", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "tool.started",
+      agentId: ORCHESTRATOR_ID,
+      payload: { toolName: "Bash", inputSummary: "ls", toolUseId: "tu-2" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "tool.ended",
+      agentId: ORCHESTRATOR_ID,
+      payload: { toolUseId: "tu-2" },
+    }),
+  );
+  const item = st.sessions.s1?.timeline[0];
+  expect((item as { status: string })?.status).toBe("ok");
+});
+
+test("prompt.resolved marks prompt as answered", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "prompt.requested",
+      payload: {
+        promptId: "p1",
+        promptKind: "permission",
+        data: { toolName: "Bash", inputSummary: "" },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "prompt.resolved",
+      payload: { promptId: "p1", result: "answered" },
+    }),
+  );
+  const item = st.sessions.s1?.timeline[0];
+  expect((item as { status: string })?.status).toBe("answered");
 });

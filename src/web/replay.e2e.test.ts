@@ -21,7 +21,11 @@ test("replaying sample fixture drives room chain + transcript", async () => {
   expect(st.currentSessionId).toBe("s1");
 
   // 助手对话气泡被收进 transcript
-  const assistant = (s?.messages ?? []).filter((m) => m.role === "assistant");
+  const assistant = (s?.timeline ?? []).filter(
+    (item) =>
+      item.kind === "message" &&
+      (item as { role: string }).role === "assistant",
+  );
   expect(assistant.length).toBeGreaterThan(0);
 
   // 产物落进背包
