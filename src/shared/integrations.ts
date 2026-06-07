@@ -27,6 +27,10 @@ export interface NormalizedIntegrationEvent {
   channel: IntegrationChannel;
   direction: IntegrationDirection;
   summary: string;
+  receivedAt: number;
+  externalChatId?: string;
+  deliveryId?: string;
+  bodyText?: string;
   ts?: number;
   connectorId?: string;
   externalId?: string;
@@ -62,6 +66,9 @@ export interface PairingBinding {
   id: string;
   channel: IntegrationChannel;
   status: PairingBindingStatus;
+  externalChatId: string;
+  sessionId: string;
+  forwardingEnabled: boolean;
   boundAt: number;
   updatedAt?: number;
   externalUserId?: string;

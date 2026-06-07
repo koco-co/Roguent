@@ -3,9 +3,9 @@ import {
   type EconomyLedgerAppendedPayload,
   type RoomEvent,
   type RoomEventType,
-  type SchedulerRunFinishedPayload,
   type SettingsUpdatedPayload,
   type TodosUpdatedPayload,
+  type TypedRoomEvent,
   isToolEvent,
 } from "./events";
 
@@ -45,8 +45,53 @@ test("integration events keep room envelope", () => {
   expect(event.type).toBe("integration.event.received");
 });
 
+test("typed integration events expose routing and audit fields", () => {
+  const event = {
+    seq: 10,
+    ts: 10,
+    sessionId: "s1",
+    type: "integration.event.received",
+    payload: {
+      id: "ie1",
+      channel: "wechat",
+      direction: "inbound",
+      summary: "hi",
+      externalChatId: "chat1",
+      deliveryId: "delivery1",
+      bodyText: "hi",
+      receivedAt: 10,
+    },
+  } satisfies TypedRoomEvent<"integration.event.received">;
+
+  expect(event.payload.externalChatId).toBe("chat1");
+  expect(event.payload.receivedAt).toBe(10);
+});
+
+test("typed pairing binding events expose forwarding target", () => {
+  const event = {
+    seq: 11,
+    ts: 11,
+    sessionId: "s1",
+    type: "pairing.binding.updated",
+    payload: {
+      action: "created",
+      binding: {
+        id: "binding1",
+        channel: "wechat",
+        status: "active",
+        externalChatId: "chat1",
+        sessionId: "s1",
+        forwardingEnabled: true,
+        boundAt: 11,
+      },
+    },
+  } satisfies TypedRoomEvent<"pairing.binding.updated">;
+
+  expect(event.payload.binding.forwardingEnabled).toBe(true);
+});
+
 test("scheduler run payloads fit room envelope", () => {
-  const event: RoomEvent<SchedulerRunFinishedPayload> = {
+  const event = {
     seq: 2,
     ts: 2,
     sessionId: "s1",
@@ -60,7 +105,7 @@ test("scheduler run payloads fit room envelope", () => {
         finishedAt: 2,
       },
     },
-  };
+  } satisfies TypedRoomEvent<"scheduler.run.finished">;
 
   expect(event.payload.run.status).toBe("succeeded");
 });
