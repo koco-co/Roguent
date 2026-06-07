@@ -1,7 +1,8 @@
 import type { Database } from "bun:sqlite";
+import { createHash } from "node:crypto";
 import { withTransaction } from "./db";
 
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 export const REQUIRED_TABLE_NAMES = [
   "sessions",
@@ -18,6 +19,16 @@ export const REQUIRED_TABLE_NAMES = [
 
 type SchemaVersionRow = {
   version: number;
+};
+
+type LegacyAuditRecordRow = {
+  id: string;
+  actor: string;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  metadata_json: string | null;
+  created_at: number;
 };
 
 function ensureSchemaVersionTable(db: Database): void {
@@ -48,6 +59,84 @@ function setSchemaVersion(db: Database, version: number): void {
       version = excluded.version,
       updated_at = excluded.updated_at
   `).run(version);
+}
+
+function tableExists(db: Database, tableName: string): boolean {
+  const row = db
+    .query<{ name: string }, [string]>(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+    )
+    .get(tableName);
+  return row !== null;
+}
+
+function sortJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sortJsonValue);
+  }
+
+  if (value === null || typeof value !== "object") {
+    return value;
+  }
+
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(value).sort()) {
+    sorted[key] = sortJsonValue((value as Record<string, unknown>)[key]);
+  }
+  return sorted;
+}
+
+function stableJsonStringify(value: unknown): string {
+  return JSON.stringify(sortJsonValue(value));
+}
+
+function parseLegacyAuditMetadata(metadataJson: string | null): unknown {
+  if (metadataJson === null) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(metadataJson);
+  } catch {
+    return metadataJson;
+  }
+}
+
+function hashLegacyAuditMetadata(metadataJson: string | null): string {
+  return createHash("sha256")
+    .update(stableJsonStringify(parseLegacyAuditMetadata(metadataJson)))
+    .digest("hex");
+}
+
+function legacyAuditSummary(row: LegacyAuditRecordRow): string {
+  if (row.target_id) {
+    return `legacy ${row.target_type} ${row.target_id}`;
+  }
+  return `legacy ${row.target_type}`;
+}
+
+function createAuditRecordsV3Schema(db: Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS audit_records (
+      id TEXT PRIMARY KEY,
+      source TEXT NOT NULL,
+      action TEXT NOT NULL,
+      session_id TEXT,
+      delivery_id TEXT,
+      payload_hash TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_audit_records_session_created_at
+      ON audit_records(session_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_audit_records_delivery_id
+      ON audit_records(delivery_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_records_source_action_created_at
+      ON audit_records(source, action, created_at);
+    CREATE INDEX IF NOT EXISTS idx_audit_records_created_at
+      ON audit_records(created_at);
+  `);
 }
 
 function migrateToVersion1(db: Database): void {
@@ -309,6 +398,77 @@ function migrateToVersion2(db: Database): void {
   `);
 }
 
+function migrateToVersion3(db: Database): void {
+  if (!tableExists(db, "audit_records")) {
+    createAuditRecordsV3Schema(db);
+    return;
+  }
+
+  const legacyRows = db
+    .query<LegacyAuditRecordRow, []>("SELECT * FROM audit_records")
+    .all();
+
+  db.exec(`
+    DROP TABLE IF EXISTS audit_records_next;
+
+    CREATE TABLE audit_records_next (
+      id TEXT PRIMARY KEY,
+      source TEXT NOT NULL,
+      action TEXT NOT NULL,
+      session_id TEXT,
+      delivery_id TEXT,
+      payload_hash TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+  `);
+
+  const insert = db.query<
+    unknown,
+    [
+      string,
+      string,
+      string,
+      string | null,
+      string | null,
+      string,
+      string,
+      number,
+    ]
+  >(`
+    INSERT INTO audit_records_next (
+      id,
+      source,
+      action,
+      session_id,
+      delivery_id,
+      payload_hash,
+      summary,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const row of legacyRows) {
+    insert.run(
+      row.id,
+      row.actor,
+      row.action,
+      row.target_type === "session" ? row.target_id : null,
+      null,
+      hashLegacyAuditMetadata(row.metadata_json),
+      legacyAuditSummary(row),
+      row.created_at,
+    );
+  }
+
+  db.exec(`
+    DROP TABLE audit_records;
+    ALTER TABLE audit_records_next RENAME TO audit_records;
+  `);
+  createAuditRecordsV3Schema(db);
+}
+
 export function migrate(db: Database): void {
   withTransaction(db, () => {
     let version = readSchemaVersion(db);
@@ -327,6 +487,12 @@ export function migrate(db: Database): void {
     if (version < 2) {
       migrateToVersion2(db);
       setSchemaVersion(db, 2);
+      version = 2;
+    }
+
+    if (version < 3) {
+      migrateToVersion3(db);
+      setSchemaVersion(db, 3);
     }
   });
 }

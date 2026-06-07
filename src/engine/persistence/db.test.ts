@@ -229,11 +229,13 @@ test("repositories can upsert sessions and pairing bindings and append audit rec
 
     repositories.auditRecords.append({
       id: "audit-1",
-      actor: "system",
+      source: "system",
       action: "pairing.upserted",
-      targetType: "pairing_binding",
-      targetId: "binding-1",
-      metadataJson: '{"reason":"smoke-test"}',
+      sessionId: "session-1",
+      deliveryId: null,
+      payloadHash:
+        "7cdd12fbcf561409e58d5a2ad23d57e762c6f68e0905728858d963725ef730b3",
+      summary: "pairing binding smoke test",
       createdAt: now,
     });
 
@@ -273,11 +275,13 @@ test("repositories can upsert sessions and pairing bindings and append audit rec
     });
     expect(repositories.auditRecords.get("audit-1")).toEqual({
       id: "audit-1",
-      actor: "system",
+      source: "system",
       action: "pairing.upserted",
-      targetType: "pairing_binding",
-      targetId: "binding-1",
-      metadataJson: '{"reason":"smoke-test"}',
+      sessionId: "session-1",
+      deliveryId: null,
+      payloadHash:
+        "7cdd12fbcf561409e58d5a2ad23d57e762c6f68e0905728858d963725ef730b3",
+      summary: "pairing binding smoke test",
       createdAt: now,
     });
   } finally {

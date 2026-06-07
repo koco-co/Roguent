@@ -33,11 +33,12 @@ export interface StoredPairingBinding {
 
 export interface StoredAuditRecord {
   id: string;
-  actor: string;
+  source: string;
   action: string;
-  targetType: string;
-  targetId: string | null;
-  metadataJson: string | null;
+  sessionId: string | null;
+  deliveryId: string | null;
+  payloadHash: string;
+  summary: string;
   createdAt: number;
 }
 
@@ -74,11 +75,12 @@ type PairingBindingRow = {
 
 type AuditRecordRow = {
   id: string;
-  actor: string;
+  source: string;
   action: string;
-  target_type: string;
-  target_id: string | null;
-  metadata_json: string | null;
+  session_id: string | null;
+  delivery_id: string | null;
+  payload_hash: string;
+  summary: string;
   created_at: number;
 };
 
@@ -120,11 +122,12 @@ function mapPairingBinding(row: PairingBindingRow): StoredPairingBinding {
 function mapAuditRecord(row: AuditRecordRow): StoredAuditRecord {
   return {
     id: row.id,
-    actor: row.actor,
+    source: row.source,
     action: row.action,
-    targetType: row.target_type,
-    targetId: row.target_id,
-    metadataJson: row.metadata_json,
+    sessionId: row.session_id,
+    deliveryId: row.delivery_id,
+    payloadHash: row.payload_hash,
+    summary: row.summary,
     createdAt: row.created_at,
   };
 }
@@ -284,25 +287,36 @@ export function createRepositories(db: Database) {
       append(record: StoredAuditRecord): void {
         db.query<
           unknown,
-          [string, string, string, string, string | null, string | null, number]
+          [
+            string,
+            string,
+            string,
+            string | null,
+            string | null,
+            string,
+            string,
+            number,
+          ]
         >(`
           INSERT INTO audit_records (
             id,
-            actor,
+            source,
             action,
-            target_type,
-            target_id,
-            metadata_json,
+            session_id,
+            delivery_id,
+            payload_hash,
+            summary,
             created_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           record.id,
-          record.actor,
+          record.source,
           record.action,
-          record.targetType,
-          record.targetId,
-          record.metadataJson,
+          record.sessionId,
+          record.deliveryId,
+          record.payloadHash,
+          record.summary,
           record.createdAt,
         );
       },
