@@ -24,3 +24,18 @@ export interface RuntimeEventDraft<TPayload = unknown> {
 }
 
 export type DraftEvent = RuntimeEventDraft;
+
+export interface RuntimeSendMeta {
+  parentToolUseId?: string | null;
+}
+
+export interface RuntimeDriver {
+  start(): void;
+  send(text: string, meta?: RuntimeSendMeta): void;
+  setModel(model: string): Promise<void>;
+  setPermissionMode(mode: string): Promise<void>;
+  setSandboxMode?(mode: string): Promise<void>;
+  setReasoningEffort?(effort: string): Promise<void>;
+  interrupt(): Promise<void>;
+  end(): void;
+}

@@ -1,13 +1,9 @@
 import { ORCHESTRATOR_ID } from "../shared/domain";
 import type { TodoItem, TodoStatus } from "../shared/domain";
-import type { RoomEventType } from "../shared/events";
 import type { RateLimitInfoLike } from "./limits-aggregator";
+import type { DraftEvent } from "./runtime/types";
 
-export interface DraftEvent {
-  type: RoomEventType;
-  payload: unknown;
-  agentId?: string;
-}
+export type { DraftEvent } from "./runtime/types";
 
 // Structural shapes — decoupled from the SDK. Validate real JSON before trusting (spec §8.4).
 export interface HookLike {

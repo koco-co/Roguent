@@ -222,12 +222,7 @@ export class SessionManager {
   }
 
   async setPermissionMode(id: string, mode: string): Promise<void> {
-    const driver = this.drivers.get(id);
-    if (driver && "setPermissionMode" in driver) {
-      await (
-        driver as unknown as { setPermissionMode(m: string): Promise<void> }
-      ).setPermissionMode(mode);
-    }
+    await this.drivers.get(id)?.setPermissionMode(mode);
   }
 
   private async emitContextUsage(id: string): Promise<void> {

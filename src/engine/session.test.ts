@@ -10,6 +10,7 @@ function fakeDriverFactory(captured: { cb?: DriverCallbacks }) {
       start() {},
       send() {},
       async setModel() {},
+      async setPermissionMode() {},
       async interrupt() {},
       end() {},
       getContextUsage: async () => null,
@@ -96,6 +97,7 @@ test("deleteSession ends the driver and drops it", () => {
       start() {},
       send() {},
       async setModel() {},
+      async setPermissionMode() {},
       async interrupt() {},
       end() {
         ended = true;
@@ -120,6 +122,7 @@ test("emits context.updated after a turn (usage.updated), from getContextUsage",
     start() {},
     send() {},
     setModel: async () => {},
+    setPermissionMode: async () => {},
     interrupt: async () => {},
     end() {},
     getContextUsage: async () => ({
@@ -191,6 +194,7 @@ test("no context.updated when getContextUsage returns null", async () => {
         start() {},
         send() {},
         setModel: async () => {},
+        setPermissionMode: async () => {},
         interrupt: async () => {},
         end() {},
         getContextUsage: async () => null,
@@ -237,4 +241,27 @@ test("setModel on unknown session does not emit", async () => {
   // No createSession — session does not exist.
   await mgr.setModel("ghost", "claude-opus-4-8");
   expect(got).toHaveLength(0);
+});
+
+test("setPermissionMode forwards to driver adapter when supported", async () => {
+  const modes: string[] = [];
+  const driver: IDriver & { setPermissionMode(mode: string): Promise<void> } = {
+    start() {},
+    send() {},
+    async setModel() {},
+    async setPermissionMode(mode: string) {
+      modes.push(mode);
+    },
+    async interrupt() {},
+    end() {},
+    getContextUsage: async () => null,
+    askPermission: async () => ({ behavior: "allow" as const }),
+    respondPermission() {},
+  };
+  const mgr = new SessionManager(() => driver, "/tmp");
+  mgr.createSession("s1", { title: "t", model: "m" });
+
+  await mgr.setPermissionMode("s1", "acceptEdits");
+
+  expect(modes).toEqual(["acceptEdits"]);
 });
