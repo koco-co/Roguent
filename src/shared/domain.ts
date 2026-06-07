@@ -1,4 +1,4 @@
-import { defaultRuntimeConfig, normalizePermissionMode } from "./runtime";
+import { defaultRuntimeConfig } from "./runtime";
 import type {
   CodexApprovalPolicy,
   PermissionMode,
@@ -180,7 +180,7 @@ type CreateSessionInput = Omit<
   Pick<Session, "id" | "title"> & {
     runtime?: RuntimeKind;
     model?: string;
-    permissionMode?: PermissionMode | string;
+    permissionMode?: PermissionMode;
     approvalPolicy?: CodexApprovalPolicy;
     sandboxMode?: SandboxMode;
     reasoningEffort?: ReasoningEffort;
@@ -227,10 +227,7 @@ export function createSession(partial: CreateSessionInput): Session {
     ...rest,
     runtime,
     model: partialModel ?? runtimeDefaults.model,
-    permissionMode: normalizePermissionMode(
-      partialPermissionMode,
-      runtimeDefaults.permissionMode,
-    ),
+    permissionMode: partialPermissionMode ?? runtimeDefaults.permissionMode,
     sandboxMode: partialSandboxMode ?? runtimeDefaults.sandboxMode,
     networkAccess: partialNetworkAccess ?? runtimeDefaults.networkAccess,
   };

@@ -18,6 +18,19 @@ test("session stores runtime metadata", () => {
   );
 });
 
+test("default session remains Claude-compatible", () => {
+  const session = createSession({
+    id: "s-claude",
+    title: "Claude task",
+    model: "claude-custom",
+  });
+
+  expect(session.runtime).toBe("claude");
+  expect(session.model).toBe("claude-custom");
+  expect(session.permissionMode).toBe("default");
+  expect(session.approvalPolicy).toBeUndefined();
+});
+
 test("normalizePermissionMode accepts only Claude SDK permission modes", () => {
   expect(normalizePermissionMode("plan")).toBe("plan");
   expect(normalizePermissionMode("acceptEdits")).toBe("acceptEdits");

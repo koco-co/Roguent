@@ -521,6 +521,25 @@ test("a default-mode re-init does not clobber an already-known non-default mode"
   expect(st.sessions.s1?.permissionMode).toBe("acceptEdits");
 });
 
+test("an invalid non-default permissionMode does not clobber an existing non-default mode", () => {
+  let st = reduce(
+    empty,
+    ev({
+      type: "session.created",
+      payload: { title: "t", model: "m", permissionMode: "plan" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 9,
+      type: "session.created",
+      payload: { title: "t", model: "m", permissionMode: "ask" },
+    }),
+  );
+  expect(st.sessions.s1?.permissionMode).toBe("plan");
+});
+
 test("an early session.error placeholder stamps lastActiveAt and never steals a lobby slot", () => {
   // 先来一条 session.error(无 project 的占位),再建 10 个带 project 的会话。
   // 占位不计入 ACTIVE_CAP,所以 10 个真实会话全部保持活跃。

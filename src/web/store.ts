@@ -120,8 +120,8 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       cwd: p.cwd,
       project: p.project,
       // 合成的第一条恒为 "default";若首条已带真实模式(如 init 先于合成到达)则尊重之。
-      // 显式回落 "default":createSession 的默认会被 partial 里的 undefined 覆盖掉。
-      permissionMode: p.permissionMode ?? "default",
+      // event payload 是字符串边界,进 domain 前收敛到 Claude SDK 合法枚举。
+      permissionMode: normalizePermissionMode(p.permissionMode),
       lastActiveAt: e.ts, // 首次出现即视为刚活跃,供 LRU 排序
       imported: p.imported, // 导入会话:reconcile 对账豁免它
     });
