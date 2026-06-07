@@ -3,10 +3,8 @@ import {
   type Loot,
   ORCHESTRATOR_ID,
   type Session,
-  type TimelineItem,
   type TimelineMessageItem,
   type TimelinePromptItem,
-  type TimelineToolItem,
   createAgent,
   createSession,
 } from "../shared/domain";
