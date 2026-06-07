@@ -234,9 +234,9 @@
 - [ ] Record existing dirty files in the task log. At the time this plan was written, known dirty entries were:
   ```text
    M src/engine/session.test.ts
-  ?? AGENTS.md
   ?? Roguent-handoff.zip
   ```
+  注:这是写计划时的快照,执行时必须以本 task 现场 `git status --short` 为准;不要照抄旧快照。
 - [ ] If implementing in a detached worktree, run:
   ```bash
   git worktree add --detach .worktrees/roguent-full-prototype main
@@ -571,7 +571,8 @@
 - Test: `src/engine/ws-gateway.test.ts`
 
 **Output Standard:**
-- WS command `newSession` 接受 runtime/model/cwd/permissionMode/sandboxMode/reasoningEffort/networkAccess。
+- WS command `newSession` 继续使用仓库现有上行字段 `cmd`,不要改成 `type`;它接受 runtime/model/cwd/permissionMode/approvalPolicy/sandboxMode/reasoningEffort/networkAccess。
+- `sessionId`、`title`、`model` 保持现有 WS 协议必填,避免破坏 `ChatDrawer`/`EmptyState` 等已落地客户端;本 task 只扩展配置字段,不改变会话 id 生成职责。
 - 未提供 runtime 时默认 Claude，保持现有使用路径。
 - `session.created` payload 带 runtime config。
 
@@ -582,11 +583,11 @@
 - [ ] Add command shape:
   ```ts
   type NewSessionCommand = {
-    type: "newSession";
-    sessionId?: string;
-    title?: string;
+    cmd: "newSession";
+    sessionId: string;
+    title: string;
     runtime?: RuntimeKind;
-    model?: string;
+    model: string;
     cwd?: string;
     permissionMode?: PermissionMode; // Claude
     approvalPolicy?: CodexApprovalPolicy; // Codex
@@ -597,7 +598,29 @@
   ```
 - [ ] Add test asserting default:
   ```ts
-  expect(parseCommand({ type: "newSession" }).runtime).toBe("claude");
+  expect(
+    parseCommand(
+      JSON.stringify({
+        cmd: "newSession",
+        sessionId: "s1",
+        title: "Claude task",
+        model: "claude-sonnet-4",
+      }),
+    )?.runtime,
+  ).toBe("claude");
+  ```
+- [ ] Add test that invalid `type: "newSession"` without `cmd` is rejected, so future work does not accidentally fork the command protocol:
+  ```ts
+  expect(
+    parseCommand(
+      JSON.stringify({
+        type: "newSession",
+        sessionId: "s1",
+        title: "Wrong protocol",
+        model: "claude-sonnet-4",
+      }),
+    ),
+  ).toBeNull();
   ```
 - [ ] Run:
   ```bash
