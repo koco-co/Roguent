@@ -7,6 +7,7 @@ import {
   appendAuditRecord,
   appendAuditRecordSafe,
   createAuditWarningEvent,
+  hashAuditPayload,
   sanitizeAuditPayload,
 } from "./log";
 
@@ -96,6 +97,21 @@ test("sanitizeAuditPayload removes common sensitive key variants", () => {
   ]) {
     expect(serialized).not.toContain(leakedValue);
   }
+});
+
+test("sanitizeAuditPayload removes structured authorization header variants", () => {
+  const sanitized = sanitizeAuditPayload({
+    authorization_header: "Basic basic-secret",
+    AuthorizationHeader: "Bearer auth-secret",
+    visible: "keep",
+  });
+
+  expect(sanitized).toEqual({
+    visible: "keep",
+  });
+  const serialized = JSON.stringify(sanitized);
+  expect(serialized).not.toContain("basic-secret");
+  expect(serialized).not.toContain("auth-secret");
 });
 
 test("appendAuditRecord stores new audit shape without persisting raw payload", () => {
@@ -324,6 +340,22 @@ test("payloadHash is stable and ignores sanitized sensitive values", () => {
   }
 });
 
+test("payloadHash ignores structured authorization header values", () => {
+  const first = hashAuditPayload({
+    authorization_header: "Basic first-basic-secret",
+    AuthorizationHeader: "Bearer first-auth-secret",
+    visible: "keep",
+  });
+  const second = hashAuditPayload({
+    authorization_header: "Basic second-basic-secret",
+    AuthorizationHeader: "Bearer second-auth-secret",
+    visible: "keep",
+  });
+
+  expect(first).toBe(second);
+  expect(first).toBe(sha256Hex('{"visible":"keep"}'));
+});
+
 test("appendAuditRecordSafe returns a session warning event instead of throwing", () => {
   const testDb = createTestDatabase();
   try {
@@ -477,6 +509,37 @@ test("createAuditWarningEvent redacts warning diagnostics and metadata", () => {
   expect(warningEventJson).not.toContain("diagnostic-secret");
   expect(warningEventJson).not.toContain("metadata-password");
   expect(warningEventJson).not.toContain("metadata-api-key");
+});
+
+test("createAuditWarningEvent strips structured authorization header metadata", () => {
+  const warningEvent = createAuditWarningEvent(
+    {
+      source: "runtime",
+      action: "runtime.status.changed",
+      sessionId: "session-1",
+      payload: { status: "idle" },
+      summary: "runtime idled",
+    },
+    new Error("database failed"),
+    {
+      type: "integration.status",
+      sessionId: "session-1",
+      integration: {
+        id: "wechat",
+        channel: "wechat",
+        metadata: {
+          authorization_header: "Basic basic-secret",
+          AuthorizationHeader: "Bearer auth-secret",
+          visible: "keep",
+        },
+      },
+    },
+  );
+
+  const warningEventJson = JSON.stringify(warningEvent);
+  expect(warningEventJson).toContain("keep");
+  expect(warningEventJson).not.toContain("basic-secret");
+  expect(warningEventJson).not.toContain("auth-secret");
 });
 
 test("migration upgrades v2 audit rows into the Task 6 shape", () => {

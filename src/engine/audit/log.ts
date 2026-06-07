@@ -99,6 +99,13 @@ function isSensitiveAuditKey(key: string): boolean {
     return true;
   }
 
+  if (
+    canonicalKey.startsWith("authorization") &&
+    canonicalKey.endsWith("header")
+  ) {
+    return true;
+  }
+
   return (
     canonicalKey.endsWith("token") ||
     canonicalKey.endsWith("secret") ||
