@@ -1,7 +1,7 @@
 ---
 title: Roguent 主线 ROADMAP · 现状与 backlog
-date: 2026-06-06
-baseline_commit: 6698293 (本地 main;领先 origin/main;Claude Design Roguent.html 落地 T0–T5 已合入)
+date: 2026-06-07
+baseline_commit: e70f5db (本地 main;领先 origin/main;Roguent.html 落地 T0–T5 + 聊天窗口大改 + 真实数据/缩放 均已合入)
 status: living-doc
 ---
 
@@ -26,7 +26,7 @@ status: living-doc
 
 ---
 
-## 1. 当前现状(已核实,baseline `main @ 2070a0d` / 2026-06-05)
+## 1. 当前现状(已核实,baseline `main @ e70f5db` / 2026-06-07)
 
 ### 1.1 已实现并合入 `main`
 - **核心主链路(MVP)**:Bun engine 用 Claude Agent SDK streaming-input 驱动**订阅模式**会话;hooks + SDK 消息经 `normalize.ts` 归一化成 `RoomEvent`,`Sequencer` 打 `(sessionId, seq)`,`WsGateway` broadcast;前端 `store.ts` reduce 成 `sessions`。(`src/engine/*`、`src/shared/*`、`src/web/store.ts`)
@@ -36,9 +36,11 @@ status: living-doc
 - **桌面打包(Tauri 第一阶段)**:Tauri 2 壳 + Bun sidecar(`bun build --compile`)+ 218MB claude CLI 作资源;端口经 stdout `PORT=` 握手 → `engine_url` 命令 → 前端 `resolveEngineUrl`。(`src-tauri/*`、`scripts/build-sidecar.ts`、`scripts/stage-cli.ts`、`src/web/engine-url.ts`;spec:`tauri-sidecar-migration-design.md`)
 - **打包后真机修复**:macOS 系统代理注入(`src/engine/proxy.ts`——LaunchServices 启动的 .app 不继承 shell 代理,需代理的网络下会 403)、孤儿 sidecar 退出回收、bundled CLI 路径修正、Press Start 2P 字体本地化。(合入于 merge `2070a0d`)
 - **Claude Design `Roguent.html` 像素原型落地(T0–T5,2026-06-06)**:把设计稿的《元气骑士》暖木 RPG 观感与全套面板落到真实 React/Pixi/Zustand 代码,**严格按原型样式(含字体)**,真/假分明(真数据面板不造假、mock 面板显著标注)。详见 §3.5「设计落地状态」。涉及 `src/web/styles.css`(暖木 token + 全部面板样式)、`src/web/hud/*`(图标注册表 + 12+ 面板)、`src/web/overworld/*`(漩涡过场 / 中央任务台 / 角色头像)、`src/web/settings-store.ts`。
+- **聊天窗口大改(chat window overhaul,2026-06-07,merge `e427f0d`)**:聊天从"消息数组"升级为**统一 timeline**(`domain.ts` `TimelineItem` 判别联合 message/thinking/tool/prompt;`store.ts` 由 `Session.messages` 迁到 `timeline`);新增事件类型 `thinking.delta/final`、`prompt.requested/resolved`([events.ts](../src/shared/events.ts));**交互式权限/AskUserQuestion** 全链路打通——`Driver.canUseTool` + 网关 `respondPermission`/`respondQuestion`/`setPermissionMode`(commits `fd2b8f2`/`9493259`/`55653d2`),`normalize.ts` 把 AskUserQuestion 特判成 `prompt.requested`;前端 `ThinkingBlock`/`ToolCard`/`PromptCard`/`TimelineItem`/`SlashMenu`/`MessageBubble`(copy + 时间戳)+ stop 按钮 + textarea 自适应高度 + Shift+Enter 换行 + slash 补全菜单。**Codex 仍为占位**(引擎只跑 Claude)。涉及 [src/web/hud/*](../src/web/hud)(ChatDrawer/TimelineItem/MessageBubble/ThinkingBlock/ToolCard/PromptCard/SlashMenu)、`src/engine/{driver,normalize,ws-gateway}.ts`、`src/web/store.ts`。设计/计划见 [chat-window-overhaul-design](superpowers/specs/2026-06-07-chat-window-overhaul-design.md) / [plan](superpowers/plans/2026-06-07-chat-window-overhaul.md)。
+- **零散修复(2026-06-06~07)**:SessionBanner 可点开 SessionGrid(`db0076d`);Bug #B/A/G/D — ESC 链 / 空态 / 模型继承 / loot 守卫(`c94b37e`);setModel 后广播 model 变更事件(`fbb62dc`)。
 
 ### 1.2 测试现状
-- **212 单测全绿、biome 干净、`bunx tsc --noEmit` 干净**(2026-06-06 核实;`bun run check`/build 不做类型检查,tsc 须单独跑)。
+- **247 单测全绿(39 文件)、biome 干净(291 文件)、`bunx tsc --noEmit` 干净**(2026-06-07 核实 @ `e70f5db`;`bun run check`/build 不做类型检查,tsc 须单独跑)。
 - e2e:回放驱动(`replay.e2e.test.ts` 扩展)+ store/reducer 级断言;聚合 / 映射 / 格式化 / 图标 / 阈值等可测逻辑全部下沉纯函数单测。UI 组件按约定走 `tsc + check + 回放/preview 冒烟`。
 
 ### 1.3 已知损坏 / 未验证(Phase 1 要解决)
@@ -61,8 +63,12 @@ status: living-doc
 | [superpowers/plans/…roguent-mvp.md](superpowers/plans/2026-06-04-roguent-mvp.md) | 历史记录 | MVP 实现计划 | ✅已实现合入(checkbox 未勾,**勿当 backlog**) |
 | [superpowers/plans/…overworld-hub-fixes.md](superpowers/plans/2026-06-04-overworld-hub-fixes.md) | 历史记录 | 总览世界审查修复 | ✅已实现合入(同上) |
 | [superpowers/plans/…tauri-sidecar-migration.md](superpowers/plans/2026-06-04-tauri-sidecar-migration.md) | 历史记录 | 桌面打包实现计划 | ✅已实现合入(2070a0d,同上) |
+| [superpowers/specs/…chat-window-overhaul-design.md](superpowers/specs/2026-06-07-chat-window-overhaul-design.md) | 设计参考 | 聊天窗口大改(timeline / 交互式权限 / thinking·tool·prompt 卡) | ✅已实现合入(`e427f0d`) |
+| [superpowers/specs/…full-prototype-integration-design.md](superpowers/specs/2026-06-07-roguent-full-prototype-integration-design.md) | 设计参考 | 全原型落地:Claude/Codex 双 runtime + IM/订阅/定时/经济 | 📋 待实现(下一大主线) |
+| [superpowers/plans/…full-prototype-integration.md](superpowers/plans/2026-06-07-roguent-full-prototype-integration.md) | 实现计划 | 上者的 67-task 落地计划(已审查修订) | 📋 待实现(**当前 backlog**;先做 Task 0) |
 
 > 读 specs 了解「应该是什么样」;读 plans 了解「当时怎么一步步做的」。**新工作以本 ROADMAP 的 backlog 为准。**
+> 注:`specs/`、`plans/` 下另有 06-05/06-06 的若干文档(web-lobby-overhaul / usage-and-limits / import-local-sessions / real-data-and-stage-scaling / product-prds / chat-right-drawer),均已实现合入;未逐条列入上表,需要时按文件名查。
 
 ---
 
@@ -208,3 +214,5 @@ status: living-doc
 - 2026-06-05:**web 端游戏化呈现重构**落地(5 task:相机整数缩放贴身跟随 / 传送门进出过渡 + NPC 传送阵 / 底部 hotbar HUD / 信息卡·聊天抽屉重皮成游戏窗口 / 中央 Hub 大厅 + 环境光)。纯客户端视觉交互层,不动 engine / 事件协议 / domain;新纯函数(`zoom`/`camera` scale/`portal`/`worldgen` hub)单测钉死,append-only/确定性不回归。见 [plan](superpowers/plans/2026-06-05-web-lobby-game-overhaul.md) / [spec](superpowers/specs/2026-06-05-web-lobby-game-overhaul-design.md)。
 - 2026-06-06:**Claude Design `Roguent.html` 像素原型落地**(T0–T5,严格按原型样式含字体,真/假分明)。暖木 token + 像素 chrome + 自绘 SVG 图标 + Fusion Pixel 中文字体;settings-store + Modal 路由;内景 HUD 全套;12+ 面板(排行榜聚合 / 账号 / 导入 / 模型 / 背包 / 聊天 Modal / 技能 / 系统菜单 / 漩涡过场,Tasks/Settings/Shop 为标注 mock);SessionGrid + Pixi 中央任务台 E 键 + 角色选择 → avatarHero + 空/错态(错误态接真 WS 连接状态 + 去抖 + 真重连);收尾删死代码/token/emoji + 补 roleToHero 测试。212 单测 + tsc + biome 全绿;preview 截图 + 杀引擎 e2e 核验。详见 §3.5。设计落地保留现有 Pixi Overworld 作 hub,Codex 全为视觉占位。
 - 2026-06-06:**真实数据接入 + 屏幕自适应缩放**。① 新增 `todos.updated` 事件管线(events/normalize/store),捕获各 agent 真实 TodoWrite → Session.todos;TaskWindow / Tasks 面板由 mock 改接真,Currency「完成数」接真(已完成 todo 计数);信箱按无源决策保留为局部标注 mock;gems/Shop/Settings CONFIG 仍标注 mock。② 全 UI 包进固定 1920×1080 逻辑舞台(`#viewport/#stage` + `stageScale=min(W/1920,H/1080)`,对齐设计原型 useStageScale),房间/人物/HUD/模态等比缩放 letterbox 居中,修复小屏人物/HUD 过大。纯函数(stage-scale / todos-view / parseTodos)+ reduce 级 e2e 钉死;tsc + biome + bun test 全绿。
+- 2026-06-07:**聊天窗口大改合入**(merge `e427f0d`)。聊天升级为统一 timeline(`TimelineItem` 判别联合 + store 从 `messages` 迁 `timeline`);新增 `thinking.*`/`prompt.*` 事件;交互式权限/AskUserQuestion 双向打通(`canUseTool` + `respondPermission`/`respondQuestion`/`setPermissionMode`);前端 ThinkingBlock/ToolCard/PromptCard/SlashMenu/MessageBubble(copy+时间戳)+ stop/换行/slash 补全。Codex 仍占位。详见 §1.1。
+- 2026-06-07:**ROADMAP 对齐 HEAD `e70f5db`**:修正自相矛盾的 baseline(frontmatter `6698293` / 正文 `2070a0d`)→ 统一 `e70f5db`;补记聊天窗口大改与零散修复;测试现状刷新为 **247 单测 / 39 文件 / biome 291 文件 / tsc 全绿**(2026-06-07 核实);文档地图补 chat-window-overhaul 与 full-prototype-integration 行。**新主线 = [full-prototype-integration plan](superpowers/plans/2026-06-07-roguent-full-prototype-integration.md)**(67 task,已审查修订,先做 Task 0:测试基建 + 文件盘点 + 命名锁定)。
