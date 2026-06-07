@@ -179,3 +179,49 @@ test("PreToolUse on a non-TodoWrite tool emits no todos.updated", () => {
   });
   expect(drafts.some((d) => d.type === "todos.updated")).toBe(false);
 });
+
+test("PreToolUse AskUserQuestion → prompt.requested(kind=question), NOT tool.started", () => {
+  const drafts = normalizeHook({
+    hook_event_name: "PreToolUse",
+    tool_name: "AskUserQuestion",
+    agent_id: "ag-1",
+    tool_use_id: "t-ask",
+    tool_input: {
+      questions: [
+        {
+          question: "Which approach?",
+          header: "Approach",
+          options: [
+            { label: "A", description: "Option A" },
+            { label: "B", description: "Option B" },
+          ],
+          multiSelect: false,
+        },
+      ],
+    },
+  });
+  // Should produce exactly 1 event: prompt.requested
+  expect(drafts).toHaveLength(1);
+  expect(drafts[0]?.type).toBe("prompt.requested");
+  const p = drafts[0]?.payload as {
+    promptId: string;
+    promptKind: string;
+    data: { questions: Array<{ question: string; options: unknown[] }> };
+  };
+  expect(p.promptId).toBe("t-ask");
+  expect(p.promptKind).toBe("question");
+  expect(p.data.questions).toHaveLength(1);
+  expect(p.data.questions[0]?.question).toBe("Which approach?");
+  expect(p.data.questions[0]?.options).toHaveLength(2);
+});
+
+test("PreToolUse normal tool still emits tool.started (AskUserQuestion guard doesn't break others)", () => {
+  const drafts = normalizeHook({
+    hook_event_name: "PreToolUse",
+    tool_name: "Bash",
+    tool_use_id: "t-bash",
+    tool_input: { command: "ls" },
+  });
+  expect(drafts.some((d) => d.type === "tool.started")).toBe(true);
+  expect(drafts.some((d) => d.type === "prompt.requested")).toBe(false);
+});

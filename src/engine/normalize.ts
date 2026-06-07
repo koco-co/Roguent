@@ -105,6 +105,43 @@ export function normalizeHook(h: HookLike): DraftEvent[] {
         },
       ];
     case "PreToolUse": {
+      // AskUserQuestion 特判: 不走普通工具卡，直接发 prompt.requested(kind=question)
+      if (h.tool_name === "AskUserQuestion") {
+        const input = (h.tool_input ?? {}) as Record<string, unknown>;
+        const rawQs = Array.isArray(input.questions) ? input.questions : [];
+        const questions = rawQs.map((q: unknown) => {
+          const qi = (q ?? {}) as Record<string, unknown>;
+          const rawOpts = Array.isArray(qi.options) ? qi.options : [];
+          return {
+            question: typeof qi.question === "string" ? qi.question : "",
+            header: typeof qi.header === "string" ? qi.header : "",
+            options: rawOpts.map((o: unknown) => {
+              const oi = (o ?? {}) as Record<string, unknown>;
+              return {
+                label: typeof oi.label === "string" ? oi.label : "",
+                description:
+                  typeof oi.description === "string"
+                    ? oi.description
+                    : undefined,
+              };
+            }),
+            multiSelect:
+              typeof qi.multiSelect === "boolean" ? qi.multiSelect : false,
+          };
+        });
+        return [
+          {
+            type: "prompt.requested" as const,
+            agentId,
+            payload: {
+              promptId: h.tool_use_id ?? "",
+              promptKind: "question" as const,
+              data: { questions },
+            },
+          },
+        ];
+      }
+
       const drafts: DraftEvent[] = [
         {
           type: "tool.started",
