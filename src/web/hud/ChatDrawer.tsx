@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
+import { SlashMenu } from "./SlashMenu";
 import { TimelineItem } from "./TimelineItem";
 import { Icon } from "./icons";
 import { modelLabel } from "./model-label";
@@ -35,6 +36,7 @@ export function ChatDrawer() {
   const [cwd, setCwd] = useState("");
   const [search, setSearch] = useState("");
   const [mgrOpen, setMgrOpen] = useState(false);
+  const [slashOpen, setSlashOpen] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
 
   // sessions 的 Object.values 在 useMemo 里做(不在 selector 里,守 zustand 铁律)。
@@ -220,12 +222,25 @@ export function ChatDrawer() {
         </div>
 
         <div className="cdrawer-input" style={{ position: "relative" }}>
+          {slashOpen && (session?.slashCommands?.length ?? 0) > 0 ? (
+            <SlashMenu
+              commands={session!.slashCommands}
+              filter={text.slice(1)}
+              onSelect={(cmd) => {
+                setText(`${cmd} `);
+                setSlashOpen(false);
+              }}
+              onClose={() => setSlashOpen(false)}
+            />
+          ) : null}
           <textarea
             className="pxinput"
             rows={1}
             value={text}
             onChange={(e) => {
-              setText(e.target.value);
+              const val = e.target.value;
+              setText(val);
+              setSlashOpen(val.startsWith("/"));
               e.target.style.height = "auto";
               e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
             }}
