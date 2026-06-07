@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import {
+  type KeychainCommand,
   KeychainCommandFailure,
   KeychainSecretStore,
   buildKeychainCommand,
@@ -198,4 +199,47 @@ test("concurrent puts preserve both refs in the keychain index", async () => {
   ]);
 
   expect(await store.listRefs("github:")).toEqual(["github:a", "github:b"]);
+});
+
+test("concurrent puts across store instances preserve both refs for the same service", async () => {
+  const stored = new Map<string, string>();
+  const run = async (command: KeychainCommand) => {
+    const account = accountArg(command);
+    if (command.args[0] === "find-generic-password") {
+      const snapshot = stored.get(account);
+      if (account === INDEX_ACCOUNT) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+      if (snapshot == null) throw new KeychainCommandFailure(44);
+      return `${snapshot}\n`;
+    }
+    if (command.args[0] === "add-generic-password") {
+      stored.set(account, legacyOrPromptValue(command));
+      return "";
+    }
+    if (command.args[0] === "delete-generic-password") {
+      stored.delete(account);
+      return "";
+    }
+    throw new Error(`unexpected command ${command.args[0]}`);
+  };
+
+  const firstStore = new KeychainSecretStore({
+    service: "Roguent Shared Test Secrets",
+    run,
+  });
+  const secondStore = new KeychainSecretStore({
+    service: "Roguent Shared Test Secrets",
+    run,
+  });
+
+  await Promise.all([
+    firstStore.put("github:a", "secret-a"),
+    secondStore.put("github:b", "secret-b"),
+  ]);
+
+  expect(await firstStore.listRefs("github:")).toEqual([
+    "github:a",
+    "github:b",
+  ]);
 });

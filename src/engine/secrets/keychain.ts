@@ -7,6 +7,7 @@ const DEFAULT_SERVICE = "Roguent External Platform Secrets";
 const SECRET_ACCOUNT_PREFIX = "secret:";
 const INDEX_ACCOUNT = "__roguent_secret_index__";
 const NOT_FOUND_EXIT_CODE = 44;
+const serviceIndexQueues = new Map<string, Promise<void>>();
 
 export type KeychainOperation =
   | "put"
@@ -117,7 +118,6 @@ export function describeKeychainCommand(
 export class KeychainSecretStore implements SecretStore {
   private readonly service: string;
   private readonly run: KeychainRunner;
-  private indexQueue: Promise<void> = Promise.resolve();
 
   constructor(options: KeychainSecretStoreOptions = {}) {
     this.service = options.service ?? DEFAULT_SERVICE;
@@ -231,16 +231,27 @@ export class KeychainSecretStore implements SecretStore {
   }
 
   private async withIndexLock<T>(fn: () => Promise<T>): Promise<T> {
-    const previous = this.indexQueue;
-    let release: () => void = () => {};
-    this.indexQueue = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await previous;
-    try {
-      return await fn();
-    } finally {
-      release();
+    return withServiceIndexLock(this.service, fn);
+  }
+}
+
+async function withServiceIndexLock<T>(
+  service: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const previous = serviceIndexQueues.get(service) ?? Promise.resolve();
+  let release: () => void = () => {};
+  const current = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  serviceIndexQueues.set(service, current);
+  await previous;
+  try {
+    return await fn();
+  } finally {
+    release();
+    if (serviceIndexQueues.get(service) === current) {
+      serviceIndexQueues.delete(service);
     }
   }
 }
