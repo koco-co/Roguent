@@ -7,6 +7,7 @@
     "dev:web": "vite",
     "build": "vite build",
     "test": "bun test",
+    "test:e2e": "playwright test",
     "check": "biome check .",
     "dev:app": "bun scripts/build-sidecar.ts && bun scripts/stage-cli.ts && tauri dev",
     "build:app": "bun run build && bun scripts/build-sidecar.ts && bun scripts/stage-cli.ts && tauri build"
@@ -24,12 +25,16 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9",
+    "@playwright/test": "^1.60.0",
     "@tauri-apps/cli": "^2",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/ws": "^8",
     "@vitejs/plugin-react": "^4",
     "bun-types": "^1.3.14",
+    "happy-dom": "^20.10.2",
     "typescript": "^5.6",
     "vite": "^6"
   }
