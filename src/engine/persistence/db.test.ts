@@ -40,6 +40,52 @@ function quoteIdentifier(value: string): string {
   return `"${value.replaceAll('"', '""')}"`;
 }
 
+function createOldV1AchievementSchema(
+  testDb: ReturnType<typeof createTestDatabase>,
+): void {
+  testDb.db.exec(`
+    CREATE TABLE schema_version (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      version INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    INSERT INTO schema_version (id, version, updated_at)
+    VALUES (1, 1, 1_717_452_000_000);
+
+    CREATE TABLE sessions (
+      id TEXT PRIMARY KEY,
+      runtime TEXT NOT NULL,
+      title TEXT NOT NULL,
+      model TEXT NOT NULL,
+      cwd TEXT,
+      permission_mode TEXT NOT NULL,
+      sandbox_mode TEXT NOT NULL,
+      reasoning_effort TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      network_access INTEGER NOT NULL DEFAULT 0 CHECK (network_access IN (0, 1)),
+      approval_policy TEXT,
+      metadata_json TEXT
+    );
+
+    CREATE TABLE achievement_progress (
+      id TEXT PRIMARY KEY,
+      achievement_key TEXT NOT NULL,
+      session_id TEXT,
+      progress INTEGER NOT NULL,
+      target INTEGER NOT NULL,
+      completed_at INTEGER,
+      metadata_json TEXT,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE SET NULL
+    );
+
+    CREATE UNIQUE INDEX idx_achievement_progress_key_session
+      ON achievement_progress(achievement_key, session_id);
+  `);
+}
+
 test("migrations are idempotent", () => {
   const testDb = createTestDatabase();
   try {
@@ -357,6 +403,151 @@ test("achievement_progress enforces one global row per achievement key", () => {
       .get("first-global-win");
 
     expect(row?.count).toBe(1);
+  } finally {
+    testDb.cleanup();
+  }
+});
+
+test("migration upgrades old v1 achievement index to reject duplicate global achievements", () => {
+  const testDb = createTestDatabase();
+  try {
+    createOldV1AchievementSchema(testDb);
+
+    migrate(testDb.db);
+
+    expect(readSchemaVersion(testDb.db)).toBe(CURRENT_SCHEMA_VERSION);
+
+    const insertGlobalAchievement = (id: string) => {
+      testDb.db
+        .query<unknown, [string, string, number, number, number]>(`
+          INSERT INTO achievement_progress (
+            id,
+            achievement_key,
+            session_id,
+            progress,
+            target,
+            updated_at
+          )
+          VALUES (?, ?, NULL, ?, ?, ?)
+        `)
+        .run(id, "upgraded-global-key", 1, 10, 1_717_452_000_000);
+    };
+
+    insertGlobalAchievement("achievement-upgraded-global-1");
+    expect(() =>
+      insertGlobalAchievement("achievement-upgraded-global-2"),
+    ).toThrow();
+
+    const row = testDb.db
+      .query<CountRow, [string]>(`
+        SELECT COUNT(*) AS count
+        FROM achievement_progress
+        WHERE achievement_key = ? AND session_id IS NULL
+      `)
+      .get("upgraded-global-key");
+
+    expect(row?.count).toBe(1);
+  } finally {
+    testDb.cleanup();
+  }
+});
+
+test("deleting sessions cascades session achievements without creating duplicate globals", () => {
+  const testDb = createTestDatabase();
+  try {
+    migrate(testDb.db);
+
+    const repositories = createRepositories(testDb.db);
+    const now = 1_717_452_000_000;
+
+    for (const sessionId of [
+      "session-achievement-1",
+      "session-achievement-2",
+    ]) {
+      repositories.sessions.upsert({
+        id: sessionId,
+        runtime: "claude",
+        title: sessionId,
+        model: "claude-opus-4-8",
+        cwd: "/tmp/project",
+        permissionMode: "default",
+        sandboxMode: "workspace-write",
+        reasoningEffort: null,
+        networkAccess: true,
+        approvalPolicy: null,
+        metadataJson: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    testDb.db
+      .query<unknown, [string, string, string, number, number, number]>(`
+        INSERT INTO achievement_progress (
+          id,
+          achievement_key,
+          session_id,
+          progress,
+          target,
+          updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+      `)
+      .run(
+        "achievement-session-1",
+        "same-session-key",
+        "session-achievement-1",
+        1,
+        10,
+        now,
+      );
+    testDb.db
+      .query<unknown, [string, string, string, number, number, number]>(`
+        INSERT INTO achievement_progress (
+          id,
+          achievement_key,
+          session_id,
+          progress,
+          target,
+          updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+      `)
+      .run(
+        "achievement-session-2",
+        "same-session-key",
+        "session-achievement-2",
+        2,
+        10,
+        now,
+      );
+
+    expect(() => {
+      testDb.db
+        .query<unknown, [string]>("DELETE FROM sessions WHERE id = ?")
+        .run("session-achievement-1");
+      testDb.db
+        .query<unknown, [string]>("DELETE FROM sessions WHERE id = ?")
+        .run("session-achievement-2");
+    }).not.toThrow();
+
+    const globalRow = testDb.db
+      .query<CountRow, [string]>(`
+        SELECT COUNT(*) AS count
+        FROM achievement_progress
+        WHERE achievement_key = ? AND session_id IS NULL
+      `)
+      .get("same-session-key");
+    const totalRow = testDb.db
+      .query<CountRow, [string]>(`
+        SELECT COUNT(*) AS count
+        FROM achievement_progress
+        WHERE achievement_key = ?
+      `)
+      .get("same-session-key");
+
+    expect(globalRow?.count).toBe(0);
+    expect(totalRow?.count).toBe(0);
   } finally {
     testDb.cleanup();
   }

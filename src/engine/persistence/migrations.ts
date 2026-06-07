@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { withTransaction } from "./db";
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 export const REQUIRED_TABLE_NAMES = [
   "sessions",
@@ -213,7 +213,7 @@ function migrateToVersion1(db: Database): void {
       completed_at INTEGER,
       metadata_json TEXT,
       updated_at INTEGER NOT NULL,
-      FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE SET NULL
+      FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
     );
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_achievement_progress_global_key
@@ -240,9 +240,78 @@ function migrateToVersion1(db: Database): void {
   `);
 }
 
+function migrateToVersion2(db: Database): void {
+  db.exec(`
+    DROP TABLE IF EXISTS achievement_progress_next;
+
+    CREATE TABLE achievement_progress_next (
+      id TEXT PRIMARY KEY,
+      achievement_key TEXT NOT NULL,
+      session_id TEXT,
+      progress INTEGER NOT NULL,
+      target INTEGER NOT NULL,
+      completed_at INTEGER,
+      metadata_json TEXT,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+    );
+
+    INSERT INTO achievement_progress_next (
+      id,
+      achievement_key,
+      session_id,
+      progress,
+      target,
+      completed_at,
+      metadata_json,
+      updated_at
+    )
+    SELECT
+      achievement.id,
+      achievement.achievement_key,
+      achievement.session_id,
+      achievement.progress,
+      achievement.target,
+      achievement.completed_at,
+      achievement.metadata_json,
+      achievement.updated_at
+    FROM achievement_progress AS achievement
+    WHERE
+      (
+        achievement.session_id IS NOT NULL
+        AND EXISTS (
+          SELECT 1 FROM sessions WHERE sessions.id = achievement.session_id
+        )
+      )
+      OR
+      (
+        achievement.session_id IS NULL
+        AND achievement.id = (
+          SELECT global_achievement.id
+          FROM achievement_progress AS global_achievement
+          WHERE
+            global_achievement.session_id IS NULL
+            AND global_achievement.achievement_key = achievement.achievement_key
+          ORDER BY global_achievement.updated_at DESC, global_achievement.id DESC
+          LIMIT 1
+        )
+      );
+
+    DROP TABLE achievement_progress;
+    ALTER TABLE achievement_progress_next RENAME TO achievement_progress;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_achievement_progress_global_key
+      ON achievement_progress(achievement_key)
+      WHERE session_id IS NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_achievement_progress_session_key
+      ON achievement_progress(achievement_key, session_id)
+      WHERE session_id IS NOT NULL;
+  `);
+}
+
 export function migrate(db: Database): void {
   withTransaction(db, () => {
-    const version = readSchemaVersion(db);
+    let version = readSchemaVersion(db);
     if (version > CURRENT_SCHEMA_VERSION) {
       throw new Error(
         `Database schema version ${version} is newer than supported version ${CURRENT_SCHEMA_VERSION}`,
@@ -252,6 +321,12 @@ export function migrate(db: Database): void {
     if (version < 1) {
       migrateToVersion1(db);
       setSchemaVersion(db, 1);
+      version = 1;
+    }
+
+    if (version < 2) {
+      migrateToVersion2(db);
+      setSchemaVersion(db, 2);
     }
   });
 }
