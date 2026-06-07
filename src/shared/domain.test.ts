@@ -28,3 +28,8 @@ test("createSession initializes empty todos map", () => {
   const s = createSession({ id: "s1", title: "t", model: "m" });
   expect(s.todos).toEqual({});
 });
+
+test("createSession initializes timeline as empty array", () => {
+  const s = createSession({ id: "s1", title: "t", model: "m" });
+  expect(s.timeline).toEqual([]);
+});

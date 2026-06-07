@@ -49,6 +49,71 @@ export interface ChatMessage {
   t: number;
 }
 
+export interface PermissionPromptData {
+  toolName: string;
+  inputSummary: string;
+  title?: string;
+  displayName?: string;
+  description?: string;
+  agentId?: string;
+}
+
+export interface QuestionOption {
+  label: string;
+  description?: string;
+}
+
+export interface QuestionData {
+  questions: Array<{
+    question: string;
+    header: string;
+    options: QuestionOption[];
+    multiSelect: boolean;
+  }>;
+}
+
+export interface TimelineMessageItem {
+  kind: "message";
+  id: string;
+  role: ChatRole;
+  agentId?: string;
+  text: string;
+  ts: number;
+}
+
+export interface TimelineThinkingItem {
+  kind: "thinking";
+  id: string;
+  agentId?: string;
+  text: string;
+  ts: number;
+}
+
+export interface TimelineToolItem {
+  kind: "tool";
+  id: string; // toolUseId
+  toolName: string;
+  inputSummary: string;
+  status: "running" | "ok" | "failed";
+  agentId?: string;
+  ts: number;
+}
+
+export interface TimelinePromptItem {
+  kind: "prompt";
+  id: string; // promptId (= toolUseId for permissions)
+  promptKind: "permission" | "question";
+  data: PermissionPromptData | QuestionData;
+  status: "pending" | "answered" | "dismissed";
+  ts: number;
+}
+
+export type TimelineItem =
+  | TimelineMessageItem
+  | TimelineThinkingItem
+  | TimelineToolItem
+  | TimelinePromptItem;
+
 export interface Session {
   id: string;
   title: string;
@@ -57,7 +122,7 @@ export interface Session {
   permissionMode: string;
   slashCommands: string[];
   agents: Record<string, Agent>;
-  messages: ChatMessage[];
+  timeline: TimelineItem[];
   loot: Loot[];
   // 每 agent 的 TodoWrite 真实待办,按 agentId 归集(每次 TodoWrite 整体覆盖该
   // agent 的清单)。供 TaskWindow / Tasks / Currency「完成数」消费。
@@ -102,7 +167,7 @@ export function createSession(
         skin: "lead",
       },
     },
-    messages: [],
+    timeline: [],
     loot: [],
     todos: {},
     slashCommands: [],
