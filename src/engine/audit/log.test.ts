@@ -218,6 +218,38 @@ test("appendAuditRecord redacts JSON-style secret pairs from persisted summary",
   }
 });
 
+test("appendAuditRecord redacts escaped-quote JSON-style secret pairs from persisted summary", () => {
+  const testDb = createTestDatabase();
+  try {
+    migrate(testDb.db);
+
+    appendAuditRecord(testDb.db, {
+      id: "audit-summary-json-escaped-1",
+      source: "integration.wechat",
+      action: "external.input.received",
+      payload: { text: "visible body" },
+      summary:
+        'payload {"api_key":"json-secret\\"suffix","password":"json-password\\"suffix","visible":"keep"}',
+      createdAt: 1_717_452_000_000,
+    });
+
+    const row = testDb.db
+      .query<AuditRow, [string]>(
+        "SELECT * FROM audit_records WHERE id = ? LIMIT 1",
+      )
+      .get("audit-summary-json-escaped-1");
+    const persisted = JSON.stringify(row);
+    expect(persisted).toContain("visible");
+    expect(persisted).toContain("keep");
+    expect(persisted).toContain("[REDACTED]");
+    expect(persisted).not.toContain("json-secret");
+    expect(persisted).not.toContain("json-password");
+    expect(persisted).not.toContain("suffix");
+  } finally {
+    testDb.cleanup();
+  }
+});
+
 test("payloadHash is stable and ignores sanitized sensitive values", () => {
   const testDb = createTestDatabase();
   try {
@@ -319,6 +351,31 @@ test("createAuditWarningEvent redacts JSON-style secret pairs in diagnostics", (
   expect(warningEventJson).not.toContain("action-json-password");
   expect(warningEventJson).not.toContain("error-json-secret");
   expect(warningEventJson).not.toContain("error-json-password");
+});
+
+test("createAuditWarningEvent redacts escaped-quote JSON-style secret pairs in diagnostics", () => {
+  const warningEvent = createAuditWarningEvent(
+    {
+      source: 'runtime {"api_key":"source-json-secret\\"suffix"}',
+      action:
+        'runtime.status.changed {"password":"action-json-password\\"suffix"}',
+      sessionId: "session-1",
+      payload: { status: "idle" },
+      summary: "runtime idled",
+    },
+    new Error(
+      'database failed {"api_key":"error-json-secret\\"suffix","password":"error-json-password\\"suffix"}',
+    ),
+  );
+
+  const warningEventJson = JSON.stringify(warningEvent);
+  expect(warningEventJson).toContain("Audit log write failed");
+  expect(warningEventJson).toContain("[REDACTED]");
+  expect(warningEventJson).not.toContain("source-json-secret");
+  expect(warningEventJson).not.toContain("action-json-password");
+  expect(warningEventJson).not.toContain("error-json-secret");
+  expect(warningEventJson).not.toContain("error-json-password");
+  expect(warningEventJson).not.toContain("suffix");
 });
 
 test("createAuditWarningEvent redacts warning diagnostics and metadata", () => {
