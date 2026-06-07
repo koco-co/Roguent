@@ -6,7 +6,7 @@
 
 **Architecture:** 在现有 `SessionManager + Driver + WsGateway + Zustand reducer` 基础上扩展五个边界清晰的模块：`RuntimeManager` 统一 Claude/Codex 驱动；`IntegrationManager` 统一 IM 与订阅连接器；`IngressServer` 统一签名校验和 webhook/relay；`Scheduler` 统一自动任务定义与运行；`Persistence + SecretStore` 统一 SQLite 元数据、Keychain 密钥和审计日志。前端保持现有 React 19 + PixiJS 房间渲染，新增 prototype 对应的面板组件，并让所有面板从真实 store、WS command、SQLite 状态和 replay fixtures 获得数据。
 
-**Tech Stack:** Bun + TypeScript, React 19, Zustand, PixiJS v8, Vite, Tauri 2, Bun `bun:sqlite`, macOS Keychain via `/usr/bin/security`, Claude Agent SDK, Codex CLI/app-server, `@wechatbot/wechatbot`, Feishu/Lark official bot SDK or long-connection client, WebSocket, HTTP webhook ingress, bun:test, Biome, `bunx tsc`, Playwright.
+**Tech Stack:** Bun + TypeScript, React 19, Zustand, PixiJS v8, Vite, Tauri 2, Bun `bun:sqlite`, macOS Keychain via `/usr/bin/security`, Claude Agent SDK, Codex CLI/app-server, `@wechatbot/wechatbot`, Feishu/Lark official bot SDK or long-connection client, WebSocket, HTTP webhook ingress, bun:test, Biome, `bunx tsc`, `@testing-library/react` + `@testing-library/user-event` + `happy-dom`(组件单测,**当前未装,Task 0 补**), Playwright(浏览器 E2E,**当前未装,Task 0 补**)。
 
 **Source Spec:** `docs/superpowers/specs/2026-06-07-roguent-full-prototype-integration-design.md`
 
@@ -78,14 +78,15 @@
 - Modify: `src/web/store.ts` — reducer for runtime, integration, inbox, scheduler, economy, settings。
 - Modify: `src/web/App.tsx` — login/lobby/interior shell and modal routing。
 - Modify: `src/web/ws-client.ts` — typed commands and reconnect status。
-- Modify: `src/web/hud/ChatDrawer.tsx` — real prototype chat window behavior。
-- Create: `src/web/hud/chat/*` — timeline rows, markdown/code copy, tool cards, thinking cards, prompt cards, model/runtime controls。
+- Modify/extend (聊天组件 commit `e427f0d` 已落地,**扁平**在 `src/web/hud/`,不在 `chat/` 子目录): `ChatDrawer.tsx`、`MessageBubble.tsx`、`ToolCard.tsx`、`ThinkingBlock.tsx`、`PromptCard.tsx`、`TimelineItem.tsx`、`SlashMenu.tsx`、`ModelPicker.tsx` — 真原型聊天行为,扩展而非重建。
+- Create (新组件,同样**扁平**放 `src/web/hud/`): `ChatHeader.tsx`、`Timeline.tsx`、`Composer.tsx`、`RuntimeControls.tsx` — runtime/model/permission/sandbox/effort 控件与容器。
 - Create: `src/web/hud/pairing/PairingPanel.tsx` — WeChat/Feishu QR and binding management。
 - Create: `src/web/hud/mailbox/MailboxPanel.tsx` — inbox, board, resend/open actions。
-- Create: `src/web/hud/scheduler/SchedulerPanel.tsx` — create/edit/run scheduled tasks。
-- Create: `src/web/hud/settings/SettingsPanel.tsx` — Claude/Codex/runtime/integration settings。
+- Create: `src/web/hud/scheduler/SchedulerPanel.tsx` — create/edit/run scheduled tasks(整合现有 `Tasks.tsx`/`SessionGrid.tsx` 的 Scheduled Tasks mode,非另起)。
+- Modify: `src/web/hud/Settings.tsx` — 现有整面板 mock(ROADMAP §3.5),本计划把 Claude/Codex/runtime/integration 设置接真;不要新建 `settings/SettingsPanel.tsx`。
 - Create: `src/web/hud/economy/AchievementsPanel.tsx` — achievement list and claim state。
 - Create: `src/web/hud/economy/GachaPanel.tsx` — gacha animation, inventory, ledger updates。
+- Modify: `src/web/hud/Shop.tsx` — 现有整面板 mock,接真 ledger/inventory;不要新建 `economy/ShopPanel.tsx`。
 - Create: `src/web/lobby/*` — prototype lobby structures and interactions。
 - Create: `src/web/room/*` updates — art scene, ambience, easter eggs, decorative states。
 
@@ -108,6 +109,7 @@
 
 ## Execution Phases
 
+0. **Foundation-0(必须最先):** 测试工具链(testing-library + happy-dom + Playwright,当前未装)、已存在文件盘点、事件命名锁定、`RuntimeEventDraft` 定形。见 Task 0。
 1. **Foundation:** shared contracts, persistence, secrets, audit.
 2. **Runtime:** Claude adapter extraction, Codex app-server adapter, runtime-aware sessions.
 3. **Chat:** timeline, prompts, model/runtime controls, IM inbound/outbound markers.
@@ -120,13 +122,71 @@
 
 ## Tasks
 
+> **执行顺序硬约束:Task 0 必须最先做。** 它建立后续几十个 task 验收命令所依赖的测试工具链,盘点已存在文件以免重复造组件,并锁定事件命名与 `RuntimeEventDraft`。在 Task 0 完成前不要开始 Task 2 起的实现 task。
+
+### Task 0: Foundation-0 — Test Toolchain, Asset Inventory, Naming Lock
+
+**Feature:** 一次性补齐计划隐含的三个前提:① 组件/E2E 测试工具链(当前仓库**没装**);② 已存在文件盘点(把后续 task 误标的 `Create` 纠正成 `Modify`);③ 锁定新事件命名与 `RuntimeEventDraft` 形状。否则后续 `.test.tsx` / `bun run test:e2e` 验收命令在本仓库根本跑不起来,且会创建重复组件。
+
+**Files:**
+- Modify: `package.json` — devDeps + scripts。
+- Create: `bunfig.toml` — bun:test DOM preload。
+- Create: `playwright.config.ts`
+- Create: `src/web/hud/_smoke.test.tsx` — 验证 testing-library + DOM 环境可跑的最小样例。
+- Create: `src/shared/runtime.ts` 里的 `RuntimeEventDraft`(与 Task 7 协调;此处只定形状)。
+- Read(盘点,不改): `src/web/hud/`、`src/web/lobby/`、`src/web/room/` 现有组件。
+
+**Output Standard:**
+- 测试栈装好:`@testing-library/react` + `@testing-library/user-event` + `happy-dom`(bun:test DOM env)+ `@playwright/test`;`bunfig.toml` 配 `preload`/DOM;`package.json` 加 `"test:e2e": "playwright test"`;`playwright.config.ts` 起 engine replay + Vite。
+- 浏览器已安装(`bunx playwright install chromium`)。
+- **已存在文件盘点表**(写进本 task 日志,后续 task 以此为准):
+
+  | 计划误标 | 实际路径(已存在) | 正确动作 |
+  | --- | --- | --- |
+  | `hud/chat/MessageBubble.tsx` | `src/web/hud/MessageBubble.tsx` | Modify |
+  | `hud/chat/ToolCard.tsx` | `src/web/hud/ToolCard.tsx` | Modify |
+  | `hud/chat/ThinkingCard.tsx` | `src/web/hud/ThinkingBlock.tsx` | Modify |
+  | `hud/chat/PromptCard.tsx` | `src/web/hud/PromptCard.tsx` | Modify |
+  | `hud/chat/*`(Timeline rows) | `src/web/hud/TimelineItem.tsx`、`SlashMenu.tsx` | Modify |
+  | `settings/SettingsPanel.tsx` | `src/web/hud/Settings.tsx` | Modify |
+  | `economy/ShopPanel.tsx` | `src/web/hud/Shop.tsx` | Modify |
+  | `scheduler/SchedulerPanel.tsx` | 整合 `src/web/hud/Tasks.tsx`/`SessionGrid.tsx` | Modify+Create |
+  | `room/Minimap.tsx` | `src/web/hud/Minimap.tsx` | Modify(勿在 room/ 重建) |
+  | `room/room-layout.test.ts` | `src/web/room/layout.test.ts` | Modify(勿撞名) |
+  | `room/AmbienceLayer`(glow/particles) | `src/web/room/Lights.tsx`、`Particles.tsx` | Modify/复用 |
+  | lobby login/hero/structures | 已有 `src/web/lobby/HubPlaza.tsx`、`hud/CharacterSelect.tsx` | 扩展为主 |
+
+- **后端已实现、勿重做**:`canUseTool`/`respondPermission`/`respondQuestion`/`setPermissionMode`(commits `fd2b8f2`/`9493259`/`55653d2`),协议 `prompt.requested`/`prompt.resolved`([events.ts:28-29](../../../src/shared/events.ts))已存在 → Task 17 是扩展。
+- **事件命名锁定表**(Task 3 以此为准,不再各写各的):见 Task 3 更新后的对照表。
+
+**Acceptance Standard:**
+- `bun test src/web/hud/_smoke.test.tsx` exit code 0(证明 DOM + testing-library 可跑)。
+- `bunx playwright --version` exit code 0;`bunx playwright install chromium` 完成。
+- `bunx tsc --noEmit` exit code 0。
+- 盘点表与 `find src -name "*.tsx"` 实际一致。
+
+- [ ] 装测试栈:
+  ```bash
+  bun add -d @testing-library/react @testing-library/user-event happy-dom @playwright/test
+  bunx playwright install chromium
+  ```
+- [ ] 写 `bunfig.toml`(DOM preload)+ `_smoke.test.tsx` 最小样例,确认 `bun test` 能渲染组件。
+- [ ] 产出已存在文件盘点表,回写本 task 日志。
+- [ ] Run:
+  ```bash
+  bun test src/web/hud/_smoke.test.tsx
+  bunx tsc --noEmit
+  ```
+
+---
+
 ### Task 1: Create Worktree And Baseline Evidence
 
 **Feature:** 建立隔离执行环境，并记录当前未提交文件，防止误改用户已有变更。
 
 **Files:**
-- Read: `.Codex/rules/workflow.md`
-- Read: `AGENTS.md`
+- Read: `.claude/rules/workflow.md`
+- Read: `AGENTS.md`(注:AGENTS.md 是 CLAUDE.md 的 Codex 侧副本,事实以 `.claude/rules/workflow.md` + CLAUDE.md 为准)
 - Create if execution chooses worktree: `.worktrees/roguent-full-prototype/`
 
 **Output Standard:**
@@ -149,7 +209,7 @@
   ```
 - [ ] If implementing in a detached worktree, run:
   ```bash
-  git worktree add --detach .worktrees/roguent-full-prototype HEAD
+  git worktree add --detach .worktrees/roguent-full-prototype main
   ```
 - [ ] Verify:
   ```bash
@@ -199,14 +259,19 @@
 - [ ] Implement `src/shared/runtime.ts`:
   ```ts
   export type RuntimeKind = "claude" | "codex";
-  export type PermissionMode = "default" | "acceptEdits" | "bypassPermissions" | "plan" | "ask";
+  // Claude Agent SDK 的合法 permission mode 只有这四个;不要加 "ask"(SDK 不认,传过去会报错)。
+  export type PermissionMode = "default" | "acceptEdits" | "bypassPermissions" | "plan";
+  // Codex 的"审批"是独立于 permission mode 的 approval policy(spec §Settings:Codex approval policy),
+  // 不要塞进 PermissionMode。值对齐 Codex config。
+  export type CodexApprovalPolicy = "untrusted" | "on-failure" | "on-request" | "never";
   export type SandboxMode = "read-only" | "workspace-write" | "danger-full-access";
   export type ReasoningEffort = "low" | "medium" | "high";
 
   export interface RuntimeConfig {
     runtime: RuntimeKind;
     model: string;
-    permissionMode: PermissionMode;
+    permissionMode: PermissionMode; // Claude 用
+    approvalPolicy?: CodexApprovalPolicy; // Codex 用;Claude 留空
     sandboxMode: SandboxMode;
     reasoningEffort?: ReasoningEffort;
     networkAccess: boolean;
@@ -240,6 +305,8 @@
 **Acceptance Standard:**
 - `bun test src/shared/events.test.ts` exit code 0。
 - `bunx tsc --noEmit` exit code 0 for shared files。
+
+> **命名锁定(Foundation-0 引用此表)。** 下列字面量是本计划的**最终**事件名,与 source spec §Event Protocol 的命名**有意不同**(spec 写的是 `runtime.status.updated`/`pairing.updated`/`mailbox.updated`/`economy.ledger.updated`/`scheduler.run.completed`+`.failed` 等"likely additions",未定稿)。本计划细化为:状态类用无 `.updated` 后缀的 `runtime.status`/`integration.status`;pairing 拆 `qr`/`binding`;mailbox 拆 `created`/`updated`;scheduler.run 合并为单个 `.finished`(payload 内带 success/fail);ledger 用 append 语义 `economy.ledger.appended`;新增 spec 未列的 `settings.updated`。**不在此表的名字一律不要新造**;spec 的 `announcement.updated` 本计划用 `mailbox.item.*` 承载,不单列。
 
 - [ ] Append these event type literals to the existing `RoomEventType` union in `src/shared/events.ts`:
   ```ts
@@ -487,7 +554,8 @@
     runtime?: RuntimeKind;
     model?: string;
     cwd?: string;
-    permissionMode?: PermissionMode;
+    permissionMode?: PermissionMode; // Claude
+    approvalPolicy?: CodexApprovalPolicy; // Codex
     sandboxMode?: SandboxMode;
     reasoningEffort?: ReasoningEffort;
     networkAccess?: boolean;
@@ -618,12 +686,12 @@
   {"kind":"tool.finished","callId":"tool1","exitCode":0}
   {"kind":"turn.finished","usage":{"inputTokens":10,"outputTokens":20}}
   ```
-- [ ] Add snapshot test that resulting event types are:
+- [ ] Add snapshot test that resulting event types are (注:协议是 `tool.ended`,**不是** `tool.finished`;后者只是 Codex 原始 kind,见上方 fixture):
   ```text
   session.created
   message.delta
   tool.started
-  tool.finished
+  tool.ended
   usage.updated
   ```
 - [ ] Run:
@@ -749,9 +817,8 @@
 **Feature:** 聊天窗口成为统一 timeline，可显示 Claude/Codex、IM inbound、tool、thinking、approval、question、scheduler trigger。
 
 **Files:**
-- Modify: `src/shared/domain.ts`
+- Modify: `src/shared/domain.ts` — **timeline 类型已存在**(`TimelineItem` 联合 + message/thinking/tool/prompt item,见 [domain.ts:76-116](../../../src/shared/domain.ts));本 task **扩展**它(加 `TimelineSource`、`runtime`、delivery status),不要在新文件重建。
 - Modify: `src/web/store.ts`
-- Create: `src/web/hud/chat/types.ts`
 - Test: `src/web/store.chat.test.ts`
 
 **Output Standard:**
@@ -784,17 +851,17 @@
 
 **Feature:** 将 prototype 聊天窗口视觉与交互落地到 React 组件，但数据来自真实 store。
 
-**Files:**
+**Files:**(组件**扁平**在 `src/web/hud/`,无 `chat/` 子目录;已存在的一律 Modify。)
 - Modify: `src/web/hud/ChatDrawer.tsx`
-- Create: `src/web/hud/chat/ChatHeader.tsx`
-- Create: `src/web/hud/chat/Timeline.tsx`
-- Create: `src/web/hud/chat/Composer.tsx`
-- Create: `src/web/hud/chat/RuntimeControls.tsx`
-- Create: `src/web/hud/chat/MessageBubble.tsx`
-- Create: `src/web/hud/chat/ToolCard.tsx`
-- Create: `src/web/hud/chat/ThinkingCard.tsx`
-- Create: `src/web/hud/chat/PromptCard.tsx`
-- Test: `src/web/hud/chat/ChatDrawer.test.tsx`
+- Create: `src/web/hud/ChatHeader.tsx`
+- Create: `src/web/hud/Timeline.tsx`(容器;行渲染复用现有 `TimelineItem.tsx`)
+- Create: `src/web/hud/Composer.tsx`
+- Create: `src/web/hud/RuntimeControls.tsx`
+- Modify: `src/web/hud/MessageBubble.tsx`(已存在,commit `e427f0d`)
+- Modify: `src/web/hud/ToolCard.tsx`(已存在)
+- Modify: `src/web/hud/ThinkingBlock.tsx`(已存在;原型称 ThinkingCard,沿用现名)
+- Modify: `src/web/hud/PromptCard.tsx`(已存在)
+- Test: `src/web/hud/ChatDrawer.test.tsx`
 
 **Output Standard:**
 - 支持 runtime tag、model、permission、sandbox、reasoning effort 控件。
@@ -802,7 +869,7 @@
 - 不使用 prototype 的静态 mock messages。
 
 **Acceptance Standard:**
-- `bun test src/web/hud/chat/ChatDrawer.test.tsx` exit code 0。
+- `bun test src/web/hud/ChatDrawer.test.tsx` exit code 0。
 - Playwright desktop screenshot 无文本重叠，artifact path 写入 evidence。
 
 - [ ] Component split:
@@ -821,27 +888,27 @@
 - [ ] Add test that a Codex session renders `Codex` runtime badge and reasoning effort control.
 - [ ] Run:
   ```bash
-  bun test src/web/hud/chat/ChatDrawer.test.tsx
+  bun test src/web/hud/ChatDrawer.test.tsx
   ```
 
 ---
 
 ### Task 17: Implement Permission And AskUser Prompt Cards
 
-**Feature:** 聊天窗口内权限审批与 AskUserQuestion 能双向完成，不止展示。
+**Feature:** 聊天窗口内权限审批与 AskUserQuestion 能双向完成，不止展示。**注:Claude 侧已实现**(commits `fd2b8f2` canUseTool/respondPermission、`9493259` 网关 respondPermission/respondQuestion/setPermissionMode、`55653d2` AskUserQuestion→prompt.requested、`f049c43` PromptCard;协议 `prompt.requested`/`prompt.resolved` 已存在)。本 task 是**扩展**:把同一管线接到 Codex approval,并复用现有 `PromptCard.tsx`。
 
 **Files:**
-- Modify: `src/engine/runtime/claude-driver.ts`
+- Modify: `src/engine/runtime/claude-driver.ts`(已有 canUseTool,迁移到 adapter 后保留)
 - Modify: `src/engine/runtime/codex-app-server.ts`
 - Modify: `src/engine/session.ts`
-- Modify: `src/web/hud/chat/PromptCard.tsx`
+- Modify: `src/web/hud/PromptCard.tsx`(已存在,扁平路径)
 - Test: `src/engine/session.prompt.test.ts`
 - Test: `src/web/store.prompt.test.ts`
 
 **Output Standard:**
 - Claude `canUseTool` 与 Codex approval 都生成 `prompt.requested`。
 - 用户点击批准/拒绝/选择答案后发 `respondPermission` 或 `respondQuestion`。
-- prompt resolved 后 UI 变为 answered/denied，重复点击不重复发送。
+- prompt resolved 后 UI 变为 answered/dismissed(对齐 `PromptResolvedPayload.result: "answered" | "dismissed"`),重复点击不重复发送。
 
 **Acceptance Standard:**
 - `bun test src/engine/session.prompt.test.ts src/web/store.prompt.test.ts` exit code 0。
@@ -869,11 +936,11 @@
 **Feature:** 聊天窗口修改 model、permission mode、sandbox、reasoning effort、network access 时实际调用后端。
 
 **Files:**
-- Modify: `src/web/hud/chat/RuntimeControls.tsx`
+- Modify: `src/web/hud/RuntimeControls.tsx`
 - Modify: `src/engine/session.ts`
 - Modify: `src/engine/ws-gateway.ts`
 - Test: `src/engine/session.runtime-config.test.ts`
-- Test: `src/web/hud/chat/RuntimeControls.test.tsx`
+- Test: `src/web/hud/RuntimeControls.test.tsx`
 
 **Output Standard:**
 - UI 控件与 runtime 类型匹配：Claude 不显示 Codex-only provider 控件；Codex 显示 reasoning effort。
@@ -881,7 +948,7 @@
 - 修改失败显示 session/runtime error。
 
 **Acceptance Standard:**
-- `bun test src/engine/session.runtime-config.test.ts src/web/hud/chat/RuntimeControls.test.tsx` exit code 0。
+- `bun test src/engine/session.runtime-config.test.ts src/web/hud/RuntimeControls.test.tsx` exit code 0。
 
 - [ ] Add command:
   ```ts
@@ -890,7 +957,7 @@
 - [ ] Test fake driver receives `setReasoningEffort("high")`.
 - [ ] Run:
   ```bash
-  bun test src/engine/session.runtime-config.test.ts src/web/hud/chat/RuntimeControls.test.tsx
+  bun test src/engine/session.runtime-config.test.ts src/web/hud/RuntimeControls.test.tsx
   ```
 
 ---
@@ -902,7 +969,7 @@
 **Files:**
 - Modify: `src/shared/commands.ts`
 - Modify: `src/engine/session.ts`
-- Modify: `src/web/hud/chat/Composer.tsx`
+- Modify: `src/web/hud/Composer.tsx`
 - Modify: `src/web/store.ts`
 - Test: `src/engine/session.rollback.test.ts`
 - Test: `src/web/store.rollback.test.ts`
@@ -1605,14 +1672,14 @@
 
 **Feature:** 设置面板中的 Claude、Codex、IM、GitHub、X、relay 配置落地到 engine，并使用 SecretStore 保存敏感字段。
 
-**Files:**
+**Files:**(现有 `hud/Settings.tsx` 是整面板 mock,本 task 接真——扩展它做入口,新增运行时页签子组件**扁平**放 `hud/`。)
 - Create: `src/engine/settings/service.ts`
-- Create: `src/web/hud/settings/SettingsPanel.tsx`
-- Create: `src/web/hud/settings/ClaudeSettings.tsx`
-- Create: `src/web/hud/settings/CodexSettings.tsx`
-- Create: `src/web/hud/settings/IntegrationSettings.tsx`
+- Modify: `src/web/hud/Settings.tsx`(已存在;作设置面板入口,不要新建 `settings/SettingsPanel.tsx`)
+- Create: `src/web/hud/ClaudeSettings.tsx`
+- Create: `src/web/hud/CodexSettings.tsx`
+- Create: `src/web/hud/IntegrationSettings.tsx`
 - Test: `src/engine/settings/service.test.ts`
-- Test: `src/web/hud/settings/SettingsPanel.test.tsx`
+- Test: `src/web/hud/Settings.test.tsx`
 
 **Output Standard:**
 - 明文设置入 SQLite，敏感值入 SecretStore，SQLite 只存 `secretRef`。
@@ -1620,7 +1687,7 @@
 - Codex 设置包含 model/provider/reasoning/sandbox/approval/network/MCP config profile。
 
 **Acceptance Standard:**
-- `bun test src/engine/settings/service.test.ts src/web/hud/settings/SettingsPanel.test.tsx` exit code 0。
+- `bun test src/engine/settings/service.test.ts src/web/hud/Settings.test.tsx` exit code 0。
 - Test DB 查询不到 secret 明文。
 
 - [ ] Add no-plaintext test:
@@ -1629,7 +1696,7 @@
   ```
 - [ ] Run:
   ```bash
-  bun test src/engine/settings/service.test.ts src/web/hud/settings/SettingsPanel.test.tsx
+  bun test src/engine/settings/service.test.ts src/web/hud/Settings.test.tsx
   ```
 
 ---
@@ -1700,14 +1767,15 @@
 
 **Feature:** 将原型中的地牢房间、美术氛围、ambient controls、任务窗、roster、minimap、hotbar 优化到现有 Pixi/React 场景。
 
-**Files:**
+**Files:**(已有 `room/Lights.tsx`、`room/Particles.tsx`、`hud/Minimap.tsx`、`room/layout.ts`/`layout.test.ts`——复用/扩展,不要重建或撞名。)
 - Modify: `src/web/room/Room.tsx`
 - Modify: `src/web/room/Character.tsx`
 - Modify: `src/web/hud/Hud.tsx`
-- Create: `src/web/room/AmbienceLayer.tsx`
+- Modify: `src/web/room/Lights.tsx`、`src/web/room/Particles.tsx`(glow/particles 已存在,扩为 ambience toggles 数据源)
+- Create: `src/web/room/AmbienceLayer.tsx`(若现有 Lights/Particles 不够再加;否则合并进它们)
 - Create: `src/web/room/DecorLayer.tsx`
-- Create: `src/web/room/Minimap.tsx`
-- Test: `src/web/room/room-layout.test.ts`
+- Modify: `src/web/hud/Minimap.tsx`(已存在;勿在 `room/` 重建)
+- Modify: `src/web/room/layout.ts` + Test: `src/web/room/layout.test.ts`(已存在;扩展,勿新建 `room-layout.test.ts` 撞名)
 
 **Output Standard:**
 - 场景在 1920x1080 fixed stage 和 responsive scaled container 中不重叠。
@@ -1715,10 +1783,10 @@
 - 房间小人仍由真实 agent state 驱动。
 
 **Acceptance Standard:**
-- `bun test src/web/room/room-layout.test.ts` exit code 0。
+- `bun test src/web/room/layout.test.ts` exit code 0。
 - Playwright canvas pixel check 确认主要 canvas 非空。
 
-- [ ] Add layout constants test:
+- [ ] Add layout constants test(追加进现有 `layout.test.ts`):
   ```ts
   expect(ROOM_STAGE.width).toBe(1920);
   expect(ROOM_STAGE.height).toBe(1080);
@@ -1726,7 +1794,7 @@
   ```
 - [ ] Run:
   ```bash
-  bun test src/web/room/room-layout.test.ts
+  bun test src/web/room/layout.test.ts
   ```
 
 ---
@@ -1805,11 +1873,11 @@
 
 **Feature:** 原型抽卡、商店和背包从真实 ledger/inventory 更新，结果可复现测试。
 
-**Files:**
+**Files:**(现有 `hud/Shop.tsx`、`hud/LootPanel.tsx`(背包)是 mock/真混合,接真而非另起。)
 - Create: `src/engine/economy/gacha.ts`
 - Create: `src/web/hud/economy/GachaPanel.tsx`
-- Create: `src/web/hud/economy/ShopPanel.tsx`
-- Create: `src/web/hud/economy/InventoryPanel.tsx`
+- Modify: `src/web/hud/Shop.tsx`(已存在整面板 mock;接真 ledger,不要新建 `economy/ShopPanel.tsx`)
+- Modify: `src/web/hud/LootPanel.tsx`(已存在背包;接真 inventory,而非新建 `economy/InventoryPanel.tsx`)
 - Test: `src/engine/economy/gacha.test.ts`
 - Test: `src/web/hud/economy/GachaPanel.test.tsx`
 
