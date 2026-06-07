@@ -61,6 +61,7 @@ export interface PermissionPromptData {
 export interface QuestionOption {
   label: string;
   description?: string;
+  preview?: string;
 }
 
 export interface QuestionData {
