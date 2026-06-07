@@ -1,3 +1,4 @@
+import { afterEach } from "bun:test";
 import { Window } from "happy-dom";
 
 const window = new Window({
@@ -34,3 +35,9 @@ for (const [key, value] of Object.entries(globals)) {
     value,
   });
 }
+
+afterEach(() => {
+  document.body.replaceChildren();
+  localStorage.clear();
+  sessionStorage.clear();
+});

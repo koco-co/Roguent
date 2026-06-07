@@ -24,7 +24,7 @@ export default defineConfig({
       name: "engine-replay",
       command: `bun run dev:engine -- --replay ${replayFixture}`,
       port: enginePort,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 30_000,
       stdout: "pipe",
       stderr: "pipe",
