@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ChatMessage } from "../../shared/domain";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
+import { TimelineItem } from "./TimelineItem";
 import { Icon } from "./icons";
-import { mdToHtml } from "./markdown";
 import { modelLabel } from "./model-label";
 
 /**
@@ -40,14 +39,14 @@ export function ChatDrawer() {
 
   // sessions 的 Object.values 在 useMemo 里做(不在 selector 里,守 zustand 铁律)。
   const list = useMemo(() => Object.values(sessions), [sessions]);
-  const messages = session?.messages;
+  const timeline = session?.timeline;
 
-  // 新消息到达 / 切会话后自动滚到底(对标原型 threadRef)。messages 引用变即触发。
-  // biome-ignore lint/correctness/useExhaustiveDependencies: messages 是触发条件,非回调内使用的值;threadRef.current 是 DOM ref,不加入 deps 是 React 惯例
+  // 新消息到达 / 切会话后自动滚到底(对标原型 threadRef)。timeline 引用变即触发。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: timeline 是触发条件,非回调内使用的值;threadRef.current 是 DOM ref,不加入 deps 是 React 惯例
   useEffect(() => {
     const el = threadRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages]);
+  }, [timeline]);
 
   if (!active) return null;
 
@@ -63,12 +62,6 @@ export function ChatDrawer() {
     );
 
   const agentCount = session ? Object.keys(session.agents).length : 0;
-  const authorName = (m: ChatMessage): string =>
-    m.role === "user"
-      ? "你"
-      : ((m.agentId ? session?.agents[m.agentId]?.role : undefined) ??
-        m.agentId ??
-        m.role);
 
   const send = () => {
     const t = text.trim();
@@ -213,22 +206,16 @@ export function ChatDrawer() {
 
         <div className="cdrawer-thread scroll" ref={threadRef}>
           {!currentId && <span className="faint">选一个会话</span>}
-          {currentId && (messages?.length ?? 0) === 0 && (
+          {currentId && (timeline?.length ?? 0) === 0 && (
             <span className="faint">还没有消息,发一条开始…</span>
           )}
-          {messages?.map((m) => (
-            // user → me(右、青气泡);assistant / system → agent(左、面板色气泡)。
-            <div
-              key={m.id}
-              className={`cmsg ${m.role === "user" ? "me" : "agent"}`}
-            >
-              <div className="cmsg-author px">{authorName(m)}</div>
-              <div
-                className="cmsg-bubble md"
-                // biome-ignore lint/security/noDangerouslySetInnerHtml: mdToHtml 先 escHtml 再渲染,输入为本会话消息文本
-                dangerouslySetInnerHTML={{ __html: mdToHtml(m.text) }}
-              />
-            </div>
+          {timeline?.map((item) => (
+            <TimelineItem
+              key={item.id}
+              item={item}
+              session={session!}
+              sessionId={currentId!}
+            />
           ))}
         </div>
 
