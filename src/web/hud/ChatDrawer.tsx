@@ -219,17 +219,47 @@ export function ChatDrawer() {
           ))}
         </div>
 
-        <div className="cdrawer-input">
-          <input
+        <div className="cdrawer-input" style={{ position: "relative" }}>
+          <textarea
             className="pxinput"
+            rows={1}
             value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="输入消息…"
+            onChange={(e) => {
+              setText(e.target.value);
+              e.target.style.height = "auto";
+              e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+            placeholder="输入消息… (Enter 发送, Shift+Enter 换行)"
+            style={{ resize: "none", overflowY: "auto" }}
           />
-          <button type="button" className="pxbtn primary sm cjk" onClick={send}>
-            发送
-          </button>
+          {session?.status === "busy" ? (
+            <button
+              type="button"
+              className="pxbtn sm cjk"
+              style={{ color: "var(--red, #e05)" }}
+              onClick={() =>
+                currentId &&
+                sendCommand({ cmd: "interrupt", sessionId: currentId })
+              }
+            >
+              停止
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="pxbtn primary sm cjk"
+              onClick={send}
+              disabled={!text.trim()}
+            >
+              发送
+            </button>
+          )}
         </div>
       </div>
     </div>
