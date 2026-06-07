@@ -250,6 +250,41 @@ test("appendAuditRecord redacts escaped-quote JSON-style secret pairs from persi
   }
 });
 
+test("appendAuditRecord redacts suffix-style secret keys from persisted summary", () => {
+  const testDb = createTestDatabase();
+  try {
+    migrate(testDb.db);
+
+    appendAuditRecord(testDb.db, {
+      id: "audit-summary-suffix-1",
+      source: "integration.wechat",
+      action: "external.input.received",
+      payload: { text: "visible body" },
+      summary:
+        'session_token=session-secret id_token=id-secret csrf_token=csrf-secret authorization_header=Basic basic-secret payload {"session_token":"json-secret","visible":"keep"} https://example.test/callback?session_token=query-secret&visible=1',
+      createdAt: 1_717_452_000_000,
+    });
+
+    const row = testDb.db
+      .query<AuditRow, [string]>(
+        "SELECT * FROM audit_records WHERE id = ? LIMIT 1",
+      )
+      .get("audit-summary-suffix-1");
+    const persisted = JSON.stringify(row);
+    expect(persisted).toContain("visible");
+    expect(persisted).toContain("keep");
+    expect(persisted).toContain("[REDACTED]");
+    expect(persisted).not.toContain("session-secret");
+    expect(persisted).not.toContain("id-secret");
+    expect(persisted).not.toContain("csrf-secret");
+    expect(persisted).not.toContain("basic-secret");
+    expect(persisted).not.toContain("json-secret");
+    expect(persisted).not.toContain("query-secret");
+  } finally {
+    testDb.cleanup();
+  }
+});
+
 test("payloadHash is stable and ignores sanitized sensitive values", () => {
   const testDb = createTestDatabase();
   try {
@@ -376,6 +411,35 @@ test("createAuditWarningEvent redacts escaped-quote JSON-style secret pairs in d
   expect(warningEventJson).not.toContain("error-json-secret");
   expect(warningEventJson).not.toContain("error-json-password");
   expect(warningEventJson).not.toContain("suffix");
+});
+
+test("createAuditWarningEvent redacts suffix-style secret keys in diagnostics", () => {
+  const warningEvent = createAuditWarningEvent(
+    {
+      source:
+        'runtime session_token=session-secret payload {"session_token":"json-secret","visible":"keep"}',
+      action:
+        "runtime.status.changed id_token=id-secret https://example.test/callback?session_token=query-secret&visible=1",
+      sessionId: "session-1",
+      payload: { status: "idle" },
+      summary: "runtime idled",
+    },
+    new Error(
+      "database failed csrf_token=csrf-secret authorization_header=Basic basic-secret",
+    ),
+  );
+
+  const warningEventJson = JSON.stringify(warningEvent);
+  expect(warningEventJson).toContain("Audit log write failed");
+  expect(warningEventJson).toContain("visible");
+  expect(warningEventJson).toContain("keep");
+  expect(warningEventJson).toContain("[REDACTED]");
+  expect(warningEventJson).not.toContain("session-secret");
+  expect(warningEventJson).not.toContain("id-secret");
+  expect(warningEventJson).not.toContain("csrf-secret");
+  expect(warningEventJson).not.toContain("basic-secret");
+  expect(warningEventJson).not.toContain("json-secret");
+  expect(warningEventJson).not.toContain("query-secret");
 });
 
 test("createAuditWarningEvent redacts warning diagnostics and metadata", () => {

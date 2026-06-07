@@ -29,7 +29,7 @@ const SENSITIVE_AUDIT_KEYS = new Set([
 ]);
 
 const SENSITIVE_TEXT_KEY_PATTERN =
-  "authorization|access[-_.\\s]*token|refresh[-_.\\s]*token|api[-_.\\s]*key|auth[-_.\\s]*token|bearer[-_.\\s]*token|client[-_.\\s]*secret|webhook[-_.\\s]*secret|set[-_.\\s]*cookie|cookies?|password|secret|token";
+  "(?:authorization(?:[-_.\\s]*header)?|(?:[A-Za-z0-9]+[-_.\\s]*)*(?:token|secret|password|api[-_.\\s]*key|apikey|cookies?|cookie))";
 const SENSITIVE_TEXT_VALUE_PATTERN = String.raw`Bearer\s+[^\s,;]+|Basic\s+[^\s,;]+|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s,;]+`;
 const SENSITIVE_TEXT_QUOTED_PAIR = new RegExp(
   `(["'])(${SENSITIVE_TEXT_KEY_PATTERN})\\1(\\s*:\\s*)("(?:\\\\.|[^"\\\\])*"|'(?:\\\\.|[^'\\\\])*')`,
