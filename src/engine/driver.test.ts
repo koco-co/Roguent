@@ -1,5 +1,4 @@
 import { expect, test } from "bun:test";
-import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import {
   Driver,
   buildHooks,
