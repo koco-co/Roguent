@@ -824,6 +824,49 @@ test("prompt.requested adds pending prompt item", () => {
   expect((item as { id: string })?.id).toBe("p1");
 });
 
+test("tool.started adds running ToolCard to timeline (non-AskUserQuestion)", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "tool.started",
+      agentId: ORCHESTRATOR_ID,
+      payload: { toolName: "Bash", inputSummary: "ls", toolUseId: "tu-1" },
+    }),
+  );
+  const item = st.sessions.s1?.timeline[0];
+  expect(item?.kind).toBe("tool");
+  expect((item as { status: string })?.status).toBe("running");
+});
+
+test("tool.ended updates timeline ToolCard status to ok", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "tool.started",
+      agentId: ORCHESTRATOR_ID,
+      payload: { toolName: "Bash", inputSummary: "ls", toolUseId: "tu-2" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "tool.ended",
+      agentId: ORCHESTRATOR_ID,
+      payload: { toolUseId: "tu-2" },
+    }),
+  );
+  const item = st.sessions.s1?.timeline[0];
+  expect((item as { status: string })?.status).toBe("ok");
+});
+
 test("prompt.resolved marks prompt as answered", () => {
   let st = reduce(
     empty,

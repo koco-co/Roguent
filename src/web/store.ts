@@ -5,6 +5,7 @@ import {
   type Session,
   type TimelineMessageItem,
   type TimelinePromptItem,
+  type TimelineToolItem,
   createAgent,
   createSession,
 } from "../shared/domain";
@@ -192,7 +193,11 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       break;
     }
     case "tool.started": {
-      const p = e.payload as { toolName: string };
+      const p = e.payload as {
+        toolName: string;
+        inputSummary: string;
+        toolUseId: string;
+      };
       const a = e.agentId ? s.agents[e.agentId] : undefined;
       if (a && e.agentId)
         s.agents[e.agentId] = {
@@ -200,13 +205,44 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
           status: "working",
           currentTool: p.toolName,
         };
+      // AskUserQuestion is already handled as prompt.requested in normalize,
+      // so it won't emit tool.started. But guard anyway for safety.
+      if (p.toolName !== "AskUserQuestion") {
+        const toolItem: TimelineToolItem = {
+          kind: "tool",
+          id: p.toolUseId,
+          toolName: p.toolName,
+          inputSummary: p.inputSummary,
+          status: "running",
+          agentId: e.agentId,
+          ts: e.ts,
+        };
+        s.timeline = [...s.timeline, toolItem];
+      }
       break;
     }
-    case "tool.ended":
-    case "tool.failed": {
+    case "tool.ended": {
+      const p = e.payload as { toolUseId: string };
       const a = e.agentId ? s.agents[e.agentId] : undefined;
       if (a && e.agentId)
         s.agents[e.agentId] = { ...a, currentTool: undefined };
+      s.timeline = s.timeline.map((item) =>
+        item.kind === "tool" && item.id === p.toolUseId
+          ? { ...item, status: "ok" as const }
+          : item,
+      );
+      break;
+    }
+    case "tool.failed": {
+      const p = e.payload as { toolUseId: string };
+      const a = e.agentId ? s.agents[e.agentId] : undefined;
+      if (a && e.agentId)
+        s.agents[e.agentId] = { ...a, currentTool: undefined };
+      s.timeline = s.timeline.map((item) =>
+        item.kind === "tool" && item.id === p.toolUseId
+          ? { ...item, status: "failed" as const }
+          : item,
+      );
       break;
     }
     case "agent.thinking": {
