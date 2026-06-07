@@ -17,6 +17,7 @@ import type {
   RoomEvent,
 } from "../shared/events";
 import { agentTypeToSkin } from "../shared/mapping";
+import { normalizePermissionMode } from "../shared/runtime";
 
 // WS 连接生命周期状态:connecting(建连/退避重连中)/ open(已连)/ closed(已断,
 // 含 engine URL 解析失败)。ErrorOverlay 据此去抖显示离线错误层(T4.3)。
@@ -92,7 +93,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
         // 否则保留已知值(合成的第一条恒为 "default",不能把真实模式刷回去)。
         permissionMode:
           p.permissionMode && p.permissionMode !== "default"
-            ? p.permissionMode
+            ? normalizePermissionMode(p.permissionMode, existing.permissionMode)
             : existing.permissionMode,
         // 一旦是导入会话就恒为导入(幂等再导入不会把标记刷掉)。
         imported: existing.imported || p.imported,

@@ -1,3 +1,12 @@
+import { defaultRuntimeConfig, normalizePermissionMode } from "./runtime";
+import type {
+  CodexApprovalPolicy,
+  PermissionMode,
+  ReasoningEffort,
+  RuntimeKind,
+  SandboxMode,
+} from "./runtime";
+
 export type AgentKind = "orchestrator" | "subagent";
 export type AgentStatus = "spawning" | "thinking" | "working" | "idle" | "done";
 export type SessionStatus = "idle" | "busy" | "done" | "error";
@@ -119,8 +128,13 @@ export interface Session {
   id: string;
   title: string;
   status: SessionStatus;
+  runtime: RuntimeKind;
   model: string;
-  permissionMode: string;
+  permissionMode: PermissionMode;
+  approvalPolicy?: CodexApprovalPolicy;
+  sandboxMode: SandboxMode;
+  reasoningEffort?: ReasoningEffort;
+  networkAccess: boolean;
   slashCommands: string[];
   agents: Record<string, Agent>;
   timeline: TimelineItem[];
@@ -153,12 +167,46 @@ export function createAgent(
   return { kind: "subagent", status: "spawning", ...partial };
 }
 
-export function createSession(
-  partial: Partial<Session> & Pick<Session, "id" | "title" | "model">,
-): Session {
-  return {
+type CreateSessionInput = Omit<
+  Partial<Session>,
+  | "runtime"
+  | "model"
+  | "permissionMode"
+  | "approvalPolicy"
+  | "sandboxMode"
+  | "reasoningEffort"
+  | "networkAccess"
+> &
+  Pick<Session, "id" | "title"> & {
+    runtime?: RuntimeKind;
+    model?: string;
+    permissionMode?: PermissionMode | string;
+    approvalPolicy?: CodexApprovalPolicy;
+    sandboxMode?: SandboxMode;
+    reasoningEffort?: ReasoningEffort;
+    networkAccess?: boolean;
+  };
+
+export function createSession(partial: CreateSessionInput): Session {
+  const {
+    id,
+    title,
+    runtime: partialRuntime,
+    model: partialModel,
+    permissionMode: partialPermissionMode,
+    approvalPolicy: partialApprovalPolicy,
+    sandboxMode: partialSandboxMode,
+    reasoningEffort: partialReasoningEffort,
+    networkAccess: partialNetworkAccess,
+    ...rest
+  } = partial;
+  const runtime = partialRuntime ?? "claude";
+  const runtimeDefaults = defaultRuntimeConfig(runtime);
+  const session: Session = {
+    id,
+    title,
     status: "idle",
-    permissionMode: "default",
+    ...runtimeDefaults,
     agents: {
       [ORCHESTRATOR_ID]: {
         id: ORCHESTRATOR_ID,
@@ -176,6 +224,21 @@ export function createSession(
     createdAt: 0,
     lastActiveAt: 0,
     archived: false,
-    ...partial,
+    ...rest,
+    runtime,
+    model: partialModel ?? runtimeDefaults.model,
+    permissionMode: normalizePermissionMode(
+      partialPermissionMode,
+      runtimeDefaults.permissionMode,
+    ),
+    sandboxMode: partialSandboxMode ?? runtimeDefaults.sandboxMode,
+    networkAccess: partialNetworkAccess ?? runtimeDefaults.networkAccess,
   };
+  const approvalPolicy =
+    partialApprovalPolicy ?? runtimeDefaults.approvalPolicy;
+  if (approvalPolicy !== undefined) session.approvalPolicy = approvalPolicy;
+  const reasoningEffort =
+    partialReasoningEffort ?? runtimeDefaults.reasoningEffort;
+  if (reasoningEffort !== undefined) session.reasoningEffort = reasoningEffort;
+  return session;
 }
