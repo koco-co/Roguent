@@ -1238,18 +1238,25 @@
 **Acceptance Standard:**
 - `bun test src/engine/integrations/wechat-fake.test.ts` exit code 0。
 
-- [ ] Define interface:
+- [x] Define interface:
   ```ts
   export interface ImConnector {
     startPairing(sessionId: string): Promise<PairingQrState>;
     stopPairing(sessionId: string): Promise<void>;
     sendMessage(target: OutboundImTarget, text: string): Promise<OutboundDeliveryResult>;
-    onEvent(handler: (event: IntegrationEvent) => void): () => void;
+    onEvent(handler: (event: ImConnectorEvent) => void): () => void;
   }
   ```
-- [ ] Run:
+- [x] Run:
   ```bash
   bun test src/engine/integrations/wechat-fake.test.ts
+  ```
+- [x] Verification:
+  ```text
+  bun test src/engine/integrations/wechat-fake.test.ts: 2 pass, 0 fail, 6 expect() calls.
+  bunx tsc --noEmit: exit 0.
+  bun run check: exit 0, checked 210 files.
+  bun test: 435 pass, 0 fail, 1 snapshot, 4122 expect() calls.
   ```
 
 ---
