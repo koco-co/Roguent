@@ -12,6 +12,24 @@
 
 **Verification Rule:** 每个 task 的验收只能覆盖该 task 声明的范围。完成时必须记录实际命令、exit code、pass/fail/skip 数、截图或 trace artifact 路径。未执行的外部账号流程必须列入 blocker 表，不得描述为已通过。
 
+**Review Corrections Locked In:** 本计划已按代码库现状纠偏,执行时必须遵守以下修订,不得按旧稿字面重复造轮子:
+
+| 问题 | 修订 |
+| --- | --- |
+| 测试基建缺失但后续大量 task 依赖 `.test.tsx`/Playwright | 新增 Task 0 作为最前置 Foundation-0,先安装并验证 testing-library/happy-dom/Playwright,并隔离 `tests/e2e/**/*.e2e.ts` 使 `bun test` 不加载 Playwright specs。 |
+| 计划误把已存在聊天组件写成 `src/web/hud/chat/*` Create | 文件结构、Task 0、Task 16、Task 17 已锁定为复用/扩展 `src/web/hud/*` 扁平组件。 |
+| Claude permission/question 后端已实现,旧稿像从零实现 | Task 0 和 Task 17 明确这些 commit/协议已存在,后续只做迁移/扩展到 Codex approval 和 UI 状态。 |
+| `tool.finished` 与协议不一致 | Task 11 明确 `tool.finished` 只是 Codex 原始 fixture kind,归一化后的 Roguent 事件必须是 `tool.ended`。 |
+| `.Codex/rules/workflow.md` 不存在 | Task 1 改为读取 `.claude/rules/workflow.md`;AGENTS.md 仅作为 Codex 侧提示副本参考。 |
+| `PermissionMode` 错含 `"ask"` 且混入 Codex 权限语义 | Task 2/36/37 改为 Claude `permissionMode` 与 Codex `approvalPolicy` 分开存储和传递。 |
+| 新事件命名在 spec/计划/现有风格间不一致 | Task 3 增加最终命名对照表;不在表内的事件名不要新增。 |
+| Settings/Shop/Scheduler/Minimap/Room ambience 等已有面板或测试未对账 | File Structure、Task 0、Task 39、Task 42 明确复用/改造现有文件,避免另起同名组件或撞测试名。 |
+| `RuntimeEventDraft` 被引用但无定义 | Task 0 先定义唯一形状和位置;Task 7 只迁移旧 `DraftEvent` alias/import。 |
+| worktree 命令与项目 workflow 不一致 | Task 1 使用 `git worktree add --detach ... main`。 |
+| Task 15 旧稿重建 timeline 类型 | Task 15 改为扩展 `src/shared/domain.ts` 现有 `TimelineItem` union。 |
+| ROADMAP baseline 可能落后 | Task 66 要先读 `git log -1 --oneline` 和当前 ROADMAP,再更新状态。 |
+| 体量风险导致返工 | Task 0 合并测试基建、现有组件盘点、事件命名锁定、`RuntimeEventDraft` 定形四件事,作为后续任务硬前置。 |
+
 ---
 
 ## File Structure
@@ -138,6 +156,7 @@
 
 **Output Standard:**
 - 测试栈装好:`@testing-library/react` + `@testing-library/user-event` + `happy-dom`(bun:test DOM env)+ `@playwright/test`;`bunfig.toml` 配 `preload`/DOM;`package.json` 加 `"test:e2e": "playwright test"`;`playwright.config.ts` 起 engine replay + Vite。
+- Playwright specs 必须与 `bun test` 隔离:使用 `tests/e2e/**/*.e2e.ts` 命名 + `playwright.config.ts` `testMatch`，并确保 `bun test` 不会直接加载 `@playwright/test` 文件。
 - 浏览器已安装(`bunx playwright install chromium`)。
 - **已存在文件盘点表**(写进本 task 日志,后续 task 以此为准):
 
@@ -192,6 +211,7 @@
 **Acceptance Standard:**
 - `bun test src/web/hud/_smoke.test.tsx` exit code 0(证明 DOM + testing-library 可跑)。
 - `bunx playwright --version` exit code 0;`bunx playwright install chromium` 完成。
+- `bun test` exit code 0，且不会因 `tests/e2e/**/*.e2e.ts` 中的 `@playwright/test` 报错。
 - `bunx tsc --noEmit` exit code 0。
 - 盘点表与 `find src -name "*.tsx"` 实际一致。
 
@@ -205,6 +225,7 @@
 - [ ] Run:
   ```bash
   bun test src/web/hud/_smoke.test.tsx
+  bun test
   bunx tsc --noEmit
   ```
 
@@ -234,9 +255,9 @@
 - [ ] Record existing dirty files in the task log. At the time this plan was written, known dirty entries were:
   ```text
    M src/engine/session.test.ts
-  ?? AGENTS.md
   ?? Roguent-handoff.zip
   ```
+  注:这是写计划时的快照,执行时必须以本 task 现场 `git status --short` 为准;不要照抄旧快照。
 - [ ] If implementing in a detached worktree, run:
   ```bash
   git worktree add --detach .worktrees/roguent-full-prototype main
@@ -259,7 +280,7 @@
 
 **Output Standard:**
 - `RuntimeKind` 包含 `"claude"` 和 `"codex"`。
-- `Session` metadata 包含 runtime、model、cwd、permissionMode、sandboxMode、reasoningEffort、networkAccess。
+- `Session` metadata 包含 runtime、model、cwd、permissionMode(Claude)、approvalPolicy(Codex)、sandboxMode、reasoningEffort、networkAccess。
 - 默认 session 仍兼容现有 Claude 行为。
 
 **Acceptance Standard:**
@@ -283,7 +304,7 @@
 
     expect(session.runtime).toBe("codex");
     expect(session.cwd).toBe("/tmp/project");
-    expect(session.permissionMode).toBe(defaultRuntimeConfig("codex").permissionMode);
+    expect(session.approvalPolicy).toBe(defaultRuntimeConfig("codex").approvalPolicy);
   });
   ```
 - [ ] Implement `src/shared/runtime.ts`:
@@ -300,7 +321,7 @@
   export interface RuntimeConfig {
     runtime: RuntimeKind;
     model: string;
-    permissionMode: PermissionMode; // Claude 用
+    permissionMode?: PermissionMode; // Claude 用;Codex 留空
     approvalPolicy?: CodexApprovalPolicy; // Codex 用;Claude 留空
     sandboxMode: SandboxMode;
     reasoningEffort?: ReasoningEffort;
@@ -337,6 +358,17 @@
 - `bunx tsc --noEmit` exit code 0 for shared files。
 
 > **命名锁定(Foundation-0 引用此表)。** 下列字面量是本计划的**最终**事件名,与 source spec §Event Protocol 的命名**有意不同**(spec 写的是 `runtime.status.updated`/`pairing.updated`/`mailbox.updated`/`economy.ledger.updated`/`scheduler.run.completed`+`.failed` 等"likely additions",未定稿)。本计划细化为:状态类用无 `.updated` 后缀的 `runtime.status`/`integration.status`;pairing 拆 `qr`/`binding`;mailbox 拆 `created`/`updated`;scheduler.run 合并为单个 `.finished`(payload 内带 success/fail);ledger 用 append 语义 `economy.ledger.appended`;新增 spec 未列的 `settings.updated`。**不在此表的名字一律不要新造**;spec 的 `announcement.updated` 本计划用 `mailbox.item.*` 承载,不单列。
+
+| Source spec / old draft name | Final event name(s) in this plan | Reason |
+| --- | --- | --- |
+| `runtime.status.updated` | `runtime.status` | 状态快照事件,沿用短名。 |
+| `pairing.updated` | `pairing.qr.updated`, `pairing.binding.updated` | QR 生命周期与绑定状态是两个不同 UI 数据源。 |
+| `mailbox.updated` | `mailbox.item.created`, `mailbox.item.updated` | 支持增量插入和单条状态更新。 |
+| `economy.ledger.updated` | `economy.ledger.appended` | ledger 是 append-only,不允许 UI 直接覆盖余额。 |
+| `scheduler.run.completed`, `scheduler.run.failed` | `scheduler.run.finished` | 结果由 payload 的 success/error 字段区分。 |
+| `announcement.updated` | `mailbox.item.created`, `mailbox.item.updated` with board category | 公告板复用 inbox/board 模型,不再另起协议。 |
+| old draft `tool.finished` | `tool.ended` | `tool.finished` 只能作为 Codex raw kind,归一化后必须对齐现有协议。 |
+| new, spec 未列 | `integration.status`, `integration.event.received`, `settings.updated`, `achievement.updated`, `inventory.updated` | 原型新增平台连接、设置、成就和背包状态。 |
 
 - [ ] Append these event type literals to the existing `RoomEventType` union in `src/shared/events.ts`:
   ```ts
@@ -414,8 +446,10 @@
     title TEXT NOT NULL,
     model TEXT NOT NULL,
     cwd TEXT,
-    permission_mode TEXT NOT NULL,
+    permission_mode TEXT,
+    approval_policy TEXT,
     sandbox_mode TEXT NOT NULL,
+    network_access INTEGER NOT NULL DEFAULT 0,
     reasoning_effort TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
@@ -536,7 +570,8 @@
     start(): void;
     send(text: string, meta?: RuntimeSendMeta): void;
     setModel(model: string): Promise<void>;
-    setPermissionMode(mode: string): Promise<void>;
+    setPermissionMode?(mode: PermissionMode): Promise<void>; // Claude-only
+    setApprovalPolicy?(policy: CodexApprovalPolicy): Promise<void>; // Codex-only
     setSandboxMode?(mode: string): Promise<void>;
     setReasoningEffort?(effort: string): Promise<void>;
     interrupt(): Promise<void>;
@@ -571,7 +606,8 @@
 - Test: `src/engine/ws-gateway.test.ts`
 
 **Output Standard:**
-- WS command `newSession` 接受 runtime/model/cwd/permissionMode/sandboxMode/reasoningEffort/networkAccess。
+- WS command `newSession` 继续使用仓库现有上行字段 `cmd`,不要改成 `type`;它接受 runtime/model/cwd/permissionMode/approvalPolicy/sandboxMode/reasoningEffort/networkAccess。
+- `sessionId`、`title`、`model` 保持现有 WS 协议必填,避免破坏 `ChatDrawer`/`EmptyState` 等已落地客户端;本 task 只扩展配置字段,不改变会话 id 生成职责。
 - 未提供 runtime 时默认 Claude，保持现有使用路径。
 - `session.created` payload 带 runtime config。
 
@@ -582,11 +618,11 @@
 - [ ] Add command shape:
   ```ts
   type NewSessionCommand = {
-    type: "newSession";
-    sessionId?: string;
-    title?: string;
+    cmd: "newSession";
+    sessionId: string;
+    title: string;
     runtime?: RuntimeKind;
-    model?: string;
+    model: string;
     cwd?: string;
     permissionMode?: PermissionMode; // Claude
     approvalPolicy?: CodexApprovalPolicy; // Codex
@@ -597,7 +633,29 @@
   ```
 - [ ] Add test asserting default:
   ```ts
-  expect(parseCommand({ type: "newSession" }).runtime).toBe("claude");
+  expect(
+    parseCommand(
+      JSON.stringify({
+        cmd: "newSession",
+        sessionId: "s1",
+        title: "Claude task",
+        model: "claude-sonnet-4",
+      }),
+    )?.runtime,
+  ).toBe("claude");
+  ```
+- [ ] Add test that invalid `type: "newSession"` without `cmd` is rejected, so future work does not accidentally fork the command protocol:
+  ```ts
+  expect(
+    parseCommand(
+      JSON.stringify({
+        type: "newSession",
+        sessionId: "s1",
+        title: "Wrong protocol",
+        model: "claude-sonnet-4",
+      }),
+    ),
+  ).toBeNull();
   ```
 - [ ] Run:
   ```bash
@@ -818,7 +876,7 @@
 **Output Standard:**
 - 所有命令集中在 `src/shared/commands.ts`。
 - ws-gateway 解析失败返回 `session.error` 或 command error event。
-- 前端不能发送未定义 command type。
+- 前端不能发送未定义 command `cmd`。
 
 **Acceptance Standard:**
 - `bun test src/shared/commands.test.ts src/engine/ws-gateway.test.ts` exit code 0。
@@ -837,7 +895,7 @@
   ```
 - [ ] Add parser test:
   ```ts
-  expect(parseClientCommand({ type: "unknown" }).ok).toBe(false);
+  expect(parseClientCommand({ cmd: "unknown" }).ok).toBe(false);
   ```
 - [ ] Run:
   ```bash
@@ -986,7 +1044,7 @@
 
 - [ ] Add command:
   ```ts
-  { "type": "setRuntimeConfig", "sessionId": "s1", "patch": { "reasoningEffort": "high" } }
+  { "cmd": "setRuntimeConfig", "sessionId": "s1", "patch": { "reasoningEffort": "high" } }
   ```
 - [ ] Test fake driver receives `setReasoningEffort("high")`.
 - [ ] Run:
@@ -1559,7 +1617,7 @@
 - [ ] Add UI test for archive command:
   ```tsx
   await user.click(screen.getByRole("button", { name: "Archive" }));
-  expect(sendCommand).toHaveBeenCalledWith({ type: "mailbox.archive", itemId: "i1" });
+  expect(sendCommand).toHaveBeenCalledWith({ cmd: "mailbox.archive", itemId: "i1" });
   ```
 - [ ] Run:
   ```bash
@@ -1603,7 +1661,7 @@
 
 ### Task 36: Implement Scheduler Service CRUD
 
-**Feature:** 创建、编辑、删除、启停、run-now 定时任务，任务创建时选择 runtime 权限模式。
+**Feature:** 创建、编辑、删除、启停、run-now 定时任务，任务创建时按 runtime 选择 Claude `permissionMode` 或 Codex `approvalPolicy`。
 
 **Files:**
 - Create: `src/engine/scheduler/service.ts`
@@ -1612,8 +1670,8 @@
 - Test: `src/engine/scheduler/service.test.ts`
 
 **Output Standard:**
-- Task definition 包含 prompt、cwd、runtime、model、reasoningEffort、permissionMode、sandboxMode、networkAccess、targetSession。
-- permission mode 在创建时保存，runner 不再二次询问。
+- Task definition 包含 prompt、cwd、runtime、model、reasoningEffort、permissionMode(Claude)、approvalPolicy(Codex)、sandboxMode、networkAccess、targetSession。
+- 权限配置在创建时保存，runner 不再二次询问；Codex 全自动任务使用保存的 `approvalPolicy`，不要写入 Claude-only `permissionMode`。
 - 所有 CRUD 写 audit。
 
 **Acceptance Standard:**
@@ -1622,11 +1680,11 @@
 - [ ] Define command:
   ```ts
   type SchedulerCreateCommand = {
-    type: "scheduler.create";
+    cmd: "scheduler.create";
     task: SchedulerTaskDraft;
   };
   ```
-- [ ] Add test asserting `permissionMode: "bypassPermissions"` is persisted.
+- [ ] Add tests asserting Claude `permissionMode: "bypassPermissions"` and Codex `approvalPolicy: "never"` are persisted separately.
 - [ ] Run:
   ```bash
   bun test src/engine/scheduler/service.test.ts
@@ -1646,8 +1704,8 @@
 
 **Output Standard:**
 - Runner 支持 due scan、lock、防重复运行、run history。
-- Run start/finish/error 都广播 `scheduler.run.*`。
-- 自动运行使用 task 保存的 permission mode 和 sandbox mode。
+- Run start/finish/error 都广播 `scheduler.run.started` / `scheduler.run.finished`。
+- 自动运行使用 task 保存的 Claude `permissionMode` 或 Codex `approvalPolicy`，以及 sandbox/network 配置。
 
 **Acceptance Standard:**
 - `bun test src/engine/scheduler/runner.test.ts` exit code 0。
@@ -1655,11 +1713,11 @@
 
 - [ ] Add test:
   ```ts
-  test("due task starts codex session with stored permissions", async () => {
+  test("due task starts codex session with stored approval policy", async () => {
     const harness = createSchedulerHarness();
-    await harness.createTask({ runtime: "codex", permissionMode: "bypassPermissions", prompt: "ship it" });
+    await harness.createTask({ runtime: "codex", approvalPolicy: "never", prompt: "ship it" });
     await harness.runner.tick(harness.now.plusMinutes(1));
-    expect(harness.fakeRuntime.created[0]?.permissionMode).toBe("bypassPermissions");
+    expect(harness.fakeRuntime.created[0]?.approvalPolicy).toBe("never");
   });
   ```
 - [ ] Run:
@@ -1693,7 +1751,7 @@
 - [ ] Add form submit test:
   ```tsx
   await user.click(screen.getByRole("button", { name: "Create" }));
-  expect(sendCommand).toHaveBeenCalledWith(expect.objectContaining({ type: "scheduler.create" }));
+  expect(sendCommand).toHaveBeenCalledWith(expect.objectContaining({ cmd: "scheduler.create" }));
   ```
 - [ ] Run:
   ```bash
@@ -2561,6 +2619,7 @@
 - Modify: `AGENTS.md` if reusable verification failure mode is discovered during implementation.
 
 **Output Standard:**
+- 更新 `docs/ROADMAP.md` 前先重新读取当前文件和 `git log -1 --oneline`,把 ROADMAP 里可能落后的 baseline/现状同步到 HEAD；不要基于旧 baseline(例如早于聊天组件 overhaul 的 commit)继续追加状态。
 - ROADMAP 反映已完成、blocked、remaining。
 - Integration docs 明确 secret storage、local tunnel、real smoke command、blocker handling。
 - Verification docs 明确 replay E2E 与真实外部 smoke 的区别。
@@ -2571,6 +2630,7 @@
 
 - [ ] Run:
   ```bash
+  git log -1 --oneline
   bun run check
   rg "full E2E|all cases|main flow passed" docs AGENTS.md
   ```

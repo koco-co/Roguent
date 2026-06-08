@@ -238,3 +238,38 @@ test("setModel on unknown session does not emit", async () => {
   await mgr.setModel("ghost", "claude-opus-4-8");
   expect(got).toHaveLength(0);
 });
+
+test("respondQuestion sends joined labels to driver and emits prompt.resolved", () => {
+  const sentMessages: string[] = [];
+  const factory = (_cb: DriverCallbacks): IDriver => ({
+    start() {},
+    send(text: string) {
+      sentMessages.push(text);
+    },
+    async setModel() {},
+    async interrupt() {},
+    end() {},
+    getContextUsage: async () => null,
+    askPermission: async () => ({ behavior: "allow" as const }),
+    respondPermission() {},
+  });
+
+  const mgr = new SessionManager(factory, "/tmp");
+  const got: RoomEvent[] = [];
+  mgr.subscribe((e) => got.push(e));
+
+  mgr.createSession("s1", { title: "t", model: "m" });
+  const before = got.length; // 1 (session.created)
+
+  mgr.respondQuestion("s1", "pq-1", ["Option A", "Option B"]);
+
+  // driver.send receives the labels joined with "、"
+  expect(sentMessages).toEqual(["Option A、Option B"]);
+
+  // a prompt.resolved event is emitted with the correct payload
+  const resolved = got.slice(before).find((e) => e.type === "prompt.resolved");
+  expect(resolved).toBeDefined();
+  expect(resolved?.sessionId).toBe("s1");
+  expect((resolved?.payload as { promptId: string }).promptId).toBe("pq-1");
+  expect((resolved?.payload as { result: string }).result).toBe("answered");
+});
