@@ -56,6 +56,9 @@ export type ImConnectorEvent =
     };
 
 export interface ImConnector {
+  start?(): Promise<void>;
+  stop?(): Promise<void>;
+  close?(): Promise<void>;
   startPairing(sessionId: string): Promise<PairingQrState>;
   stopPairing(sessionId: string): Promise<void>;
   sendMessage(

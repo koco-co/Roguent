@@ -1404,7 +1404,7 @@
 
 **Files:**
 - Create: `src/engine/integrations/feishu.ts`
-- Modify: `src/engine/secrets/keychain.ts`
+- Read/Modify if needed: `src/engine/secrets/keychain.ts`(当前实现复用现有 `SecretStore`,未新增 Keychain 行为时不要为了对齐旧稿而改)
 - Test: `src/engine/integrations/feishu.test.ts`
 - Fixture: `fixtures/integrations/feishu-inbound.json`
 
@@ -1418,7 +1418,7 @@
 - `bun test src/engine/integrations/feishu.test.ts` exit code 0 with mocked Feishu SDK。
 - Real smoke 若缺少 app entitlement，记录 blocker 和截图/日志 artifact。
 
-- [ ] Add connector config:
+- [x] Add connector config:
   ```ts
   export interface FeishuConnectorConfig {
     appIdSecretRef: string;
@@ -1426,13 +1426,22 @@
     botName?: string;
   }
   ```
-- [ ] Run:
+- [x] Run:
   ```bash
   bun test src/engine/integrations/feishu.test.ts
   ```
-- [ ] Real smoke command:
+- [x] Real smoke command:
   ```bash
   bun run scripts/smoke-feishu-long-connection.ts
+  ```
+- [x] Verification:
+  ```text
+  bun add @larksuiteoapi/node-sdk: installed @larksuiteoapi/node-sdk@1.66.1.
+  bun test src/engine/integrations/feishu.test.ts src/engine/integrations/wechat-fake.test.ts: exit 0, 13 pass, 0 fail, 29 expect() calls.
+  bun run scripts/smoke-feishu-long-connection.ts: exit 0, status=blocked, blocker="ROGUENT_FEISHU_APP_ID_SECRET_REF and ROGUENT_FEISHU_APP_SECRET_SECRET_REF are required", artifact="/Users/poco/Projects/Roguent/.worktrees/roguent-full-prototype/test-results/feishu-long-connection-1780929535746.json".
+  bunx tsc --noEmit: exit 0.
+  bun run check: exit 0, checked 224 files.
+  bun test: exit 0, 464 pass, 0 fail, 1 snapshot, 4195 expect() calls.
   ```
 
 ---
