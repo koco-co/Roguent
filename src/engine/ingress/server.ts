@@ -8,12 +8,13 @@ import {
 } from "../integrations/github";
 import type { IntegrationRouter } from "../integrations/router";
 import type { IntegrationEvent } from "../integrations/types";
-import type { SecretStore } from "../secrets/types";
 import {
-  verifyGitHubSignature,
-  verifyHmacBase64Signature,
-  xCrcResponseToken,
-} from "./signatures";
+  buildXChallengeResponse,
+  normalizeXEvent,
+  verifyXWebhookSignature,
+} from "../integrations/x";
+import type { SecretStore } from "../secrets/types";
+import { verifyGitHubSignature } from "./signatures";
 
 const CHANNELS = new Set<IntegrationChannel>([
   "wechat",
@@ -57,10 +58,16 @@ export function createIngressHandler(options: IngressServerOptions) {
       return handleSignedJsonWebhook(request, options, {
         channel: "x",
         env,
-        eventNameHeader: "x-twitter-webhooks-event",
+        normalize({ deliveryId, eventName, payload, rawBody }) {
+          return normalizeXEvent(payload, {
+            deliveryId,
+            eventName,
+            rawBodyHash: rawBodyHash(rawBody),
+          });
+        },
         secretName: "ROGUENT_X_WEBHOOK_SECRET",
         signatureHeader: "x-twitter-webhooks-signature",
-        verifier: verifyHmacBase64Signature,
+        verifier: verifyXWebhookSignature,
       });
     }
 
@@ -117,7 +124,7 @@ async function handleGitHubWebhook(
     eventNameHeader: "x-github-event",
     secret: () => resolveWebhookSecret(options, env),
     normalize({ deliveryId, eventName, payload, rawBody }) {
-      return normalizeGitHubEvent(eventName, payload, {
+      return normalizeGitHubEvent(eventName ?? "webhook", payload, {
         deliveryId,
         rawBodyHash: rawBodyHash(rawBody),
       });
@@ -134,10 +141,10 @@ async function handleSignedJsonWebhook(
   config: {
     channel: IntegrationChannel;
     env: Record<string, string | undefined>;
-    eventNameHeader: string;
+    eventNameHeader?: string;
     normalize?: (input: {
       deliveryId: string;
-      eventName: string;
+      eventName?: string;
       payload: Record<string, unknown>;
       rawBody: Uint8Array;
     }) => IntegrationEvent;
@@ -152,8 +159,11 @@ async function handleSignedJsonWebhook(
   },
 ): Promise<Response> {
   const rawBody = new Uint8Array(await request.arrayBuffer());
-  const eventName = request.headers.get(config.eventNameHeader) ?? "webhook";
-  const deliveryId = deliveryIdFor(config.channel, request, eventName);
+  const eventName = config.eventNameHeader
+    ? (request.headers.get(config.eventNameHeader) ?? "webhook")
+    : undefined;
+  const eventNameForAudit = eventName ?? "webhook";
+  const deliveryId = deliveryIdFor(config.channel, request, eventNameForAudit);
   const secret =
     (await config.secret?.()) ??
     (config.secretName ? config.env[config.secretName] : undefined) ??
@@ -164,7 +174,7 @@ async function handleSignedJsonWebhook(
       accepted: false,
       channel: config.channel,
       deliveryId,
-      eventName,
+      eventName: eventNameForAudit,
       rawBody,
       reason: "invalid_signature",
     });
@@ -177,7 +187,7 @@ async function handleSignedJsonWebhook(
       accepted: false,
       channel: config.channel,
       deliveryId,
-      eventName,
+      eventName: eventNameForAudit,
       rawBody,
       reason: "invalid_json",
     });
@@ -194,7 +204,7 @@ async function handleSignedJsonWebhook(
     normalizeWebhookEvent({
       channel: config.channel,
       deliveryId,
-      eventName,
+      eventName: eventNameForAudit,
       payload: parsed.value,
       rawBody,
     });
@@ -202,7 +212,7 @@ async function handleSignedJsonWebhook(
     accepted: true,
     channel: config.channel,
     deliveryId,
-    eventName,
+    eventName: eventNameForAudit,
     rawBody,
     reason: "accepted",
   });
@@ -401,7 +411,7 @@ function handleXCrc(
     rawBody,
     reason: "accepted",
   });
-  return json({ response_token: xCrcResponseToken(secret, crcToken) });
+  return json(buildXChallengeResponse(crcToken, secret));
 }
 
 function appendIngressAudit(

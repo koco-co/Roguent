@@ -197,8 +197,14 @@ test("relay endpoint validates bearer token and preserves requested channel", as
 
 test("POST /webhooks/x validates signature and routes event", async () => {
   const rawBody = JSON.stringify({
-    bodyText: "tweet event",
-    summary: "tweet created",
+    for_user_id: "12345",
+    tweet_create_events: [
+      {
+        id_str: "1800000000000000000",
+        text: "Roguent dungeon build completed.",
+        user: { screen_name: "roguent" },
+      },
+    ],
   });
   const harness = createHarness({
     env: { ROGUENT_X_WEBHOOK_SECRET: "consumer-secret" },
@@ -208,7 +214,6 @@ test("POST /webhooks/x validates signature and routes event", async () => {
       method: "POST",
       headers: {
         "x-roguent-delivery": "x-delivery-1",
-        "x-twitter-webhooks-event": "tweet_create_events",
         "x-twitter-webhooks-signature": `sha256=${hmacSha256Base64(
           "consumer-secret",
           Buffer.from(rawBody),
@@ -219,10 +224,13 @@ test("POST /webhooks/x validates signature and routes event", async () => {
 
     expect(response.status).toBe(200);
     expect(harness.routed.at(-1)?.event).toMatchObject({
-      bodyText: "tweet event",
+      bodyText: "Roguent dungeon build completed.",
       channel: "x",
       deliveryId: "x-delivery-1",
-      summary: "tweet created",
+      metadata: expect.objectContaining({
+        sourceUrl: "https://x.com/roguent/status/1800000000000000000",
+      }),
+      summary: "tweet from @roguent",
     });
   } finally {
     harness.cleanup();

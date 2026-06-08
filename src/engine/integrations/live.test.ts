@@ -177,6 +177,55 @@ test("live integrations contain outbound publish failures from SessionManager ev
   }
 });
 
+test("live integrations publish X webhook connector status on startup", async () => {
+  const testDb = createTestDatabase();
+  try {
+    migrate(testDb.db);
+    const sessions = new SessionManager(
+      new CapturingRuntime(),
+      "/tmp/roguent",
+      {
+        auditDb: testDb.db,
+      },
+    );
+    const published: RoomEvent[] = [];
+    sessions.subscribe((event) => published.push(event));
+
+    const live = startLiveIntegrations({
+      db: testDb.db,
+      env: {},
+      imConnectors: {},
+      sessions,
+    });
+
+    await waitFor(() =>
+      published.some(
+        (event) =>
+          event.type === "integration.status" &&
+          (event.payload as { status?: { channel?: unknown } }).status
+            ?.channel === "x",
+      ),
+    );
+
+    expect(published).toContainEqual(
+      expect.objectContaining({
+        sessionId: "integrations",
+        type: "integration.status",
+        payload: expect.objectContaining({
+          status: expect.objectContaining({
+            channel: "x",
+            metadata: { reason: "missing_webhook_secret" },
+            state: "blocked",
+          }),
+        }),
+      }),
+    );
+    live.stop();
+  } finally {
+    testDb.cleanup();
+  }
+});
+
 class CapturingRuntime implements RuntimeDriverCreator {
   callbacks: DriverCallbacks | null = null;
   readonly sent: Array<{ sessionId: string; text: string }> = [];

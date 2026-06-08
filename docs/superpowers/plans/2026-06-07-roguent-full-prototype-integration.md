@@ -1586,27 +1586,40 @@
 **Files:**
 - Create: `src/engine/integrations/x.ts`
 - Modify: `src/engine/ingress/signatures.ts`
+- Modify: `src/engine/ingress/server.ts`
+- Modify: `src/engine/integrations/live.ts`
+- Modify: `src/shared/integrations.ts`
 - Test: `src/engine/integrations/x.test.ts`
+- Test: `src/engine/integrations/live.test.ts`
+- Test: `src/engine/ingress/server.test.ts`
 - Fixture: `fixtures/integrations/x-crc.json`
 - Fixture: `fixtures/integrations/x-post.json`
 
 **Output Standard:**
 - GET CRC 返回 HMAC-SHA256 response token。
 - POST event 经过 signature/token 校验后 normalize。
-- 权限或账号不可用时 connector status 为 blocked，记录原因。
+- 权限或账号不可用时 connector status 使用一等 `state: "blocked"`，live startup 会发布 X webhook-only connector status。
+- X POST 不依赖非必需 event-name header；无 `x-twitter-webhooks-event` 时必须从 payload 推断 tweet/DM/favorite 类型。
 
 **Acceptance Standard:**
 - `bun test src/engine/integrations/x.test.ts` exit code 0。
 - Real browser/API setup 若遇手机号验证、cookie 过期、付费 entitlement 缺失，记录 blocker。
 
-- [ ] Add CRC test:
+- [x] Add CRC test:
   ```ts
   const response = buildXChallengeResponse("crc-token", "consumer-secret");
   expect(response.response_token).toStartWith("sha256=");
   ```
-- [ ] Run:
+- [x] Run:
   ```bash
   bun test src/engine/integrations/x.test.ts
+  ```
+- [x] Verification:
+  ```text
+  bun test src/engine/integrations/x.test.ts src/engine/integrations/live.test.ts src/engine/ingress/server.test.ts src/engine/ingress/signatures.test.ts: exit 0, 23 pass, 0 fail, 63 expect() calls.
+  bunx tsc --noEmit: exit 0.
+  bun run check: exit 0, checked 239 files.
+  bun test: exit 0, 505 pass, 0 fail, 1 snapshot, 4301 expect() calls.
   ```
 
 ---

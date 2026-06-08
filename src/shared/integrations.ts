@@ -5,6 +5,7 @@ export type IntegrationConnectionState =
   | "connected"
   | "disconnected"
   | "degraded"
+  | "blocked"
   | "error";
 
 export interface IntegrationConnectorStatus {

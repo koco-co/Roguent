@@ -13,6 +13,7 @@ import { PairingService } from "./pairing";
 import { IntegrationRouter } from "./router";
 import { createWeChatConnector } from "./wechat-node-host";
 import type { ImConnector } from "./wechat-types";
+import { xConnectorStatus } from "./x";
 
 export interface LiveIntegrationRuntime {
   manager: IntegrationManager;
@@ -41,6 +42,7 @@ export function startLiveIntegrations(
     void manager.handleRoomEventSafely(event);
   });
   manager.start();
+  void publishWebhookConnectorStatuses(router, env).catch(() => {});
 
   return {
     manager,
@@ -50,6 +52,13 @@ export function startLiveIntegrations(
       manager.stop();
     },
   };
+}
+
+async function publishWebhookConnectorStatuses(
+  router: IntegrationRouter,
+  env: Record<string, string | undefined>,
+): Promise<void> {
+  await router.publishStatus(xConnectorStatus(env));
 }
 
 export function createLiveIntegrationRouter(

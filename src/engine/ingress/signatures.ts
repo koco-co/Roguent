@@ -38,3 +38,18 @@ export function verifyHmacBase64Signature(
 export function xCrcResponseToken(secret: string, crcToken: string): string {
   return `sha256=${hmacSha256Base64(secret, Buffer.from(crcToken))}`;
 }
+
+export function buildXChallengeResponse(
+  crcToken: string,
+  consumerSecret: string,
+): { response_token: string } {
+  return { response_token: xCrcResponseToken(consumerSecret, crcToken) };
+}
+
+export function verifyXWebhookSignature(
+  rawBody: Uint8Array,
+  consumerSecret: string,
+  header: string | null | undefined,
+): boolean {
+  return verifyHmacBase64Signature(rawBody, consumerSecret, header);
+}
