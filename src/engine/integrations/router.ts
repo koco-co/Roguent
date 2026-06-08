@@ -177,6 +177,7 @@ export class IntegrationRouter {
       metadata: {
         board: SUBSCRIPTION_CHANNELS.has(event.channel),
         deliveryId: event.deliveryId,
+        ...sourceUrlMetadata(event.metadata),
       },
     };
   }
@@ -251,6 +252,25 @@ function isForwardingBinding(
     binding.forwardingEnabled &&
     binding.sessionId.trim().length > 0
   );
+}
+
+function sourceUrlMetadata(
+  metadata: Record<string, unknown> | undefined,
+): Record<string, string> {
+  const sourceUrl = stringMetadata(metadata, "sourceUrl");
+  const url = stringMetadata(metadata, "url");
+  return {
+    ...(sourceUrl ? { sourceUrl } : {}),
+    ...(url && url !== sourceUrl ? { url } : {}),
+  };
+}
+
+function stringMetadata(
+  metadata: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() ? value : undefined;
 }
 
 function inboxItemId(event: IntegrationEvent): string {

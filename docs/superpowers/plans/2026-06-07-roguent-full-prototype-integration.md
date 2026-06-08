@@ -1674,9 +1674,12 @@
 
 **Files:**
 - Modify: `src/engine/persistence/repositories.ts`
+- Modify: `src/engine/integrations/router.ts`
 - Create: `src/engine/mailbox/service.ts`
 - Modify: `src/web/store.ts`
+- Test: `src/engine/integrations/router.test.ts`
 - Test: `src/engine/mailbox/service.test.ts`
+- Test: `src/web/store.test.ts`
 - Test: `src/web/store.mailbox.test.ts`
 
 **Output Standard:**
@@ -1687,21 +1690,31 @@
 **Acceptance Standard:**
 - `bun test src/engine/mailbox/service.test.ts src/web/store.mailbox.test.ts` exit code 0。
 
-- [ ] Define inbox item:
+- [x] Define inbox item using existing `MailboxItem` (no second `InboxItem` type):
   ```ts
-  export interface InboxItem {
-    id: string;
-    source: "wechat" | "feishu" | "github" | "x" | "scheduler" | "runtime";
-    summary: string;
-    status: "unread" | "read" | "archived";
-    routedSessionId?: string;
-    sourceUrl?: string;
-    createdAt: number;
-  }
+  // Task33 field mapping:
+  // severity -> MailboxItem.priority
+  // sourceUrl -> MailboxItem.metadata.sourceUrl or metadata.url
+  // routedSessionId -> MailboxItem.sessionId
+  // createdAt -> MailboxItem.ts
   ```
-- [ ] Run:
+- [x] Add persistence/service/store coverage:
+  - `src/engine/persistence/repositories.ts`: `inboxItems.upsert/get/list/updateStatus/assignSession/boardItems`.
+  - `src/engine/integrations/router.ts`: subscription mailbox items preserve `metadata.sourceUrl`.
+  - `src/engine/mailbox/service.ts`: `createOrUpdate`, `markRead`, `archive`, `boardItems`, audit-backed `resend`.
+  - `src/web/store.ts`: `selectMailboxBoardItems` for today's board items plus unread alerts; prompt/runtime/scheduler alerts enter mailbox state.
+- [x] Run:
   ```bash
+  bun test src/web/store.test.ts src/web/store.mailbox.test.ts src/engine/mailbox/service.test.ts src/engine/integrations/router.test.ts
+  # exit code 0; 60 pass, 0 fail, 195 expect() calls
   bun test src/engine/mailbox/service.test.ts src/web/store.mailbox.test.ts
+  # exit code 0; 6 pass, 0 fail, 27 expect() calls
+  bunx tsc --noEmit
+  # exit code 0
+  bun run check
+  # exit code 0; Checked 246 files, no fixes applied
+  bun test
+  # exit code 0; 518 pass, 0 fail, 1 snapshots, 4352 expect() calls
   ```
 
 ---

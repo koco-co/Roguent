@@ -361,7 +361,9 @@ test("prototype domain events fold without a known session", () => {
   expect(st.sessions.ghost).toBeUndefined();
   expect(st.connectorStatus["wechat-main"]?.state).toBe("connected");
   expect(st.pairings.qrByChannel.wechat?.id).toBe("qr-1");
-  expect(st.mailbox.order).toEqual(["mail-1"]);
+  expect(st.mailbox.order).toEqual(["mail-1", "scheduler:run-1:started"]);
+  expect(st.mailbox.items["scheduler:run-1:started"]?.source).toBe("scheduler");
+  expect(st.mailbox.items["scheduler:run-1:started"]?.status).toBe("unread");
   expect(st.scheduler.tasks["task-1"]?.status).toBe("enabled");
   expect(st.scheduler.runs["run-1"]?.status).toBe("running");
   expect(st.ledger.balances.gems).toBe(5);

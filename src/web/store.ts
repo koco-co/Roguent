@@ -2,6 +2,8 @@ import { create } from "zustand";
 import {
   type Loot,
   ORCHESTRATOR_ID,
+  type PermissionPromptData,
+  type QuestionData,
   type Session,
   type TimelineItem,
   type TimelineMessageItem,
@@ -174,6 +176,11 @@ function createPrototypeStateSlices(): Required<
   };
 }
 
+export interface MailboxBoardItemsOptions {
+  now?: number;
+  limit?: number;
+}
+
 function withPrototypeStateSlices(state: RoomState): RoomStateWithPrototype {
   return {
     ...state,
@@ -200,6 +207,20 @@ function appendIdOnce(order: string[], id: string): string[] {
   return order.includes(id) ? order : [...order, id];
 }
 
+function withMailboxItem(
+  state: RoomStateWithPrototype,
+  item: MailboxItem | null,
+): RoomStateWithPrototype {
+  if (!item) return state;
+  return {
+    ...state,
+    mailbox: {
+      items: { ...state.mailbox.items, [item.id]: item },
+      order: appendIdOnce(state.mailbox.order, item.id),
+    },
+  };
+}
+
 function mergeMetadata(
   current?: Record<string, unknown>,
   next?: Record<string, unknown>,
@@ -207,6 +228,158 @@ function mergeMetadata(
   if (!current) return next;
   if (!next) return current;
   return { ...current, ...next };
+}
+
+function startOfLocalDay(ts: number): number {
+  const date = new Date(ts);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function isSameLocalDay(left: number, right: number): boolean {
+  return startOfLocalDay(left) === startOfLocalDay(right);
+}
+
+function isMailboxBoardItem(item: MailboxItem, now: number): boolean {
+  if (item.status === "archived") return false;
+  if (item.metadata?.board === true && isSameLocalDay(item.ts, now)) {
+    return true;
+  }
+  return (
+    item.status === "unread" &&
+    (item.kind === "alert" || item.priority === "high")
+  );
+}
+
+export function selectMailboxBoardItems(
+  state: RoomState,
+  options: MailboxBoardItemsOptions = {},
+): MailboxItem[] {
+  const mailbox = state.mailbox ?? createMailboxState();
+  const now = options.now ?? Date.now();
+  const start = startOfLocalDay(now);
+  const end = start + 24 * 60 * 60 * 1000;
+  const limit = options.limit ?? 20;
+
+  return mailbox.order
+    .map((id) => mailbox.items[id])
+    .filter((item): item is MailboxItem => Boolean(item))
+    .filter(
+      (item) =>
+        (item.ts >= start && item.ts < end) ||
+        (item.status === "unread" &&
+          (item.kind === "alert" || item.priority === "high")),
+    )
+    .filter((item) => isMailboxBoardItem(item, now))
+    .sort((a, b) => b.ts - a.ts || b.id.localeCompare(a.id))
+    .slice(0, limit);
+}
+
+function runtimeMailboxItem(
+  event: RoomEvent,
+  payload: RuntimeStatusPayload,
+): MailboxItem | null {
+  if (
+    payload.status !== "degraded" &&
+    payload.status !== "error" &&
+    payload.status !== "stopped"
+  ) {
+    return null;
+  }
+  const summary =
+    payload.error ??
+    payload.message ??
+    `${payload.runtime} runtime ${payload.status}`;
+  return {
+    id: `runtime:${event.sessionId}:${payload.status}:${event.seq}`,
+    source: "runtime",
+    title: `${payload.runtime} runtime ${payload.status}`,
+    summary,
+    ts: event.ts,
+    status: "unread",
+    kind: "alert",
+    priority: payload.status === "error" ? "high" : "normal",
+    sessionId: event.sessionId,
+    metadata: {
+      board: payload.status === "error" || payload.status === "degraded",
+      runtime: payload.runtime,
+      status: payload.status,
+    },
+  };
+}
+
+function promptMailboxItem(
+  event: RoomEvent,
+  payload: PromptRequestedPayload,
+): MailboxItem {
+  return {
+    id: `prompt:${payload.promptId}`,
+    source: "runtime",
+    title:
+      payload.promptKind === "permission"
+        ? "Permission requested"
+        : "Question requested",
+    summary: promptSummary(payload),
+    ts: event.ts,
+    status: "unread",
+    kind: "alert",
+    priority: "high",
+    sessionId: event.sessionId,
+    relatedEventId: payload.promptId,
+    metadata: {
+      board: true,
+      promptId: payload.promptId,
+      promptKind: payload.promptKind,
+    },
+  };
+}
+
+function promptSummary(payload: PromptRequestedPayload): string {
+  if (payload.promptKind === "permission") {
+    const data = payload.data as PermissionPromptData;
+    return (
+      data.title ??
+      data.displayName ??
+      `${data.toolName}: ${data.inputSummary}`.trim()
+    );
+  }
+  const data = payload.data as QuestionData;
+  return data.questions[0]?.question ?? "Agent requested input";
+}
+
+function schedulerMailboxItem(
+  event: RoomEvent,
+  run: SchedulerRun,
+  task: SchedulerTask | undefined,
+): MailboxItem {
+  const failed =
+    run.status === "failed" || run.status === "cancelled" || Boolean(run.error);
+  const taskTitle = task?.title ?? run.taskId;
+  const finished = event.type === "scheduler.run.finished";
+  const summary =
+    run.error ??
+    run.summary ??
+    (finished
+      ? `Scheduler run ${run.status}: ${taskTitle}`
+      : `Scheduler run started: ${taskTitle}`);
+  return {
+    id: `scheduler:${run.id}:${finished ? "finished" : "started"}`,
+    source: "scheduler",
+    title: finished ? `Scheduler run ${run.status}` : "Scheduler run started",
+    summary,
+    ts: run.finishedAt ?? run.startedAt ?? event.ts,
+    status: "unread",
+    kind: failed ? "alert" : "task",
+    priority: failed ? "high" : "normal",
+    sessionId: run.sessionId,
+    relatedEventId: run.id,
+    metadata: {
+      board: failed,
+      runId: run.id,
+      taskId: run.taskId,
+      status: run.status,
+    },
+  };
 }
 
 function desktopTimelineMeta(session: Session): {
@@ -374,13 +547,14 @@ function foldPrototypeDomainEvent(
   switch (e.type) {
     case "runtime.status": {
       const p = e.payload as RuntimeStatusPayload;
-      return {
+      const nextState = {
         ...state,
         runtimeStatusBySession: {
           ...state.runtimeStatusBySession,
           [e.sessionId]: p,
         },
       };
+      return withMailboxItem(nextState, runtimeMailboxItem(e, p));
     }
     case "runtime.config.updated": {
       const p = e.payload as RuntimeConfigUpdatedPayload;
@@ -545,23 +719,31 @@ function foldPrototypeDomainEvent(
     }
     case "scheduler.run.started": {
       const p = e.payload as SchedulerRunStartedPayload;
-      return {
+      const nextState = {
         ...state,
         scheduler: {
           ...state.scheduler,
           runs: { ...state.scheduler.runs, [p.run.id]: p.run },
         },
       };
+      return withMailboxItem(
+        nextState,
+        schedulerMailboxItem(e, p.run, state.scheduler.tasks[p.run.taskId]),
+      );
     }
     case "scheduler.run.finished": {
       const p = e.payload as SchedulerRunFinishedPayload;
-      return {
+      const nextState = {
         ...state,
         scheduler: {
           ...state.scheduler,
           runs: { ...state.scheduler.runs, [p.run.id]: p.run },
         },
       };
+      return withMailboxItem(
+        nextState,
+        schedulerMailboxItem(e, p.run, state.scheduler.tasks[p.run.taskId]),
+      );
     }
     case "economy.ledger.appended": {
       const p = e.payload as EconomyLedgerAppendedPayload;
@@ -831,7 +1013,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
   }
 
   const domainState = foldPrototypeDomainEvent(baseState, e);
-  const domainTimelineState = foldPrototypeTimelineEvent(domainState, e);
+  let domainTimelineState = foldPrototypeTimelineEvent(domainState, e);
   if (isPrototypeDomainOnlyEvent(e.type)) return domainTimelineState;
 
   sessions = { ...domainTimelineState.sessions };
@@ -1090,6 +1272,10 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
         ...desktopTimelineMeta(s),
       };
       s.timeline = [...s.timeline, item];
+      domainTimelineState = withMailboxItem(
+        domainTimelineState,
+        promptMailboxItem(e, p),
+      );
       break;
     }
     case "prompt.resolved": {

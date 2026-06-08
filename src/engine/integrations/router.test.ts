@@ -169,6 +169,10 @@ test("subscription events write mailbox and forward to current session", async (
       externalChatId: undefined,
       summary: "CI failed on main",
       bodyText: "workflow build failed",
+      metadata: {
+        sourceUrl: "https://github.example/actions/1",
+        url: "https://github.example/actions/1",
+      },
     }),
     { currentSessionId: "selected-session" },
   );
@@ -188,7 +192,10 @@ test("subscription events write mailbox and forward to current session", async (
     kind: "event",
     channel: "github",
     sessionId: "selected-session",
-    metadata: expect.objectContaining({ board: true }),
+    metadata: expect.objectContaining({
+      board: true,
+      sourceUrl: "https://github.example/actions/1",
+    }),
   });
   expect(harness.published).toContainEqual(
     expect.objectContaining({

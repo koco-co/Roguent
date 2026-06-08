@@ -1,4 +1,12 @@
 import type { Database } from "bun:sqlite";
+import type {
+  MailboxAction,
+  MailboxItem,
+  MailboxItemKind,
+  MailboxItemPriority,
+  MailboxItemStatus,
+  MailboxSource,
+} from "../../shared/events";
 
 export interface StoredSession {
   id: string;
@@ -42,6 +50,11 @@ export interface StoredAuditRecord {
   createdAt: number;
 }
 
+export interface InboxBoardQueryOptions {
+  now?: number;
+  limit?: number;
+}
+
 type SessionRow = {
   id: string;
   runtime: string;
@@ -82,6 +95,23 @@ type AuditRecordRow = {
   payload_hash: string;
   summary: string;
   created_at: number;
+};
+
+type InboxItemRow = {
+  id: string;
+  source: string;
+  title: string;
+  summary: string;
+  ts: number;
+  status: string;
+  kind: string | null;
+  priority: string | null;
+  channel: string | null;
+  session_id: string | null;
+  agent_id: string | null;
+  related_event_id: string | null;
+  actions_json: string | null;
+  metadata_json: string | null;
 };
 
 function mapSession(row: SessionRow): StoredSession {
@@ -130,6 +160,70 @@ function mapAuditRecord(row: AuditRecordRow): StoredAuditRecord {
     summary: row.summary,
     createdAt: row.created_at,
   };
+}
+
+function parseJson(value: string | null): unknown {
+  if (value === null) return undefined;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+}
+
+function parseJsonObject(
+  value: string | null,
+): Record<string, unknown> | undefined {
+  const parsed = parseJson(value);
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return undefined;
+  }
+  return parsed as Record<string, unknown>;
+}
+
+function parseActions(value: string | null): MailboxAction[] | undefined {
+  const parsed = parseJson(value);
+  return Array.isArray(parsed) ? (parsed as MailboxAction[]) : undefined;
+}
+
+function mapInboxItem(row: InboxItemRow): MailboxItem {
+  return {
+    id: row.id,
+    source: row.source as MailboxSource,
+    title: row.title,
+    summary: row.summary,
+    ts: row.ts,
+    status: row.status as MailboxItemStatus,
+    kind: (row.kind ?? undefined) as MailboxItemKind | undefined,
+    priority: (row.priority ?? undefined) as MailboxItemPriority | undefined,
+    channel: (row.channel ?? undefined) as MailboxItem["channel"],
+    sessionId: row.session_id ?? undefined,
+    agentId: row.agent_id ?? undefined,
+    relatedEventId: row.related_event_id ?? undefined,
+    actions: parseActions(row.actions_json),
+    metadata: parseJsonObject(row.metadata_json),
+  };
+}
+
+function startOfLocalDay(ts: number): number {
+  const date = new Date(ts);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function isBoardInboxItem(item: MailboxItem, now: number): boolean {
+  if (item.status === "archived") return false;
+  if (item.metadata?.board === true && isSameLocalDay(item.ts, now)) {
+    return true;
+  }
+  return (
+    item.status === "unread" &&
+    (item.kind === "alert" || item.priority === "high")
+  );
+}
+
+function isSameLocalDay(left: number, right: number): boolean {
+  return startOfLocalDay(left) === startOfLocalDay(right);
 }
 
 export function createRepositories(db: Database) {
@@ -328,6 +422,126 @@ export function createRepositories(db: Database) {
           )
           .get(id);
         return row ? mapAuditRecord(row) : null;
+      },
+    },
+
+    inboxItems: {
+      upsert(item: MailboxItem): void {
+        db.query<
+          unknown,
+          [
+            string,
+            string,
+            string,
+            string,
+            number,
+            string,
+            string | null,
+            string | null,
+            string | null,
+            string | null,
+            string | null,
+            string | null,
+            string | null,
+            string | null,
+          ]
+        >(`
+          INSERT INTO inbox_items (
+            id,
+            source,
+            title,
+            summary,
+            ts,
+            status,
+            kind,
+            priority,
+            channel,
+            session_id,
+            agent_id,
+            related_event_id,
+            actions_json,
+            metadata_json
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            source = excluded.source,
+            title = excluded.title,
+            summary = excluded.summary,
+            ts = excluded.ts,
+            status = excluded.status,
+            kind = excluded.kind,
+            priority = excluded.priority,
+            channel = excluded.channel,
+            session_id = excluded.session_id,
+            agent_id = excluded.agent_id,
+            related_event_id = excluded.related_event_id,
+            actions_json = excluded.actions_json,
+            metadata_json = excluded.metadata_json
+        `).run(
+          item.id,
+          item.source,
+          item.title,
+          item.summary,
+          item.ts,
+          item.status,
+          item.kind ?? null,
+          item.priority ?? null,
+          item.channel ?? null,
+          item.sessionId ?? null,
+          item.agentId ?? null,
+          item.relatedEventId ?? null,
+          item.actions ? JSON.stringify(item.actions) : null,
+          item.metadata ? JSON.stringify(item.metadata) : null,
+        );
+      },
+
+      get(id: string): MailboxItem | null {
+        const row = db
+          .query<InboxItemRow, [string]>(
+            "SELECT * FROM inbox_items WHERE id = ? LIMIT 1",
+          )
+          .get(id);
+        return row ? mapInboxItem(row) : null;
+      },
+
+      list(limit = 100): MailboxItem[] {
+        return db
+          .query<InboxItemRow, [number]>(
+            "SELECT * FROM inbox_items ORDER BY ts DESC, id DESC LIMIT ?",
+          )
+          .all(limit)
+          .map(mapInboxItem);
+      },
+
+      updateStatus(id: string, status: MailboxItemStatus): MailboxItem | null {
+        db.query<unknown, [string, string]>(
+          "UPDATE inbox_items SET status = ? WHERE id = ?",
+        ).run(status, id);
+        return this.get(id);
+      },
+
+      assignSession(itemId: string, sessionId: string): MailboxItem | null {
+        db.query<unknown, [string, string]>(
+          "UPDATE inbox_items SET session_id = ? WHERE id = ?",
+        ).run(sessionId, itemId);
+        return this.get(itemId);
+      },
+
+      boardItems(options: InboxBoardQueryOptions = {}): MailboxItem[] {
+        const now = options.now ?? Date.now();
+        const limit = options.limit ?? 20;
+        return db
+          .query<InboxItemRow, []>(
+            `
+              SELECT * FROM inbox_items
+              WHERE status != 'archived'
+              ORDER BY ts DESC, id DESC
+            `,
+          )
+          .all()
+          .map(mapInboxItem)
+          .filter((item) => isBoardInboxItem(item, now))
+          .slice(0, limit);
       },
     },
   };

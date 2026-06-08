@@ -1,10 +1,7 @@
 import type { Database } from "bun:sqlite";
-import type {
-  IntegrationChannel,
-  MailboxItem,
-  PairingBinding,
-} from "../../shared/events";
+import type { IntegrationChannel, PairingBinding } from "../../shared/events";
 import { appendAuditRecord } from "../audit/log";
+import { createRepositories } from "../persistence/repositories";
 import { KeychainSecretStore } from "../secrets/keychain";
 import type { SecretStore } from "../secrets/types";
 import type { SessionManager } from "../session";
@@ -75,6 +72,7 @@ export function createLiveIntegrationRouter(
   sessions: SessionManager,
 ) {
   const pairing = new PairingService(db);
+  const repositories = createRepositories(db);
   return new IntegrationRouter({
     pairingBindings: {
       getByExternalKey(
@@ -86,13 +84,10 @@ export function createLiveIntegrationRouter(
     },
     inbox: {
       create(item) {
-        upsertInboxItem(db, item);
+        repositories.inboxItems.upsert(item);
       },
       assignSession(itemId, sessionId) {
-        db.query("UPDATE inbox_items SET session_id = ? WHERE id = ?").run(
-          sessionId,
-          itemId,
-        );
+        repositories.inboxItems.assignSession(itemId, sessionId);
       },
     },
     audit: {
@@ -132,73 +127,4 @@ function createDefaultImConnectors(
     });
   }
   return connectors;
-}
-
-function upsertInboxItem(db: Database, item: MailboxItem): void {
-  db.query<
-    unknown,
-    [
-      string,
-      string,
-      string,
-      string,
-      number,
-      string,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-      string | null,
-    ]
-  >(`
-    INSERT INTO inbox_items (
-      id,
-      source,
-      title,
-      summary,
-      ts,
-      status,
-      kind,
-      priority,
-      channel,
-      session_id,
-      agent_id,
-      related_event_id,
-      actions_json,
-      metadata_json
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
-      source = excluded.source,
-      title = excluded.title,
-      summary = excluded.summary,
-      ts = excluded.ts,
-      status = excluded.status,
-      kind = excluded.kind,
-      priority = excluded.priority,
-      channel = excluded.channel,
-      session_id = excluded.session_id,
-      agent_id = excluded.agent_id,
-      related_event_id = excluded.related_event_id,
-      actions_json = excluded.actions_json,
-      metadata_json = excluded.metadata_json
-  `).run(
-    item.id,
-    item.source,
-    item.title,
-    item.summary,
-    item.ts,
-    item.status,
-    item.kind ?? null,
-    item.priority ?? null,
-    item.channel ?? null,
-    item.sessionId ?? null,
-    item.agentId ?? null,
-    item.relatedEventId ?? null,
-    item.actions ? JSON.stringify(item.actions) : null,
-    item.metadata ? JSON.stringify(item.metadata) : null,
-  );
 }
