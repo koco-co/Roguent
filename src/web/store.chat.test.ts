@@ -151,6 +151,76 @@ test("message final appends deterministically when no assistant delta exists", (
   });
 });
 
+test("assistant final after final appends instead of replacing prior final answer", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 12,
+      ts: 120,
+      type: "message.final",
+      agentId: ORCHESTRATOR_ID,
+      payload: { text: "first complete answer" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 13,
+      ts: 130,
+      type: "message.final",
+      agentId: ORCHESTRATOR_ID,
+      payload: { text: "second complete answer" },
+    }),
+  );
+
+  const timeline = st.sessions.s1?.timeline ?? [];
+  expect(timeline).toHaveLength(2);
+  expect(timeline.map((item) => item.kind === "message" && item.text)).toEqual([
+    "first complete answer",
+    "second complete answer",
+  ]);
+});
+
+test("assistant delta after a final answer starts a new streaming item", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 12,
+      ts: 120,
+      type: "message.final",
+      agentId: ORCHESTRATOR_ID,
+      payload: { text: "complete" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 13,
+      ts: 130,
+      type: "message.delta",
+      agentId: ORCHESTRATOR_ID,
+      payload: { text: "new draft" },
+    }),
+  );
+
+  const timeline = st.sessions.s1?.timeline ?? [];
+  expect(timeline).toHaveLength(2);
+  expect(timeline[1]).toMatchObject({
+    kind: "message",
+    id: "13",
+    text: "new draft",
+    status: "streaming",
+  });
+});
+
 test("wechat integration event with bodyText appends inbound IM timeline item with external identity", () => {
   let st = reduce(
     empty,
@@ -220,6 +290,161 @@ test("outbound IM integration events do not append inbound user timeline items",
 
   expect(st.connectorStatus["wechat-main"]?.lastEventAt).toBe(59);
   expect(st.sessions.s1?.timeline).toHaveLength(0);
+});
+
+test("inbound IM event prefers active pairing session over envelope session", () => {
+  let st = reduce(
+    empty,
+    ev({
+      sessionId: "s1",
+      type: "session.created",
+      payload: { title: "envelope", model: "m", runtime: "claude" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "s2",
+      type: "session.created",
+      payload: { title: "bound", model: "gpt-5", runtime: "codex" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "s2",
+      type: "pairing.binding.updated",
+      payload: {
+        binding: {
+          id: "bind-1",
+          channel: "wechat",
+          status: "active",
+          externalChatId: "chat-123",
+          sessionId: "s2",
+          forwardingEnabled: true,
+          boundAt: 100,
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "s1",
+      seq: 7,
+      ts: 70,
+      type: "integration.event.received",
+      payload: {
+        id: "evt-bound",
+        channel: "wechat",
+        direction: "inbound",
+        summary: "from bound chat",
+        externalChatId: "chat-123",
+      },
+    }),
+  );
+
+  expect(st.sessions.s1?.timeline).toHaveLength(0);
+  expect(st.sessions.s2?.timeline[0]).toMatchObject({
+    kind: "message",
+    id: "integration:evt-bound",
+    runtime: "codex",
+    text: "from bound chat",
+  });
+});
+
+test("inbound IM event does not route through inactive or disabled binding", () => {
+  let st = reduce(
+    empty,
+    ev({
+      sessionId: "s1",
+      type: "session.created",
+      payload: { title: "envelope", model: "m" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "s2",
+      type: "session.created",
+      payload: { title: "bound", model: "m" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "s2",
+      type: "pairing.binding.updated",
+      payload: {
+        binding: {
+          id: "bind-1",
+          channel: "wechat",
+          status: "revoked",
+          externalChatId: "chat-123",
+          sessionId: "s2",
+          forwardingEnabled: true,
+          boundAt: 100,
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "s1",
+      seq: 7,
+      ts: 70,
+      type: "integration.event.received",
+      payload: {
+        id: "evt-revoked",
+        channel: "wechat",
+        direction: "inbound",
+        summary: "should not route",
+        externalChatId: "chat-123",
+      },
+    }),
+  );
+
+  expect(st.sessions.s1?.timeline).toHaveLength(0);
+  expect(st.sessions.s2?.timeline).toHaveLength(0);
+
+  st = reduce(
+    st,
+    ev({
+      sessionId: "s2",
+      type: "pairing.binding.updated",
+      payload: {
+        binding: {
+          id: "bind-2",
+          channel: "wechat",
+          status: "active",
+          externalChatId: "chat-123",
+          sessionId: "s2",
+          forwardingEnabled: false,
+          boundAt: 101,
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "s1",
+      seq: 8,
+      ts: 80,
+      type: "integration.event.received",
+      payload: {
+        id: "evt-disabled",
+        channel: "wechat",
+        direction: "inbound",
+        summary: "should not route either",
+        externalChatId: "chat-123",
+      },
+    }),
+  );
+
+  expect(st.sessions.s1?.timeline).toHaveLength(0);
+  expect(st.sessions.s2?.timeline).toHaveLength(0);
 });
 
 test("scheduler run started for same session appends scheduler timeline item and keeps run state", () => {

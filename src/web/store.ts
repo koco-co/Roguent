@@ -243,6 +243,21 @@ function integrationTimelineSource(
       };
 }
 
+function resolveForwardingBindingSessionId(
+  state: RoomStateWithPrototype,
+  source: Extract<TimelineSource, { kind: "im" }>,
+): string | null | undefined {
+  const binding =
+    state.pairings.byExternalKey[
+      pairingExternalKey(source.channel, source.externalChatId)
+    ];
+  if (!binding) return undefined;
+  if (binding?.status !== "active" || !binding.forwardingEnabled) {
+    return null;
+  }
+  return binding.sessionId;
+}
+
 function upsertTimelineItem(
   timeline: TimelineItem[],
   item: TimelineItem,
@@ -516,13 +531,9 @@ function foldPrototypeTimelineEvent(
       const text = p.bodyText || p.summary;
       const source = integrationTimelineSource(p);
       if (!text || !source) return state;
-      const boundSessionId =
-        state.pairings.byExternalKey[
-          pairingExternalKey(source.channel, source.externalChatId)
-        ]?.sessionId;
-      const targetSessionId = state.sessions[e.sessionId]
-        ? e.sessionId
-        : boundSessionId;
+      const boundSessionId = resolveForwardingBindingSessionId(state, source);
+      if (boundSessionId === null) return state;
+      const targetSessionId = boundSessionId ?? e.sessionId;
       if (!targetSessionId) return state;
       const session = state.sessions[targetSessionId];
       if (!session) return state;
@@ -897,7 +908,11 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
         lastMsg !== undefined &&
         lastMsg.role === "assistant" &&
         lastMsg.agentId === e.agentId;
-      if (role === "assistant" && lastIsAssistantMsg && lastMsg) {
+      if (
+        role === "assistant" &&
+        lastIsAssistantMsg &&
+        lastMsg?.status === "streaming"
+      ) {
         // streaming: replace last assistant bubble from same agent
         s.timeline = [
           ...s.timeline.slice(0, -1),

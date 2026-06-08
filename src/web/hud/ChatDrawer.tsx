@@ -231,7 +231,7 @@ export function ChatDrawer() {
           )}
           {timeline?.map((item) => (
             <TimelineItem
-              key={item.id}
+              key={`${item.kind}:${item.id}`}
               item={item}
               session={session!}
               sessionId={currentId!}
