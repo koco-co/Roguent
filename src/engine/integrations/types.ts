@@ -17,6 +17,7 @@ export interface IntegrationEvent {
   summary: string;
   bodyText?: string;
   from?: string;
+  to?: string;
   displayName?: string;
   metadata?: Record<string, unknown>;
   receivedAt: number;
@@ -32,6 +33,7 @@ export interface IntegrationRouteResult {
   inboxItem: MailboxItem;
   sessionId?: string;
   createdSession: boolean;
+  forwardedToRuntime?: boolean;
 }
 
 export interface PairingBindingReader {
@@ -81,7 +83,7 @@ export interface IntegrationSessionControl {
    * chat-visible integration event separately, so this method must not create a
    * second local user bubble.
    */
-  forwardToRuntime(sessionId: string, text: string): MaybePromise<void>;
+  forwardToRuntime(sessionId: string, text: string): MaybePromise<boolean>;
 }
 
 export type IntegrationRouterEvent =

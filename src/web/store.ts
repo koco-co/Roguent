@@ -269,6 +269,85 @@ function upsertTimelineItem(
   return timeline.map((current, i) => (i === idx ? item : current));
 }
 
+function isTimelineDeliveryStatus(
+  value: unknown,
+): value is NonNullable<TimelineMessageItem["delivery"]>["status"] {
+  return (
+    value === "pending" ||
+    value === "sent" ||
+    value === "delivered" ||
+    value === "failed"
+  );
+}
+
+function isTimelineDeliveryChannel(
+  channel: IntegrationChannel,
+): channel is NonNullable<TimelineMessageItem["delivery"]>["channel"] {
+  return channel !== "relay";
+}
+
+function applyOutboundDelivery(
+  state: RoomStateWithPrototype,
+  e: RoomEvent,
+  event: IntegrationEventReceivedPayload,
+): RoomStateWithPrototype {
+  if (!isTimelineDeliveryChannel(event.channel)) return state;
+  const metadata = event.metadata ?? {};
+  const status = isTimelineDeliveryStatus(metadata.deliveryStatus)
+    ? metadata.deliveryStatus
+    : undefined;
+  if (!status) return state;
+  const session = state.sessions[e.sessionId];
+  if (!session) return state;
+  const replyToTimelineItemId =
+    typeof metadata.replyToTimelineItemId === "string"
+      ? metadata.replyToTimelineItemId
+      : undefined;
+  const error = typeof metadata.error === "string" ? metadata.error : undefined;
+  const delivery = {
+    channel: event.channel,
+    deliveryId: event.deliveryId,
+    status,
+    ...(error ? { error } : {}),
+    updatedAt: event.receivedAt ?? event.ts ?? e.ts,
+  };
+
+  let updated = false;
+  const timeline = session.timeline.map((item) => {
+    if (
+      item.kind === "message" &&
+      item.role === "assistant" &&
+      replyToTimelineItemId &&
+      item.id === replyToTimelineItemId
+    ) {
+      updated = true;
+      return { ...item, delivery };
+    }
+    return item;
+  });
+  if (replyToTimelineItemId && !updated) return state;
+  if (!updated) {
+    for (let i = timeline.length - 1; i >= 0; i--) {
+      const item = timeline[i];
+      if (item?.kind !== "message" || item.role !== "assistant") continue;
+      timeline[i] = { ...item, delivery };
+      updated = true;
+      break;
+    }
+  }
+  if (!updated) return state;
+  return {
+    ...state,
+    sessions: {
+      ...state.sessions,
+      [e.sessionId]: {
+        ...session,
+        timeline,
+      },
+    },
+  };
+}
+
 function isPrototypeDomainOnlyEvent(type: RoomEvent["type"]): boolean {
   return (
     type === "integration.status" ||
@@ -527,6 +606,7 @@ function foldPrototypeTimelineEvent(
   switch (e.type) {
     case "integration.event.received": {
       const p = e.payload as IntegrationEventReceivedPayload;
+      if (p.direction === "outbound") return applyOutboundDelivery(state, e, p);
       if (p.direction !== "inbound") return state;
       const text = p.bodyText || p.summary;
       const source = integrationTimelineSource(p);

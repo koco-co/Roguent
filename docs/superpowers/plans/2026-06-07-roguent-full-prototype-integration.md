@@ -1466,7 +1466,7 @@
 - `bun test src/engine/integrations/outbound-routing.test.ts` exit code 0。
 - E2E fake IM flow 验证 inbound -> agent -> outbound reply。
 
-- [ ] Add routing test:
+- [x] Add routing test:
   ```ts
   test("assistant reply is sent back to paired IM chat", async () => {
     const harness = createIntegrationHarness();
@@ -1476,9 +1476,16 @@
     expect(harness.wechat.sent).toEqual([{ chatId: "chat1", text: "tests fixed" }]);
   });
   ```
-- [ ] Run:
+- [x] Run:
   ```bash
   bun test src/engine/integrations/outbound-routing.test.ts
+  ```
+- [x] Verification:
+  ```text
+  bun test src/engine/integrations/outbound-routing.test.ts src/engine/integrations/live.test.ts src/engine/integrations/router.test.ts src/engine/integrations/wechat-fake.test.ts src/engine/integrations/feishu-fake.test.ts src/web/store.chat.test.ts: exit 0, 33 pass, 0 fail, 95 expect() calls.
+  bunx tsc --noEmit: exit 0.
+  bun run check: exit 0, checked 227 files.
+  bun test: exit 0, 475 pass, 0 fail, 1 snapshot, 4223 expect() calls.
   ```
 
 ---

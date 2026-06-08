@@ -38,19 +38,17 @@ export class IntegrationRouter {
     event: IntegrationEvent,
     options: IntegrationRouteOptions = {},
   ): Promise<IntegrationRouteResult> {
-    const initialSessionId = await this.resolveInitialSessionId(event, options);
+    const target = await this.resolveRouteTarget(event, options);
+    const initialSessionId = target.sessionId;
     const inboxItem = this.createInboxItem(event, initialSessionId);
 
+    if (target.auditOnly) {
+      await this.appendReceivedAudit(event, initialSessionId);
+      return { inboxItem, sessionId: undefined, createdSession: false };
+    }
+
     await this.deps.inbox.create(inboxItem);
-    await this.deps.audit.append({
-      source: `integration.${event.channel}`,
-      action: "integration.event.received",
-      sessionId: initialSessionId,
-      deliveryId: event.deliveryId,
-      payload: this.auditPayload(event),
-      summary: event.summary,
-      createdAt: event.receivedAt,
-    });
+    await this.appendReceivedAudit(event, initialSessionId);
 
     const { sessionId, createdSession } = await this.ensureRouteSession(
       event,
@@ -63,6 +61,7 @@ export class IntegrationRouter {
         ? { ...inboxItem, sessionId }
         : inboxItem;
 
+    let forwardedToRuntime = false;
     if (sessionId) {
       const publishedItem =
         initialSessionId === undefined ? routedInboxItem : inboxItem;
@@ -79,33 +78,65 @@ export class IntegrationRouter {
         ts: event.receivedAt,
       });
       if (event.direction === "inbound") {
-        await this.deps.sessions.forwardToRuntime(
+        forwardedToRuntime = await this.deps.sessions.forwardToRuntime(
           sessionId,
           this.forwardedText(event),
         );
       }
     }
 
-    return { inboxItem: routedInboxItem, sessionId, createdSession };
+    return {
+      inboxItem: routedInboxItem,
+      sessionId,
+      createdSession,
+      forwardedToRuntime,
+    };
   }
 
-  private async resolveInitialSessionId(
+  async publishOutbound(
+    event: IntegrationEvent,
+    options: { sessionId: string },
+  ): Promise<void> {
+    await this.deps.audit.append({
+      source: `integration.${event.channel}`,
+      action: "integration.event.outbound",
+      sessionId: options.sessionId,
+      deliveryId: event.deliveryId,
+      payload: this.auditPayload(event),
+      summary: event.summary,
+      createdAt: event.receivedAt,
+    });
+    await this.deps.publish({
+      sessionId: options.sessionId,
+      type: "integration.event.received",
+      payload: this.normalizeEvent(event),
+      ts: event.receivedAt,
+    });
+  }
+
+  private async resolveRouteTarget(
     event: IntegrationEvent,
     options: IntegrationRouteOptions,
-  ): Promise<string | undefined> {
+  ): Promise<{ sessionId?: string; auditOnly: boolean }> {
     if (isPairableEvent(event)) {
       const binding = await this.deps.pairingBindings.getByExternalKey(
         event.channel,
         event.externalChatId,
       );
-      if (isForwardingBinding(binding)) return binding.sessionId;
+      if (isForwardingBinding(binding)) {
+        return { sessionId: binding.sessionId, auditOnly: false };
+      }
+      if (binding) return { auditOnly: true };
     }
 
     if (SUBSCRIPTION_CHANNELS.has(event.channel)) {
-      return options.currentSessionId?.trim() || undefined;
+      return {
+        sessionId: options.currentSessionId?.trim() || undefined,
+        auditOnly: false,
+      };
     }
 
-    return undefined;
+    return { auditOnly: false };
   }
 
   private async ensureRouteSession(
@@ -158,6 +189,21 @@ export class IntegrationRouter {
       externalChatId: event.externalChatId,
       receivedAt: event.receivedAt,
     };
+  }
+
+  private async appendReceivedAudit(
+    event: IntegrationEvent,
+    sessionId: string | undefined,
+  ): Promise<void> {
+    await this.deps.audit.append({
+      source: `integration.${event.channel}`,
+      action: "integration.event.received",
+      sessionId,
+      deliveryId: event.deliveryId,
+      payload: this.auditPayload(event),
+      summary: event.summary,
+      createdAt: event.receivedAt,
+    });
   }
 
   private normalizeEvent(event: IntegrationEvent): NormalizedIntegrationEvent {

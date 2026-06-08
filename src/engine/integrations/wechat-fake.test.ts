@@ -47,6 +47,7 @@ function createRouterHarness(binding: PairingBinding | null = activeBinding()) {
       createSubscriptionSession() {},
       forwardToRuntime(sessionId, text) {
         forwarded.push({ sessionId, text });
+        return true;
       },
     },
     publish(event) {

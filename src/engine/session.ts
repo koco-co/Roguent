@@ -22,6 +22,7 @@ import {
 } from "../shared/runtime";
 import { appendAuditRecordSafe } from "./audit/log";
 import type { DriverCallbacks, IDriver } from "./driver";
+import type { IntegrationRouterEvent } from "./integrations/types";
 import { LimitsAggregator } from "./limits-aggregator";
 import { readTranscriptLines } from "./local-sessions";
 import { projectFor } from "./project";
@@ -94,6 +95,12 @@ export class SessionManager {
   private emit(e: RoomEvent): void {
     this.rememberTimelineItem(e);
     for (const sink of this.sinks) sink(e);
+  }
+
+  publishIntegrationEvent(event: IntegrationRouterEvent): void {
+    this.emit(
+      this.seq.stamp(event.sessionId, event.type, event.payload, event.ts),
+    );
   }
 
   private emitSessionError(sessionId: string, message: string): void {
@@ -244,18 +251,19 @@ export class SessionManager {
     return [...this.knownSessions];
   }
 
-  sendMessage(id: string, text: string): void {
+  sendMessage(id: string, text: string): boolean {
     const driver = this.drivers.get(id);
-    if (!driver || !this.knownSessions.has(id)) return;
+    if (!driver || !this.knownSessions.has(id)) return false;
     try {
       driver.send(text);
     } catch (error) {
       this.emitSessionError(id, `Send failed: ${errorMessage(error)}`);
-      return;
+      return false;
     }
     this.emit(
       this.seq.stamp(id, "message.final", { role: "user", text }, Date.now()),
     );
+    return true;
   }
 
   async rollback(id: string, checkpointId: string): Promise<void> {

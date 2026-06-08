@@ -76,6 +76,7 @@ function createHarness(binding: PairingBinding | null = null) {
       forwardToRuntime(sessionId, text) {
         calls.push(`runtime.forward:${sessionId}`);
         forwarded.push({ sessionId, text });
+        return true;
       },
     },
     publish(event) {

@@ -1,5 +1,6 @@
 import { WebSocketServer } from "ws";
 import { readOauthCredentials } from "./credentials";
+import { startLiveIntegrations } from "./integrations/live";
 import { openDatabase, resolveDatabasePath } from "./persistence/db";
 import { migrate } from "./persistence/migrations";
 import { resolvePort } from "./port";
@@ -41,6 +42,7 @@ if (replayFixture) {
   migrate(db);
   const mgr = new SessionManager(undefined, process.cwd(), { auditDb: db });
   const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`));
+  startLiveIntegrations({ db, sessions: mgr });
   // 限额两源都汇进 SessionManager 的 LimitsAggregator,合并后由它推 gateway:
   //   1) keychain 轮询 /api/oauth/usage(权威源、两窗口完整快照 + 唯一 planName 源)
   //      —— poller → applyPollLimits;和 claude-hud 同源同语义。

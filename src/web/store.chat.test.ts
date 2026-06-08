@@ -292,6 +292,105 @@ test("outbound IM integration events do not append inbound user timeline items",
   expect(st.sessions.s1?.timeline).toHaveLength(0);
 });
 
+test("outbound IM integration events update assistant delivery status", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 10,
+      ts: 100,
+      type: "message.final",
+      payload: { text: "tests fixed" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 11,
+      ts: 110,
+      type: "integration.event.received",
+      payload: {
+        id: "evt-out",
+        channel: "wechat",
+        direction: "outbound",
+        summary: "sent to wechat",
+        bodyText: "tests fixed",
+        receivedAt: 109,
+        externalChatId: "chat-123",
+        deliveryId: "outbound-1",
+        metadata: {
+          deliveryStatus: "delivered",
+          replyToTimelineItemId: "10",
+        },
+      },
+    }),
+  );
+
+  expect(st.sessions.s1?.timeline[0]).toMatchObject({
+    kind: "message",
+    id: "10",
+    role: "assistant",
+    delivery: {
+      channel: "wechat",
+      deliveryId: "outbound-1",
+      status: "delivered",
+      updatedAt: 109,
+    },
+  });
+});
+
+test("outbound IM delivery with unmatched correlation does not update latest assistant", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 10,
+      ts: 100,
+      type: "message.final",
+      payload: { text: "newer unrelated reply" },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 11,
+      ts: 110,
+      type: "integration.event.received",
+      payload: {
+        id: "evt-out",
+        channel: "wechat",
+        direction: "outbound",
+        summary: "sent to wechat",
+        bodyText: "old reply",
+        receivedAt: 109,
+        externalChatId: "chat-123",
+        deliveryId: "outbound-1",
+        metadata: {
+          deliveryStatus: "delivered",
+          replyToTimelineItemId: "missing-old-message",
+        },
+      },
+    }),
+  );
+
+  expect(st.sessions.s1?.timeline[0]).toMatchObject({
+    kind: "message",
+    id: "10",
+    role: "assistant",
+  });
+  expect(
+    st.sessions.s1?.timeline[0]?.kind === "message"
+      ? st.sessions.s1.timeline[0].delivery
+      : undefined,
+  ).toBeUndefined();
+});
+
 test("inbound IM event prefers active pairing session over envelope session", () => {
   let st = reduce(
     empty,
