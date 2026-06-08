@@ -283,6 +283,138 @@ test("parseClientCommand accepts prototype command groups with typed shapes", ()
   ).toBe("createTask");
 });
 
+test("parseClientCommand accepts scheduler daily weekly and monthly recurrence", () => {
+  const baseTask = {
+    id: "task-1",
+    title: "Scheduled review",
+    prompt: "Summarize changes",
+    status: "enabled",
+    createdAt: 1,
+  };
+
+  const daily = parseClientCommand({
+    cmd: "scheduler",
+    action: "createTask",
+    task: {
+      ...baseTask,
+      schedule: {
+        kind: "daily",
+        hour: 9,
+        minute: 30,
+        timezone: "Asia/Shanghai",
+      },
+    },
+  });
+  expect(
+    daily.ok &&
+      daily.command.cmd === "scheduler" &&
+      daily.command.action === "createTask" &&
+      daily.command.task.schedule,
+  ).toEqual({
+    kind: "daily",
+    hour: 9,
+    minute: 30,
+    timezone: "Asia/Shanghai",
+  });
+
+  const weekly = parseClientCommand({
+    cmd: "scheduler",
+    action: "createTask",
+    task: {
+      ...baseTask,
+      schedule: {
+        kind: "weekly",
+        daysOfWeek: [1, 3, 5],
+        hour: 18,
+        minute: 0,
+        timezone: "UTC",
+      },
+    },
+  });
+  expect(
+    weekly.ok &&
+      weekly.command.cmd === "scheduler" &&
+      weekly.command.action === "createTask" &&
+      weekly.command.task.schedule,
+  ).toEqual({
+    kind: "weekly",
+    daysOfWeek: [1, 3, 5],
+    hour: 18,
+    minute: 0,
+    timezone: "UTC",
+  });
+
+  const monthly = parseClientCommand({
+    cmd: "scheduler",
+    action: "createTask",
+    task: {
+      ...baseTask,
+      schedule: {
+        kind: "monthly",
+        dayOfMonth: 31,
+        hour: 7,
+        minute: 5,
+        timezone: "America/Los_Angeles",
+      },
+    },
+  });
+  expect(
+    monthly.ok &&
+      monthly.command.cmd === "scheduler" &&
+      monthly.command.action === "createTask" &&
+      monthly.command.task.schedule,
+  ).toEqual({
+    kind: "monthly",
+    dayOfMonth: 31,
+    hour: 7,
+    minute: 5,
+    timezone: "America/Los_Angeles",
+  });
+});
+
+test("parseClientCommand rejects invalid scheduler recurrence payloads", () => {
+  const baseCommand = {
+    cmd: "scheduler",
+    action: "createTask",
+    task: {
+      id: "task-1",
+      title: "Scheduled review",
+      prompt: "Summarize changes",
+      status: "enabled",
+      createdAt: 1,
+    },
+  };
+  for (const schedule of [
+    { kind: "once", runAt: Number.NaN },
+    { kind: "once", runAt: Number.POSITIVE_INFINITY },
+    { kind: "daily", hour: 9, minute: 0, timezone: "UTC", everyMs: 1000 },
+    { kind: "daily", hour: 24, minute: 0, timezone: "UTC" },
+    { kind: "daily", hour: 9, minute: 60, timezone: "UTC" },
+    { kind: "daily", hour: 9, minute: 0, timezone: "No/Such_Zone" },
+    { kind: "weekly", daysOfWeek: [], hour: 9, minute: 0, timezone: "UTC" },
+    { kind: "weekly", daysOfWeek: [7], hour: 9, minute: 0, timezone: "UTC" },
+    { kind: "monthly", dayOfMonth: 0, hour: 9, minute: 0, timezone: "UTC" },
+    { kind: "monthly", dayOfMonth: 32, hour: 9, minute: 0, timezone: "UTC" },
+    {
+      kind: "monthly",
+      dayOfMonth: 15,
+      hour: 9,
+      minute: 0,
+      timezone: "UTC",
+      expression: "* * * * *",
+    },
+    { kind: "interval", everyMs: 1000 },
+    { kind: "cron", expression: "* * * * *", timezone: "UTC" },
+  ]) {
+    expect(
+      parseClientCommand({
+        ...baseCommand,
+        task: { ...baseCommand.task, schedule },
+      }).ok,
+    ).toBe(false);
+  }
+});
+
 test("parseClientCommand rejects unknown prototype actions", () => {
   expect(
     parseClientCommand({

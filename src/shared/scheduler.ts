@@ -16,15 +16,24 @@ export type SchedulerRunStatus =
 export type SchedulerRecurrence =
   | { kind: "once"; runAt: number }
   | {
-      kind: "interval";
-      everyMs: number;
-      startAt?: number;
-      endAt?: number;
+      kind: "daily";
+      hour: number;
+      minute: number;
+      timezone: string;
     }
   | {
-      kind: "cron";
-      expression: string;
-      timezone?: string;
+      kind: "weekly";
+      daysOfWeek: number[];
+      hour: number;
+      minute: number;
+      timezone: string;
+    }
+  | {
+      kind: "monthly";
+      dayOfMonth: number;
+      hour: number;
+      minute: number;
+      timezone: string;
     };
 
 export interface SchedulerTask {

@@ -20,6 +20,7 @@
 - 事件命名以 Task 3 锁定表为准:`tool.finished` 只能作为 Codex 原始输入 kind 出现在 fixture,归一化后的 Roguent 协议事件必须是既有 `tool.ended`;prompt resolved UI 状态对齐 `"answered" | "dismissed"`。
 - workflow 路径以 `.claude/rules/workflow.md` 为准,不引用不存在的 `.Codex/rules/workflow.md`;`PermissionMode` 只包含 Claude SDK 合法四值,不加入 `"ask"`。
 - 重叠面板按现有文件接真改造:`Settings.tsx`、`Shop.tsx`、`Tasks.tsx`/`SessionGrid.tsx`、`hud/Minimap.tsx`、`room/Lights.tsx`、`room/Particles.tsx` 均优先复用;`RuntimeEventDraft` 只定义在 `src/engine/runtime/types.ts`。
+- task 内的 `Create/Modify` 必须以执行时文件盘点为准更新,不能照抄旧计划。已确认 `src/shared/scheduler.ts`、`src/shared/commands.ts` 等后续任务依赖文件已存在时,对应 task 必须写成 Modify/extend 并补对应测试,避免同名重建或漏测 parser 合约。
 
 ---
 
@@ -31,7 +32,7 @@
 - Modify: `src/shared/events.ts` — 扩展 `RoomEvent` 类型、payload 类型和 type guards。
 - Create: `src/shared/runtime.ts` — `RuntimeKind`、runtime config、permission/sandbox/reasoning 类型。
 - Create: `src/shared/integrations.ts` — IM、GitHub、X、relay、webhook 的 normalized event 类型。
-- Create: `src/shared/scheduler.ts` — schedule definition、run state、recurrence 类型。
+- Modify: `src/shared/scheduler.ts` — schedule definition、run state、recurrence 类型。
 - Create: `src/shared/economy.ts` — achievement、ledger、inventory、gacha pool 类型。
 - Create: `src/shared/fixtures.ts` — replay fixture schema、fixture validation helpers。
 
@@ -335,7 +336,7 @@
 **Files:**
 - Modify: `src/shared/events.ts`
 - Create: `src/shared/integrations.ts`
-- Create: `src/shared/scheduler.ts`
+- Modify: `src/shared/scheduler.ts` — 已存在,只扩展事件 payload 所需 schedule/run 类型。
 - Create: `src/shared/economy.ts`
 - Test: `src/shared/events.test.ts`
 
@@ -847,7 +848,7 @@
 **Files:**
 - Modify: `src/web/ws-client.ts`
 - Modify: `src/engine/ws-gateway.ts`
-- Create: `src/shared/commands.ts`
+- Modify: `src/shared/commands.ts` — 已存在,扩展 command union/parser,不要重建。
 - Test: `src/shared/commands.test.ts`
 - Test: `src/engine/ws-gateway.test.ts`
 
@@ -1778,19 +1779,24 @@
 **Feature:** 定时任务定义支持 once/daily/weekly/monthly，能确定下次运行时间。
 
 **Files:**
-- Create: `src/shared/scheduler.ts`
+- Modify: `src/shared/scheduler.ts` — 已存在,扩展 recurrence 联合类型,不要重建。
+- Modify: `src/shared/commands.ts` — 已存在,同步 slash/command parser 对 once/daily/weekly/monthly 的解析和校验。
 - Create: `src/engine/scheduler/next-run.ts`
 - Test: `src/engine/scheduler/next-run.test.ts`
+- Test: `src/shared/commands.test.ts`
 
 **Output Standard:**
 - Recurrence calculation deterministic，输入 now/timezone/definition 输出 nextRunAt。
 - Disabled task 不产生 nextRunAt。
 - Past one-time task 不再运行。
+- Command parser 能把合法 once/daily/weekly/monthly schedule 输入解析成同一 `Recurrence` 结构,非法时间、非法 timezone、非法 weekday/month day 返回 validation error,不把旧 `interval`/`cron` 语义静默混入新 contract。
 
 **Acceptance Standard:**
-- `bun test src/engine/scheduler/next-run.test.ts` exit code 0。
+- `bun test src/engine/scheduler/next-run.test.ts src/shared/commands.test.ts` exit code 0。
+- `bunx tsc --noEmit` exit code 0。
+- `bun run check` exit code 0。
 
-- [ ] Define recurrence:
+- [x] Define recurrence:
   ```ts
   export type Recurrence =
     | { kind: "once"; runAt: number }
@@ -1798,11 +1804,19 @@
     | { kind: "weekly"; daysOfWeek: number[]; hour: number; minute: number; timezone: string }
     | { kind: "monthly"; dayOfMonth: number; hour: number; minute: number; timezone: string };
   ```
-- [ ] Add tests across DST-independent fixed timestamps.
-- [ ] Run:
+- [x] Add tests across DST-independent fixed timestamps.
+- [x] Run:
   ```bash
-  bun test src/engine/scheduler/next-run.test.ts
+  bun test src/engine/scheduler/next-run.test.ts src/shared/commands.test.ts
+  bunx tsc --noEmit
+  bun run check
   ```
+- [x] Evidence:
+  - `bun test src/engine/scheduler/next-run.test.ts src/shared/commands.test.ts`: exit code 0; 16 pass, 0 fail, 71 expect() calls.
+  - `bunx tsc --noEmit`: exit code 0.
+  - `bun run check`: exit code 0; Biome checked 252 files, no fixes applied.
+  - `bun test`: exit code 0; 530 pass, 0 fail, 1 snapshot, 4402 expect() calls.
+  - Quality review fix: weekly recurrence parser now rejects empty `daysOfWeek`; `once.runAt` requires a finite number; recurrence payloads reject stale extra keys such as `everyMs`/`expression`.
 
 ---
 

@@ -279,6 +279,22 @@ const ROGUENT_SETTINGS_KEYS = [
 const SETTINGS_INTEGRATION_KEYS = ["enabled", "metadata"] as const;
 const SETTINGS_SCHEDULER_KEYS = ["enabled", "timezone", "metadata"] as const;
 const SETTINGS_ECONOMY_KEYS = ["enabled", "metadata"] as const;
+const RECURRENCE_ONCE_KEYS = ["kind", "runAt"] as const;
+const RECURRENCE_DAILY_KEYS = ["kind", "hour", "minute", "timezone"] as const;
+const RECURRENCE_WEEKLY_KEYS = [
+  "kind",
+  "daysOfWeek",
+  "hour",
+  "minute",
+  "timezone",
+] as const;
+const RECURRENCE_MONTHLY_KEYS = [
+  "kind",
+  "dayOfMonth",
+  "hour",
+  "minute",
+  "timezone",
+] as const;
 
 export function parseClientCommand(raw: unknown): ParseClientCommandResult {
   const parsed = parseRawCommand(raw);
@@ -848,37 +864,78 @@ function parseSchedulerRecurrence(value: unknown): SchedulerRecurrence | null {
   if (!isRecord(value)) return null;
   switch (value.kind) {
     case "once":
-      return typeof value.runAt === "number"
+      return hasOnlyKeys(value, RECURRENCE_ONCE_KEYS) &&
+        typeof value.runAt === "number" &&
+        Number.isFinite(value.runAt)
         ? { kind: "once", runAt: value.runAt }
         : null;
-    case "interval":
-      if (
-        typeof value.everyMs !== "number" ||
-        !optionalNumber(value.startAt) ||
-        !optionalNumber(value.endAt)
-      ) {
-        return null;
-      }
-      return {
-        kind: "interval",
-        everyMs: value.everyMs,
-        ...(value.startAt !== undefined ? { startAt: value.startAt } : {}),
-        ...(value.endAt !== undefined ? { endAt: value.endAt } : {}),
-      };
-    case "cron":
-      if (
-        typeof value.expression !== "string" ||
-        !optionalString(value.timezone)
-      ) {
-        return null;
-      }
-      return {
-        kind: "cron",
-        expression: value.expression,
-        ...(value.timezone !== undefined ? { timezone: value.timezone } : {}),
-      };
+    case "daily": {
+      if (!hasOnlyKeys(value, RECURRENCE_DAILY_KEYS)) return null;
+      const wallClock = parseWallClock(value);
+      return wallClock ? { kind: "daily", ...wallClock } : null;
+    }
+    case "weekly": {
+      if (!hasOnlyKeys(value, RECURRENCE_WEEKLY_KEYS)) return null;
+      const wallClock = parseWallClock(value);
+      const daysOfWeek = value.daysOfWeek;
+      return wallClock &&
+        Array.isArray(daysOfWeek) &&
+        daysOfWeek.length > 0 &&
+        daysOfWeek.every(isWeekday)
+        ? { kind: "weekly", daysOfWeek, ...wallClock }
+        : null;
+    }
+    case "monthly": {
+      if (!hasOnlyKeys(value, RECURRENCE_MONTHLY_KEYS)) return null;
+      const wallClock = parseWallClock(value);
+      const dayOfMonth = value.dayOfMonth;
+      return wallClock &&
+        typeof dayOfMonth === "number" &&
+        Number.isInteger(dayOfMonth) &&
+        dayOfMonth >= 1 &&
+        dayOfMonth <= 31
+        ? { kind: "monthly", dayOfMonth, ...wallClock }
+        : null;
+    }
     default:
       return null;
+  }
+}
+
+function parseWallClock(
+  value: Record<string, unknown>,
+): { hour: number; minute: number; timezone: string } | null {
+  const { hour, minute, timezone } = value;
+  return typeof hour === "number" &&
+    Number.isInteger(hour) &&
+    hour >= 0 &&
+    hour <= 23 &&
+    typeof minute === "number" &&
+    Number.isInteger(minute) &&
+    minute >= 0 &&
+    minute <= 59 &&
+    typeof timezone === "string" &&
+    isValidTimezone(timezone)
+    ? { hour, minute, timezone }
+    : null;
+}
+
+function isWeekday(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 0 &&
+    value <= 6
+  );
+}
+
+function isValidTimezone(value: string): boolean {
+  if (value.trim().length === 0) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value }).format(0);
+    return true;
+  } catch {
+    return false;
   }
 }
 
