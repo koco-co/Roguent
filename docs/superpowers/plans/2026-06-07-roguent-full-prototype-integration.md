@@ -1515,17 +1515,24 @@
 **Acceptance Standard:**
 - `bun test src/engine/ingress/server.test.ts src/engine/ingress/signatures.test.ts` exit code 0。
 
-- [ ] Implement GitHub HMAC helper:
+- [x] Implement GitHub HMAC helper:
   ```ts
   export function verifyGitHubSignature(rawBody: Uint8Array, secret: string, header: string): boolean {
     const expected = `sha256=${hmacSha256Hex(secret, rawBody)}`;
     return timingSafeEqualText(expected, header);
   }
   ```
-- [ ] Add invalid signature test expecting HTTP 401.
-- [ ] Run:
+- [x] Add invalid signature test expecting HTTP 401.
+- [x] Run:
   ```bash
   bun test src/engine/ingress/server.test.ts src/engine/ingress/signatures.test.ts
+  ```
+- [x] Verification:
+  ```text
+  bun test src/engine/ingress/server.test.ts src/engine/ingress/signatures.test.ts: exit 0, 14 pass, 0 fail, 41 expect() calls.
+  bunx tsc --noEmit: exit 0.
+  bun run check: exit 0, checked 231 files.
+  bun test: exit 0, 489 pass, 0 fail, 1 snapshot, 4264 expect() calls.
   ```
 
 ---

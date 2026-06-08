@@ -16,6 +16,7 @@ import type { ImConnector } from "./wechat-types";
 
 export interface LiveIntegrationRuntime {
   manager: IntegrationManager;
+  router: IntegrationRouter;
   stop(): void;
 }
 
@@ -43,6 +44,7 @@ export function startLiveIntegrations(
 
   return {
     manager,
+    router,
     stop() {
       unsubscribe();
       manager.stop();
@@ -50,7 +52,10 @@ export function startLiveIntegrations(
   };
 }
 
-function createLiveIntegrationRouter(db: Database, sessions: SessionManager) {
+export function createLiveIntegrationRouter(
+  db: Database,
+  sessions: SessionManager,
+) {
   const pairing = new PairingService(db);
   return new IntegrationRouter({
     pairingBindings: {
