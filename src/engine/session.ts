@@ -16,8 +16,6 @@ import type {
 } from "../shared/runtime";
 import { isPermissionMode, normalizePermissionMode } from "../shared/runtime";
 import {
-  isReasoningEffort,
-  isSandboxMode,
   normalizeReasoningEffort,
   normalizeSandboxMode,
 } from "../shared/runtime";
@@ -154,7 +152,18 @@ export class SessionManager {
         }
         // 一轮结束(result → usage.updated)即取真实上下文占用,发 context.updated。
         if (drafts.some((d) => d.type === "usage.updated")) {
-          void this.emitContextUsage(id);
+          void this.emitContextUsage(id).catch((error) =>
+            this.emit(
+              this.seq.stamp(
+                id,
+                "session.error",
+                {
+                  message: `Context usage update failed: ${errorMessage(error)}`,
+                },
+                Date.now(),
+              ),
+            ),
+          );
         }
       },
     };
@@ -459,22 +468,7 @@ export class SessionManager {
     if (changedKeys.length === 0) return;
 
     try {
-      if (next.model !== state.config.model) await driver.setModel(next.model);
-      if (next.permissionMode !== state.config.permissionMode) {
-        await driver.setPermissionMode(next.permissionMode);
-      }
-      if (
-        isSandboxMode(next.sandboxMode) &&
-        next.sandboxMode !== state.config.sandboxMode
-      ) {
-        await driver.setSandboxMode?.(next.sandboxMode);
-      }
-      if (
-        isReasoningEffort(next.reasoningEffort) &&
-        next.reasoningEffort !== state.config.reasoningEffort
-      ) {
-        await driver.setReasoningEffort?.(next.reasoningEffort);
-      }
+      await applyRuntimeConfigToDriver(driver, next, state.config);
     } catch (error) {
       this.emit(
         this.seq.stamp(
@@ -518,6 +512,29 @@ export class SessionManager {
         Date.now(),
       ),
     );
+  }
+}
+
+async function applyRuntimeConfigToDriver(
+  driver: IDriver,
+  next: RuntimeDriverConfig,
+  current: RuntimeDriverConfig,
+): Promise<void> {
+  const config = runtimeConfigWithoutCwd(next);
+  if (driver.setRuntimeConfig) {
+    await driver.setRuntimeConfig(config);
+    return;
+  }
+  if (next.model !== current.model) await driver.setModel(next.model);
+  if (next.permissionMode !== current.permissionMode) {
+    await driver.setPermissionMode(next.permissionMode);
+  }
+  if (next.sandboxMode !== current.sandboxMode) {
+    await driver.setSandboxMode?.(next.sandboxMode);
+  }
+  if (next.reasoningEffort !== current.reasoningEffort) {
+    const effort = next.reasoningEffort;
+    if (effort !== undefined) await driver.setReasoningEffort?.(effort);
   }
 }
 

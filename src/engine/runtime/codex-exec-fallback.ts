@@ -178,6 +178,34 @@ export class CodexExecFallbackDriver implements RuntimeDriver {
     };
   }
 
+  async setRuntimeConfig(config: RuntimeConfig): Promise<void> {
+    const next: RuntimeConfig & { cwd: string } = {
+      ...this.config,
+      runtime: "codex",
+      model: config.model.trim() || this.config.model,
+      permissionMode: normalizePermissionMode(
+        config.permissionMode,
+        this.config.permissionMode,
+      ),
+      sandboxMode: normalizeSandboxMode(
+        config.sandboxMode,
+        this.config.sandboxMode,
+      ),
+      networkAccess: config.networkAccess,
+    };
+    if (config.approvalPolicy !== undefined) {
+      next.approvalPolicy = config.approvalPolicy;
+    }
+    const reasoningEffort = normalizeReasoningEffort(
+      config.reasoningEffort,
+      this.config.reasoningEffort,
+    );
+    if (reasoningEffort !== undefined) {
+      next.reasoningEffort = reasoningEffort;
+    }
+    this.config = next;
+  }
+
   async interrupt(): Promise<void> {
     this.killActiveChild();
   }

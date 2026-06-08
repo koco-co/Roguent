@@ -316,6 +316,43 @@ test("driver forwards app-server approval responses and emits prompt resolution"
   driver.end();
 });
 
+test("driver setRuntimeConfig updates thread start approval and network settings", async () => {
+  const fake = new FakeCodexServer();
+  const driver = new CodexAppServerDriver(
+    { onDraft() {} },
+    codexDriverConfig(),
+    { spawn: fake.spawn, requestTimeoutMs: 50, startupTimeoutMs: 50 },
+  );
+
+  await driver.setRuntimeConfig({
+    runtime: "codex",
+    model: "gpt-5.1",
+    permissionMode: "default",
+    approvalPolicy: "never",
+    sandboxMode: "danger-full-access",
+    reasoningEffort: "high",
+    networkAccess: true,
+  });
+  driver.send("search web");
+
+  await waitFor(() =>
+    fake.requests.some((request) => request.method === "thread/start"),
+  );
+  const threadStart = fake.requests.find(
+    (request) => request.method === "thread/start",
+  );
+  expect(threadStart?.params).toEqual({
+    model: "gpt-5.1",
+    cwd: "/tmp/project",
+    approvalPolicy: "never",
+    sandbox: { mode: "danger-full-access", networkAccess: true },
+    reasoningEffort: "high",
+    experimentalRawEvents: true,
+  });
+
+  driver.end();
+});
+
 test("driver startup failure emits status without leaking an unhandled rejection", async () => {
   const drafts: Array<{ type: string; payload: unknown }> = [];
   const driver = new CodexAppServerDriver(

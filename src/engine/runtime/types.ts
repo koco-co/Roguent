@@ -1,4 +1,5 @@
 import type { RoomEventType } from "../../shared/events";
+import type { RuntimeConfig } from "../../shared/runtime";
 
 export type RuntimeEventSource =
   | "claude-sdk"
@@ -34,6 +35,7 @@ export interface RuntimeDriver {
   send(text: string, meta?: RuntimeSendMeta): void;
   setModel(model: string): Promise<void>;
   setPermissionMode(mode: string): Promise<void>;
+  setRuntimeConfig?(config: RuntimeConfig): Promise<void>;
   setSandboxMode?(mode: string): Promise<void>;
   setReasoningEffort?(effort: string): Promise<void>;
   respondQuestion?(

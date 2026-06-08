@@ -7,6 +7,7 @@ import {
   type SDKUserMessage,
   query,
 } from "@anthropic-ai/claude-agent-sdk";
+import type { RuntimeConfig } from "../../shared/runtime";
 import type { RateLimitInfoLike } from "../limits-aggregator";
 import {
   type DraftEvent,
@@ -190,6 +191,7 @@ export class ClaudeDriver implements IDriver {
   }
 
   async setModel(model: string): Promise<void> {
+    this.model = model;
     await this.q?.setModel(model);
   }
 
@@ -199,6 +201,13 @@ export class ClaudeDriver implements IDriver {
       setPermissionMode?: (mode: ClaudePermissionMode) => Promise<void>;
     } | null;
     await q?.setPermissionMode?.(mode);
+  }
+
+  async setRuntimeConfig(config: RuntimeConfig): Promise<void> {
+    if (config.model.trim() && config.model !== this.model) {
+      await this.setModel(config.model);
+    }
+    await this.setPermissionMode(config.permissionMode);
   }
 
   async interrupt(): Promise<void> {

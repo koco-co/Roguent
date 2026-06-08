@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { Session } from "../../shared/domain";
 import type {
   CodexApprovalPolicy,
@@ -50,23 +51,26 @@ function configFor(session: Session): RuntimeConfig {
   };
 }
 
-function sendConfigPatch(
-  sessionId: string,
-  session: Session,
-  patch: Partial<RuntimeConfig>,
-) {
-  sendCommand({
-    cmd: "setRuntimeConfig",
-    sessionId,
-    config: { ...configFor(session), ...patch },
-  });
-}
-
 export function RuntimeControls({ sessionId }: { sessionId: string }) {
   const session = useRoomStore((s) => s.sessions[sessionId]);
+  const [draft, setDraft] = useState<RuntimeConfig | null>(null);
+
+  useEffect(() => {
+    if (session) setDraft(configFor(session));
+  }, [session]);
 
   if (!session) return null;
   const isCodex = session.runtime === "codex";
+  const config = draft ?? configFor(session);
+  const sendPatch = (patch: Partial<RuntimeConfig>) => {
+    const next = { ...config, ...patch };
+    setDraft(next);
+    sendCommand({
+      cmd: "setRuntimeConfig",
+      sessionId,
+      config: next,
+    });
+  };
 
   return (
     <div
@@ -98,8 +102,8 @@ export function RuntimeControls({ sessionId }: { sessionId: string }) {
           title={session.model}
           onBlur={(e) => {
             const model = e.currentTarget.value.trim();
-            if (model && model !== session.model) {
-              sendConfigPatch(sessionId, session, { model });
+            if (model && model !== config.model) {
+              sendPatch({ model });
             }
           }}
           onKeyDown={(e) => {
@@ -115,9 +119,9 @@ export function RuntimeControls({ sessionId }: { sessionId: string }) {
         <select
           aria-label="permission"
           className="pxselect"
-          value={session.permissionMode}
+          value={config.permissionMode}
           onChange={(e) =>
-            sendConfigPatch(sessionId, session, {
+            sendPatch({
               permissionMode: e.target.value as PermissionMode,
             })
           }
@@ -136,9 +140,9 @@ export function RuntimeControls({ sessionId }: { sessionId: string }) {
         <select
           aria-label="sandbox"
           className="pxselect"
-          value={session.sandboxMode}
+          value={config.sandboxMode}
           onChange={(e) =>
-            sendConfigPatch(sessionId, session, {
+            sendPatch({
               sandboxMode: e.target.value as SandboxMode,
             })
           }
@@ -158,9 +162,9 @@ export function RuntimeControls({ sessionId }: { sessionId: string }) {
           <select
             aria-label="approval policy"
             className="pxselect"
-            value={session.approvalPolicy ?? "on-request"}
+            value={config.approvalPolicy ?? "on-request"}
             onChange={(e) =>
-              sendConfigPatch(sessionId, session, {
+              sendPatch({
                 approvalPolicy: e.target.value as CodexApprovalPolicy,
               })
             }
@@ -181,9 +185,9 @@ export function RuntimeControls({ sessionId }: { sessionId: string }) {
           <select
             aria-label="reasoning effort"
             className="pxselect"
-            value={session.reasoningEffort ?? "medium"}
+            value={config.reasoningEffort ?? "medium"}
             onChange={(e) =>
-              sendConfigPatch(sessionId, session, {
+              sendPatch({
                 reasoningEffort: e.target.value as ReasoningEffort,
               })
             }
@@ -208,9 +212,9 @@ export function RuntimeControls({ sessionId }: { sessionId: string }) {
         <input
           aria-label="network access"
           type="checkbox"
-          checked={session.networkAccess}
+          checked={config.networkAccess}
           onChange={(e) =>
-            sendConfigPatch(sessionId, session, {
+            sendPatch({
               networkAccess: e.currentTarget.checked,
             })
           }

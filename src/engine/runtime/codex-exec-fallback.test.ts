@@ -237,6 +237,44 @@ test("send applies Codex approval and network config as top-level CLI flags", ()
   ]);
 });
 
+test("setRuntimeConfig updates approval and network flags for future sends", async () => {
+  const { callbacks } = collectDrafts();
+  const calls: Array<{ args: string[] }> = [];
+  const spawn: CodexExecSpawn = (_command, args) => {
+    calls.push({ args });
+    return new FakeCodexExecProcess();
+  };
+  const driver = new CodexExecFallbackDriver(
+    callbacks,
+    {
+      runtime: "codex",
+      model: "gpt-5",
+      cwd: "/repo",
+      permissionMode: "default",
+      approvalPolicy: "on-request",
+      sandboxMode: "workspace-write",
+      reasoningEffort: "medium",
+      networkAccess: false,
+    },
+    { spawn },
+  );
+
+  await driver.setRuntimeConfig({
+    runtime: "codex",
+    model: "gpt-5",
+    permissionMode: "default",
+    approvalPolicy: "never",
+    sandboxMode: "workspace-write",
+    reasoningEffort: "medium",
+    networkAccess: true,
+  });
+  driver.send("search web");
+
+  expect(calls[0]?.args).toContain("--search");
+  expect(calls[0]?.args).toContain("never");
+  expect(calls[0]?.args).not.toContain("on-request");
+});
+
 test("send uses current model sandbox and reasoning config without putting prompt in argv", async () => {
   const { callbacks } = collectDrafts();
   const child = new FakeCodexExecProcess();

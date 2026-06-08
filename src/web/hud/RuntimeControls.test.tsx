@@ -90,6 +90,42 @@ test("Codex runtime controls send network access updates", async () => {
   });
 });
 
+test("Codex runtime controls preserve local edits across rapid changes", async () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  connection = connectRoom("ws://roguent.test");
+  const user = userEvent.setup();
+  const session = createSession({
+    id: "s1",
+    title: "Codex task",
+    runtime: "codex",
+    model: "gpt-5",
+    permissionMode: "default",
+    approvalPolicy: "on-request",
+    sandboxMode: "workspace-write",
+    reasoningEffort: "medium",
+    networkAccess: false,
+  });
+  useRoomStore.setState({
+    sessions: { s1: session },
+    currentSessionId: "s1",
+  });
+
+  render(<RuntimeControls sessionId="s1" />);
+  await user.click(screen.getByRole("checkbox", { name: "network access" }));
+  await user.selectOptions(screen.getByLabelText("reasoning effort"), "high");
+
+  const sent = FakeWebSocket.instances[0]?.sent.map((raw) => JSON.parse(raw));
+  expect(sent?.at(-1)).toMatchObject({
+    cmd: "setRuntimeConfig",
+    sessionId: "s1",
+    config: {
+      reasoningEffort: "high",
+      networkAccess: true,
+    },
+  });
+});
+
 test("Claude runtime controls hide Codex-only provider fields", () => {
   const session = createSession({
     id: "s1",

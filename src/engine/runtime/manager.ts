@@ -189,6 +189,34 @@ class CodexStubDriver implements IDriver {
     };
   }
 
+  async setRuntimeConfig(config: RuntimeConfig): Promise<void> {
+    const next: RuntimeDriverConfig = {
+      ...this.config,
+      runtime: "codex",
+      model: config.model.trim() || this.config.model,
+      permissionMode: normalizePermissionMode(
+        config.permissionMode,
+        this.config.permissionMode,
+      ),
+      sandboxMode: normalizeSandboxMode(
+        config.sandboxMode,
+        this.config.sandboxMode,
+      ),
+      networkAccess: config.networkAccess,
+    };
+    if (config.approvalPolicy !== undefined) {
+      next.approvalPolicy = config.approvalPolicy;
+    }
+    const reasoningEffort = normalizeReasoningEffort(
+      config.reasoningEffort,
+      this.config.reasoningEffort,
+    );
+    if (reasoningEffort !== undefined) {
+      next.reasoningEffort = reasoningEffort;
+    }
+    this.config = next;
+  }
+
   async interrupt(): Promise<void> {}
 
   end(): void {}
