@@ -5,7 +5,6 @@ import { SlashMenu } from "./SlashMenu";
 
 export function Composer({ sessionId }: { sessionId: string }) {
   const session = useRoomStore((s) => s.sessions[sessionId]);
-  const appendUserMessage = useRoomStore((s) => s.appendUserMessage);
   const [text, setText] = useState("");
   const [slashOpen, setSlashOpen] = useState(false);
   const isBusy = session?.status === "busy";
@@ -13,7 +12,6 @@ export function Composer({ sessionId }: { sessionId: string }) {
   const send = () => {
     const t = text.trim();
     if (sessionId && t) {
-      appendUserMessage(sessionId, t); // 乐观回显用户气泡
       sendCommand({ cmd: "sendMessage", sessionId, text: t });
       setText("");
     }

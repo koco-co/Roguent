@@ -339,7 +339,7 @@
 - `bun test src/shared/events.test.ts` exit code 0。
 - `bunx tsc --noEmit` exit code 0 for shared files。
 
-> **命名锁定(Foundation-0 引用此表)。** 下列字面量是本计划的**最终**事件名,与 source spec §Event Protocol 的命名**有意不同**(spec 写的是 `runtime.status.updated`/`pairing.updated`/`mailbox.updated`/`economy.ledger.updated`/`scheduler.run.completed`+`.failed` 等"likely additions",未定稿)。本计划细化为:状态类用无 `.updated` 后缀的 `runtime.status`/`integration.status`;pairing 拆 `qr`/`binding`;mailbox 拆 `created`/`updated`;scheduler.run 合并为单个 `.finished`(payload 内带 success/fail);ledger 用 append 语义 `economy.ledger.appended`;新增 spec 未列的 `settings.updated`。**不在此表的名字一律不要新造**;spec 的 `announcement.updated` 本计划用 `mailbox.item.*` 承载,不单列。
+> **命名锁定(Foundation-0 引用此表)。** 下列字面量是本计划的**最终**事件名,与 source spec §Event Protocol 的命名**有意不同**(spec 写的是 `runtime.status.updated`/`pairing.updated`/`mailbox.updated`/`economy.ledger.updated`/`scheduler.run.completed`+`.failed` 等"likely additions",未定稿)。本计划细化为:状态类用无 `.updated` 后缀的 `runtime.status`/`integration.status`;pairing 拆 `qr`/`binding`;mailbox 拆 `created`/`updated`;scheduler.run 合并为单个 `.finished`(payload 内带 success/fail);ledger 用 append 语义 `economy.ledger.appended`;新增 spec 未列的 `settings.updated`。Task 19 的 `session.rolled_back` 属于聊天会话控制事件,在本表锁定,用于 reducer 按 checkpoint 裁剪 timeline。**不在此表的名字一律不要新造**;spec 的 `announcement.updated` 本计划用 `mailbox.item.*` 承载,不单列。
 
 - [ ] Append these event type literals to the existing `RoomEventType` union in `src/shared/events.ts`:
   ```ts
@@ -358,6 +358,7 @@
     | "economy.ledger.appended"
     | "achievement.updated"
     | "inventory.updated"
+    | "session.rolled_back"
     | "settings.updated";
   ```
 - [ ] Add type guard tests:
@@ -1040,30 +1041,54 @@
 
 **Files:**
 - Modify: `src/shared/commands.ts`
+- Modify: `src/shared/events.ts`
+- Modify: `src/engine/runtime/types.ts`
 - Modify: `src/engine/session.ts`
+- Modify: `src/engine/ws-gateway.ts`
 - Modify: `src/web/hud/Composer.tsx`
 - Modify: `src/web/store.ts`
+- Modify: `src/engine/audit/log.ts` or repository wiring only if current audit API needs a new action helper; otherwise call existing `appendAuditRecord`/`appendAuditRecordSafe` directly from session/control flow.
+- Test: `src/shared/commands.test.ts`
+- Test: `src/engine/ws-gateway.test.ts`
 - Test: `src/engine/session.rollback.test.ts`
 - Test: `src/web/store.rollback.test.ts`
+- Test: `tests/e2e/task19-stop-replay.e2e.ts`
 
 **Output Standard:**
 - `interrupt` 调用 runtime driver。
-- `rollback` 只允许回滚到本地已知 checkpoint；不支持的 runtime 显示明确 error。
-- `retryFrom` 复用同 session，追加 audit record。
+- `interrupt` 成功后发 `runtime.status`=`stopped` 或等价的 idle 状态事件,让 composer 重新可输入；driver 抛错时发 `session.error`,不能让 UI 永久 busy。
+- `rollback` 只允许回滚到本地已知 checkpoint；不支持的 runtime 显示明确 `session.error`；支持的 runtime 调用 `RuntimeDriver.rollback(checkpointId)` 后发 `session.rolled_back`。
+- `session.rolled_back` payload 固定为 `{ checkpointId: string }`；前端 reducer 只裁剪到本地已存在的 checkpoint,未知 checkpoint 不改变 timeline。
+- `retryFrom` 复用同 session，把目标 timeline item 的 user text 重新发送给同一 driver，并追加**持久 audit record**(`source: "runtime"`, `action: "retry_from"` 或同等固定 action,带 `sessionId`/`timelineItemId`/payload hash)。可额外追加可见系统标记,但可见 `message.final` 不能替代持久 audit。
+- `retryFrom` 只允许重发本地已知且来源明确的 user 输入；assistant/tool/system item 必须拒绝并发 `session.error`。
+- `RuntimeDriver.rollback?` 是可选能力；Claude/Codex 真实 runtime 未实现时必须走 unsupported error,不要假装回滚成功。
 
 **Acceptance Standard:**
 - `bun test src/engine/session.rollback.test.ts src/web/store.rollback.test.ts` exit code 0。
-- E2E replay 中 stop button 后 composer 重新可输入。
+- `bun test src/shared/commands.test.ts src/engine/ws-gateway.test.ts` exit code 0。
+- `bun run test:e2e -- --project=chromium tests/e2e/task19-stop-replay.e2e.ts` exit code 0;artifact path 写入 task evidence。
+- E2E replay 只证明 stop button 后 composer 重新可输入,不能描述为真实 runtime interrupt/rollback 全量通过。
 
-- [ ] Define commands:
+- [x] Define commands:
   ```ts
   type InterruptCommand = { cmd: "interrupt"; sessionId: string };
   type RollbackCommand = { cmd: "rollback"; sessionId: string; checkpointId: string };
   type RetryFromCommand = { cmd: "retryFrom"; sessionId: string; timelineItemId: string };
   ```
-- [ ] Run:
+- [x] Extend `RuntimeDriver` with optional rollback capability:
+  ```ts
+  rollback?(checkpointId: string): Promise<void>;
+  ```
+- [x] Add `RoomEventType` + payload for:
+  ```ts
+  type RollbackPayload = { checkpointId: string };
+  ```
+- [x] Add tests for unknown checkpoint, unsupported runtime, supported runtime, invalid retry target, persistent audit append, and composer re-enable after stop.
+- [x] Run:
   ```bash
   bun test src/engine/session.rollback.test.ts src/web/store.rollback.test.ts
+  bun test src/shared/commands.test.ts src/engine/ws-gateway.test.ts
+  bun run test:e2e -- --project=chromium tests/e2e/task19-stop-replay.e2e.ts
   ```
 
 ---

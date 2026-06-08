@@ -1,11 +1,20 @@
 import { expect, test } from "bun:test";
 import type { RoomEvent } from "../shared/events";
 import type { DriverCallbacks, IDriver } from "./driver";
+import { createTestDatabase } from "./persistence/db";
+import { migrate } from "./persistence/migrations";
 import type {
   RuntimeDriverConfigInput,
   RuntimeDriverCreator,
 } from "./runtime/manager";
 import { SessionManager } from "./session";
+
+type AuditActionRow = {
+  source: string;
+  action: string;
+  session_id: string | null;
+  summary: string;
+};
 
 function driverStub(overrides: Partial<IDriver> = {}): IDriver {
   return {
@@ -142,7 +151,56 @@ test("rollback calls supported runtime with known checkpoint and emits rollback 
   });
 });
 
-test("retryFrom reuses the same session text and appends a session-visible audit record", () => {
+test("retryFrom reuses user text and appends a persistent audit record", () => {
+  const testDb = createTestDatabase();
+  const sent: string[] = [];
+  const captured: { cb?: DriverCallbacks; driver?: IDriver } = {
+    driver: driverStub({
+      send(text: string) {
+        sent.push(text);
+      },
+    }),
+  };
+  try {
+    migrate(testDb.db);
+    const mgr = new SessionManager(fakeRuntimeManager(captured), "/tmp", {
+      auditDb: testDb.db,
+    });
+    const got: RoomEvent[] = [];
+    mgr.subscribe((event) => got.push(event));
+    mgr.createSession("s1", { title: "Task", model: "m" });
+    mgr.sendMessage("s1", "try this again");
+
+    mgr.retryFrom("s1", "2");
+
+    expect(sent).toEqual(["try this again", "try this again"]);
+    expect(got.at(-1)).toMatchObject({
+      sessionId: "s1",
+      type: "message.final",
+      payload: {
+        role: "system",
+        text: "Audit: retryFrom resent timeline item 2 in session s1",
+      },
+    });
+    const auditRows = testDb.db
+      .query<AuditActionRow, []>(
+        "SELECT source, action, session_id, summary FROM audit_records",
+      )
+      .all();
+    expect(auditRows).toEqual([
+      {
+        source: "runtime",
+        action: "retry_from",
+        session_id: "s1",
+        summary: "retryFrom resent timeline item 2",
+      },
+    ]);
+  } finally {
+    testDb.cleanup();
+  }
+});
+
+test("retryFrom refuses assistant timeline items", () => {
   const sent: string[] = [];
   const captured: { cb?: DriverCallbacks; driver?: IDriver } = {
     driver: driverStub({
@@ -156,19 +214,18 @@ test("retryFrom reuses the same session text and appends a session-visible audit
   mgr.subscribe((event) => got.push(event));
   mgr.createSession("s1", { title: "Task", model: "m" });
   captured.cb?.onDraft(
-    [{ type: "message.final", payload: { text: "try this again" } }],
+    [{ type: "message.final", payload: { text: "assistant answer" } }],
     10,
   );
 
   mgr.retryFrom("s1", "2");
 
-  expect(sent).toEqual(["try this again"]);
+  expect(sent).toEqual([]);
   expect(got.at(-1)).toMatchObject({
     sessionId: "s1",
-    type: "message.final",
+    type: "session.error",
     payload: {
-      role: "system",
-      text: "Audit: retryFrom resent timeline item 2 in session s1",
+      message: "Cannot retry from unknown or non-message timeline item: 2",
     },
   });
 });

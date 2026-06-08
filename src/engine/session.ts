@@ -1,3 +1,4 @@
+import type { Database } from "bun:sqlite";
 import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AccountLimits,
@@ -19,6 +20,7 @@ import {
   normalizeReasoningEffort,
   normalizeSandboxMode,
 } from "../shared/runtime";
+import { appendAuditRecordSafe } from "./audit/log";
 import type { DriverCallbacks, IDriver } from "./driver";
 import { LimitsAggregator } from "./limits-aggregator";
 import { readTranscriptLines } from "./local-sessions";
@@ -56,6 +58,10 @@ type PendingPromptKind = PromptRequestedPayload["promptKind"];
 export type EventSink = (e: RoomEvent) => void;
 export type LimitsSink = (limits: AccountLimits) => void;
 
+export interface SessionManagerOptions {
+  auditDb?: Database;
+}
+
 export class SessionManager {
   private seq = new Sequencer();
   private drivers = new Map<string, IDriver>();
@@ -65,7 +71,6 @@ export class SessionManager {
   private respondingPrompts = new Map<string, Set<string>>();
   private knownTimelineItems = new Map<string, Set<string>>();
   private retryTextByTimelineItem = new Map<string, Map<string, string>>();
-  private streamingMessageIds = new Map<string, Map<string, string>>();
   // 当前引擎认识的所有会话 id(live driver + 已导入的 transcript)。新连接对账用:
   // gateway 把它下发给客户端清幽灵会话。进程重启即清零(会话确实没了)。
   private knownSessions = new Set<string>();
@@ -78,6 +83,7 @@ export class SessionManager {
   constructor(
     private runtimeManager: RuntimeDriverCreator = new RuntimeManager(),
     private cwd: string = process.cwd(),
+    private options: SessionManagerOptions = {},
   ) {}
 
   subscribe(sink: EventSink): () => void {
@@ -239,7 +245,17 @@ export class SessionManager {
   }
 
   sendMessage(id: string, text: string): void {
-    this.drivers.get(id)?.send(text);
+    const driver = this.drivers.get(id);
+    if (!driver || !this.knownSessions.has(id)) return;
+    try {
+      driver.send(text);
+    } catch (error) {
+      this.emitSessionError(id, `Send failed: ${errorMessage(error)}`);
+      return;
+    }
+    this.emit(
+      this.seq.stamp(id, "message.final", { role: "user", text }, Date.now()),
+    );
   }
 
   async rollback(id: string, checkpointId: string): Promise<void> {
@@ -305,6 +321,7 @@ export class SessionManager {
       return;
     }
 
+    this.appendRetryAudit(id, timelineItemId, text);
     this.emit(
       this.seq.stamp(
         id,
@@ -313,6 +330,36 @@ export class SessionManager {
           role: "system",
           text: `Audit: retryFrom resent timeline item ${timelineItemId} in session ${id}`,
         },
+        Date.now(),
+      ),
+    );
+  }
+
+  private appendRetryAudit(
+    sessionId: string,
+    timelineItemId: string,
+    text: string,
+  ): void {
+    if (!this.options.auditDb) return;
+
+    const result = appendAuditRecordSafe(
+      this.options.auditDb,
+      {
+        source: "runtime",
+        action: "retry_from",
+        sessionId,
+        payload: { timelineItemId, text },
+        summary: `retryFrom resent timeline item ${timelineItemId}`,
+      },
+      { type: "session.error", sessionId },
+    );
+    if (result.ok) return;
+
+    this.emit(
+      this.seq.stamp(
+        result.warningEvent.sessionId,
+        result.warningEvent.type,
+        result.warningEvent.payload,
         Date.now(),
       ),
     );
@@ -358,7 +405,6 @@ export class SessionManager {
     this.respondingPrompts.delete(id);
     this.knownTimelineItems.delete(id);
     this.retryTextByTimelineItem.delete(id);
-    this.streamingMessageIds.delete(id);
     this.knownSessions.delete(id);
   }
 
@@ -660,33 +706,14 @@ export class SessionManager {
     if (e.type !== "message.delta" && e.type !== "message.final") return;
     const p = e.payload as { text?: unknown; role?: unknown };
     if (typeof p.text !== "string" || !p.text) return;
-    if (p.role === "system") return;
+    if (p.role !== "user") return;
 
-    const role = p.role === "user" ? "user" : "assistant";
-    const streamKey = `${role}:${e.agentId ?? "__orchestrator__"}`;
-    let streamIds = this.streamingMessageIds.get(e.sessionId);
-    if (!streamIds) {
-      streamIds = new Map();
-      this.streamingMessageIds.set(e.sessionId, streamIds);
-    }
     let textByItem = this.retryTextByTimelineItem.get(e.sessionId);
     if (!textByItem) {
       textByItem = new Map();
       this.retryTextByTimelineItem.set(e.sessionId, textByItem);
     }
 
-    const activeId = streamIds.get(streamKey);
-    if (role === "assistant" && e.type === "message.delta") {
-      const itemId = activeId ?? String(e.seq);
-      streamIds.set(streamKey, itemId);
-      textByItem.set(itemId, p.text);
-      return;
-    }
-    if (role === "assistant" && activeId) {
-      textByItem.set(activeId, p.text);
-      streamIds.delete(streamKey);
-      return;
-    }
     textByItem.set(String(e.seq), p.text);
   }
 }

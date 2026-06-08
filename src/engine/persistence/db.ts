@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 
 export interface TestDatabase {
   db: Database;
@@ -17,8 +17,17 @@ export function configureDatabase(db: Database): Database {
 }
 
 export function openDatabase(path: string): Database {
+  mkdirSync(dirname(path), { recursive: true });
   return configureDatabase(
     new Database(path, { create: true, readwrite: true, strict: true }),
+  );
+}
+
+export function resolveDatabasePath(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  return (
+    env.ROGUENT_DB_PATH?.trim() || join(homedir(), ".roguent", "roguent.sqlite")
   );
 }
 
