@@ -6,6 +6,7 @@ import { SlashMenu } from "./SlashMenu";
 import { TimelineItem } from "./TimelineItem";
 import { Icon } from "./icons";
 import { modelLabel } from "./model-label";
+import { runtimeMetaText } from "./runtime-display";
 
 /**
  * 聊天抽屉 ChatDrawer(对标设计原型 panels2.jsx 的 Chat,由居中 Modal 改回右侧单栏抽屉):
@@ -81,11 +82,26 @@ export function ChatDrawer() {
       .filter((n) => Number.isFinite(n));
     const n = (nums.length ? Math.max(...nums) : 0) + 1;
     const dir = cwd.trim();
+    const runtimeConfig = session
+      ? {
+          runtime: session.runtime,
+          permissionMode: session.permissionMode,
+          ...(session.approvalPolicy
+            ? { approvalPolicy: session.approvalPolicy }
+            : {}),
+          sandboxMode: session.sandboxMode,
+          ...(session.reasoningEffort
+            ? { reasoningEffort: session.reasoningEffort }
+            : {}),
+          networkAccess: session.networkAccess,
+        }
+      : {};
     sendCommand({
       cmd: "newSession",
       sessionId: `s${n}`,
       title: `会话 ${n}`,
       model: session?.model ?? "claude-opus-4-8",
+      ...runtimeConfig,
       ...(dir ? { cwd: dir } : {}),
     });
     setCwd("");
@@ -114,7 +130,8 @@ export function ChatDrawer() {
                 {session?.title ?? "无会话"}
               </div>
               <div className="cdrawer-meta px">
-                claude · {modelLabel(session?.model)} · {agentCount}P
+                {runtimeMetaText(session)} · {modelLabel(session?.model)} ·{" "}
+                {agentCount}P
               </div>
             </div>
           </div>
@@ -148,7 +165,7 @@ export function ChatDrawer() {
                 </div>
                 <div className="faint" style={{ fontSize: 10 }}>
                   {s.project ? `${s.project} · ` : ""}
-                  {s.status}
+                  {runtimeMetaText(s)} · {s.status}
                 </div>
               </button>
             ))}
@@ -197,7 +214,8 @@ export function ChatDrawer() {
                       {s.title}
                     </div>
                     <div className="faint" style={{ fontSize: 10 }}>
-                      {s.project ? `${s.project} · ` : ""}↺ 复活
+                      {s.project ? `${s.project} · ` : ""}
+                      {runtimeMetaText(s)} · ↺ 复活
                     </div>
                   </button>
                 ))}

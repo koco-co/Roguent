@@ -15,6 +15,7 @@ import type {
   PromptRequestedPayload,
   PromptResolvedPayload,
   RoomEvent,
+  RuntimeStatusPayload,
 } from "../shared/events";
 import { agentTypeToSkin } from "../shared/mapping";
 import {
@@ -385,6 +386,16 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
         windowSize: p.windowSize,
         utilization: p.utilization,
       };
+      break;
+    }
+    case "runtime.status": {
+      const p = e.payload as RuntimeStatusPayload;
+      s.runtimeStatus = p;
+      if (isRuntimeKind(p.runtime)) s.runtime = p.runtime;
+      if (p.config?.model) s.model = p.config.model;
+      if (p.status === "running" || p.status === "starting") s.status = "busy";
+      if (p.status === "idle" || p.status === "degraded") s.status = "idle";
+      if (p.status === "error") s.status = "error";
       break;
     }
     case "session.cleared": {

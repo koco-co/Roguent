@@ -55,6 +55,50 @@ test("session.created stores Codex runtime config", () => {
   expect(st.sessions.s1?.networkAccess).toBe(false);
 });
 
+test("runtime.status stores degraded Codex batch metadata on the session", () => {
+  let st = reduce(
+    empty,
+    ev({
+      type: "session.created",
+      payload: {
+        title: "codex",
+        model: "gpt-5",
+        runtime: "codex",
+      },
+    }),
+  );
+
+  st = reduce(
+    st,
+    ev({
+      type: "runtime.status",
+      payload: {
+        runtime: "codex",
+        status: "degraded",
+        config: {
+          runtime: "codex",
+          model: "gpt-5",
+          permissionMode: "default",
+          sandboxMode: "workspace-write",
+          networkAccess: false,
+        },
+        cwd: "/repo",
+        message:
+          "Codex app-server unavailable; using codex exec --json batch mode.",
+        metadata: {
+          mode: "exec-json",
+          realtime: false,
+          degraded: true,
+        },
+      },
+    }),
+  );
+
+  expect(st.sessions.s1?.runtimeStatus?.status).toBe("degraded");
+  expect(st.sessions.s1?.runtimeStatus?.metadata?.mode).toBe("exec-json");
+  expect(st.sessions.s1?.status).toBe("idle");
+});
+
 test("a second session.created (from SDK init) merges, keeping messages and filling slashCommands", () => {
   // engine 先合成 session.created;SDK init 到来后又派生一个 session.created。
   // 后者必须合并(补 slashCommands/model),绝不能重建会话清空已有 transcript。

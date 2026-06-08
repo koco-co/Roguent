@@ -1,3 +1,4 @@
+import type { RuntimeStatusPayload } from "./events";
 import { defaultRuntimeConfig } from "./runtime";
 import type {
   CodexApprovalPolicy,
@@ -157,6 +158,7 @@ export interface Session {
   // 导入的本地 transcript:客户端自有的静态存档回看,无 Driver。reconcile 对账
   // 豁免之(引擎花名册不管辖导入会话),否则引擎 --watch 重启会误删用户载入的存档。
   imported?: boolean;
+  runtimeStatus?: RuntimeStatusPayload;
 }
 
 export const ORCHESTRATOR_ID = "orchestrator";

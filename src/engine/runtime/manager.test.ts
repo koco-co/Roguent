@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import type { DriverCallbacks, IDriver } from "./claude-driver";
 import type { CodexCapabilities } from "./codex-capabilities";
+import { CodexExecFallbackDriver } from "./codex-exec-fallback";
 import { RuntimeManager } from "./manager";
 
 function fakeDriver(): IDriver {
@@ -62,7 +63,7 @@ test("RuntimeManager constructs a Claude driver when runtime is explicitly claud
   expect(calls).toBe(1);
 });
 
-test("RuntimeManager creates a Codex stub without constructing Claude", () => {
+test("RuntimeManager creates a degraded Codex stub without constructing Claude when capabilities are unknown", () => {
   const drafts: Array<{ type: string; payload: unknown }> = [];
   const manager = new RuntimeManager({
     createClaudeDriver: () => {
@@ -95,20 +96,38 @@ test("RuntimeManager creates a Codex stub without constructing Claude", () => {
     cwd: string;
   };
   expect(payload.runtime).toBe("codex");
-  expect(payload.status).toBe("idle");
+  expect(payload.status).toBe("error");
   expect(payload.config.runtime).toBe("codex");
   expect(payload.config.model).toBe("gpt-5");
   expect(payload.cwd).toBe("/repo");
 });
 
-test("RuntimeManager includes provided Codex capabilities in stub status metadata", () => {
-  const drafts: Array<{ type: string; payload: unknown }> = [];
+test("RuntimeManager selects Codex exec JSON fallback when app-server is unavailable and exec JSON exists", () => {
   const capabilities: CodexCapabilities = {
     cliPath: "/tmp/codex",
     version: "codex-cli 0.133.0",
     appServer: "unavailable",
     execJson: "available",
     reason: "app-server unavailable",
+  };
+  const manager = new RuntimeManager({ codexCapabilities: capabilities });
+
+  const driver = manager.createDriver(
+    { onDraft() {} },
+    { runtime: "codex", model: "gpt-5", cwd: "/repo" },
+  );
+
+  expect(driver).toBeInstanceOf(CodexExecFallbackDriver);
+});
+
+test("RuntimeManager includes provided Codex capabilities in unavailable status metadata", () => {
+  const drafts: Array<{ type: string; payload: unknown }> = [];
+  const capabilities: CodexCapabilities = {
+    cliPath: "/tmp/codex",
+    version: "codex-cli 0.133.0",
+    appServer: "unavailable",
+    execJson: "unavailable",
+    reason: "no codex runtime available",
   };
   const manager = new RuntimeManager({ codexCapabilities: capabilities });
 
@@ -120,7 +139,9 @@ test("RuntimeManager includes provided Codex capabilities in stub status metadat
   driver.start();
 
   const payload = drafts[0]?.payload as {
+    status?: string;
     metadata?: { capabilities?: CodexCapabilities };
   };
+  expect(payload.status).toBe("error");
   expect(payload.metadata?.capabilities).toEqual(capabilities);
 });

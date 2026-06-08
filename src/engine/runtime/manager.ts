@@ -19,6 +19,7 @@ import {
   type IDriver,
 } from "./claude-driver";
 import type { CodexCapabilities } from "./codex-capabilities";
+import { CodexExecFallbackDriver } from "./codex-exec-fallback";
 import type { RuntimeSendMeta } from "./types";
 
 export interface RuntimeDriverConfigInput {
@@ -106,8 +107,22 @@ export class RuntimeManager implements RuntimeDriverCreator {
     if (resolved.runtime === "claude") {
       return this.createClaudeDriver(callbacks, resolved.model, resolved.cwd);
     }
+    if (shouldUseCodexExecFallback(this.codexCapabilities)) {
+      return new CodexExecFallbackDriver(callbacks, resolved, {
+        cliPath: this.codexCapabilities?.cliPath,
+      });
+    }
     return new CodexStubDriver(callbacks, resolved, this.codexCapabilities);
   }
+}
+
+function shouldUseCodexExecFallback(
+  capabilities: CodexCapabilities | undefined,
+): boolean {
+  return (
+    capabilities?.appServer === "unavailable" &&
+    capabilities.execJson === "available"
+  );
 }
 
 class CodexStubDriver implements IDriver {
@@ -124,10 +139,10 @@ class CodexStubDriver implements IDriver {
           type: "runtime.status",
           payload: {
             runtime: "codex",
-            status: "idle",
+            status: "error",
             config: this.runtimeConfig(),
             cwd: this.config.cwd,
-            message: "Codex runtime is not implemented yet.",
+            message: this.statusMessage(),
             ...(this.capabilities
               ? { metadata: { capabilities: this.capabilities } }
               : {}),
@@ -191,5 +206,15 @@ class CodexStubDriver implements IDriver {
   private runtimeConfig(): RuntimeConfig {
     const { cwd: _cwd, ...config } = this.config;
     return config;
+  }
+
+  private statusMessage(): string {
+    if (!this.capabilities) {
+      return "Codex runtime capabilities are unknown; no Codex driver is available.";
+    }
+    if (this.capabilities.appServer === "available") {
+      return "Codex app-server is available, but the realtime driver is not enabled yet.";
+    }
+    return "Codex runtime is unavailable; app-server and exec --json fallback are unavailable.";
   }
 }
