@@ -860,7 +860,7 @@
   ```
 - [ ] Add parser test:
   ```ts
-  expect(parseClientCommand({ type: "unknown" }).ok).toBe(false);
+  expect(parseClientCommand({ cmd: "unknown" }).ok).toBe(false);
   ```
 - [ ] Run:
   ```bash
@@ -1009,7 +1009,19 @@
 
 - [ ] Add command:
   ```ts
-  { "type": "setRuntimeConfig", "sessionId": "s1", "patch": { "reasoningEffort": "high" } }
+  {
+    "cmd": "setRuntimeConfig",
+    "sessionId": "s1",
+    "config": {
+      "runtime": "codex",
+      "model": "gpt-5",
+      "permissionMode": "default",
+      "approvalPolicy": "on-request",
+      "sandboxMode": "workspace-write",
+      "reasoningEffort": "high",
+      "networkAccess": false
+    }
+  }
   ```
 - [ ] Test fake driver receives `setReasoningEffort("high")`.
 - [ ] Run:
@@ -1042,9 +1054,9 @@
 
 - [ ] Define commands:
   ```ts
-  type InterruptCommand = { type: "interrupt"; sessionId: string };
-  type RollbackCommand = { type: "rollback"; sessionId: string; checkpointId: string };
-  type RetryFromCommand = { type: "retryFrom"; sessionId: string; timelineItemId: string };
+  type InterruptCommand = { cmd: "interrupt"; sessionId: string };
+  type RollbackCommand = { cmd: "rollback"; sessionId: string; checkpointId: string };
+  type RetryFromCommand = { cmd: "retryFrom"; sessionId: string; timelineItemId: string };
   ```
 - [ ] Run:
   ```bash
@@ -1582,7 +1594,7 @@
 - [ ] Add UI test for archive command:
   ```tsx
   await user.click(screen.getByRole("button", { name: "Archive" }));
-  expect(sendCommand).toHaveBeenCalledWith({ type: "mailbox.archive", itemId: "i1" });
+  expect(sendCommand).toHaveBeenCalledWith({ cmd: "mailbox", action: "archive", itemId: "i1" });
   ```
 - [ ] Run:
   ```bash
@@ -1645,7 +1657,8 @@
 - [ ] Define command:
   ```ts
   type SchedulerCreateCommand = {
-    type: "scheduler.create";
+    cmd: "scheduler";
+    action: "createTask";
     task: SchedulerTaskDraft;
   };
   ```
@@ -1716,7 +1729,7 @@
 - [ ] Add form submit test:
   ```tsx
   await user.click(screen.getByRole("button", { name: "Create" }));
-  expect(sendCommand).toHaveBeenCalledWith(expect.objectContaining({ type: "scheduler.create" }));
+  expect(sendCommand).toHaveBeenCalledWith(expect.objectContaining({ cmd: "scheduler", action: "createTask" }));
   ```
 - [ ] Run:
   ```bash
