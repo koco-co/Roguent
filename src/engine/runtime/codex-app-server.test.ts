@@ -9,6 +9,7 @@ import {
 } from "./codex-app-server";
 import type {
   CodexJsonRpcRequest,
+  CodexJsonRpcResponse,
   CodexNotification,
   CodexRuntimeEvent,
 } from "./codex-protocol";
@@ -220,6 +221,32 @@ test("client surfaces app-server approval requests as runtime events", async () 
   await client.close();
 });
 
+test("client responds to app-server approval and question requests by JSON-RPC id", async () => {
+  const fake = new FakeCodexServer();
+  const client = await CodexAppServerClient.start({
+    spawn: fake.spawn,
+    requestTimeoutMs: 50,
+  });
+
+  await client.respondApproval("99", "allow");
+  await client.respondQuestion("100", ["Fast"]);
+
+  expect(fake.clientResponses).toEqual([
+    {
+      jsonrpc: "2.0",
+      id: "99",
+      result: { decision: "approved" },
+    },
+    {
+      jsonrpc: "2.0",
+      id: "100",
+      result: { selectedLabels: ["Fast"] },
+    },
+  ]);
+
+  await client.close();
+});
+
 test("interrupt sends a JSON-RPC request for the active thread", async () => {
   const fake = new FakeCodexServer();
   const client = await CodexAppServerClient.start({
@@ -382,6 +409,7 @@ class FakeChildProcess
 class FakeCodexServer {
   readonly children: FakeChildProcess[] = [];
   readonly requests: CodexJsonRpcRequest[] = [];
+  readonly clientResponses: CodexJsonRpcResponse[] = [];
   readonly clientNotifications: CodexNotification[] = [];
   readonly ignoreMethods = new Set<string>();
   readonly closeOnMethods = new Set<string>();
@@ -425,9 +453,12 @@ class FakeCodexServer {
         if (!line.trim()) continue;
         const message = JSON.parse(line) as
           | CodexJsonRpcRequest
+          | CodexJsonRpcResponse
           | CodexNotification;
-        if ("id" in message) {
+        if ("id" in message && "method" in message) {
           this.handle(child, message);
+        } else if ("id" in message) {
+          this.clientResponses.push(message);
         } else {
           this.clientNotifications.push(message);
         }

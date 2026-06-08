@@ -111,6 +111,7 @@ export interface CodexTransport {
   notify(method: string, params?: unknown): Promise<void>;
   onNotification(handler: (message: CodexNotification) => void): () => void;
   onServerRequest(handler: (message: CodexJsonRpcRequest) => void): () => void;
+  respond(id: CodexJsonRpcId, result: unknown): Promise<void>;
   close(): Promise<void>;
 }
 

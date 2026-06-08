@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
   PermissionPromptData,
   QuestionData,
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export function PromptCard({ item, sessionId }: Props) {
+  const [submitted, setSubmitted] = useState(false);
+
   if (item.status !== "pending") {
     return (
       <div className="prompt-card resolved px faint" style={{ fontSize: 11 }}>
@@ -21,6 +24,16 @@ export function PromptCard({ item, sessionId }: Props) {
 
   if (item.promptKind === "permission") {
     const data = item.data as PermissionPromptData;
+    const respond = (behavior: "allow" | "deny") => {
+      if (submitted) return;
+      setSubmitted(true);
+      sendCommand({
+        cmd: "respondPermission",
+        sessionId,
+        promptId: item.id,
+        behavior,
+      });
+    };
     return (
       <div className="prompt-card permission glass">
         <div
@@ -49,28 +62,16 @@ export function PromptCard({ item, sessionId }: Props) {
           <button
             type="button"
             className="pxbtn primary sm cjk"
-            onClick={() =>
-              sendCommand({
-                cmd: "respondPermission",
-                sessionId,
-                promptId: item.id,
-                behavior: "allow",
-              })
-            }
+            disabled={submitted}
+            onClick={() => respond("allow")}
           >
             允许
           </button>
           <button
             type="button"
             className="pxbtn sm cjk"
-            onClick={() =>
-              sendCommand({
-                cmd: "respondPermission",
-                sessionId,
-                promptId: item.id,
-                behavior: "deny",
-              })
-            }
+            disabled={submitted}
+            onClick={() => respond("deny")}
           >
             拒绝
           </button>
@@ -81,6 +82,16 @@ export function PromptCard({ item, sessionId }: Props) {
 
   // kind === "question"
   const data = item.data as QuestionData;
+  const respondQuestion = (selectedLabels: string[]) => {
+    if (submitted) return;
+    setSubmitted(true);
+    sendCommand({
+      cmd: "respondQuestion",
+      sessionId,
+      promptId: item.id,
+      selectedLabels,
+    });
+  };
   return (
     <div className="prompt-card question glass">
       {data.questions.map((q, qi) => (
@@ -106,14 +117,8 @@ export function PromptCard({ item, sessionId }: Props) {
                 type="button"
                 className="pxbtn sm cjk"
                 title={opt.description}
-                onClick={() =>
-                  sendCommand({
-                    cmd: "respondQuestion",
-                    sessionId,
-                    promptId: item.id,
-                    selectedLabels: [opt.label],
-                  })
-                }
+                disabled={submitted}
+                onClick={() => respondQuestion([opt.label])}
               >
                 {opt.label}
               </button>

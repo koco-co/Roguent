@@ -1,6 +1,8 @@
 import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AccountLimits,
+  PromptRequestedPayload,
+  PromptResolvedPayload,
   RoomEvent,
   SessionCreatedPayload,
 } from "../shared/events";
@@ -51,6 +53,8 @@ interface SessionRuntimeState {
   config: RuntimeDriverConfig;
 }
 
+type PendingPromptKind = PromptRequestedPayload["promptKind"];
+
 export type EventSink = (e: RoomEvent) => void;
 export type LimitsSink = (limits: AccountLimits) => void;
 
@@ -58,6 +62,7 @@ export class SessionManager {
   private seq = new Sequencer();
   private drivers = new Map<string, IDriver>();
   private runtimeStates = new Map<string, SessionRuntimeState>();
+  private pendingPrompts = new Map<string, Map<string, PendingPromptKind>>();
   // 当前引擎认识的所有会话 id(live driver + 已导入的 transcript)。新连接对账用:
   // gateway 把它下发给客户端清幽灵会话。进程重启即清零(会话确实没了)。
   private knownSessions = new Set<string>();
@@ -143,6 +148,7 @@ export class SessionManager {
             this.applySessionCreatedIncoming(state, incoming);
             return this.sessionCreatedPayload(state, incoming);
           })();
+          this.applyPromptDraft(id, d.type, payload);
           this.emit(this.seq.stamp(id, d.type, payload, ts, d.agentId));
         }
         // 一轮结束(result → usage.updated)即取真实上下文占用,发 context.updated。
@@ -250,6 +256,7 @@ export class SessionManager {
     this.drivers.get(id)?.end();
     this.drivers.delete(id);
     this.runtimeStates.delete(id);
+    this.pendingPrompts.delete(id);
     this.knownSessions.delete(id);
   }
 
@@ -282,6 +289,7 @@ export class SessionManager {
     promptId: string,
     result: PermissionResult,
   ): void {
+    if (!this.takePendingPrompt(id, promptId, "permission")) return;
     this.drivers.get(id)?.respondPermission(promptId, result);
   }
 
@@ -290,10 +298,13 @@ export class SessionManager {
     promptId: string,
     selectedLabels: string[],
   ): void {
-    // Send the selection back to the agent as a user message
-    const text = selectedLabels.join("、");
-    this.drivers.get(id)?.send(text);
-    // Let the UI know the prompt is resolved
+    if (!this.takePendingPrompt(id, promptId, "question")) return;
+    const driver = this.drivers.get(id);
+    if (driver?.respondQuestion) {
+      driver.respondQuestion(promptId, selectedLabels);
+      return;
+    }
+    driver?.send(selectedLabels.join("、"));
     this.emit(
       this.seq.stamp(
         id,
@@ -302,6 +313,38 @@ export class SessionManager {
         Date.now(),
       ),
     );
+  }
+
+  private applyPromptDraft(
+    sessionId: string,
+    type: RoomEvent["type"],
+    payload: unknown,
+  ): void {
+    if (type === "prompt.requested") {
+      const prompt = payload as PromptRequestedPayload;
+      let prompts = this.pendingPrompts.get(sessionId);
+      if (!prompts) {
+        prompts = new Map();
+        this.pendingPrompts.set(sessionId, prompts);
+      }
+      prompts.set(prompt.promptId, prompt.promptKind);
+      return;
+    }
+    if (type === "prompt.resolved") {
+      const resolved = payload as PromptResolvedPayload;
+      this.pendingPrompts.get(sessionId)?.delete(resolved.promptId);
+    }
+  }
+
+  private takePendingPrompt(
+    sessionId: string,
+    promptId: string,
+    expectedKind: PendingPromptKind,
+  ): boolean {
+    const prompts = this.pendingPrompts.get(sessionId);
+    if (prompts?.get(promptId) !== expectedKind) return false;
+    prompts.delete(promptId);
+    return true;
   }
 
   async setPermissionMode(id: string, mode: string): Promise<void> {

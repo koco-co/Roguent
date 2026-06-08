@@ -6,6 +6,7 @@ import { resolveCodexCliPath } from "./codex-capabilities";
 import {
   type CodexInitializeResult,
   type CodexInterruptResult,
+  type CodexJsonRpcId,
   type CodexJsonRpcRequest,
   type CodexJsonRpcResponse,
   type CodexNotification,
@@ -138,6 +139,26 @@ export class CodexAppServerClient implements CodexTransport {
 
   notify(method: string, params?: unknown): Promise<void> {
     return this.transport.notify(method, params);
+  }
+
+  respond(id: CodexJsonRpcId, result: unknown): Promise<void> {
+    return this.transport.respond(id, result);
+  }
+
+  respondApproval(
+    requestId: CodexJsonRpcId,
+    behavior: "allow" | "deny",
+  ): Promise<void> {
+    return this.respond(requestId, {
+      decision: behavior === "allow" ? "approved" : "denied",
+    });
+  }
+
+  respondQuestion(
+    requestId: CodexJsonRpcId,
+    selectedLabels: string[],
+  ): Promise<void> {
+    return this.respond(requestId, { selectedLabels });
   }
 
   onNotification(handler: (message: CodexNotification) => void): () => void {
@@ -340,6 +361,14 @@ class CodexStdioTransport implements CodexTransport {
     }
     const notification = createCodexNotification(method, params);
     return this.writeMessage(notification, method);
+  }
+
+  respond(id: CodexJsonRpcId, result: unknown): Promise<void> {
+    if (this.closed) {
+      return Promise.reject(new Error("Codex app-server closed"));
+    }
+    const response: CodexJsonRpcResponse = { jsonrpc: "2.0", id, result };
+    return this.writeMessage(response, `response:${String(id)}`);
   }
 
   onNotification(handler: (message: CodexNotification) => void): () => void {
