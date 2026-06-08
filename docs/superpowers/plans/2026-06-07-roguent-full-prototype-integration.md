@@ -1197,16 +1197,25 @@
 - `bun test src/web/hud/pairing/PairingPanel.test.tsx` exit code 0。
 - Playwright screenshot artifact 显示两个 tab 且没有文本溢出。
 
-- [ ] Component API:
+- [x] Component API:
   ```tsx
   export function PairingPanel({ sessionId, onClose }: { sessionId: string; onClose: () => void }) {
-    return <section role="dialog" aria-label="Pairing" />;
+    return <dialog open aria-label="Pairing" />;
   }
   ```
-- [ ] Add UI test that toggling forwarding sends `updatePairing` command.
-- [ ] Run:
+- [x] Add UI tests that create QR, toggle forwarding, and unpair through real pairing commands.
+- [x] Run:
   ```bash
   bun test src/web/hud/pairing/PairingPanel.test.tsx
+  ```
+- [x] Browser QA artifact:
+  ```text
+  Browser path attempted first; blocked because Browser evaluate does not support module loading for Vite state injection.
+  Fallback Playwright script: /private/tmp/roguent-task22-qa.ts
+  Desktop screenshot: /private/tmp/roguent-task22-pairing-desktop.png
+  Mobile screenshot: /private/tmp/roguent-task22-pairing-mobile.png
+  Result: desktopHasBothTabs=true, desktopHasBinding=true, feishuTabChanged=true, mobile overflowX=false.
+  Console: only WebGL ReadPixels performance warnings, no app error.
   ```
 
 ---

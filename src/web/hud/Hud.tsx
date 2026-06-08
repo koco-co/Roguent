@@ -22,6 +22,7 @@ import { SystemMenu } from "./SystemMenu";
 import { TaskWindow } from "./TaskWindow";
 import { Tasks } from "./Tasks";
 import { ViewSwitch } from "./ViewSwitch";
+import { PairingPanelHost } from "./pairing/PairingPanel";
 
 export function Hud() {
   return (
@@ -51,6 +52,7 @@ export function Hud() {
       <AgentCard />
       <LootPanel />
       <ChatDrawer />
+      <PairingPanelHost />
       <ModelPicker />
       <Skills />
       <ImportPanel />

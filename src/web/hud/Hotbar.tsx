@@ -16,6 +16,7 @@ type RoutePanel =
   | "leaderboard"
   | "backpack"
   | "chat"
+  | "pairing"
   | "model"
   | "import";
 
@@ -30,6 +31,7 @@ const GROUP1: Slot[] = [
   { icon: "spellbook", panel: "skills", label: "技能" },
   { icon: "pouch", panel: "backpack", label: "背包" },
   { icon: "chat", panel: "chat", label: "聊天" },
+  { icon: "mcp", panel: "pairing", label: "配对" },
   { icon: "crystal", panel: "model", label: "模型" },
   { icon: "import", panel: "import", label: "导入" },
 ];
