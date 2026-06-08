@@ -24,6 +24,7 @@ test("Task 16 chat drawer desktop visual", async ({ page }) => {
 
   const drawer = page.locator(".cdrawer");
   await expect(drawer).toBeVisible();
+  await expect(drawer).toHaveCSS("transform", "none");
   await expect(drawer).toContainText("permission");
   await expect(drawer).toContainText("sandbox");
 
