@@ -42,6 +42,7 @@ export interface RuntimeDriver {
     promptId: string,
     selectedLabels: string[],
   ): void | Promise<void>;
+  rollback?(checkpointId: string): Promise<void>;
   interrupt(): Promise<void>;
   end(): void;
 }

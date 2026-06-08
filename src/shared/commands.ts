@@ -55,6 +55,18 @@ export interface InterruptCommand {
   sessionId: string;
 }
 
+export interface RollbackCommand {
+  cmd: "rollback";
+  sessionId: string;
+  checkpointId: string;
+}
+
+export interface RetryFromCommand {
+  cmd: "retryFrom";
+  sessionId: string;
+  timelineItemId: string;
+}
+
 export interface DeleteSessionCommand {
   cmd: "deleteSession";
   sessionId: string;
@@ -191,6 +203,8 @@ export type ClientCommand =
   | SendMessageCommand
   | SetModelCommand
   | InterruptCommand
+  | RollbackCommand
+  | RetryFromCommand
   | DeleteSessionCommand
   | ListLocalSessionsCommand
   | ImportSessionCommand
@@ -284,6 +298,14 @@ export function parseClientCommand(raw: unknown): ParseClientCommandResult {
       });
     case "interrupt":
       return parseStringFields(o, ["sessionId"], { cmd: "interrupt" });
+    case "rollback":
+      return parseStringFields(o, ["sessionId", "checkpointId"], {
+        cmd: "rollback",
+      });
+    case "retryFrom":
+      return parseStringFields(o, ["sessionId", "timelineItemId"], {
+        cmd: "retryFrom",
+      });
     case "deleteSession":
       return parseStringFields(o, ["sessionId"], { cmd: "deleteSession" });
     case "listLocalSessions":

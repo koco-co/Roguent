@@ -134,6 +134,45 @@ test("parseClientCommand rejects invalid newSession runtime config fields", () =
 });
 
 test("parseClientCommand accepts existing session and prompt commands", () => {
+  expect(parseClientCommand({ cmd: "interrupt", sessionId: "s1" })).toEqual({
+    ok: true,
+    command: { cmd: "interrupt", sessionId: "s1" },
+  });
+  expect(parseClientCommand({ cmd: "interrupt" }).ok).toBe(false);
+  expect(
+    parseClientCommand({
+      cmd: "rollback",
+      sessionId: "s1",
+      checkpointId: "checkpoint-1",
+    }),
+  ).toEqual({
+    ok: true,
+    command: {
+      cmd: "rollback",
+      sessionId: "s1",
+      checkpointId: "checkpoint-1",
+    },
+  });
+  expect(parseClientCommand({ cmd: "rollback", sessionId: "s1" }).ok).toBe(
+    false,
+  );
+  expect(
+    parseClientCommand({
+      cmd: "retryFrom",
+      sessionId: "s1",
+      timelineItemId: "item-1",
+    }),
+  ).toEqual({
+    ok: true,
+    command: {
+      cmd: "retryFrom",
+      sessionId: "s1",
+      timelineItemId: "item-1",
+    },
+  });
+  expect(parseClientCommand({ cmd: "retryFrom", sessionId: "s1" }).ok).toBe(
+    false,
+  );
   expect(parseClientCommand({ cmd: "deleteSession", sessionId: "s1" })).toEqual(
     {
       ok: true,

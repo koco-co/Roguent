@@ -63,6 +63,9 @@ export class SessionManager {
   private runtimeConfigQueues = new Map<string, Promise<void>>();
   private pendingPrompts = new Map<string, Map<string, PendingPromptKind>>();
   private respondingPrompts = new Map<string, Set<string>>();
+  private knownTimelineItems = new Map<string, Set<string>>();
+  private retryTextByTimelineItem = new Map<string, Map<string, string>>();
+  private streamingMessageIds = new Map<string, Map<string, string>>();
   // 当前引擎认识的所有会话 id(live driver + 已导入的 transcript)。新连接对账用:
   // gateway 把它下发给客户端清幽灵会话。进程重启即清零(会话确实没了)。
   private knownSessions = new Set<string>();
@@ -83,7 +86,14 @@ export class SessionManager {
   }
 
   private emit(e: RoomEvent): void {
+    this.rememberTimelineItem(e);
     for (const sink of this.sinks) sink(e);
+  }
+
+  private emitSessionError(sessionId: string, message: string): void {
+    this.emit(
+      this.seq.stamp(sessionId, "session.error", { message }, Date.now()),
+    );
   }
 
   // 账户级账号限额订阅(独立于 (sessionId,seq) 事件流)。
@@ -232,6 +242,82 @@ export class SessionManager {
     this.drivers.get(id)?.send(text);
   }
 
+  async rollback(id: string, checkpointId: string): Promise<void> {
+    if (!this.knownTimelineItems.get(id)?.has(checkpointId)) {
+      this.emitSessionError(
+        id,
+        `Rollback checkpoint is not locally known: ${checkpointId}`,
+      );
+      return;
+    }
+
+    const driver = this.drivers.get(id);
+    const state = this.runtimeStates.get(id);
+    if (!driver || !state || !this.knownSessions.has(id)) {
+      this.emitSessionError(
+        id,
+        `Rollback is not supported without an active runtime for session ${id}`,
+      );
+      return;
+    }
+    if (!driver.rollback) {
+      this.emitSessionError(
+        id,
+        `Rollback is not supported by ${state.config.runtime} runtime`,
+      );
+      return;
+    }
+
+    try {
+      await driver.rollback(checkpointId);
+    } catch (error) {
+      this.emitSessionError(id, `Rollback failed: ${errorMessage(error)}`);
+      return;
+    }
+
+    this.emit(
+      this.seq.stamp(id, "session.rolled_back", { checkpointId }, Date.now()),
+    );
+  }
+
+  retryFrom(id: string, timelineItemId: string): void {
+    const text = this.retryTextByTimelineItem.get(id)?.get(timelineItemId);
+    if (!text) {
+      this.emitSessionError(
+        id,
+        `Cannot retry from unknown or non-message timeline item: ${timelineItemId}`,
+      );
+      return;
+    }
+    const driver = this.drivers.get(id);
+    if (!driver || !this.knownSessions.has(id)) {
+      this.emitSessionError(
+        id,
+        `Cannot retry without an active runtime for session ${id}`,
+      );
+      return;
+    }
+
+    try {
+      driver.send(text);
+    } catch (error) {
+      this.emitSessionError(id, `Retry failed: ${errorMessage(error)}`);
+      return;
+    }
+
+    this.emit(
+      this.seq.stamp(
+        id,
+        "message.final",
+        {
+          role: "system",
+          text: `Audit: retryFrom resent timeline item ${timelineItemId} in session ${id}`,
+        },
+        Date.now(),
+      ),
+    );
+  }
+
   // 第三个事件来源:导入本地 CC transcript,零额度同步。不建 Driver,把整段
   // 会话历史(含用户轮次)瞬时折成事件灌进聊天抽屉——「云存档同步」式回看,
   // 不做计时回放。seq 与 LIVE 会话同享 Sequencer。
@@ -270,6 +356,9 @@ export class SessionManager {
     this.runtimeConfigQueues.delete(id);
     this.pendingPrompts.delete(id);
     this.respondingPrompts.delete(id);
+    this.knownTimelineItems.delete(id);
+    this.retryTextByTimelineItem.delete(id);
+    this.streamingMessageIds.delete(id);
     this.knownSessions.delete(id);
   }
 
@@ -294,7 +383,28 @@ export class SessionManager {
   }
 
   async interrupt(id: string): Promise<void> {
-    await this.drivers.get(id)?.interrupt();
+    try {
+      await this.drivers.get(id)?.interrupt();
+    } catch (error) {
+      this.emitSessionError(id, `Interrupt failed: ${errorMessage(error)}`);
+      return;
+    }
+    const state = this.runtimeStates.get(id);
+    if (!state || !this.knownSessions.has(id)) return;
+    this.emit(
+      this.seq.stamp(
+        id,
+        "runtime.status",
+        {
+          runtime: state.config.runtime,
+          status: "stopped",
+          config: runtimeConfigWithoutCwd(state.config),
+          cwd: state.cwd,
+          message: "Interrupted",
+        },
+        Date.now(),
+      ),
+    );
   }
 
   respondPermission(
@@ -531,6 +641,77 @@ export class SessionManager {
         Date.now(),
       ),
     );
+  }
+
+  private rememberTimelineItem(e: RoomEvent): void {
+    const checkpointId = timelineCheckpointId(e);
+    if (checkpointId) {
+      let ids = this.knownTimelineItems.get(e.sessionId);
+      if (!ids) {
+        ids = new Set();
+        this.knownTimelineItems.set(e.sessionId, ids);
+      }
+      ids.add(checkpointId);
+    }
+    this.rememberRetryText(e);
+  }
+
+  private rememberRetryText(e: RoomEvent): void {
+    if (e.type !== "message.delta" && e.type !== "message.final") return;
+    const p = e.payload as { text?: unknown; role?: unknown };
+    if (typeof p.text !== "string" || !p.text) return;
+    if (p.role === "system") return;
+
+    const role = p.role === "user" ? "user" : "assistant";
+    const streamKey = `${role}:${e.agentId ?? "__orchestrator__"}`;
+    let streamIds = this.streamingMessageIds.get(e.sessionId);
+    if (!streamIds) {
+      streamIds = new Map();
+      this.streamingMessageIds.set(e.sessionId, streamIds);
+    }
+    let textByItem = this.retryTextByTimelineItem.get(e.sessionId);
+    if (!textByItem) {
+      textByItem = new Map();
+      this.retryTextByTimelineItem.set(e.sessionId, textByItem);
+    }
+
+    const activeId = streamIds.get(streamKey);
+    if (role === "assistant" && e.type === "message.delta") {
+      const itemId = activeId ?? String(e.seq);
+      streamIds.set(streamKey, itemId);
+      textByItem.set(itemId, p.text);
+      return;
+    }
+    if (role === "assistant" && activeId) {
+      textByItem.set(activeId, p.text);
+      streamIds.delete(streamKey);
+      return;
+    }
+    textByItem.set(String(e.seq), p.text);
+  }
+}
+
+function timelineCheckpointId(e: RoomEvent): string | null {
+  switch (e.type) {
+    case "message.delta":
+    case "message.final":
+    case "thinking.delta":
+    case "thinking.final":
+    case "session.error":
+      return String(e.seq);
+    case "tool.started":
+    case "tool.ended":
+    case "tool.failed": {
+      const id = (e.payload as { toolUseId?: unknown }).toolUseId;
+      return typeof id === "string" && id ? id : null;
+    }
+    case "prompt.requested":
+    case "prompt.resolved": {
+      const id = (e.payload as { promptId?: unknown }).promptId;
+      return typeof id === "string" && id ? id : null;
+    }
+    default:
+      return null;
   }
 }
 

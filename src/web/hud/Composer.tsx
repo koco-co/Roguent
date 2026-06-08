@@ -8,6 +8,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
   const appendUserMessage = useRoomStore((s) => s.appendUserMessage);
   const [text, setText] = useState("");
   const [slashOpen, setSlashOpen] = useState(false);
+  const isBusy = session?.status === "busy";
 
   const send = () => {
     const t = text.trim();
@@ -35,6 +36,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
         className="pxinput"
         rows={1}
         value={text}
+        disabled={isBusy}
         onChange={(e) => {
           const val = e.target.value;
           setText(val);
@@ -51,7 +53,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
         placeholder="输入消息… (Enter 发送, Shift+Enter 换行)"
         style={{ resize: "none", overflowY: "auto" }}
       />
-      {session?.status === "busy" ? (
+      {isBusy ? (
         <button
           type="button"
           className="pxbtn sm cjk"

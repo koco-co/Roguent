@@ -195,3 +195,58 @@ test("WsGateway passes setRuntimeConfig through to SessionManager", () => {
     },
   ]);
 });
+
+test("WsGateway dispatches rollback and retryFrom commands to SessionManager", () => {
+  const calls: unknown[] = [];
+  const sent: string[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    rollback: (sessionId: string, checkpointId: string) =>
+      calls.push({ cmd: "rollback", sessionId, checkpointId }),
+    retryFrom: (sessionId: string, timelineItemId: string) =>
+      calls.push({ cmd: "retryFrom", sessionId, timelineItemId }),
+  } as unknown as SessionManager;
+  const gateway = new WsGateway(0, mgr);
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "rollback",
+        sessionId: "s1",
+        checkpointId: "checkpoint-1",
+      }),
+      ws,
+    );
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "retryFrom",
+        sessionId: "s1",
+        timelineItemId: "item-1",
+      }),
+      ws,
+    );
+  } finally {
+    closeGateway(gateway);
+  }
+
+  expect(sent).toEqual([]);
+  expect(calls).toEqual([
+    {
+      cmd: "rollback",
+      sessionId: "s1",
+      checkpointId: "checkpoint-1",
+    },
+    {
+      cmd: "retryFrom",
+      sessionId: "s1",
+      timelineItemId: "item-1",
+    },
+  ]);
+});

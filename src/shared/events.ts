@@ -81,6 +81,7 @@ export type RoomEventType =
   | "session.created"
   | "session.updated"
   | "session.cleared"
+  | "session.rolled_back"
   | "session.error"
   | "agent.spawned"
   | "agent.thinking"
@@ -170,8 +171,12 @@ export interface LootPayload {
 export interface MessagePayload {
   text: string;
   // 说话方:导入历史会话时,用户轮次与助手轮次都进聊天抽屉。
-  // 可选 → LIVE/REPLAY 的助手 delta 不带则默认 "assistant"(向后兼容)。
-  role?: "user" | "assistant";
+  // system 用于引擎生成的审计/控制记录。可选 → LIVE/REPLAY 的助手 delta 不带则默认
+  // "assistant"(向后兼容)。
+  role?: "user" | "assistant" | "system";
+}
+export interface RollbackPayload {
+  checkpointId: string;
 }
 export interface SessionErrorPayload {
   message: string;
@@ -270,6 +275,7 @@ export interface RoomEventPayloadMap {
   "session.created": SessionCreatedPayload;
   "session.updated": Partial<SessionCreatedPayload>;
   "session.cleared": Record<string, never>;
+  "session.rolled_back": RollbackPayload;
   "session.error": SessionErrorPayload;
   "agent.spawned": AgentSpawnedPayload;
   "agent.thinking": Record<string, never>;

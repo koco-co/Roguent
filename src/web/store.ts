@@ -894,7 +894,10 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
       // role 默认 "assistant";导入历史会话时用户轮次带 role:"user"。
       // includePartialMessages=true:同一 agent 的 assistant partial 替换最后一条
       // 气泡而不是追加新条,实现逐字流式效果。
-      const p = e.payload as { text: string; role?: "user" | "assistant" };
+      const p = e.payload as {
+        text: string;
+        role?: "user" | "assistant" | "system";
+      };
       const role = p.role ?? "assistant";
       if (!p.text) break;
       const status =
@@ -960,6 +963,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
       if (p.config?.model) s.model = p.config.model;
       if (p.status === "running" || p.status === "starting") s.status = "busy";
       if (p.status === "idle" || p.status === "degraded") s.status = "idle";
+      if (p.status === "stopped") s.status = "idle";
       if (p.status === "error") s.status = "error";
       break;
     }
@@ -979,6 +983,19 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
       const orch = s.agents[ORCHESTRATOR_ID];
       s.agents = orch ? { [ORCHESTRATOR_ID]: orch } : {};
       s.status = "done";
+      break;
+    }
+    case "session.rolled_back": {
+      const p = e.payload as { checkpointId?: string };
+      const checkpointIndex = s.timeline.findIndex(
+        (item) => item.id === p.checkpointId,
+      );
+      if (checkpointIndex !== -1) {
+        s.timeline = s.timeline.slice(0, checkpointIndex + 1);
+      }
+      const orch = s.agents[ORCHESTRATOR_ID];
+      s.agents = orch ? { [ORCHESTRATOR_ID]: orch } : {};
+      s.status = "idle";
       break;
     }
     case "prompt.requested": {
