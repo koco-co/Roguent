@@ -27,7 +27,8 @@ export function MessageBubble({ item, session }: Props) {
   const [copiedCode, setCopiedCode] = useState(false);
 
   const copy = () => {
-    void navigator.clipboard.writeText(item.text).then(() => {
+    void copyText(item.text).then((ok) => {
+      if (!ok) return;
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
@@ -40,7 +41,8 @@ export function MessageBubble({ item, session }: Props) {
     if (!button) return;
     event.preventDefault();
     event.stopPropagation();
-    void navigator.clipboard.writeText(button.dataset.code ?? "").then(() => {
+    void copyText(button.dataset.code ?? "").then((ok) => {
+      if (!ok) return;
       setCopiedCode(true);
       setTimeout(() => setCopiedCode(false), 1500);
     });
@@ -89,5 +91,14 @@ export function MessageBubble({ item, session }: Props) {
         dangerouslySetInnerHTML={{ __html: mdToHtml(item.text) }}
       />
     </div>
+  );
+}
+
+function copyText(text: string): Promise<boolean> {
+  const writeText = navigator.clipboard?.writeText;
+  if (typeof writeText !== "function") return Promise.resolve(false);
+  return writeText.call(navigator.clipboard, text).then(
+    () => true,
+    () => false,
   );
 }

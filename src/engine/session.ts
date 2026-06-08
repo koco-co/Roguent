@@ -8,10 +8,17 @@ import type {
   CodexApprovalPolicy,
   PermissionMode,
   ReasoningEffort,
+  RuntimeConfig,
   RuntimeKind,
   SandboxMode,
 } from "../shared/runtime";
 import { isPermissionMode, normalizePermissionMode } from "../shared/runtime";
+import {
+  isReasoningEffort,
+  isSandboxMode,
+  normalizeReasoningEffort,
+  normalizeSandboxMode,
+} from "../shared/runtime";
 import type { DriverCallbacks, IDriver } from "./driver";
 import { LimitsAggregator } from "./limits-aggregator";
 import { readTranscriptLines } from "./local-sessions";
@@ -318,6 +325,81 @@ export class SessionManager {
     );
   }
 
+  async setRuntimeConfig(id: string, config: RuntimeConfig): Promise<void> {
+    const driver = this.drivers.get(id);
+    const state = this.runtimeStates.get(id);
+    if (!driver || !state || !this.knownSessions.has(id)) return;
+
+    const previous = runtimeConfigWithoutCwd(state.config);
+    const {
+      approvalPolicy: _oldApprovalPolicy,
+      reasoningEffort: _oldReasoningEffort,
+      ...baseConfig
+    } = state.config;
+    const next: RuntimeDriverConfig = {
+      ...baseConfig,
+      runtime: state.config.runtime,
+      model: config.model.trim() || state.config.model,
+      permissionMode: normalizePermissionMode(
+        config.permissionMode,
+        state.config.permissionMode,
+      ),
+      sandboxMode: normalizeSandboxMode(
+        config.sandboxMode,
+        state.config.sandboxMode,
+      ),
+      networkAccess: config.networkAccess,
+    };
+    if (config.runtime === "codex" && config.approvalPolicy !== undefined) {
+      next.approvalPolicy = config.approvalPolicy;
+    }
+    const reasoningEffort = normalizeReasoningEffort(
+      config.reasoningEffort,
+      state.config.reasoningEffort,
+    );
+    if (reasoningEffort !== undefined) {
+      next.reasoningEffort = reasoningEffort;
+    }
+
+    const changedKeys = changedRuntimeKeys(
+      previous,
+      runtimeConfigWithoutCwd(next),
+    );
+    if (changedKeys.length === 0) return;
+
+    if (next.model !== state.config.model) await driver.setModel(next.model);
+    if (next.permissionMode !== state.config.permissionMode) {
+      await driver.setPermissionMode(next.permissionMode);
+    }
+    if (
+      isSandboxMode(next.sandboxMode) &&
+      next.sandboxMode !== state.config.sandboxMode
+    ) {
+      await driver.setSandboxMode?.(next.sandboxMode);
+    }
+    if (
+      isReasoningEffort(next.reasoningEffort) &&
+      next.reasoningEffort !== state.config.reasoningEffort
+    ) {
+      await driver.setReasoningEffort?.(next.reasoningEffort);
+    }
+
+    state.config = next;
+    this.runtimeStates.set(id, state);
+    this.emit(
+      this.seq.stamp(
+        id,
+        "runtime.config.updated",
+        {
+          config: runtimeConfigWithoutCwd(next),
+          previous,
+          changedKeys,
+        },
+        Date.now(),
+      ),
+    );
+  }
+
   private async emitContextUsage(id: string): Promise<void> {
     const cu = await this.drivers.get(id)?.getContextUsage();
     if (!cu) return;
@@ -332,4 +414,25 @@ export class SessionManager {
       ),
     );
   }
+}
+
+function runtimeConfigWithoutCwd(config: RuntimeDriverConfig): RuntimeConfig {
+  const { cwd: _cwd, ...runtimeConfig } = config;
+  return runtimeConfig;
+}
+
+function changedRuntimeKeys(
+  previous: RuntimeConfig,
+  next: RuntimeConfig,
+): string[] {
+  const keys: Array<keyof RuntimeConfig> = [
+    "runtime",
+    "model",
+    "permissionMode",
+    "approvalPolicy",
+    "sandboxMode",
+    "reasoningEffort",
+    "networkAccess",
+  ];
+  return keys.filter((key) => previous[key] !== next[key]);
 }

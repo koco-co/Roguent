@@ -408,3 +408,65 @@ test("setPermissionMode does not throw for an unsupported Claude adapter mode", 
 
   expect(modes).toEqual([]);
 });
+
+test("setRuntimeConfig forwards changed fields and emits runtime config update", async () => {
+  const calls: string[] = [];
+  const driver: IDriver = {
+    ...driverStub(),
+    async setModel(model: string) {
+      calls.push(`model:${model}`);
+    },
+    async setPermissionMode(mode: string) {
+      calls.push(`permission:${mode}`);
+    },
+    async setSandboxMode(mode: string) {
+      calls.push(`sandbox:${mode}`);
+    },
+    async setReasoningEffort(effort: string) {
+      calls.push(`reasoning:${effort}`);
+    },
+  };
+  const mgr = new SessionManager({ createDriver: () => driver }, "/tmp");
+  const got: RoomEvent[] = [];
+  mgr.subscribe((event) => got.push(event));
+  mgr.createSession("s1", {
+    title: "Codex",
+    runtime: "codex",
+    model: "gpt-5",
+    approvalPolicy: "on-request",
+    sandboxMode: "workspace-write",
+    reasoningEffort: "medium",
+    networkAccess: false,
+  });
+
+  await mgr.setRuntimeConfig("s1", {
+    runtime: "codex",
+    model: "gpt-5.1",
+    permissionMode: "default",
+    approvalPolicy: "never",
+    sandboxMode: "read-only",
+    reasoningEffort: "high",
+    networkAccess: false,
+  });
+
+  expect(calls).toEqual([
+    "model:gpt-5.1",
+    "sandbox:read-only",
+    "reasoning:high",
+  ]);
+  const event = got.at(-1);
+  expect(event?.type).toBe("runtime.config.updated");
+  expect(event?.sessionId).toBe("s1");
+  expect(event?.payload).toMatchObject({
+    config: {
+      runtime: "codex",
+      model: "gpt-5.1",
+      permissionMode: "default",
+      approvalPolicy: "never",
+      sandboxMode: "read-only",
+      reasoningEffort: "high",
+      networkAccess: false,
+    },
+    changedKeys: ["model", "approvalPolicy", "sandboxMode", "reasoningEffort"],
+  });
+});

@@ -141,3 +141,57 @@ test("WsGateway replies with commandError control for unimplemented prototype co
   });
   expect("seq" in msg).toBe(false);
 });
+
+test("WsGateway passes setRuntimeConfig through to SessionManager", () => {
+  const calls: unknown[] = [];
+  const sent: string[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    setRuntimeConfig: (sessionId: string, config: unknown) =>
+      calls.push({ sessionId, config }),
+  } as unknown as SessionManager;
+  const gateway = new WsGateway(0, mgr);
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "setRuntimeConfig",
+        sessionId: "s-codex",
+        config: {
+          runtime: "codex",
+          model: "gpt-5",
+          permissionMode: "default",
+          approvalPolicy: "on-request",
+          sandboxMode: "workspace-write",
+          reasoningEffort: "high",
+          networkAccess: false,
+        },
+      }),
+      ws,
+    );
+  } finally {
+    closeGateway(gateway);
+  }
+
+  expect(sent).toEqual([]);
+  expect(calls).toEqual([
+    {
+      sessionId: "s-codex",
+      config: {
+        runtime: "codex",
+        model: "gpt-5",
+        permissionMode: "default",
+        approvalPolicy: "on-request",
+        sandboxMode: "workspace-write",
+        reasoningEffort: "high",
+        networkAccess: false,
+      },
+    },
+  ]);
+});

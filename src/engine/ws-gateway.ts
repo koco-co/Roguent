@@ -106,6 +106,14 @@ export class WsGateway {
       this.mgr.respondQuestion(c.sessionId, c.promptId, c.selectedLabels);
     } else if (c.cmd === "setPermissionMode") {
       void this.mgr.setPermissionMode(c.sessionId, c.mode);
+    } else if (c.cmd === "setRuntimeConfig") {
+      if (c.sessionId) void this.mgr.setRuntimeConfig(c.sessionId, c.config);
+      else
+        this.replyCommandError(
+          ws,
+          c.sessionId,
+          "setRuntimeConfig requires sessionId",
+        );
     } else {
       this.replyCommandError(
         ws,
