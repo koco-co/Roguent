@@ -458,21 +458,35 @@ export class SessionManager {
     );
     if (changedKeys.length === 0) return;
 
-    if (next.model !== state.config.model) await driver.setModel(next.model);
-    if (next.permissionMode !== state.config.permissionMode) {
-      await driver.setPermissionMode(next.permissionMode);
-    }
-    if (
-      isSandboxMode(next.sandboxMode) &&
-      next.sandboxMode !== state.config.sandboxMode
-    ) {
-      await driver.setSandboxMode?.(next.sandboxMode);
-    }
-    if (
-      isReasoningEffort(next.reasoningEffort) &&
-      next.reasoningEffort !== state.config.reasoningEffort
-    ) {
-      await driver.setReasoningEffort?.(next.reasoningEffort);
+    try {
+      if (next.model !== state.config.model) await driver.setModel(next.model);
+      if (next.permissionMode !== state.config.permissionMode) {
+        await driver.setPermissionMode(next.permissionMode);
+      }
+      if (
+        isSandboxMode(next.sandboxMode) &&
+        next.sandboxMode !== state.config.sandboxMode
+      ) {
+        await driver.setSandboxMode?.(next.sandboxMode);
+      }
+      if (
+        isReasoningEffort(next.reasoningEffort) &&
+        next.reasoningEffort !== state.config.reasoningEffort
+      ) {
+        await driver.setReasoningEffort?.(next.reasoningEffort);
+      }
+    } catch (error) {
+      this.emit(
+        this.seq.stamp(
+          id,
+          "session.error",
+          {
+            message: `Runtime config update failed: ${errorMessage(error)}`,
+          },
+          Date.now(),
+        ),
+      );
+      return;
     }
 
     state.config = next;

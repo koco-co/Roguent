@@ -1,5 +1,6 @@
 import type { Session } from "../../shared/domain";
 import type {
+  CodexApprovalPolicy,
   PermissionMode,
   ReasoningEffort,
   RuntimeConfig,
@@ -16,6 +17,12 @@ const PERMISSION_MODES = [
   "bypassPermissions",
   "plan",
 ] as const satisfies readonly PermissionMode[];
+const CODEX_APPROVAL_POLICIES = [
+  "untrusted",
+  "on-failure",
+  "on-request",
+  "never",
+] as const satisfies readonly CodexApprovalPolicy[];
 const SANDBOX_MODES = [
   "read-only",
   "workspace-write",
@@ -59,6 +66,7 @@ export function RuntimeControls({ sessionId }: { sessionId: string }) {
   const session = useRoomStore((s) => s.sessions[sessionId]);
 
   if (!session) return null;
+  const isCodex = session.runtime === "codex";
 
   return (
     <div
@@ -142,27 +150,74 @@ export function RuntimeControls({ sessionId }: { sessionId: string }) {
           ))}
         </select>
       </label>
-      <label style={{ display: "grid", gap: 3, minWidth: 0 }}>
-        <span className="faint" style={{ fontSize: 9 }}>
-          reasoning
-        </span>
-        <select
-          aria-label="reasoning effort"
-          className="pxselect"
-          value={session.reasoningEffort ?? "medium"}
-          disabled={session.runtime !== "codex"}
+      {isCodex && (
+        <label style={{ display: "grid", gap: 3, minWidth: 0 }}>
+          <span className="faint" style={{ fontSize: 9 }}>
+            approval
+          </span>
+          <select
+            aria-label="approval policy"
+            className="pxselect"
+            value={session.approvalPolicy ?? "on-request"}
+            onChange={(e) =>
+              sendConfigPatch(sessionId, session, {
+                approvalPolicy: e.target.value as CodexApprovalPolicy,
+              })
+            }
+          >
+            {CODEX_APPROVAL_POLICIES.map((policy) => (
+              <option key={policy} value={policy}>
+                {policy}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {isCodex && (
+        <label style={{ display: "grid", gap: 3, minWidth: 0 }}>
+          <span className="faint" style={{ fontSize: 9 }}>
+            reasoning
+          </span>
+          <select
+            aria-label="reasoning effort"
+            className="pxselect"
+            value={session.reasoningEffort ?? "medium"}
+            onChange={(e) =>
+              sendConfigPatch(sessionId, session, {
+                reasoningEffort: e.target.value as ReasoningEffort,
+              })
+            }
+          >
+            {REASONING_EFFORTS.map((effort) => (
+              <option key={effort} value={effort}>
+                {effort}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <label
+        style={{
+          display: "flex",
+          gap: 6,
+          alignItems: "end",
+          minWidth: 0,
+          paddingBottom: 2,
+        }}
+      >
+        <input
+          aria-label="network access"
+          type="checkbox"
+          checked={session.networkAccess}
           onChange={(e) =>
             sendConfigPatch(sessionId, session, {
-              reasoningEffort: e.target.value as ReasoningEffort,
+              networkAccess: e.currentTarget.checked,
             })
           }
-        >
-          {REASONING_EFFORTS.map((effort) => (
-            <option key={effort} value={effort}>
-              {effort}
-            </option>
-          ))}
-        </select>
+        />
+        <span className="faint" style={{ fontSize: 10 }}>
+          network
+        </span>
       </label>
       <div className="faint" style={{ alignSelf: "end", fontSize: 10 }}>
         {modelLabel(session.model)}
