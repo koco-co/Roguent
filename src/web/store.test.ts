@@ -1,14 +1,29 @@
 import { expect, test } from "bun:test";
 import { ORCHESTRATOR_ID } from "../shared/domain";
 import type { RoomEvent } from "../shared/events";
-import { type RoomState, reduce, useRoomStore } from "./store";
+import {
+  type RoomState,
+  type RoomStateWithPrototype,
+  reduce,
+  useRoomStore,
+} from "./store";
 
-const empty: RoomState = {
+const initialState = (): RoomStateWithPrototype => ({
   sessions: {},
   currentSessionId: null,
   projectOrder: [],
   connection: "connecting",
-};
+  runtimeStatusBySession: {},
+  connectorStatus: {},
+  pairings: { qrByChannel: {}, byId: {}, byExternalKey: {} },
+  mailbox: { items: {}, order: [] },
+  scheduler: { tasks: {}, runs: {} },
+  ledger: { entries: [], balances: {} },
+  achievements: {},
+  inventory: {},
+  settings: null,
+});
+const empty: RoomState = initialState();
 const ev = (p: Partial<RoomEvent>): RoomEvent => ({
   seq: 1,
   ts: 0,
@@ -17,6 +32,26 @@ const ev = (p: Partial<RoomEvent>): RoomEvent => ({
   payload: {},
   ...p,
 });
+const bindingEvent = (
+  channel: "wechat" | "feishu",
+  externalChatId: string,
+  sessionId: string,
+): RoomEvent =>
+  ev({
+    sessionId,
+    type: "pairing.binding.updated",
+    payload: {
+      binding: {
+        id: `${channel}-${externalChatId}-${sessionId}`,
+        channel,
+        status: "active",
+        externalChatId,
+        sessionId,
+        forwardingEnabled: true,
+        boundAt: 10,
+      },
+    },
+  });
 
 test("session.created adds a session and sets currentSessionId once", () => {
   const st = reduce(
@@ -95,8 +130,451 @@ test("runtime.status stores degraded Codex batch metadata on the session", () =>
   );
 
   expect(st.sessions.s1?.runtimeStatus?.status).toBe("degraded");
+  expect(st.runtimeStatusBySession.s1?.status).toBe("degraded");
   expect(st.sessions.s1?.runtimeStatus?.metadata?.mode).toBe("exec-json");
   expect(st.sessions.s1?.status).toBe("idle");
+});
+
+test("runtime.status folds before session exists without stealing focus", () => {
+  const st = reduce(
+    initialState(),
+    ev({
+      sessionId: "late-runtime",
+      type: "runtime.status",
+      payload: {
+        runtime: "codex",
+        status: "starting",
+        config: {
+          runtime: "codex",
+          model: "gpt-5",
+          permissionMode: "default",
+          sandboxMode: "workspace-write",
+          networkAccess: false,
+        },
+      },
+    }),
+  );
+
+  expect(st.runtimeStatusBySession["late-runtime"]?.status).toBe("starting");
+  expect(st.sessions["late-runtime"]).toBeUndefined();
+  expect(st.currentSessionId).toBeNull();
+});
+
+test("pairing binding update overwrites by channel and external chat id", () => {
+  const state = reduce(initialState(), bindingEvent("wechat", "chat-a", "s1"));
+  const next = reduce(state, bindingEvent("wechat", "chat-a", "s2"));
+  expect(next.pairings.byExternalKey["wechat:chat-a"]?.sessionId).toBe("s2");
+});
+
+test("pairing binding rebind removes the stale binding id", () => {
+  const state = reduce(initialState(), bindingEvent("wechat", "chat-a", "s1"));
+  const next = reduce(state, bindingEvent("wechat", "chat-a", "s2"));
+
+  expect(next.pairings.byId["wechat-chat-a-s1"]).toBeUndefined();
+  expect(next.pairings.byId["wechat-chat-a-s2"]?.sessionId).toBe("s2");
+});
+
+test("pairing qr null clears stale qrs", () => {
+  let st = reduce(
+    initialState(),
+    ev({
+      type: "pairing.qr.updated",
+      payload: {
+        qr: {
+          id: "qr-1",
+          channel: "wechat",
+          status: "pending",
+          url: "https://example.test/qr",
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "pairing.qr.updated",
+      payload: {
+        qr: {
+          id: "qr-2",
+          channel: "feishu",
+          status: "pending",
+          url: "https://example.test/feishu-qr",
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "pairing.qr.updated",
+      payload: {
+        qr: null,
+      },
+    }),
+  );
+
+  expect(st.pairings.qrByChannel).toEqual({});
+});
+
+test("prototype domain events fold without a known session", () => {
+  let st = initialState();
+  st = reduce(
+    st,
+    ev({
+      sessionId: "ghost",
+      type: "integration.status",
+      payload: {
+        status: {
+          id: "wechat-main",
+          channel: "wechat",
+          state: "connected",
+          lastEventAt: 10,
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "ghost",
+      type: "pairing.qr.updated",
+      payload: {
+        qr: {
+          id: "qr-1",
+          channel: "wechat",
+          status: "pending",
+          url: "https://example.test/qr",
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "ghost",
+      type: "mailbox.item.created",
+      payload: {
+        item: {
+          id: "mail-1",
+          source: "wechat",
+          title: "Inbound",
+          summary: "hello",
+          ts: 20,
+          status: "unread",
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "ghost",
+      type: "scheduler.task.created",
+      payload: {
+        task: {
+          id: "task-1",
+          title: "Daily",
+          prompt: "Summarize",
+          status: "enabled",
+          createdAt: 30,
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "ghost",
+      type: "scheduler.run.started",
+      payload: {
+        run: {
+          id: "run-1",
+          taskId: "task-1",
+          status: "running",
+          startedAt: 40,
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "ghost",
+      type: "economy.ledger.appended",
+      payload: {
+        entry: {
+          id: "ledger-1",
+          ts: 50,
+          reason: "test",
+          delta: { gems: 5 },
+          balance: { gems: 5 },
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "ghost",
+      type: "achievement.updated",
+      payload: {
+        achievement: {
+          id: "ach-1",
+          title: "First",
+          progress: 1,
+          target: 3,
+          completed: false,
+          updatedAt: 60,
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "ghost",
+      type: "inventory.updated",
+      payload: {
+        item: {
+          id: "skin-1",
+          sku: "skin.green",
+          kind: "skin",
+          label: "Green",
+          quantity: 1,
+        },
+        action: "added",
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      sessionId: "ghost",
+      type: "settings.updated",
+      payload: {
+        scope: "user",
+        settings: { scheduler: { enabled: true } },
+      },
+    }),
+  );
+
+  expect(st.sessions.ghost).toBeUndefined();
+  expect(st.connectorStatus["wechat-main"]?.state).toBe("connected");
+  expect(st.pairings.qrByChannel.wechat?.id).toBe("qr-1");
+  expect(st.mailbox.order).toEqual(["mail-1"]);
+  expect(st.scheduler.tasks["task-1"]?.status).toBe("enabled");
+  expect(st.scheduler.runs["run-1"]?.status).toBe("running");
+  expect(st.ledger.balances.gems).toBe(5);
+  expect(st.achievements["ach-1"]?.progress).toBe(1);
+  expect(st.inventory["skin-1"]?.sku).toBe("skin.green");
+  expect(st.settings?.scheduler?.enabled).toBe(true);
+});
+
+test("mailbox.item.updated merges changes and does not duplicate order", () => {
+  let st = reduce(
+    initialState(),
+    ev({
+      type: "mailbox.item.created",
+      payload: {
+        item: {
+          id: "mail-1",
+          source: "system",
+          title: "Original",
+          summary: "old",
+          ts: 1,
+          status: "unread",
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "mailbox.item.updated",
+      payload: {
+        item: {
+          id: "mail-1",
+          source: "system",
+          title: "Ignored",
+          summary: "ignored",
+          ts: 1,
+          status: "unread",
+        },
+        changes: { status: "read", summary: "new" },
+      },
+    }),
+  );
+
+  expect(st.mailbox.items["mail-1"]?.title).toBe("Original");
+  expect(st.mailbox.items["mail-1"]?.summary).toBe("new");
+  expect(st.mailbox.items["mail-1"]?.status).toBe("read");
+  expect(st.mailbox.order).toEqual(["mail-1"]);
+});
+
+test("mailbox.item.updated uses full payload item when changes are omitted", () => {
+  let st = reduce(
+    initialState(),
+    ev({
+      type: "mailbox.item.created",
+      payload: {
+        item: {
+          id: "mail-1",
+          source: "system",
+          title: "Original",
+          summary: "old",
+          ts: 1,
+          status: "unread",
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "mailbox.item.updated",
+      payload: {
+        item: {
+          id: "mail-1",
+          source: "system",
+          title: "Updated",
+          summary: "new",
+          ts: 2,
+          status: "read",
+        },
+      },
+    }),
+  );
+
+  expect(st.mailbox.items["mail-1"]?.title).toBe("Updated");
+  expect(st.mailbox.items["mail-1"]?.summary).toBe("new");
+  expect(st.mailbox.items["mail-1"]?.status).toBe("read");
+  expect(st.mailbox.order).toEqual(["mail-1"]);
+});
+
+test("scheduler.run.finished overwrites run while preserving task map", () => {
+  let st = reduce(
+    initialState(),
+    ev({
+      type: "scheduler.task.created",
+      payload: {
+        task: {
+          id: "task-1",
+          title: "Daily",
+          prompt: "Summarize",
+          status: "enabled",
+          createdAt: 1,
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "scheduler.run.started",
+      payload: {
+        run: {
+          id: "run-1",
+          taskId: "task-1",
+          status: "running",
+          startedAt: 2,
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "scheduler.run.finished",
+      payload: {
+        run: {
+          id: "run-1",
+          taskId: "task-1",
+          status: "succeeded",
+          finishedAt: 3,
+          summary: "done",
+        },
+      },
+    }),
+  );
+
+  expect(st.scheduler.tasks["task-1"]?.status).toBe("enabled");
+  expect(st.scheduler.runs["run-1"]?.status).toBe("succeeded");
+  expect(st.scheduler.runs["run-1"]?.summary).toBe("done");
+});
+
+test("scheduler.task.updated uses full payload task when changes are omitted", () => {
+  let st = reduce(
+    initialState(),
+    ev({
+      type: "scheduler.task.created",
+      payload: {
+        task: {
+          id: "task-1",
+          title: "Daily",
+          prompt: "Summarize",
+          status: "enabled",
+          createdAt: 1,
+        },
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "scheduler.task.updated",
+      payload: {
+        task: {
+          id: "task-1",
+          title: "Updated daily",
+          prompt: "Review",
+          status: "paused",
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      },
+    }),
+  );
+
+  expect(st.scheduler.tasks["task-1"]?.title).toBe("Updated daily");
+  expect(st.scheduler.tasks["task-1"]?.prompt).toBe("Review");
+  expect(st.scheduler.tasks["task-1"]?.status).toBe("paused");
+});
+
+test("inventory.updated removes items when action is removed", () => {
+  let st = reduce(
+    initialState(),
+    ev({
+      type: "inventory.updated",
+      payload: {
+        item: {
+          id: "skin-1",
+          sku: "skin.green",
+          kind: "skin",
+          label: "Green",
+          quantity: 1,
+        },
+        action: "added",
+      },
+    }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "inventory.updated",
+      payload: {
+        item: {
+          id: "skin-1",
+          sku: "skin.green",
+          kind: "skin",
+          label: "Green",
+          quantity: 0,
+        },
+        action: "removed",
+      },
+    }),
+  );
+
+  expect(st.inventory["skin-1"]).toBeUndefined();
 });
 
 test("a second session.created (from SDK init) merges, keeping messages and filling slashCommands", () => {

@@ -11,11 +11,38 @@ import {
 } from "../shared/domain";
 import type {
   AccountLimits,
+  AchievementProgress,
+  AchievementUpdatedPayload,
   ContextUpdatedPayload,
+  CurrencyBalances,
+  EconomyLedgerAppendedPayload,
+  EconomyLedgerEntry,
+  IntegrationChannel,
+  IntegrationConnectorStatus,
+  IntegrationEventReceivedPayload,
+  IntegrationStatusPayload,
+  InventoryItem,
+  InventoryUpdatedPayload,
+  MailboxItem,
+  MailboxItemCreatedPayload,
+  MailboxItemUpdatedPayload,
+  PairingBinding,
+  PairingBindingUpdatedPayload,
+  PairingQr,
+  PairingQrUpdatedPayload,
   PromptRequestedPayload,
   PromptResolvedPayload,
+  RoguentSettings,
   RoomEvent,
+  RuntimeConfigUpdatedPayload,
   RuntimeStatusPayload,
+  SchedulerRun,
+  SchedulerRunFinishedPayload,
+  SchedulerRunStartedPayload,
+  SchedulerTask,
+  SchedulerTaskCreatedPayload,
+  SchedulerTaskUpdatedPayload,
+  SettingsUpdatedPayload,
 } from "../shared/events";
 import { agentTypeToSkin } from "../shared/mapping";
 import {
@@ -30,6 +57,27 @@ import {
 // 含 engine URL 解析失败)。ErrorOverlay 据此去抖显示离线错误层(T4.3)。
 export type ConnectionStatus = "connecting" | "open" | "closed";
 
+export interface PairingState {
+  qrByChannel: Partial<Record<IntegrationChannel, PairingQr>>;
+  byId: Record<string, PairingBinding>;
+  byExternalKey: Record<string, PairingBinding>;
+}
+
+export interface MailboxState {
+  items: Record<string, MailboxItem>;
+  order: string[];
+}
+
+export interface SchedulerState {
+  tasks: Record<string, SchedulerTask>;
+  runs: Record<string, SchedulerRun>;
+}
+
+export interface LedgerState {
+  entries: EconomyLedgerEntry[];
+  balances: CurrencyBalances;
+}
+
 export interface RoomState {
   sessions: Record<string, Session>;
   currentSessionId: string | null;
@@ -37,7 +85,30 @@ export interface RoomState {
   // 重排,房间因此不抖动(spec §总览世界:布局对已存在项目稳定/追加式)。
   projectOrder: string[];
   connection: ConnectionStatus;
+  runtimeStatusBySession?: Record<string, RuntimeStatusPayload>;
+  connectorStatus?: Record<string, IntegrationConnectorStatus>;
+  pairings?: PairingState;
+  mailbox?: MailboxState;
+  scheduler?: SchedulerState;
+  ledger?: LedgerState;
+  achievements?: Record<string, AchievementProgress>;
+  inventory?: Record<string, InventoryItem>;
+  settings?: RoguentSettings | null;
 }
+
+type PrototypeStateKeys =
+  | "runtimeStatusBySession"
+  | "connectorStatus"
+  | "pairings"
+  | "mailbox"
+  | "scheduler"
+  | "ledger"
+  | "achievements"
+  | "inventory"
+  | "settings";
+
+export type RoomStateWithPrototype = RoomState &
+  Required<Pick<RoomState, PrototypeStateKeys>>;
 
 // 大厅最多同时显示这么多活跃(未归档)会话;新建/激活第 11 个会把活跃度最低者
 // 软归档(spec §生命周期:≤10/LRU)。
@@ -68,8 +139,327 @@ function enforceActiveCap(
   }
 }
 
-export function reduce(state: RoomState, e: RoomEvent): RoomState {
-  const sessions = { ...state.sessions };
+function createPairingState(): PairingState {
+  return { qrByChannel: {}, byId: {}, byExternalKey: {} };
+}
+
+function createMailboxState(): MailboxState {
+  return { items: {}, order: [] };
+}
+
+function createSchedulerState(): SchedulerState {
+  return { tasks: {}, runs: {} };
+}
+
+function createLedgerState(): LedgerState {
+  return { entries: [], balances: {} };
+}
+
+function createPrototypeStateSlices(): Required<
+  Pick<RoomState, PrototypeStateKeys>
+> {
+  return {
+    runtimeStatusBySession: {},
+    connectorStatus: {},
+    pairings: createPairingState(),
+    mailbox: createMailboxState(),
+    scheduler: createSchedulerState(),
+    ledger: createLedgerState(),
+    achievements: {},
+    inventory: {},
+    settings: null,
+  };
+}
+
+function withPrototypeStateSlices(state: RoomState): RoomStateWithPrototype {
+  return {
+    ...state,
+    runtimeStatusBySession: state.runtimeStatusBySession ?? {},
+    connectorStatus: state.connectorStatus ?? {},
+    pairings: state.pairings ?? createPairingState(),
+    mailbox: state.mailbox ?? createMailboxState(),
+    scheduler: state.scheduler ?? createSchedulerState(),
+    ledger: state.ledger ?? createLedgerState(),
+    achievements: state.achievements ?? {},
+    inventory: state.inventory ?? {},
+    settings: state.settings ?? null,
+  };
+}
+
+function pairingExternalKey(
+  channel: IntegrationChannel,
+  externalChatId: string,
+): string {
+  return `${channel}:${externalChatId}`;
+}
+
+function appendIdOnce(order: string[], id: string): string[] {
+  return order.includes(id) ? order : [...order, id];
+}
+
+function mergeMetadata(
+  current?: Record<string, unknown>,
+  next?: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  if (!current) return next;
+  if (!next) return current;
+  return { ...current, ...next };
+}
+
+function isPrototypeDomainOnlyEvent(type: RoomEvent["type"]): boolean {
+  return (
+    type === "integration.status" ||
+    type === "integration.event.received" ||
+    type === "pairing.qr.updated" ||
+    type === "pairing.binding.updated" ||
+    type === "mailbox.item.created" ||
+    type === "mailbox.item.updated" ||
+    type === "scheduler.task.created" ||
+    type === "scheduler.task.updated" ||
+    type === "scheduler.run.started" ||
+    type === "scheduler.run.finished" ||
+    type === "economy.ledger.appended" ||
+    type === "achievement.updated" ||
+    type === "inventory.updated" ||
+    type === "settings.updated"
+  );
+}
+
+function foldPrototypeDomainEvent(
+  state: RoomStateWithPrototype,
+  e: RoomEvent,
+): RoomStateWithPrototype {
+  switch (e.type) {
+    case "runtime.status": {
+      const p = e.payload as RuntimeStatusPayload;
+      return {
+        ...state,
+        runtimeStatusBySession: {
+          ...state.runtimeStatusBySession,
+          [e.sessionId]: p,
+        },
+      };
+    }
+    case "runtime.config.updated": {
+      const p = e.payload as RuntimeConfigUpdatedPayload;
+      const current = state.runtimeStatusBySession[e.sessionId];
+      const nextStatus: RuntimeStatusPayload = current
+        ? {
+            ...current,
+            runtime: p.config.runtime,
+            config: p.config,
+            metadata: mergeMetadata(current.metadata, p.metadata),
+          }
+        : {
+            runtime: p.config.runtime,
+            status: "idle",
+            config: p.config,
+            metadata: p.metadata,
+          };
+      return {
+        ...state,
+        runtimeStatusBySession: {
+          ...state.runtimeStatusBySession,
+          [e.sessionId]: nextStatus,
+        },
+      };
+    }
+    case "integration.status": {
+      const p = e.payload as IntegrationStatusPayload;
+      return {
+        ...state,
+        connectorStatus: {
+          ...state.connectorStatus,
+          [p.status.id]: p.status,
+        },
+      };
+    }
+    case "integration.event.received": {
+      const p = e.payload as IntegrationEventReceivedPayload;
+      if (!p.connectorId) return state;
+      const current = state.connectorStatus[p.connectorId];
+      const status: IntegrationConnectorStatus = {
+        id: p.connectorId,
+        channel: p.channel,
+        state: current?.state ?? "connected",
+        ...current,
+        lastEventAt: p.receivedAt ?? p.ts ?? e.ts,
+      };
+      return {
+        ...state,
+        connectorStatus: {
+          ...state.connectorStatus,
+          [p.connectorId]: status,
+        },
+      };
+    }
+    case "pairing.qr.updated": {
+      const p = e.payload as PairingQrUpdatedPayload;
+      if (!p.qr) {
+        const channel = (e.payload as { channel?: IntegrationChannel }).channel;
+        if (!channel) {
+          return {
+            ...state,
+            pairings: {
+              ...state.pairings,
+              qrByChannel: {},
+            },
+          };
+        }
+        const qrByChannel = { ...state.pairings.qrByChannel };
+        delete qrByChannel[channel];
+        return {
+          ...state,
+          pairings: {
+            ...state.pairings,
+            qrByChannel,
+          },
+        };
+      }
+      return {
+        ...state,
+        pairings: {
+          ...state.pairings,
+          qrByChannel: {
+            ...state.pairings.qrByChannel,
+            [p.qr.channel]: p.qr,
+          },
+        },
+      };
+    }
+    case "pairing.binding.updated": {
+      const p = e.payload as PairingBindingUpdatedPayload;
+      const key = pairingExternalKey(
+        p.binding.channel,
+        p.binding.externalChatId,
+      );
+      const byId = { ...state.pairings.byId };
+      const previous = state.pairings.byExternalKey[key];
+      if (previous && previous.id !== p.binding.id) delete byId[previous.id];
+      byId[p.binding.id] = p.binding;
+      return {
+        ...state,
+        pairings: {
+          ...state.pairings,
+          byId,
+          byExternalKey: {
+            ...state.pairings.byExternalKey,
+            [key]: p.binding,
+          },
+        },
+      };
+    }
+    case "mailbox.item.created": {
+      const p = e.payload as MailboxItemCreatedPayload;
+      return {
+        ...state,
+        mailbox: {
+          items: { ...state.mailbox.items, [p.item.id]: p.item },
+          order: appendIdOnce(state.mailbox.order, p.item.id),
+        },
+      };
+    }
+    case "mailbox.item.updated": {
+      const p = e.payload as MailboxItemUpdatedPayload;
+      const current = state.mailbox.items[p.item.id];
+      const item = current
+        ? p.changes
+          ? { ...current, ...p.changes }
+          : p.item
+        : p.item;
+      return {
+        ...state,
+        mailbox: {
+          items: { ...state.mailbox.items, [item.id]: item },
+          order: appendIdOnce(state.mailbox.order, item.id),
+        },
+      };
+    }
+    case "scheduler.task.created": {
+      const p = e.payload as SchedulerTaskCreatedPayload;
+      return {
+        ...state,
+        scheduler: {
+          ...state.scheduler,
+          tasks: { ...state.scheduler.tasks, [p.task.id]: p.task },
+        },
+      };
+    }
+    case "scheduler.task.updated": {
+      const p = e.payload as SchedulerTaskUpdatedPayload;
+      const current = state.scheduler.tasks[p.task.id];
+      const task = current
+        ? p.changes
+          ? { ...current, ...p.changes }
+          : p.task
+        : p.task;
+      return {
+        ...state,
+        scheduler: {
+          ...state.scheduler,
+          tasks: { ...state.scheduler.tasks, [task.id]: task },
+        },
+      };
+    }
+    case "scheduler.run.started": {
+      const p = e.payload as SchedulerRunStartedPayload;
+      return {
+        ...state,
+        scheduler: {
+          ...state.scheduler,
+          runs: { ...state.scheduler.runs, [p.run.id]: p.run },
+        },
+      };
+    }
+    case "scheduler.run.finished": {
+      const p = e.payload as SchedulerRunFinishedPayload;
+      return {
+        ...state,
+        scheduler: {
+          ...state.scheduler,
+          runs: { ...state.scheduler.runs, [p.run.id]: p.run },
+        },
+      };
+    }
+    case "economy.ledger.appended": {
+      const p = e.payload as EconomyLedgerAppendedPayload;
+      return {
+        ...state,
+        ledger: {
+          entries: [...state.ledger.entries, p.entry],
+          balances: { ...p.entry.balance },
+        },
+      };
+    }
+    case "achievement.updated": {
+      const p = e.payload as AchievementUpdatedPayload;
+      return {
+        ...state,
+        achievements: {
+          ...state.achievements,
+          [p.achievement.id]: p.achievement,
+        },
+      };
+    }
+    case "inventory.updated": {
+      const p = e.payload as InventoryUpdatedPayload;
+      const inventory = { ...state.inventory };
+      if (p.action === "removed") delete inventory[p.item.id];
+      else inventory[p.item.id] = p.item;
+      return { ...state, inventory };
+    }
+    case "settings.updated": {
+      const p = e.payload as SettingsUpdatedPayload;
+      return { ...state, settings: p.settings };
+    }
+    default:
+      return state;
+  }
+}
+
+export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
+  const baseState = withPrototypeStateSlices(state);
+  const sessions = { ...baseState.sessions };
 
   if (e.type === "session.created") {
     const p = e.payload as {
@@ -125,16 +515,17 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
         imported: existing.imported || p.imported,
       };
       const projectOrder =
-        proj && !state.projectOrder.includes(proj)
-          ? [...state.projectOrder, proj]
-          : state.projectOrder;
+        proj && !baseState.projectOrder.includes(proj)
+          ? [...baseState.projectOrder, proj]
+          : baseState.projectOrder;
       // SDK init 派生的第二条 session.created 绝不能抢焦点。
       // connection 是传输层状态,事件折叠从不改它 —— 原样透传。
       return {
+        ...baseState,
         sessions,
         projectOrder,
-        currentSessionId: state.currentSessionId,
-        connection: state.connection,
+        currentSessionId: baseState.currentSessionId,
+        connection: baseState.connection,
       };
     }
 
@@ -163,17 +554,18 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
     });
     sessions[e.sessionId] = created;
     const projectOrder =
-      p.project && !state.projectOrder.includes(p.project)
-        ? [...state.projectOrder, p.project]
-        : state.projectOrder;
+      p.project && !baseState.projectOrder.includes(p.project)
+        ? [...baseState.projectOrder, p.project]
+        : baseState.projectOrder;
     // 新建即跳第 11 个 → 软归档活跃度最低者;新会话受保护,绝不被自己挤掉。
     enforceActiveCap(sessions, e.sessionId);
     // 新建即跳转:会话首次出现就把焦点切过去。connection 透传(见上)。
     return {
+      ...baseState,
       sessions,
       projectOrder,
       currentSessionId: e.sessionId,
-      connection: state.connection,
+      connection: baseState.connection,
     };
   }
 
@@ -203,15 +595,19 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       timeline: [...base.timeline, errItem],
     };
     return {
+      ...baseState,
       sessions,
-      projectOrder: state.projectOrder,
-      currentSessionId: state.currentSessionId ?? e.sessionId,
-      connection: state.connection,
+      projectOrder: baseState.projectOrder,
+      currentSessionId: baseState.currentSessionId ?? e.sessionId,
+      connection: baseState.connection,
     };
   }
 
+  const domainState = foldPrototypeDomainEvent(baseState, e);
+  if (isPrototypeDomainOnlyEvent(e.type)) return domainState;
+
   const prev = sessions[e.sessionId];
-  if (!prev) return state; // event for an unknown session — ignore
+  if (!prev) return domainState; // event for an unknown session — create/ignore per event type
   const s: Session = { ...prev, agents: { ...prev.agents } };
 
   switch (e.type) {
@@ -398,6 +794,18 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       if (p.status === "error") s.status = "error";
       break;
     }
+    case "runtime.config.updated": {
+      const p = e.payload as RuntimeConfigUpdatedPayload;
+      s.runtime = p.config.runtime;
+      s.model = p.config.model;
+      s.permissionMode = p.config.permissionMode;
+      s.approvalPolicy = p.config.approvalPolicy;
+      s.sandboxMode = p.config.sandboxMode;
+      s.reasoningEffort = p.config.reasoningEffort;
+      s.networkAccess = p.config.networkAccess;
+      s.runtimeStatus = domainState.runtimeStatusBySession[e.sessionId];
+      break;
+    }
     case "session.cleared": {
       const orch = s.agents[ORCHESTRATOR_ID];
       s.agents = orch ? { [ORCHESTRATOR_ID]: orch } : {};
@@ -461,10 +869,10 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
   // 选择(spec §生命周期)。房间归属按 project 不按活跃度,故 NPC 不会因此挪位。
   s.lastActiveAt = e.ts;
   sessions[e.sessionId] = s;
-  return { ...state, sessions };
+  return { ...domainState, sessions };
 }
 
-export interface RoomStore extends RoomState {
+export interface RoomStore extends RoomStateWithPrototype {
   applyEvent: (e: RoomEvent) => void;
   switchSession: (id: string) => void;
   appendUserMessage: (sessionId: string, text: string) => void;
@@ -486,6 +894,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
   currentSessionId: null,
   projectOrder: [],
   connection: "connecting",
+  ...createPrototypeStateSlices(),
   limits: null,
   setLimits: (limits) => set({ limits }),
   setConnection: (connection) => set({ connection }),
