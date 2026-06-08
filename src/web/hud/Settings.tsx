@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { Modal } from "./Modal";
 import { Icon } from "./icons";
@@ -11,6 +12,7 @@ import {
   type SettingHook,
   type SettingValue,
 } from "./settings-schema";
+import { RelaySettings } from "./settings/RelaySettings";
 
 /**
  * 设置(CONFIG)面板 Settings(对标设计原型 panels2.jsx 的 Settings,§6.10):
@@ -308,6 +310,7 @@ function CompactGroup() {
 export function Settings() {
   const active = useUiStore((s) => s.activePanel === "settings");
   const closePanel = useUiStore((s) => s.closePanel);
+  const relayStatus = useRoomStore((s) => s.connectorStatus?.relay ?? null);
   // 当前 runtime(claude/codex)、当前分组 id、改动覆盖 map、未保存标志,全为本地 mock 态。
   const [rt, setRt] = useState<"claude" | "codex">("claude");
   const [grp, setGrp] = useState("general");
@@ -395,6 +398,7 @@ export function Settings() {
 
           {/* 右侧表单:compact 组特殊渲染 CompactGroup;否则 Field 列表 + 末尾添加项。 */}
           <div className="set-form scroll">
+            <RelaySettings status={relayStatus} />
             {grp === "compact" ? (
               <CompactGroup />
             ) : (

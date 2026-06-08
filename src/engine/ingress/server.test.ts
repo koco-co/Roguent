@@ -154,14 +154,18 @@ test("POST /webhooks/github resolves webhook secret through SecretStore ref", as
   }
 });
 
-test("relay endpoint validates bearer token and preserves requested channel", async () => {
+test("relay endpoint validates bearer token and forwards signed requested channel", async () => {
   const rawBody = JSON.stringify({
-    bodyText: "Deploy finished",
-    externalChatId: "repo-1",
-    summary: "deploy event",
+    repository: {
+      full_name: "poco/roguent",
+      html_url: "https://github.com/poco/roguent",
+    },
   });
   const harness = createHarness({
-    env: { ROGUENT_RELAY_TOKEN: "relay-secret" },
+    env: {
+      ROGUENT_GITHUB_WEBHOOK_SECRET: "hook-secret",
+      ROGUENT_RELAY_TOKEN: "relay-secret",
+    },
   });
   try {
     const denied = await harness.fetch(
@@ -169,7 +173,11 @@ test("relay endpoint validates bearer token and preserves requested channel", as
       {
         method: "POST",
         headers: { authorization: "Bearer wrong" },
-        body: rawBody,
+        body: JSON.stringify({
+          channel: "github",
+          headers: {},
+          rawBodyBase64: Buffer.from(rawBody).toString("base64"),
+        }),
       },
     );
     expect(denied.status).toBe(401);
@@ -179,16 +187,28 @@ test("relay endpoint validates bearer token and preserves requested channel", as
       {
         method: "POST",
         headers: { authorization: "Bearer relay-secret" },
-        body: rawBody,
+        body: JSON.stringify({
+          channel: "github",
+          headers: {
+            "content-type": "application/json",
+            "x-github-delivery": "relay-delivery-1",
+            "x-github-event": "push",
+            "x-hub-signature-256": githubSignature("hook-secret", rawBody),
+          },
+          rawBodyBase64: Buffer.from(rawBody).toString("base64"),
+        }),
       },
     );
 
     expect(accepted.status).toBe(200);
     expect(harness.routed.at(-1)?.event).toMatchObject({
-      bodyText: "Deploy finished",
       channel: "github",
-      externalChatId: "repo-1",
-      summary: "deploy event",
+      deliveryId: "relay-delivery-1",
+      metadata: expect.objectContaining({
+        eventName: "push",
+        repository: "poco/roguent",
+      }),
+      summary: "push in poco/roguent",
     });
   } finally {
     harness.cleanup();

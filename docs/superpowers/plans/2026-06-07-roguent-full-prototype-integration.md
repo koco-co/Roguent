@@ -1633,17 +1633,19 @@
 - Modify: `src/engine/ingress/server.ts`
 - Create: `src/web/hud/settings/RelaySettings.tsx`
 - Test: `src/engine/integrations/relay.test.ts`
+- Test: `src/web/hud/Settings.test.tsx`
 
 **Output Standard:**
 - Relay token 存 SecretStore。
 - Relay forwarded request 仍走 signature validation。
-- UI 显示 relay connected/disconnected/blocked。
+- UI 显示 relay connected/disconnected/blocked，并由 Settings 面板真实读取 `connectorStatus.relay`。
+- Relay envelope headers 在转发前校验，非法 header name/value 走 `invalid_headers` 400 + audit，不产生 uncaught Request 构造异常。
 
 **Acceptance Standard:**
 - `bun test src/engine/integrations/relay.test.ts` exit code 0。
 - Local fake relay E2E 能转发 GitHub fixture。
 
-- [ ] Add relay payload:
+- [x] Add relay payload:
   ```ts
   interface RelayEnvelope {
     channel: "github" | "x" | "feishu";
@@ -1651,9 +1653,17 @@
     rawBodyBase64: string;
   }
   ```
-- [ ] Run:
+- [x] Run:
   ```bash
   bun test src/engine/integrations/relay.test.ts
+  ```
+- [x] Verification:
+  ```text
+  bun test src/engine/integrations/relay.test.ts: exit 0, 6 pass, 0 fail, 22 expect() calls.
+  bun test src/engine/integrations/relay.test.ts src/engine/ingress/server.test.ts src/web/hud/Settings.test.tsx: exit 0, 18 pass, 0 fail, 61 expect() calls.
+  bunx tsc --noEmit: exit 0.
+  bun run check: exit 0, checked 243 files.
+  bun test: exit 0, 512 pass, 0 fail, 1 snapshot, 4327 expect() calls.
   ```
 
 ---

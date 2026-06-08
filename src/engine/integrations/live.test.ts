@@ -5,6 +5,7 @@ import { createTestDatabase } from "../persistence/db";
 import { migrate } from "../persistence/migrations";
 import { createRepositories } from "../persistence/repositories";
 import type { RuntimeDriverCreator } from "../runtime/manager";
+import { MemorySecretStore } from "../secrets/memory-store";
 import { SessionManager } from "../session";
 import { startLiveIntegrations } from "./live";
 import { PairingService } from "./pairing";
@@ -177,10 +178,12 @@ test("live integrations contain outbound publish failures from SessionManager ev
   }
 });
 
-test("live integrations publish X webhook connector status on startup", async () => {
+test("live integrations publish webhook connector statuses on startup", async () => {
   const testDb = createTestDatabase();
   try {
     migrate(testDb.db);
+    const secretStore = new MemorySecretStore();
+    await secretStore.put("secret:relay:token", "relay-secret");
     const sessions = new SessionManager(
       new CapturingRuntime(),
       "/tmp/roguent",
@@ -193,17 +196,23 @@ test("live integrations publish X webhook connector status on startup", async ()
 
     const live = startLiveIntegrations({
       db: testDb.db,
-      env: {},
+      env: {
+        ROGUENT_RELAY_TOKEN_REF: "secret:relay:token",
+        ROGUENT_RELAY_URL: "https://relay.example.com",
+      },
       imConnectors: {},
+      secretStore,
       sessions,
     });
 
     await waitFor(() =>
-      published.some(
-        (event) =>
-          event.type === "integration.status" &&
-          (event.payload as { status?: { channel?: unknown } }).status
-            ?.channel === "x",
+      ["x", "relay"].every((channel) =>
+        published.some(
+          (event) =>
+            event.type === "integration.status" &&
+            (event.payload as { status?: { channel?: unknown } }).status
+              ?.channel === channel,
+        ),
       ),
     );
 
@@ -216,6 +225,22 @@ test("live integrations publish X webhook connector status on startup", async ()
             channel: "x",
             metadata: { reason: "missing_webhook_secret" },
             state: "blocked",
+          }),
+        }),
+      }),
+    );
+    expect(published).toContainEqual(
+      expect.objectContaining({
+        sessionId: "integrations",
+        type: "integration.status",
+        payload: expect.objectContaining({
+          status: expect.objectContaining({
+            channel: "relay",
+            metadata: expect.objectContaining({
+              mode: "relay",
+              status: "configured",
+            }),
+            state: "connected",
           }),
         }),
       }),

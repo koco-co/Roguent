@@ -6,6 +6,12 @@ import {
   normalizeGitHubEvent,
   resolveGitHubWebhookSecret,
 } from "../integrations/github";
+import {
+  type RelayChannel,
+  parseRelayEnvelope,
+  relayEnvelopeToRequest,
+  resolveRelayToken,
+} from "../integrations/relay";
 import type { IntegrationRouter } from "../integrations/router";
 import type { IntegrationEvent } from "../integrations/types";
 import {
@@ -15,14 +21,6 @@ import {
 } from "../integrations/x";
 import type { SecretStore } from "../secrets/types";
 import { verifyGitHubSignature } from "./signatures";
-
-const CHANNELS = new Set<IntegrationChannel>([
-  "wechat",
-  "feishu",
-  "github",
-  "x",
-  "relay",
-]);
 
 export interface IngressServerOptions {
   currentSessionId?: () => string | null | undefined;
@@ -55,20 +53,7 @@ export function createIngressHandler(options: IngressServerOptions) {
     }
 
     if (request.method === "POST" && url.pathname === "/webhooks/x") {
-      return handleSignedJsonWebhook(request, options, {
-        channel: "x",
-        env,
-        normalize({ deliveryId, eventName, payload, rawBody }) {
-          return normalizeXEvent(payload, {
-            deliveryId,
-            eventName,
-            rawBodyHash: rawBodyHash(rawBody),
-          });
-        },
-        secretName: "ROGUENT_X_WEBHOOK_SECRET",
-        signatureHeader: "x-twitter-webhooks-signature",
-        verifier: verifyXWebhookSignature,
-      });
+      return handleXWebhook(request, options, env);
     }
 
     if (request.method === "POST" && url.pathname === "/webhooks/feishu") {
@@ -77,7 +62,7 @@ export function createIngressHandler(options: IngressServerOptions) {
 
     const relayMatch = url.pathname.match(/^\/webhooks\/relay\/([^/]+)$/);
     if (request.method === "POST" && relayMatch) {
-      const channel = parseChannel(relayMatch[1]);
+      const channel = parseRelayChannel(relayMatch[1]);
       if (!channel) return json({ error: "invalid channel" }, 400);
       return handleRelayWebhook(request, options, env, channel);
     }
@@ -132,6 +117,27 @@ async function handleGitHubWebhook(
     secretName: "ROGUENT_GITHUB_WEBHOOK_SECRET",
     signatureHeader: "x-hub-signature-256",
     verifier: verifyGitHubSignature,
+  });
+}
+
+async function handleXWebhook(
+  request: Request,
+  options: IngressServerOptions,
+  env: Record<string, string | undefined>,
+): Promise<Response> {
+  return handleSignedJsonWebhook(request, options, {
+    channel: "x",
+    env,
+    normalize({ deliveryId, eventName, payload, rawBody }) {
+      return normalizeXEvent(payload, {
+        deliveryId,
+        eventName,
+        rawBodyHash: rawBodyHash(rawBody),
+      });
+    },
+    secretName: "ROGUENT_X_WEBHOOK_SECRET",
+    signatureHeader: "x-twitter-webhooks-signature",
+    verifier: verifyXWebhookSignature,
   });
 }
 
@@ -239,11 +245,11 @@ async function handleRelayWebhook(
   request: Request,
   options: IngressServerOptions,
   env: Record<string, string | undefined>,
-  channel: IntegrationChannel,
+  channel: RelayChannel,
 ): Promise<Response> {
   const rawBody = new Uint8Array(await request.arrayBuffer());
   const deliveryId = deliveryIdFor(channel, request, "relay");
-  const token = env.ROGUENT_RELAY_TOKEN?.trim();
+  const token = await resolveRelayToken(env, options.secretStore);
   if (!token || request.headers.get("authorization") !== `Bearer ${token}`) {
     appendIngressAudit(options.db, {
       accepted: false,
@@ -269,25 +275,39 @@ async function handleRelayWebhook(
     return json({ error: "invalid json" }, 400);
   }
 
-  const event = normalizeWebhookEvent({
-    channel,
-    deliveryId,
-    eventName: stringField(parsed.value, "eventName") ?? "relay",
-    payload: parsed.value,
-    rawBody,
-  });
-  appendIngressAudit(options.db, {
-    accepted: true,
-    channel,
-    deliveryId,
-    eventName: "relay",
-    rawBody,
-    reason: "accepted",
-  });
-  await options.router.route(event, {
-    currentSessionId: options.currentSessionId?.() ?? null,
-  });
-  return json({ ok: true, id: event.id });
+  const relay = parseRelayEnvelope(parsed.value);
+  if (!relay.ok) {
+    appendIngressAudit(options.db, {
+      accepted: false,
+      channel,
+      deliveryId,
+      eventName: "relay",
+      rawBody,
+      reason: relay.reason,
+    });
+    return json({ error: relay.reason }, 400);
+  }
+
+  if (relay.envelope.channel !== channel) {
+    appendIngressAudit(options.db, {
+      accepted: false,
+      channel,
+      deliveryId,
+      eventName: "relay",
+      rawBody,
+      reason: "relay_channel_mismatch",
+    });
+    return json({ error: "relay channel mismatch" }, 400);
+  }
+
+  const forwarded = relayEnvelopeToRequest(relay.envelope, relay.rawBody);
+  if (channel === "github") {
+    return handleGitHubWebhook(forwarded, options, env);
+  }
+  if (channel === "x") {
+    return handleXWebhook(forwarded, options, env);
+  }
+  return handleFeishuWebhook(forwarded, options, env);
 }
 
 async function handleFeishuWebhook(
@@ -511,9 +531,11 @@ function parseJson(
   }
 }
 
-function parseChannel(value: string | undefined): IntegrationChannel | null {
-  if (!value || !CHANNELS.has(value as IntegrationChannel)) return null;
-  return value as IntegrationChannel;
+function parseRelayChannel(value: string | undefined): RelayChannel | null {
+  if (value === "github" || value === "x" || value === "feishu") {
+    return value;
+  }
+  return null;
 }
 
 function stringField(

@@ -6,10 +6,12 @@ import type {
 } from "../../shared/events";
 import { appendAuditRecord } from "../audit/log";
 import { KeychainSecretStore } from "../secrets/keychain";
+import type { SecretStore } from "../secrets/types";
 import type { SessionManager } from "../session";
 import { FeishuConnector } from "./feishu";
 import { IntegrationManager } from "./manager";
 import { PairingService } from "./pairing";
+import { relayConnectorStatus } from "./relay";
 import { IntegrationRouter } from "./router";
 import { createWeChatConnector } from "./wechat-node-host";
 import type { ImConnector } from "./wechat-types";
@@ -26,23 +28,28 @@ export interface LiveIntegrationOptions {
   sessions: SessionManager;
   env?: Record<string, string | undefined>;
   imConnectors?: Partial<Record<IntegrationChannel, ImConnector>>;
+  secretStore?: SecretStore;
 }
 
 export function startLiveIntegrations(
   options: LiveIntegrationOptions,
 ): LiveIntegrationRuntime {
   const env = options.env ?? Bun.env;
+  const secretStore = options.secretStore ?? new KeychainSecretStore();
   const router = createLiveIntegrationRouter(options.db, options.sessions);
   const manager = new IntegrationManager({
     imConnectors:
-      options.imConnectors ?? createDefaultImConnectors(options.db, env),
+      options.imConnectors ??
+      createDefaultImConnectors(options.db, env, secretStore),
     router,
   });
   const unsubscribe = options.sessions.subscribe((event) => {
     void manager.handleRoomEventSafely(event);
   });
   manager.start();
-  void publishWebhookConnectorStatuses(router, env).catch(() => {});
+  void publishWebhookConnectorStatuses(router, env, secretStore).catch(
+    () => {},
+  );
 
   return {
     manager,
@@ -57,8 +64,10 @@ export function startLiveIntegrations(
 async function publishWebhookConnectorStatuses(
   router: IntegrationRouter,
   env: Record<string, string | undefined>,
+  secretStore: SecretStore,
 ): Promise<void> {
   await router.publishStatus(xConnectorStatus(env));
+  await router.publishStatus(await relayConnectorStatus(env, secretStore));
 }
 
 export function createLiveIntegrationRouter(
@@ -108,6 +117,7 @@ export function createLiveIntegrationRouter(
 function createDefaultImConnectors(
   _db: Database,
   env: Record<string, string | undefined>,
+  secretStore: SecretStore,
 ): Partial<Record<IntegrationChannel, ImConnector>> {
   const connectors: Partial<Record<IntegrationChannel, ImConnector>> = {};
   if (env.ROGUENT_WECHAT_DISABLED !== "1") {
@@ -118,7 +128,7 @@ function createDefaultImConnectors(
   if (appIdSecretRef && appSecretRef) {
     connectors.feishu = new FeishuConnector({
       config: { appIdSecretRef, appSecretRef },
-      secretStore: new KeychainSecretStore(),
+      secretStore,
     });
   }
   return connectors;
