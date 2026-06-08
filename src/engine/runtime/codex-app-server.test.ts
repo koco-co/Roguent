@@ -3,6 +3,7 @@ import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import {
   CodexAppServerClient,
+  CodexAppServerDriver,
   type CodexAppServerSpawn,
   type CodexAppServerSpawnedProcess,
   CodexAppServerUnavailableError,
@@ -245,6 +246,70 @@ test("client responds to app-server approval and question requests by JSON-RPC i
   ]);
 
   await client.close();
+});
+
+test("driver forwards app-server approval responses and emits prompt resolution", async () => {
+  const fake = new FakeCodexServer();
+  const drafts: Array<{ type: string; payload: unknown }> = [];
+  const driver = new CodexAppServerDriver(
+    {
+      onDraft(items) {
+        drafts.push(...items);
+      },
+    },
+    {
+      runtime: "codex",
+      model: "gpt-5",
+      cwd: "/tmp/project",
+      permissionMode: "default",
+      approvalPolicy: "on-request",
+      sandboxMode: "workspace-write",
+      reasoningEffort: "medium",
+      networkAccess: false,
+    },
+    { spawn: fake.spawn, requestTimeoutMs: 50 },
+  );
+
+  driver.start();
+  await waitFor(() =>
+    drafts.some(
+      (draft) =>
+        draft.type === "runtime.status" &&
+        (draft.payload as { status?: string }).status === "running",
+    ),
+  );
+  fake.requestCurrent({
+    jsonrpc: "2.0",
+    id: 99,
+    method: "item/commandExecution/requestApproval",
+    params: {
+      threadId: "thread-1",
+      turnId: "turn-1",
+      itemId: "cmd-1",
+      command: "git status",
+    },
+  });
+  await waitFor(() =>
+    drafts.some((draft) => draft.type === "prompt.requested"),
+  );
+
+  driver.respondPermission("99", { behavior: "allow" });
+
+  await waitFor(() => fake.clientResponses.length === 1);
+  expect(fake.clientResponses).toEqual([
+    {
+      jsonrpc: "2.0",
+      id: "99",
+      result: { decision: "approved" },
+    },
+  ]);
+  await waitFor(() => drafts.some((draft) => draft.type === "prompt.resolved"));
+  expect(drafts.at(-1)).toEqual({
+    type: "prompt.resolved",
+    payload: { promptId: "99", result: "answered" },
+  });
+
+  driver.end();
 });
 
 test("interrupt sends a JSON-RPC request for the active thread", async () => {

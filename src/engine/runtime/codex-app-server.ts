@@ -1,8 +1,18 @@
 import { spawn as nodeSpawn } from "node:child_process";
 import type { EventEmitter } from "node:events";
 import type { Readable, Writable } from "node:stream";
+import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
+import type { RuntimeStatusPayload } from "../../shared/events";
+import type { RuntimeConfig } from "../../shared/runtime";
+import {
+  normalizePermissionMode,
+  normalizeReasoningEffort,
+  normalizeSandboxMode,
+} from "../../shared/runtime";
 import { redactAuditText } from "../audit/log";
+import type { DriverCallbacks, IDriver } from "./claude-driver";
 import { resolveCodexCliPath } from "./codex-capabilities";
+import { createCodexRuntimeNormalizer } from "./codex-normalize";
 import {
   type CodexInitializeResult,
   type CodexInterruptResult,
@@ -30,6 +40,7 @@ import {
   isCodexNotification,
   parseCodexProtocolLine,
 } from "./codex-protocol";
+import type { RuntimeSendMeta } from "./types";
 
 const APP_SERVER_ARGS = ["app-server", "--listen", "stdio://"] as const;
 const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
@@ -75,6 +86,181 @@ export class CodexAppServerUnavailableError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, options);
     this.name = "CodexAppServerUnavailableError";
+  }
+}
+
+export interface CodexAppServerDriverOptions
+  extends Omit<CodexAppServerClientOptions, "cwd"> {}
+
+export class CodexAppServerDriver implements IDriver {
+  private client: CodexAppServerClient | null = null;
+  private clientPromise: Promise<CodexAppServerClient> | null = null;
+  private unsubscribeEvents: (() => void) | null = null;
+  private ended = false;
+  private readonly normalizer = createCodexRuntimeNormalizer();
+
+  constructor(
+    private readonly callbacks: DriverCallbacks,
+    private config: RuntimeConfig & { cwd: string },
+    private readonly options: CodexAppServerDriverOptions = {},
+  ) {}
+
+  start(): void {
+    void this.ensureClient();
+  }
+
+  send(text: string, _meta?: RuntimeSendMeta): void {
+    if (this.ended) return;
+    void this.ensureClient()
+      .then((client) =>
+        client.send(text, {
+          thread: threadStartInput(this.config),
+        }),
+      )
+      .catch((error) => this.emitError(errorMessage(error)));
+  }
+
+  async setModel(model: string): Promise<void> {
+    this.config = { ...this.config, model };
+  }
+
+  async setPermissionMode(mode: string): Promise<void> {
+    this.config = {
+      ...this.config,
+      permissionMode: normalizePermissionMode(mode, this.config.permissionMode),
+    };
+  }
+
+  async setSandboxMode(mode: string): Promise<void> {
+    this.config = {
+      ...this.config,
+      sandboxMode: normalizeSandboxMode(mode, this.config.sandboxMode),
+    };
+  }
+
+  async setReasoningEffort(effort: string): Promise<void> {
+    this.config = {
+      ...this.config,
+      reasoningEffort: normalizeReasoningEffort(
+        effort,
+        this.config.reasoningEffort,
+      ),
+    };
+  }
+
+  async interrupt(): Promise<void> {
+    await this.client?.interrupt();
+  }
+
+  end(): void {
+    this.ended = true;
+    this.unsubscribeEvents?.();
+    this.unsubscribeEvents = null;
+    void this.client?.close();
+    this.client = null;
+    this.clientPromise = null;
+  }
+
+  async getContextUsage(): Promise<{
+    totalTokens: number;
+    maxTokens: number;
+  } | null> {
+    return null;
+  }
+
+  async askPermission(): Promise<{ behavior: "deny"; message: string }> {
+    return {
+      behavior: "deny",
+      message: "Codex app-server approvals are requested by the app-server.",
+    };
+  }
+
+  respondPermission(promptId: string, result: PermissionResult): void {
+    void this.ensureClient()
+      .then((client) => client.respondApproval(promptId, result.behavior))
+      .then(() => this.emitPromptResolved(promptId))
+      .catch((error) => this.emitError(errorMessage(error)));
+  }
+
+  respondQuestion(promptId: string, selectedLabels: string[]): void {
+    void this.ensureClient()
+      .then((client) => client.respondQuestion(promptId, selectedLabels))
+      .then(() => this.emitPromptResolved(promptId))
+      .catch((error) => this.emitError(errorMessage(error)));
+  }
+
+  private ensureClient(): Promise<CodexAppServerClient> {
+    if (this.client) return Promise.resolve(this.client);
+    if (this.clientPromise) return this.clientPromise;
+    this.emitStatus({ status: "starting" });
+    this.clientPromise = CodexAppServerClient.start({
+      ...this.options,
+      cwd: this.config.cwd,
+    })
+      .then((client) => {
+        if (this.ended) {
+          void client.close();
+          throw new Error("Codex app-server driver ended");
+        }
+        this.client = client;
+        this.unsubscribeEvents = client.onEvent((event) => {
+          const drafts = this.normalizer.normalize(event);
+          if (drafts.length > 0) this.callbacks.onDraft(drafts, Date.now());
+        });
+        this.emitStatus({
+          status: "running",
+          metadata: { mode: "app-server", realtime: true },
+        });
+        return client;
+      })
+      .catch((error) => {
+        this.clientPromise = null;
+        this.emitStatus({
+          status: "error",
+          error: errorMessage(error),
+          metadata: { mode: "app-server", realtime: true },
+        });
+        throw error;
+      });
+    return this.clientPromise;
+  }
+
+  private emitPromptResolved(promptId: string): void {
+    this.callbacks.onDraft(
+      [{ type: "prompt.resolved", payload: { promptId, result: "answered" } }],
+      Date.now(),
+    );
+  }
+
+  private emitError(message: string): void {
+    this.callbacks.onDraft(
+      [{ type: "session.error", payload: { message } }],
+      Date.now(),
+    );
+  }
+
+  private emitStatus(
+    payload: Omit<RuntimeStatusPayload, "runtime" | "config" | "cwd">,
+  ): void {
+    this.callbacks.onDraft(
+      [
+        {
+          type: "runtime.status",
+          payload: {
+            runtime: "codex",
+            config: this.runtimeConfig(),
+            cwd: this.config.cwd,
+            ...payload,
+          },
+        },
+      ],
+      Date.now(),
+    );
+  }
+
+  private runtimeConfig(): RuntimeConfig {
+    const { cwd: _cwd, ...config } = this.config;
+    return config;
   }
 }
 
@@ -514,6 +700,17 @@ function spawnCodexAppServerProcess(
   options: CodexAppServerSpawnOptions,
 ): CodexAppServerSpawnedProcess {
   return nodeSpawn(command, args, options) as CodexAppServerSpawnedProcess;
+}
+
+function threadStartInput(config: RuntimeConfig & { cwd: string }) {
+  return {
+    model: config.model,
+    cwd: config.cwd,
+    approvalPolicy: config.approvalPolicy,
+    sandbox: { mode: config.sandboxMode, networkAccess: config.networkAccess },
+    reasoningEffort: config.reasoningEffort,
+    experimentalRawEvents: true,
+  };
 }
 
 function mergeEnv(

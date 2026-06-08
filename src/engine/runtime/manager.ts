@@ -18,6 +18,7 @@ import {
   type DriverCallbacks,
   type IDriver,
 } from "./claude-driver";
+import { CodexAppServerDriver } from "./codex-app-server";
 import type { CodexCapabilities } from "./codex-capabilities";
 import { CodexExecFallbackDriver } from "./codex-exec-fallback";
 import type { RuntimeSendMeta } from "./types";
@@ -110,6 +111,11 @@ export class RuntimeManager implements RuntimeDriverCreator {
     if (shouldUseCodexExecFallback(this.codexCapabilities)) {
       return new CodexExecFallbackDriver(callbacks, resolved, {
         cliPath: this.codexCapabilities?.cliPath,
+      });
+    }
+    if (this.codexCapabilities?.appServer === "available") {
+      return new CodexAppServerDriver(callbacks, resolved, {
+        cliPath: this.codexCapabilities.cliPath,
       });
     }
     return new CodexStubDriver(callbacks, resolved, this.codexCapabilities);

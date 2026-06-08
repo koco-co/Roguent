@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import type { DriverCallbacks, IDriver } from "./claude-driver";
+import { CodexAppServerDriver } from "./codex-app-server";
 import type { CodexCapabilities } from "./codex-capabilities";
 import { CodexExecFallbackDriver } from "./codex-exec-fallback";
 import { RuntimeManager } from "./manager";
@@ -118,6 +119,23 @@ test("RuntimeManager selects Codex exec JSON fallback when app-server is unavail
   );
 
   expect(driver).toBeInstanceOf(CodexExecFallbackDriver);
+});
+
+test("RuntimeManager selects Codex app-server driver when app-server is available", () => {
+  const capabilities: CodexCapabilities = {
+    cliPath: "/tmp/codex",
+    version: "codex-cli 0.133.0",
+    appServer: "available",
+    execJson: "available",
+  };
+  const manager = new RuntimeManager({ codexCapabilities: capabilities });
+
+  const driver = manager.createDriver(
+    { onDraft() {} },
+    { runtime: "codex", model: "gpt-5", cwd: "/repo" },
+  );
+
+  expect(driver).toBeInstanceOf(CodexAppServerDriver);
 });
 
 test("RuntimeManager includes provided Codex capabilities in unavailable status metadata", () => {
