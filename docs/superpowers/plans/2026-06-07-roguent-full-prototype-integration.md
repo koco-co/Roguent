@@ -1273,32 +1273,42 @@
 
 **Output Standard:**
 - Bun-first connector 使用 docs 的 QR pairing 和 long polling。
-- inbound message 映射 `externalChatId/bodyText/displayName/contextToken`。
+- inbound message 映射 `externalChatId/bodyText/displayName`;SDK `_contextToken` 只保留在 connector 私有 message cache 中,不得进入 metadata/WS/audit/fixtures。
 - outbound reply 使用 SDK `reply()` 以保留上下文。
+- SDK file storage 默认放在 Roguent 用户数据目录(`~/Library/Application Support/Roguent/wechat` 或 XDG data path),可用 `ROGUENT_WECHAT_STORAGE_DIR` 覆盖。
 - Bun 不兼容时返回 typed error，交给 Node 22 host。
 
 **Acceptance Standard:**
 - `bun test src/engine/integrations/wechat.test.ts` exit code 0 with mocked SDK。
 - Real smoke script 能显示 QR 或记录 blocker；blocker 不阻塞其他 tasks。
 
-- [ ] Add dependency:
+- [x] Add dependency:
   ```bash
   bun add @wechatbot/wechatbot
   ```
-- [ ] Adapter shape:
+- [x] Adapter shape:
   ```ts
   export class WeChatConnector implements ImConnector {
-    constructor(private readonly deps: WeChatDeps) {}
+    constructor(options?: WeChatConnectorOptions) {}
   }
   ```
-- [ ] Add mocked SDK test for reply context token.
-- [ ] Run:
+- [x] Add mocked SDK test for reply context token.
+- [x] Run:
   ```bash
   bun test src/engine/integrations/wechat.test.ts
   ```
-- [ ] Real smoke command:
+- [x] Real smoke command:
   ```bash
   bun run scripts/smoke-wechat-pairing.ts
+  ```
+- [x] Verification:
+  ```text
+  bun add @wechatbot/wechatbot: installed @wechatbot/wechatbot@2.1.1.
+  bun test src/engine/integrations/wechat.test.ts: 8 pass, 0 fail, 22 expect() calls.
+  bun run scripts/smoke-wechat-pairing.ts: exit 0, status=blocked, blocker="Network error: Was there a typo in the url or port?", blockerCodes=["wechat_sdk_error"], node22FallbackRecommended=false.
+  bunx tsc --noEmit: exit 0.
+  bun run check: exit 0, checked 213 files.
+  bun test: 443 pass, 0 fail, 1 snapshot, 4144 expect() calls.
   ```
 
 ---

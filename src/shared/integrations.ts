@@ -37,6 +37,7 @@ export interface NormalizedIntegrationEvent {
   threadId?: string;
   from?: string;
   to?: string;
+  displayName?: string;
   payload?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
 }

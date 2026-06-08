@@ -15,6 +15,9 @@ export interface IntegrationEvent {
   deliveryId?: string;
   summary: string;
   bodyText?: string;
+  from?: string;
+  displayName?: string;
+  metadata?: Record<string, unknown>;
   receivedAt: number;
 }
 

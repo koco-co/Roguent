@@ -157,6 +157,9 @@ export class IntegrationRouter {
       externalChatId: event.externalChatId,
       deliveryId: event.deliveryId,
       bodyText: event.bodyText,
+      from: event.from,
+      displayName: event.displayName,
+      metadata: event.metadata,
       ts: event.receivedAt,
     };
   }
