@@ -256,6 +256,13 @@ export function selectMailboxBoardItems(
   options: MailboxBoardItemsOptions = {},
 ): MailboxItem[] {
   const mailbox = state.mailbox ?? createMailboxState();
+  return selectMailboxBoardItemsFromMailbox(mailbox, options);
+}
+
+export function selectMailboxBoardItemsFromMailbox(
+  mailbox: MailboxState,
+  options: MailboxBoardItemsOptions = {},
+): MailboxItem[] {
   const now = options.now ?? Date.now();
   const start = startOfLocalDay(now);
   const end = start + 24 * 60 * 60 * 1000;

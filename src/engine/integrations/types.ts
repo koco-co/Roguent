@@ -4,6 +4,7 @@ import type {
   IntegrationStatusPayload,
   MailboxItem,
   MailboxItemCreatedPayload,
+  MailboxItemUpdatedPayload,
   NormalizedIntegrationEvent,
   PairingBinding,
 } from "../../shared/integrations";
@@ -91,6 +92,12 @@ export type IntegrationRouterEvent =
       sessionId: string;
       type: "mailbox.item.created";
       payload: MailboxItemCreatedPayload;
+      ts: number;
+    }
+  | {
+      sessionId: string;
+      type: "mailbox.item.updated";
+      payload: MailboxItemUpdatedPayload;
       ts: number;
     }
   | {

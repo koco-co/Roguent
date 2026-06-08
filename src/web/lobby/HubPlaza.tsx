@@ -20,10 +20,7 @@ import { useSpriteTick } from "./sprite-tick";
 const VW = 1920;
 const VH = 1080;
 
-type Action = Extract<
-  PanelId,
-  "sessiongrid" | "shop" | "leaderboard" | "settings"
->;
+type Action = Extract<PanelId, "sessiongrid" | "shop" | "board" | "settings">;
 
 interface Interactable {
   id: string;
@@ -60,9 +57,9 @@ const INTERACT: Interactable[] = [
     x: 440,
     y: 380,
     r: 140,
-    label: "排行榜",
-    sub: "RANKING",
-    action: "leaderboard",
+    label: "公告板",
+    sub: "BOARD",
+    action: "board",
   },
   {
     id: "altar",

@@ -22,6 +22,8 @@ import { SystemMenu } from "./SystemMenu";
 import { TaskWindow } from "./TaskWindow";
 import { Tasks } from "./Tasks";
 import { ViewSwitch } from "./ViewSwitch";
+import { BoardPanel } from "./mailbox/BoardPanel";
+import { MailboxPanel } from "./mailbox/MailboxPanel";
 import { PairingPanelHost } from "./pairing/PairingPanel";
 
 export function Hud() {
@@ -52,6 +54,8 @@ export function Hud() {
       <AgentCard />
       <LootPanel />
       <ChatDrawer />
+      <MailboxPanel />
+      <BoardPanel />
       <PairingPanelHost />
       <ModelPicker />
       <Skills />

@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
+import type { MailboxItem } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
 import type { SessionManager } from "./session";
-import { WsGateway } from "./ws-gateway";
+import { type GatewayMailboxService, WsGateway } from "./ws-gateway";
 
 type TestWebSocketServer = {
   address(): unknown;
@@ -164,6 +165,116 @@ test("WsGateway replies with commandError control for unimplemented prototype co
     reason: "Command not implemented: settings.update",
   });
   expect("seq" in msg).toBe(false);
+});
+
+test("WsGateway handles mailbox commands through MailboxService and publishes updates", async () => {
+  const sent: string[] = [];
+  const published: unknown[] = [];
+  const runtimeMessages: unknown[] = [];
+  const mailboxCalls: unknown[] = [];
+  const item: MailboxItem = {
+    id: "mail-1",
+    source: "github",
+    title: "CI failed",
+    summary: "build failed",
+    ts: 100,
+    status: "unread",
+    sessionId: "s1",
+  };
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const mailbox: GatewayMailboxService = {
+    markRead(itemId) {
+      mailboxCalls.push({ action: "markRead", itemId });
+      return { ...item, status: "read" };
+    },
+    archive(itemId) {
+      mailboxCalls.push({ action: "archive", itemId });
+      return { ...item, status: "archived" };
+    },
+    resend(itemId, options) {
+      mailboxCalls.push({ action: "resend", itemId, options });
+      return {
+        item,
+        targetSessionId: options?.targetSessionId ?? item.sessionId ?? "s1",
+        text: "resend text",
+      };
+    },
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    sendMessage: (sessionId: string, text: string) =>
+      runtimeMessages.push({ sessionId, text }),
+    publishIntegrationEvent: (event: unknown) => published.push(event),
+  } as unknown as SessionManager;
+  const gateway = new WsGateway(0, mgr, undefined, { mailbox });
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({ cmd: "mailbox", action: "markRead", itemId: "mail-1" }),
+      ws,
+    );
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({ cmd: "mailbox", action: "archive", itemId: "mail-1" }),
+      ws,
+    );
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "mailbox",
+        action: "invokeAction",
+        itemId: "mail-1",
+        actionId: "resend",
+        metadata: { targetSessionId: "s2" },
+      }),
+      ws,
+    );
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(sent).toEqual([]);
+  expect(mailboxCalls).toEqual([
+    { action: "markRead", itemId: "mail-1" },
+    { action: "archive", itemId: "mail-1" },
+    {
+      action: "resend",
+      itemId: "mail-1",
+      options: { targetSessionId: "s2" },
+    },
+  ]);
+  expect(runtimeMessages).toEqual([{ sessionId: "s2", text: "resend text" }]);
+  expect(published).toEqual([
+    {
+      sessionId: "s1",
+      type: "mailbox.item.updated",
+      ts: expect.any(Number),
+      payload: {
+        item: { ...item, status: "read" },
+        changes: { status: "read" },
+      },
+    },
+    {
+      sessionId: "s1",
+      type: "mailbox.item.updated",
+      ts: expect.any(Number),
+      payload: {
+        item: { ...item, status: "archived" },
+        changes: { status: "archived" },
+      },
+    },
+    {
+      sessionId: "s1",
+      type: "mailbox.item.updated",
+      ts: expect.any(Number),
+      payload: { item },
+    },
+  ]);
 });
 
 test("WsGateway passes setRuntimeConfig through to SessionManager", async () => {

@@ -9,8 +9,6 @@ import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { HeroPortrait } from "./HeroPortrait";
 import { Modal } from "./Modal";
-import { Icon } from "./icons";
-import { MOCK_MAILBOX, MOCK_OWNERS } from "./mock-data";
 import { TODO_META, sessionTodos } from "./todos-view";
 
 // 三组渲染顺序(对标原型):待办 → 进行中 → 完成。
@@ -31,9 +29,8 @@ function ownerHero(agentId: string, session: Session | undefined): string {
 /**
  * 共享任务面板 Tasks(对标设计原型 panels1.jsx 的 Tasks):左列按状态分组的**当前会话
  * 真实 TodoWrite 待办**(归属 = 真 agent)+ 右列选中详情。**真数据**:来自 store 的
- * Session.todos。底部 inter-agent 信箱**仍为标注 mock**(引擎不暴露 agent 间信箱),
- * 以局部 banner 显式标注、绝不冒充真实。activePanel gate 的 return null 放在所有 hooks
- * 之后;selector 只取基元 / 稳定引用(zustand 铁律)。
+ * Session.todos。activePanel gate 的 return null 放在所有 hooks 之后;selector 只取
+ * 基元 / 稳定引用(zustand 铁律)。
  */
 export function Tasks() {
   const active = useUiStore((s) => s.activePanel === "tasks");
@@ -139,40 +136,6 @@ export function Tasks() {
             ) : (
               <div className="faint">选择一个待办</div>
             )}
-          </div>
-        </div>
-
-        {/* 信箱:inter-agent 消息 —— 引擎无对应能力,**局部标注 mock**(绝不冒充真实)。 */}
-        <div className="mailbox">
-          <div className="task-mock-banner" style={{ marginBottom: 10 }}>
-            <Icon name="error" size={14} glow="#f2c84b" />
-            信箱为示例 · 引擎暂无 inter-agent 信箱
-          </div>
-          <div
-            className="px gold"
-            style={{
-              fontSize: 9,
-              marginBottom: 10,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <Icon name="chat" size={16} glow="#f2c84b" />
-            信箱 · inter-agent
-          </div>
-          <div className="mb-list">
-            {MOCK_MAILBOX.map((m, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: 静态 mock 列表,无重排
-              <div key={i} className="mb-msg">
-                <span className="cyan">
-                  {MOCK_OWNERS[m.from]?.name ?? m.from}
-                </span>
-                <span className="faint"> → </span>
-                <span className="gold">{MOCK_OWNERS[m.to]?.name ?? m.to}</span>
-                <span className="dim">：{m.text}</span>
-              </div>
-            ))}
           </div>
         </div>
       </div>

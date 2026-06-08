@@ -2,6 +2,7 @@ import { WebSocketServer } from "ws";
 import { readOauthCredentials } from "./credentials";
 import { resolveIngressPort, startIngressServer } from "./ingress/server";
 import { startLiveIntegrations } from "./integrations/live";
+import { createMailboxService } from "./mailbox/service";
 import { openDatabase, resolveDatabasePath } from "./persistence/db";
 import { migrate } from "./persistence/migrations";
 import { resolvePort } from "./port";
@@ -43,7 +44,9 @@ if (replayFixture) {
   const db = openDatabase(resolveDatabasePath());
   migrate(db);
   const mgr = new SessionManager(undefined, process.cwd(), { auditDb: db });
-  const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`));
+  const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`), {
+    mailbox: createMailboxService(db),
+  });
   const integrations = startLiveIntegrations({ db, sessions: mgr });
   const ingressPort = resolveIngressPort(process.env);
   if (ingressPort !== null && ingressPort === port && port !== 0) {

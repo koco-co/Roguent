@@ -1727,7 +1727,13 @@
 - Create: `src/web/hud/mailbox/MailboxPanel.tsx`
 - Create: `src/web/hud/mailbox/BoardPanel.tsx`
 - Create: `src/web/hud/mailbox/InboxItemRow.tsx`
-- Modify: `src/web/lobby/LobbyView.tsx`
+- Modify: `src/web/hud/Hud.tsx`
+- Modify: `src/web/hud/ButtonDock.tsx`
+- Modify: `src/web/hud/Hotbar.tsx`
+- Modify: `src/web/hud/Tasks.tsx`
+- Modify: `src/web/lobby/HubPlaza.tsx`
+- Modify: `src/web/ui-store.ts`
+- Modify: `src/web/styles.css`
 - Test: `src/web/hud/mailbox/MailboxPanel.test.tsx`
 
 **Output Standard:**
@@ -1739,15 +1745,31 @@
 - `bun test src/web/hud/mailbox/MailboxPanel.test.tsx` exit code 0。
 - Playwright screenshot artifact 覆盖空状态和有数据状态。
 
-- [ ] Add UI test for archive command:
+- [x] Add UI test for archive command:
   ```tsx
   await user.click(screen.getByRole("button", { name: "Archive" }));
   expect(sendCommand).toHaveBeenCalledWith({ cmd: "mailbox", action: "archive", itemId: "i1" });
   ```
-- [ ] Run:
+- [x] Run:
   ```bash
   bun test src/web/hud/mailbox/MailboxPanel.test.tsx
+  # exit code 0; 4 pass, 0 fail, 21 expect() calls
+  bun test src/engine/ws-gateway.test.ts src/web/hud/mailbox/MailboxPanel.test.tsx src/web/store.mailbox.test.ts
+  # exit code 0; 13 pass, 0 fail, 42 expect() calls
+  bun test src/engine/runtime/codex-capabilities.test.ts
+  # exit code 0; 6 pass, 0 fail, 20 expect() calls
+  bunx tsc --noEmit
+  # exit code 0
+  bun run check
+  # exit code 0; Checked 250 files, no fixes applied
+  bun test
+  # exit code 0; 523 pass, 0 fail, 1 snapshots, 4374 expect() calls
   ```
+- [x] Browser screenshot artifacts:
+  - Empty mailbox: `/private/tmp/roguent-task34-mailbox-empty.png`
+  - Mailbox with replay data: `/private/tmp/roguent-task34-mailbox-data.png`
+  - Board with replay data: `/private/tmp/roguent-task34-board-data.png`
+  - Browser checks: `http://127.0.0.1:5173/`, title `Roguent`, console error/warn logs `[]`, interaction proof GitHub filter hides runtime item.
 
 ---
 

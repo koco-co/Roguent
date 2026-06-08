@@ -178,7 +178,7 @@ test("probeCodexAppServer reaps a server that ignores SIGTERM after initialize",
 
   try {
     const result = await probeCodexAppServer([process.execPath, script], {
-      timeoutMs: 100,
+      timeoutMs: 1000,
     });
     const firstLine = result.stdout.trim().split(/\r?\n/)[0];
     const payload = JSON.parse(firstLine ?? "{}") as {

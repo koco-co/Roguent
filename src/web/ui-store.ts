@@ -15,6 +15,8 @@ export type PanelId =
   | "leaderboard"
   | "backpack"
   | "chat"
+  | "mailbox"
+  | "board"
   | "pairing"
   | "model"
   | "import"

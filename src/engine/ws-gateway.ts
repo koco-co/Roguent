@@ -1,10 +1,28 @@
 import { basename } from "node:path";
 import { type WebSocket, WebSocketServer } from "ws";
 import { type ClientCommand, parseClientCommand } from "../shared/commands";
-import type { AccountLimits, LimitsMessage, RoomEvent } from "../shared/events";
+import type {
+  AccountLimits,
+  LimitsMessage,
+  MailboxItem,
+  RoomEvent,
+} from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
 import { listLocalSessions } from "./local-sessions";
 import type { SessionManager } from "./session";
+
+export interface GatewayMailboxService {
+  markRead(itemId: string): MailboxItem;
+  archive(itemId: string): MailboxItem;
+  resend(
+    itemId: string,
+    options?: { targetSessionId?: string },
+  ): { item: MailboxItem; targetSessionId: string; text: string };
+}
+
+export interface WsGatewayOptions {
+  mailbox?: GatewayMailboxService;
+}
 
 export class WsGateway {
   private wss: WebSocketServer;
@@ -16,6 +34,7 @@ export class WsGateway {
     port: number,
     private mgr: SessionManager,
     onListening?: (port: number) => void,
+    private readonly options: WsGatewayOptions = {},
   ) {
     this.wss = new WebSocketServer({ port });
     if (onListening) {
@@ -118,6 +137,8 @@ export class WsGateway {
           c.sessionId,
           "setRuntimeConfig requires sessionId",
         );
+    } else if (c.cmd === "mailbox") {
+      this.handleMailboxCommand(c, ws);
     } else {
       this.replyCommandError(
         ws,
@@ -125,6 +146,61 @@ export class WsGateway {
         `Command not implemented: ${commandLabel(c)}`,
       );
     }
+  }
+
+  private handleMailboxCommand(
+    c: Extract<ClientCommand, { cmd: "mailbox" }>,
+    ws: WebSocket,
+  ): void {
+    const mailbox = this.options.mailbox;
+    if (!mailbox) {
+      this.replyCommandError(ws, undefined, "Mailbox service unavailable");
+      return;
+    }
+    try {
+      if (c.action === "markRead") {
+        this.publishMailboxUpdate(mailbox.markRead(c.itemId), {
+          status: "read",
+        });
+      } else if (c.action === "archive") {
+        this.publishMailboxUpdate(mailbox.archive(c.itemId), {
+          status: "archived",
+        });
+      } else if (c.action === "invokeAction" && c.actionId === "resend") {
+        const result = mailbox.resend(c.itemId, {
+          targetSessionId: stringMetadata(c.metadata, "targetSessionId"),
+        });
+        this.mgr.sendMessage(result.targetSessionId, result.text);
+        this.publishMailboxUpdate(result.item);
+      } else {
+        this.replyCommandError(
+          ws,
+          undefined,
+          `Unsupported mailbox action: ${commandLabel(c)}`,
+        );
+      }
+    } catch (error) {
+      this.replyCommandError(
+        ws,
+        undefined,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  private publishMailboxUpdate(
+    item: MailboxItem,
+    changes?: Partial<MailboxItem>,
+  ): void {
+    this.mgr.publishIntegrationEvent({
+      ts: Date.now(),
+      sessionId: item.sessionId ?? "__mailbox__",
+      type: "mailbox.item.updated",
+      payload: {
+        item,
+        ...(changes ? { changes } : {}),
+      },
+    });
   }
 
   private reply(ws: WebSocket, msg: ControlMessage): void {
@@ -154,4 +230,12 @@ function commandSessionId(command: ClientCommand): string | undefined {
 
 function commandLabel(command: ClientCommand): string {
   return "action" in command ? `${command.cmd}.${command.action}` : command.cmd;
+}
+
+function stringMetadata(
+  metadata: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() ? value : undefined;
 }
