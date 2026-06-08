@@ -7,6 +7,7 @@ import { openDatabase, resolveDatabasePath } from "./persistence/db";
 import { migrate } from "./persistence/migrations";
 import { resolvePort } from "./port";
 import { loadFixture, replayTimed } from "./record";
+import { createSchedulerService } from "./scheduler/service";
 import { KeychainSecretStore } from "./secrets/keychain";
 import { SessionManager } from "./session";
 import { UsagePoller, defaultFetchUsage } from "./usage-poller";
@@ -46,6 +47,7 @@ if (replayFixture) {
   const mgr = new SessionManager(undefined, process.cwd(), { auditDb: db });
   const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`), {
     mailbox: createMailboxService(db),
+    scheduler: createSchedulerService(db),
   });
   const integrations = startLiveIntegrations({ db, sessions: mgr });
   const ingressPort = resolveIngressPort(process.env);

@@ -8,6 +8,11 @@ import type {
   RoomEvent,
 } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
+import type {
+  SchedulerRun,
+  SchedulerTask,
+  SchedulerTaskDraft,
+} from "../shared/scheduler";
 import { listLocalSessions } from "./local-sessions";
 import type { SessionManager } from "./session";
 
@@ -20,8 +25,16 @@ export interface GatewayMailboxService {
   ): { item: MailboxItem; targetSessionId: string; text: string };
 }
 
+export interface GatewaySchedulerService {
+  createTask(task: SchedulerTaskDraft): SchedulerTask;
+  updateTask(taskId: string, changes: Partial<SchedulerTask>): SchedulerTask;
+  deleteTask(taskId: string): SchedulerTask;
+  runTask(taskId: string): SchedulerRun;
+}
+
 export interface WsGatewayOptions {
   mailbox?: GatewayMailboxService;
+  scheduler?: GatewaySchedulerService;
 }
 
 export class WsGateway {
@@ -139,11 +152,50 @@ export class WsGateway {
         );
     } else if (c.cmd === "mailbox") {
       this.handleMailboxCommand(c, ws);
+    } else if (c.cmd === "scheduler") {
+      this.handleSchedulerCommand(c, ws);
     } else {
       this.replyCommandError(
         ws,
         commandSessionId(c),
         `Command not implemented: ${commandLabel(c)}`,
+      );
+    }
+  }
+
+  private handleSchedulerCommand(
+    c: Extract<ClientCommand, { cmd: "scheduler" }>,
+    ws: WebSocket,
+  ): void {
+    const scheduler = this.options.scheduler;
+    if (!scheduler) {
+      this.replyCommandError(ws, undefined, "Scheduler service unavailable");
+      return;
+    }
+    try {
+      if (c.action === "createTask") {
+        const task = scheduler.createTask(c.task);
+        this.publishSchedulerTask("scheduler.task.created", task);
+      } else if (c.action === "updateTask") {
+        const task = scheduler.updateTask(c.taskId, c.changes);
+        this.publishSchedulerTask("scheduler.task.updated", task);
+      } else if (c.action === "deleteTask") {
+        const task = scheduler.deleteTask(c.taskId);
+        this.publishSchedulerTask("scheduler.task.updated", task);
+      } else if (c.action === "runTask") {
+        scheduler.runTask(c.taskId);
+      } else {
+        this.replyCommandError(
+          ws,
+          undefined,
+          `Unsupported scheduler action: ${commandLabel(c)}`,
+        );
+      }
+    } catch (error) {
+      this.replyCommandError(
+        ws,
+        undefined,
+        error instanceof Error ? error.message : String(error),
       );
     }
   }
@@ -198,6 +250,22 @@ export class WsGateway {
       type: "mailbox.item.updated",
       payload: {
         item,
+        ...(changes ? { changes } : {}),
+      },
+    });
+  }
+
+  private publishSchedulerTask(
+    type: "scheduler.task.created" | "scheduler.task.updated",
+    task: SchedulerTask,
+    changes?: Partial<SchedulerTask>,
+  ): void {
+    this.mgr.publishIntegrationEvent({
+      ts: Date.now(),
+      sessionId: task.targetSessionId ?? "__scheduler__",
+      type,
+      payload: {
+        task,
         ...(changes ? { changes } : {}),
       },
     });

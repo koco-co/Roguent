@@ -47,8 +47,18 @@ export interface SchedulerTask {
   cwd?: string;
   runtime?: RuntimeConfig;
   schedule?: SchedulerRecurrence;
+  targetSessionId?: string;
   metadata?: Record<string, unknown>;
 }
+
+export type SchedulerTaskDraft = SchedulerTask & {
+  cwd: string;
+  runtime: RuntimeConfig & {
+    reasoningEffort: NonNullable<RuntimeConfig["reasoningEffort"]>;
+  };
+  schedule: SchedulerRecurrence;
+  targetSessionId: string;
+};
 
 export interface SchedulerRun {
   id: string;

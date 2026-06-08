@@ -21,6 +21,7 @@ import type {
   SchedulerRecurrence,
   SchedulerRun,
   SchedulerTask,
+  SchedulerTaskDraft,
   SchedulerTaskStatus,
 } from "./scheduler";
 
@@ -137,7 +138,7 @@ export type SchedulerCommand =
   | {
       cmd: "scheduler";
       action: "createTask";
-      task: SchedulerTask;
+      task: SchedulerTaskDraft;
     }
   | {
       cmd: "scheduler";
@@ -266,6 +267,7 @@ const SCHEDULER_TASK_KEYS = [
   "cwd",
   "runtime",
   "schedule",
+  "targetSessionId",
   "metadata",
 ] as const;
 const ROGUENT_SETTINGS_KEYS = [
@@ -295,6 +297,7 @@ const RECURRENCE_MONTHLY_KEYS = [
   "minute",
   "timezone",
 ] as const;
+const RESERVED_SCHEDULER_METADATA_KEYS = ["__targetSessionId"] as const;
 
 export function parseClientCommand(raw: unknown): ParseClientCommandResult {
   const parsed = parseRawCommand(raw);
@@ -577,7 +580,7 @@ function parseSchedulerCommand(
 ): ParseClientCommandResult {
   switch (o.action) {
     case "createTask": {
-      const task = parseSchedulerTask(o.task);
+      const task = parseSchedulerTaskDraft(o.task);
       if (task === null)
         return fail("Invalid scheduler command", sessionIdOf(o));
       return {
@@ -767,6 +770,21 @@ function parseRuntimeConfig(value: unknown): RuntimeConfig | null {
   };
 }
 
+function parseSchedulerTaskDraft(value: unknown): SchedulerTaskDraft | null {
+  const task = parseSchedulerTask(value);
+  if (
+    task === null ||
+    typeof task.cwd !== "string" ||
+    task.runtime === undefined ||
+    task.runtime.reasoningEffort === undefined ||
+    task.schedule === undefined ||
+    typeof task.targetSessionId !== "string"
+  ) {
+    return null;
+  }
+  return task as SchedulerTaskDraft;
+}
+
 function parseSchedulerTask(value: unknown): SchedulerTask | null {
   if (!isRecord(value)) return null;
   const runtime =
@@ -786,6 +804,8 @@ function parseSchedulerTask(value: unknown): SchedulerTask | null {
     !optionalString(value.cwd) ||
     runtime === null ||
     schedule === null ||
+    !optionalString(value.targetSessionId) ||
+    hasReservedSchedulerMetadata(value.metadata) ||
     !optionalRecord(value.metadata)
   ) {
     return null;
@@ -801,6 +821,9 @@ function parseSchedulerTask(value: unknown): SchedulerTask | null {
     ...(value.cwd !== undefined ? { cwd: value.cwd } : {}),
     ...(runtime !== undefined ? { runtime } : {}),
     ...(schedule !== undefined ? { schedule } : {}),
+    ...(value.targetSessionId !== undefined
+      ? { targetSessionId: value.targetSessionId }
+      : {}),
     ...(value.metadata !== undefined ? { metadata: value.metadata } : {}),
   };
 }
@@ -853,11 +876,26 @@ function parsePartialSchedulerTask(
     if (schedule === null) return null;
     changes.schedule = schedule;
   }
+  if (value.targetSessionId !== undefined) {
+    if (typeof value.targetSessionId !== "string") return null;
+    changes.targetSessionId = value.targetSessionId;
+  }
   if (value.metadata !== undefined) {
-    if (!isRecord(value.metadata)) return null;
+    if (
+      !isRecord(value.metadata) ||
+      hasReservedSchedulerMetadata(value.metadata)
+    )
+      return null;
     changes.metadata = value.metadata;
   }
   return Object.keys(changes).length > 0 ? changes : null;
+}
+
+function hasReservedSchedulerMetadata(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    RESERVED_SCHEDULER_METADATA_KEYS.some((key) => key in value)
+  );
 }
 
 function parseSchedulerRecurrence(value: unknown): SchedulerRecurrence | null {

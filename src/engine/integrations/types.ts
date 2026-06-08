@@ -1,4 +1,9 @@
 import type {
+  SchedulerRunStartedPayload,
+  SchedulerTaskCreatedPayload,
+  SchedulerTaskUpdatedPayload,
+} from "../../shared/events";
+import type {
   IntegrationChannel,
   IntegrationDirection,
   IntegrationStatusPayload,
@@ -110,6 +115,24 @@ export type IntegrationRouterEvent =
       sessionId: string;
       type: "integration.status";
       payload: IntegrationStatusPayload;
+      ts: number;
+    }
+  | {
+      sessionId: string;
+      type: "scheduler.task.created";
+      payload: SchedulerTaskCreatedPayload;
+      ts: number;
+    }
+  | {
+      sessionId: string;
+      type: "scheduler.task.updated";
+      payload: SchedulerTaskUpdatedPayload;
+      ts: number;
+    }
+  | {
+      sessionId: string;
+      type: "scheduler.run.started";
+      payload: SchedulerRunStartedPayload;
       ts: number;
     };
 

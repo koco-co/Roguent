@@ -1,8 +1,13 @@
 import { expect, test } from "bun:test";
 import type { MailboxItem } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
+import type { SchedulerTask } from "../shared/scheduler";
 import type { SessionManager } from "./session";
-import { type GatewayMailboxService, WsGateway } from "./ws-gateway";
+import {
+  type GatewayMailboxService,
+  type GatewaySchedulerService,
+  WsGateway,
+} from "./ws-gateway";
 
 type TestWebSocketServer = {
   address(): unknown;
@@ -273,6 +278,132 @@ test("WsGateway handles mailbox commands through MailboxService and publishes up
       type: "mailbox.item.updated",
       ts: expect.any(Number),
       payload: { item },
+    },
+  ]);
+});
+
+test("WsGateway handles scheduler commands through SchedulerService and publishes updates", async () => {
+  const sent: string[] = [];
+  const published: unknown[] = [];
+  const schedulerCalls: unknown[] = [];
+  const task: SchedulerTask = {
+    id: "task-1",
+    title: "Daily review",
+    prompt: "Summarize",
+    status: "enabled",
+    createdAt: 100,
+    updatedAt: 100,
+    nextRunAt: 200,
+    cwd: "/repo",
+    targetSessionId: "s-target",
+    runtime: {
+      runtime: "codex",
+      model: "gpt-5",
+      permissionMode: "bypassPermissions",
+      approvalPolicy: "never",
+      sandboxMode: "danger-full-access",
+      reasoningEffort: "high",
+      networkAccess: true,
+    },
+    schedule: { kind: "daily", hour: 9, minute: 0, timezone: "UTC" },
+  };
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const scheduler: GatewaySchedulerService = {
+    createTask(input) {
+      schedulerCalls.push({ action: "createTask", input });
+      return { ...input, nextRunAt: task.nextRunAt };
+    },
+    updateTask(taskId, changes) {
+      schedulerCalls.push({ action: "updateTask", taskId, changes });
+      return { ...task, ...changes };
+    },
+    deleteTask(taskId) {
+      schedulerCalls.push({ action: "deleteTask", taskId });
+      return { ...task, status: "archived" };
+    },
+    runTask(taskId) {
+      schedulerCalls.push({ action: "runTask", taskId });
+      return {
+        id: "run-1",
+        taskId,
+        status: "queued",
+        queuedAt: 300,
+      };
+    },
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    publishIntegrationEvent: (event: unknown) => published.push(event),
+  } as unknown as SessionManager;
+  const gateway = new WsGateway(0, mgr, undefined, { scheduler });
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({ cmd: "scheduler", action: "createTask", task }),
+      ws,
+    );
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "scheduler",
+        action: "updateTask",
+        taskId: task.id,
+        changes: { status: "disabled" },
+      }),
+      ws,
+    );
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "scheduler",
+        action: "deleteTask",
+        taskId: task.id,
+      }),
+      ws,
+    );
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({ cmd: "scheduler", action: "runTask", taskId: task.id }),
+      ws,
+    );
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(sent).toEqual([]);
+  expect(schedulerCalls).toEqual([
+    { action: "createTask", input: task },
+    { action: "updateTask", taskId: task.id, changes: { status: "disabled" } },
+    { action: "deleteTask", taskId: task.id },
+    { action: "runTask", taskId: task.id },
+  ]);
+  expect(published).toEqual([
+    {
+      sessionId: "s-target",
+      type: "scheduler.task.created",
+      ts: expect.any(Number),
+      payload: { task: { ...task, nextRunAt: 200 } },
+    },
+    {
+      sessionId: "s-target",
+      type: "scheduler.task.updated",
+      ts: expect.any(Number),
+      payload: {
+        task: { ...task, status: "disabled" },
+      },
+    },
+    {
+      sessionId: "s-target",
+      type: "scheduler.task.updated",
+      ts: expect.any(Number),
+      payload: {
+        task: { ...task, status: "archived" },
+      },
     },
   ]);
 });

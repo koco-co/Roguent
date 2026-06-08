@@ -272,7 +272,18 @@ test("parseClientCommand accepts prototype command groups with typed shapes", ()
       prompt: "Summarize changes",
       status: "enabled",
       createdAt: 1,
+      cwd: "/repo",
+      runtime: {
+        runtime: "codex",
+        model: "gpt-5",
+        permissionMode: "bypassPermissions",
+        approvalPolicy: "never",
+        sandboxMode: "danger-full-access",
+        reasoningEffort: "high",
+        networkAccess: true,
+      },
       schedule: { kind: "once", runAt: 2 },
+      targetSessionId: "s1",
     },
   });
   expect(scheduler.ok && scheduler.command.cmd).toBe("scheduler");
@@ -283,6 +294,68 @@ test("parseClientCommand accepts prototype command groups with typed shapes", ()
   ).toBe("createTask");
 });
 
+test("parseClientCommand requires scheduler create task runtime permissions and target", () => {
+  const fullTask = {
+    id: "task-1",
+    title: "Daily review",
+    prompt: "Summarize changes",
+    status: "enabled",
+    createdAt: 1,
+    cwd: "/repo",
+    runtime: {
+      runtime: "codex",
+      model: "gpt-5",
+      permissionMode: "bypassPermissions",
+      approvalPolicy: "never",
+      sandboxMode: "danger-full-access",
+      reasoningEffort: "high",
+      networkAccess: true,
+    },
+    schedule: { kind: "daily", hour: 9, minute: 0, timezone: "UTC" },
+    targetSessionId: "s1",
+  };
+  for (const key of [
+    "cwd",
+    "runtime",
+    "schedule",
+    "targetSessionId",
+  ] as const) {
+    const task: Record<string, unknown> = { ...fullTask };
+    delete task[key];
+    expect(
+      parseClientCommand({ cmd: "scheduler", action: "createTask", task }).ok,
+    ).toBe(false);
+  }
+  expect(
+    parseClientCommand({
+      cmd: "scheduler",
+      action: "createTask",
+      task: {
+        ...fullTask,
+        runtime: { ...fullTask.runtime, reasoningEffort: undefined },
+      },
+    }).ok,
+  ).toBe(false);
+  expect(
+    parseClientCommand({
+      cmd: "scheduler",
+      action: "createTask",
+      task: {
+        ...fullTask,
+        metadata: { __targetSessionId: "hidden-session" },
+      },
+    }).ok,
+  ).toBe(false);
+  expect(
+    parseClientCommand({
+      cmd: "scheduler",
+      action: "updateTask",
+      taskId: "task-1",
+      changes: { metadata: { __targetSessionId: "hidden-session" } },
+    }).ok,
+  ).toBe(false);
+});
+
 test("parseClientCommand accepts scheduler daily weekly and monthly recurrence", () => {
   const baseTask = {
     id: "task-1",
@@ -290,6 +363,17 @@ test("parseClientCommand accepts scheduler daily weekly and monthly recurrence",
     prompt: "Summarize changes",
     status: "enabled",
     createdAt: 1,
+    cwd: "/repo",
+    runtime: {
+      runtime: "codex",
+      model: "gpt-5",
+      permissionMode: "bypassPermissions",
+      approvalPolicy: "never",
+      sandboxMode: "danger-full-access",
+      reasoningEffort: "high",
+      networkAccess: true,
+    },
+    targetSessionId: "s1",
   };
 
   const daily = parseClientCommand({
@@ -382,6 +466,17 @@ test("parseClientCommand rejects invalid scheduler recurrence payloads", () => {
       prompt: "Summarize changes",
       status: "enabled",
       createdAt: 1,
+      cwd: "/repo",
+      runtime: {
+        runtime: "codex",
+        model: "gpt-5",
+        permissionMode: "bypassPermissions",
+        approvalPolicy: "never",
+        sandboxMode: "danger-full-access",
+        reasoningEffort: "high",
+        networkAccess: true,
+      },
+      targetSessionId: "s1",
     },
   };
   for (const schedule of [

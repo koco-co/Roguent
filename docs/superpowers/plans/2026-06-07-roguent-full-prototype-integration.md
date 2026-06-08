@@ -1838,7 +1838,7 @@
 **Acceptance Standard:**
 - `bun test src/engine/scheduler/service.test.ts` exit code 0。
 
-- [ ] Define command:
+- [x] Define command:
   ```ts
   type SchedulerCreateCommand = {
     cmd: "scheduler";
@@ -1846,11 +1846,18 @@
     task: SchedulerTaskDraft;
   };
   ```
-- [ ] Add test asserting `permissionMode: "bypassPermissions"` is persisted.
-- [ ] Run:
+- [x] Add test asserting `permissionMode: "bypassPermissions"` is persisted.
+- [x] Run:
   ```bash
   bun test src/engine/scheduler/service.test.ts
   ```
+- [x] Evidence:
+  - `bun test src/engine/scheduler/service.test.ts`: covered service CRUD/run-now behavior in the combined Task36 target run.
+  - `bun test src/engine/scheduler/service.test.ts src/engine/ws-gateway.test.ts src/shared/commands.test.ts`: exit code 0; 22 pass, 0 fail, 106 expect() calls.
+  - `bunx tsc --noEmit`: exit code 0.
+  - `bun run check`: exit code 0; Biome checked 254 files, no fixes applied.
+  - `bun test`: exit code 0; 535 pass, 0 fail, 1 snapshot, 4434 expect() calls.
+  - Implementation notes: scheduler tasks persist prompt/cwd/runtime/schedule/targetSessionId via existing `scheduler_tasks` columns plus metadata compatibility key; `runTask` creates a queued run without pre-filling `session_id` to avoid FK failure before a runner creates/reuses a session; all service mutations append scheduler audit records; live `server.ts` injects `createSchedulerService(db)` into `WsGateway`; createTask command now uses strict `SchedulerTaskDraft` and rejects missing runtime/cwd/schedule/targetSessionId/reasoningEffort; gateway publishes authoritative task payloads without raw client changes and defers run-start events to the future runner; scheduler metadata rejects reserved `__targetSessionId`.
 
 ---
 

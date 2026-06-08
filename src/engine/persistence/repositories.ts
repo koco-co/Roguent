@@ -7,6 +7,7 @@ import type {
   MailboxItemStatus,
   MailboxSource,
 } from "../../shared/events";
+import type { SchedulerRun, SchedulerTask } from "../../shared/scheduler";
 
 export interface StoredSession {
   id: string;
@@ -114,6 +115,35 @@ type InboxItemRow = {
   metadata_json: string | null;
 };
 
+type SchedulerTaskRow = {
+  id: string;
+  title: string;
+  prompt_ref: string;
+  status: string;
+  created_at: number;
+  updated_at: number;
+  next_run_at: number | null;
+  cwd: string | null;
+  runtime_json: string | null;
+  schedule_json: string | null;
+  metadata_json: string | null;
+};
+
+type SchedulerRunRow = {
+  id: string;
+  task_id: string;
+  status: string;
+  queued_at: number | null;
+  started_at: number | null;
+  finished_at: number | null;
+  session_id: string | null;
+  summary: string | null;
+  error: string | null;
+  metadata_json: string | null;
+};
+
+const SCHEDULER_TARGET_SESSION_METADATA_KEY = "__targetSessionId";
+
 function mapSession(row: SessionRow): StoredSession {
   return {
     id: row.id,
@@ -203,6 +233,59 @@ function mapInboxItem(row: InboxItemRow): MailboxItem {
     actions: parseActions(row.actions_json),
     metadata: parseJsonObject(row.metadata_json),
   };
+}
+
+function mapSchedulerTask(row: SchedulerTaskRow): SchedulerTask {
+  const metadata = parseJsonObject(row.metadata_json);
+  const targetSessionIdValue =
+    metadata?.[SCHEDULER_TARGET_SESSION_METADATA_KEY];
+  if (metadata) delete metadata[SCHEDULER_TARGET_SESSION_METADATA_KEY];
+  const runtime = parseJson(row.runtime_json);
+  const schedule = parseJson(row.schedule_json);
+  return {
+    id: row.id,
+    title: row.title,
+    prompt: row.prompt_ref,
+    status: row.status as SchedulerTask["status"],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    nextRunAt: row.next_run_at,
+    ...(row.cwd !== null ? { cwd: row.cwd } : {}),
+    ...(runtime !== undefined
+      ? { runtime: runtime as SchedulerTask["runtime"] }
+      : {}),
+    ...(schedule !== undefined
+      ? { schedule: schedule as SchedulerTask["schedule"] }
+      : {}),
+    ...(typeof targetSessionIdValue === "string"
+      ? { targetSessionId: targetSessionIdValue }
+      : {}),
+    ...(metadata && Object.keys(metadata).length > 0 ? { metadata } : {}),
+  };
+}
+
+function mapSchedulerRun(row: SchedulerRunRow): SchedulerRun {
+  const metadata = parseJsonObject(row.metadata_json);
+  return {
+    id: row.id,
+    taskId: row.task_id,
+    status: row.status as SchedulerRun["status"],
+    ...(row.queued_at !== null ? { queuedAt: row.queued_at } : {}),
+    ...(row.started_at !== null ? { startedAt: row.started_at } : {}),
+    ...(row.finished_at !== null ? { finishedAt: row.finished_at } : {}),
+    ...(row.session_id !== null ? { sessionId: row.session_id } : {}),
+    ...(row.summary !== null ? { summary: row.summary } : {}),
+    ...(row.error !== null ? { error: row.error } : {}),
+    ...(metadata ? { metadata } : {}),
+  };
+}
+
+function schedulerTaskMetadataJson(task: SchedulerTask): string | null {
+  const metadata = { ...(task.metadata ?? {}) };
+  if (task.targetSessionId !== undefined) {
+    metadata[SCHEDULER_TARGET_SESSION_METADATA_KEY] = task.targetSessionId;
+  }
+  return Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null;
 }
 
 function startOfLocalDay(ts: number): number {
@@ -542,6 +625,155 @@ export function createRepositories(db: Database) {
           .map(mapInboxItem)
           .filter((item) => isBoardInboxItem(item, now))
           .slice(0, limit);
+      },
+    },
+
+    schedulerTasks: {
+      upsert(task: SchedulerTask): void {
+        db.query<
+          unknown,
+          [
+            string,
+            string,
+            string,
+            string,
+            number,
+            number,
+            number | null,
+            string | null,
+            string | null,
+            string | null,
+            string | null,
+          ]
+        >(`
+          INSERT INTO scheduler_tasks (
+            id,
+            title,
+            prompt_ref,
+            status,
+            created_at,
+            updated_at,
+            next_run_at,
+            cwd,
+            runtime_json,
+            schedule_json,
+            metadata_json
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            title = excluded.title,
+            prompt_ref = excluded.prompt_ref,
+            status = excluded.status,
+            updated_at = excluded.updated_at,
+            next_run_at = excluded.next_run_at,
+            cwd = excluded.cwd,
+            runtime_json = excluded.runtime_json,
+            schedule_json = excluded.schedule_json,
+            metadata_json = excluded.metadata_json
+        `).run(
+          task.id,
+          task.title,
+          task.prompt,
+          task.status,
+          task.createdAt,
+          task.updatedAt ?? task.createdAt,
+          task.nextRunAt ?? null,
+          task.cwd ?? null,
+          task.runtime ? JSON.stringify(task.runtime) : null,
+          task.schedule ? JSON.stringify(task.schedule) : null,
+          schedulerTaskMetadataJson(task),
+        );
+      },
+
+      get(id: string): SchedulerTask | null {
+        const row = db
+          .query<SchedulerTaskRow, [string]>(
+            "SELECT * FROM scheduler_tasks WHERE id = ? LIMIT 1",
+          )
+          .get(id);
+        return row ? mapSchedulerTask(row) : null;
+      },
+
+      list(limit = 100): SchedulerTask[] {
+        return db
+          .query<SchedulerTaskRow, [number]>(
+            "SELECT * FROM scheduler_tasks ORDER BY updated_at DESC, id DESC LIMIT ?",
+          )
+          .all(limit)
+          .map(mapSchedulerTask);
+      },
+    },
+
+    schedulerRuns: {
+      upsert(run: SchedulerRun): void {
+        db.query<
+          unknown,
+          [
+            string,
+            string,
+            string,
+            number | null,
+            number | null,
+            number | null,
+            string | null,
+            string | null,
+            string | null,
+            string | null,
+          ]
+        >(`
+          INSERT INTO scheduler_runs (
+            id,
+            task_id,
+            status,
+            queued_at,
+            started_at,
+            finished_at,
+            session_id,
+            summary,
+            error,
+            metadata_json
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            task_id = excluded.task_id,
+            status = excluded.status,
+            queued_at = excluded.queued_at,
+            started_at = excluded.started_at,
+            finished_at = excluded.finished_at,
+            session_id = excluded.session_id,
+            summary = excluded.summary,
+            error = excluded.error,
+            metadata_json = excluded.metadata_json
+        `).run(
+          run.id,
+          run.taskId,
+          run.status,
+          run.queuedAt ?? null,
+          run.startedAt ?? null,
+          run.finishedAt ?? null,
+          run.sessionId ?? null,
+          run.summary ?? null,
+          run.error ?? null,
+          run.metadata ? JSON.stringify(run.metadata) : null,
+        );
+      },
+
+      get(id: string): SchedulerRun | null {
+        const row = db
+          .query<SchedulerRunRow, [string]>(
+            "SELECT * FROM scheduler_runs WHERE id = ? LIMIT 1",
+          )
+          .get(id);
+        return row ? mapSchedulerRun(row) : null;
+      },
+
+      listByTask(taskId: string, limit = 100): SchedulerRun[] {
+        return db
+          .query<SchedulerRunRow, [string, number]>(
+            "SELECT * FROM scheduler_runs WHERE task_id = ? ORDER BY COALESCE(started_at, queued_at, finished_at, 0) DESC, id DESC LIMIT ?",
+          )
+          .all(taskId, limit)
+          .map(mapSchedulerRun);
       },
     },
   };
