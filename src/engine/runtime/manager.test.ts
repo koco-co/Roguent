@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import type { DriverCallbacks, IDriver } from "./claude-driver";
+import type { CodexCapabilities } from "./codex-capabilities";
 import { RuntimeManager } from "./manager";
 
 function fakeDriver(): IDriver {
@@ -98,4 +99,28 @@ test("RuntimeManager creates a Codex stub without constructing Claude", () => {
   expect(payload.config.runtime).toBe("codex");
   expect(payload.config.model).toBe("gpt-5");
   expect(payload.cwd).toBe("/repo");
+});
+
+test("RuntimeManager includes provided Codex capabilities in stub status metadata", () => {
+  const drafts: Array<{ type: string; payload: unknown }> = [];
+  const capabilities: CodexCapabilities = {
+    cliPath: "/tmp/codex",
+    version: "codex-cli 0.133.0",
+    appServer: "unavailable",
+    execJson: "available",
+    reason: "app-server unavailable",
+  };
+  const manager = new RuntimeManager({ codexCapabilities: capabilities });
+
+  const driver = manager.createDriver(
+    { onDraft: (items) => drafts.push(...items) },
+    { runtime: "codex", model: "gpt-5", cwd: "/repo" },
+  );
+
+  driver.start();
+
+  const payload = drafts[0]?.payload as {
+    metadata?: { capabilities?: CodexCapabilities };
+  };
+  expect(payload.metadata?.capabilities).toEqual(capabilities);
 });

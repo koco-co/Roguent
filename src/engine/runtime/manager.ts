@@ -18,6 +18,7 @@ import {
   type DriverCallbacks,
   type IDriver,
 } from "./claude-driver";
+import type { CodexCapabilities } from "./codex-capabilities";
 import type { RuntimeSendMeta } from "./types";
 
 export interface RuntimeDriverConfigInput {
@@ -48,6 +49,7 @@ export type ClaudeDriverFactory = (
 
 export interface RuntimeManagerOptions {
   createClaudeDriver?: ClaudeDriverFactory;
+  codexCapabilities?: CodexCapabilities;
 }
 
 export function resolveRuntimeDriverConfig(
@@ -87,11 +89,13 @@ export function resolveRuntimeDriverConfig(
 
 export class RuntimeManager implements RuntimeDriverCreator {
   private readonly createClaudeDriver: ClaudeDriverFactory;
+  private readonly codexCapabilities?: CodexCapabilities;
 
   constructor(options: RuntimeManagerOptions = {}) {
     this.createClaudeDriver =
       options.createClaudeDriver ??
       ((callbacks, model, cwd) => new ClaudeDriver(callbacks, model, cwd));
+    this.codexCapabilities = options.codexCapabilities;
   }
 
   createDriver(
@@ -102,7 +106,7 @@ export class RuntimeManager implements RuntimeDriverCreator {
     if (resolved.runtime === "claude") {
       return this.createClaudeDriver(callbacks, resolved.model, resolved.cwd);
     }
-    return new CodexStubDriver(callbacks, resolved);
+    return new CodexStubDriver(callbacks, resolved, this.codexCapabilities);
   }
 }
 
@@ -110,6 +114,7 @@ class CodexStubDriver implements IDriver {
   constructor(
     private readonly callbacks: DriverCallbacks,
     private config: RuntimeDriverConfig,
+    private readonly capabilities?: CodexCapabilities,
   ) {}
 
   start(): void {
@@ -123,6 +128,9 @@ class CodexStubDriver implements IDriver {
             config: this.runtimeConfig(),
             cwd: this.config.cwd,
             message: "Codex runtime is not implemented yet.",
+            ...(this.capabilities
+              ? { metadata: { capabilities: this.capabilities } }
+              : {}),
           },
         },
       ],
