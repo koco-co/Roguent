@@ -6,6 +6,7 @@ import { resolveCodexCliPath } from "./codex-capabilities";
 import {
   type CodexInitializeResult,
   type CodexInterruptResult,
+  type CodexJsonRpcRequest,
   type CodexJsonRpcResponse,
   type CodexNotification,
   type CodexProtocolMessage,
@@ -19,8 +20,10 @@ import {
   type CodexTurnStartResult,
   type CodexUserInput,
   codexNotificationToRuntimeEvent,
+  codexServerRequestToRuntimeEvent,
   codexTextInput,
   createCodexJsonRpcRequest,
+  createCodexNotification,
   isCodexJsonRpcRequest,
   isCodexJsonRpcResponse,
   isCodexNotification,
@@ -117,6 +120,7 @@ export class CodexAppServerClient implements CodexTransport {
           options.requestTimeoutMs ??
           DEFAULT_REQUEST_TIMEOUT_MS,
       );
+      await client.notify("initialized");
     } catch (error) {
       await client.close();
       throw new CodexAppServerUnavailableError(
@@ -132,28 +136,39 @@ export class CodexAppServerClient implements CodexTransport {
     return this.transport.request<T>(method, params, timeoutMs);
   }
 
+  notify(method: string, params?: unknown): Promise<void> {
+    return this.transport.notify(method, params);
+  }
+
   onNotification(handler: (message: CodexNotification) => void): () => void {
     return this.transport.onNotification(handler);
   }
 
+  onServerRequest(handler: (message: CodexJsonRpcRequest) => void): () => void {
+    return this.transport.onServerRequest(handler);
+  }
+
   onEvent(handler: (event: CodexRuntimeEvent) => void): () => void {
-    return this.onNotification((notification) => {
+    const unsubscribeNotification = this.onNotification((notification) => {
       const event = codexNotificationToRuntimeEvent(notification);
       if (event) handler(event);
     });
+    const unsubscribeRequest = this.onServerRequest((request) => {
+      const event = codexServerRequestToRuntimeEvent(request);
+      if (event) handler(event);
+    });
+    return () => {
+      unsubscribeNotification();
+      unsubscribeRequest();
+    };
   }
 
   startThread(
     params: CodexThreadStartInput = {},
   ): Promise<CodexThreadStartResult> {
-    const requestParams: CodexThreadStartParams = {
-      ...params,
-      experimentalRawEvents: params.experimentalRawEvents ?? true,
-      persistExtendedHistory: params.persistExtendedHistory ?? true,
-    };
     return this.request<CodexThreadStartResult>(
       "thread/start",
-      requestParams,
+      params satisfies CodexThreadStartParams,
     ).then((result) => {
       this.activeThreadId = result.thread.id;
       return result;
@@ -240,6 +255,9 @@ class CodexStdioTransport implements CodexTransport {
   private readonly notificationHandlers = new Set<
     (message: CodexNotification) => void
   >();
+  private readonly serverRequestHandlers = new Set<
+    (message: CodexJsonRpcRequest) => void
+  >();
 
   constructor(
     private readonly child: CodexAppServerSpawnedProcess,
@@ -255,7 +273,7 @@ class CodexStdioTransport implements CodexTransport {
       this.handleStderr(String(chunk));
     });
     child.stdin?.on("error", (error) => {
-      this.rejectAll(new Error(`Codex app-server stdin error: ${error}`));
+      this.closeWithError(new Error(`Codex app-server stdin error: ${error}`));
     });
     child.once("error", (error) => {
       this.closeWithError(new Error(`Codex app-server error: ${error}`));
@@ -316,10 +334,25 @@ class CodexStdioTransport implements CodexTransport {
     });
   }
 
+  notify(method: string, params?: unknown): Promise<void> {
+    if (this.closed) {
+      return Promise.reject(new Error("Codex app-server closed"));
+    }
+    const notification = createCodexNotification(method, params);
+    return this.writeMessage(notification, method);
+  }
+
   onNotification(handler: (message: CodexNotification) => void): () => void {
     this.notificationHandlers.add(handler);
     return () => {
       this.notificationHandlers.delete(handler);
+    };
+  }
+
+  onServerRequest(handler: (message: CodexJsonRpcRequest) => void): () => void {
+    this.serverRequestHandlers.add(handler);
+    return () => {
+      this.serverRequestHandlers.delete(handler);
     };
   }
 
@@ -382,7 +415,11 @@ class CodexStdioTransport implements CodexTransport {
       return;
     }
     if (isCodexJsonRpcRequest(message)) {
-      this.emitLog("stdout", JSON.stringify(message));
+      if (this.serverRequestHandlers.size === 0) {
+        this.emitLog("stdout", JSON.stringify(message));
+        return;
+      }
+      for (const handler of this.serverRequestHandlers) handler(message);
     }
   }
 
@@ -421,6 +458,24 @@ class CodexStdioTransport implements CodexTransport {
 
   private emitLog(stream: "stdout" | "stderr", text: string): void {
     this.options.onLog?.({ stream, text: redactAuditText(text) });
+  }
+
+  private writeMessage(message: unknown, method: string): Promise<void> {
+    const writable = this.child.stdin;
+    if (!writable) {
+      return Promise.reject(new Error("Codex app-server stdin is unavailable"));
+    }
+    return new Promise((resolve, reject) => {
+      writable.write(`${JSON.stringify(message)}\n`, (error) => {
+        if (error) {
+          reject(
+            new Error(`Codex app-server write failed: ${method}: ${error}`),
+          );
+          return;
+        }
+        resolve();
+      });
+    });
   }
 }
 

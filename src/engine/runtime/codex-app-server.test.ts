@@ -30,6 +30,9 @@ test("start spawns codex app-server over stdio and closes the process", async ()
   expect(fake.requests.map((request) => request.method)).toEqual([
     "initialize",
   ]);
+  expect(fake.clientNotifications.map((message) => message.method)).toEqual([
+    "initialized",
+  ]);
 
   await client.close();
 
@@ -58,8 +61,6 @@ test("request sends incrementing ids and resolves matching responses", async () 
   ]);
   expect(fake.requests[1]?.params).toEqual({
     cwd: "/tmp/project",
-    experimentalRawEvents: true,
-    persistExtendedHistory: true,
   });
   expect(fake.requests[2]?.params).toEqual({
     threadId: "thread-1",
@@ -137,6 +138,85 @@ test("client maps generated app-server notifications into runtime events", async
   });
 
   unsubscribe();
+  await client.close();
+});
+
+test("client surfaces tool execution notifications as runtime events", async () => {
+  const fake = new FakeCodexServer();
+  const client = await CodexAppServerClient.start({
+    spawn: fake.spawn,
+    requestTimeoutMs: 50,
+  });
+  const events: CodexRuntimeEvent[] = [];
+  client.onEvent((event) => {
+    events.push(event);
+  });
+
+  fake.notifyCurrent({
+    method: "item/commandExecution/outputDelta",
+    params: {
+      threadId: "thread-1",
+      turnId: "turn-1",
+      itemId: "cmd-1",
+      delta: "ran tests",
+    },
+  });
+
+  await waitFor(() =>
+    events.some(
+      (event) =>
+        event.kind === "item.commandExecution.outputDelta" &&
+        event.text === "ran tests",
+    ),
+  );
+  expect(events[0]).toEqual({
+    kind: "item.commandExecution.outputDelta",
+    threadId: "thread-1",
+    turnId: "turn-1",
+    itemId: "cmd-1",
+    delta: "ran tests",
+    text: "ran tests",
+  });
+
+  await client.close();
+});
+
+test("client surfaces app-server approval requests as runtime events", async () => {
+  const fake = new FakeCodexServer();
+  const client = await CodexAppServerClient.start({
+    spawn: fake.spawn,
+    requestTimeoutMs: 50,
+  });
+  const events: CodexRuntimeEvent[] = [];
+  client.onEvent((event) => {
+    events.push(event);
+  });
+
+  fake.requestCurrent({
+    jsonrpc: "2.0",
+    id: 99,
+    method: "item/commandExecution/requestApproval",
+    params: {
+      threadId: "thread-1",
+      turnId: "turn-1",
+      itemId: "cmd-1",
+      command: "git status",
+    },
+  });
+
+  await waitFor(() =>
+    events.some((event) => event.kind === "approval.requested"),
+  );
+  expect(events[0]).toEqual({
+    kind: "approval.requested",
+    requestId: "99",
+    method: "item/commandExecution/requestApproval",
+    threadId: "thread-1",
+    turnId: "turn-1",
+    itemId: "cmd-1",
+    command: "git status",
+  });
+
   await client.close();
 });
 
@@ -302,6 +382,7 @@ class FakeChildProcess
 class FakeCodexServer {
   readonly children: FakeChildProcess[] = [];
   readonly requests: CodexJsonRpcRequest[] = [];
+  readonly clientNotifications: CodexNotification[] = [];
   readonly ignoreMethods = new Set<string>();
   readonly closeOnMethods = new Set<string>();
   spawned?: { command: string; args: string[] };
@@ -324,6 +405,16 @@ class FakeCodexServer {
     this.currentChild?.stderr.write(text);
   }
 
+  notifyCurrent(notification: CodexNotification): void {
+    if (!this.currentChild) throw new Error("no fake app-server child");
+    this.notify(this.currentChild, notification);
+  }
+
+  requestCurrent(request: CodexJsonRpcRequest): void {
+    if (!this.currentChild) throw new Error("no fake app-server child");
+    this.currentChild.stdout.write(`${JSON.stringify(request)}\n`);
+  }
+
   private bind(child: FakeChildProcess): void {
     let buffer = "";
     child.stdin.on("data", (chunk) => {
@@ -332,7 +423,14 @@ class FakeCodexServer {
       buffer = lines.pop() ?? "";
       for (const line of lines) {
         if (!line.trim()) continue;
-        this.handle(child, JSON.parse(line) as CodexJsonRpcRequest);
+        const message = JSON.parse(line) as
+          | CodexJsonRpcRequest
+          | CodexNotification;
+        if ("id" in message) {
+          this.handle(child, message);
+        } else {
+          this.clientNotifications.push(message);
+        }
       }
     });
   }

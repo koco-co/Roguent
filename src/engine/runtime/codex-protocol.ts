@@ -73,21 +73,12 @@ export interface CodexThreadStartParams {
   cwd?: string;
   approvalPolicy?: string;
   sandbox?: unknown;
-  experimentalRawEvents: boolean;
-  persistExtendedHistory: boolean;
+  experimentalRawEvents?: boolean;
+  persistExtendedHistory?: boolean;
   [key: string]: unknown;
 }
 
-export type CodexThreadStartInput = Omit<
-  CodexThreadStartParams,
-  "experimentalRawEvents" | "persistExtendedHistory"
-> &
-  Partial<
-    Pick<
-      CodexThreadStartParams,
-      "experimentalRawEvents" | "persistExtendedHistory"
-    >
-  >;
+export type CodexThreadStartInput = CodexThreadStartParams;
 
 export interface CodexThreadStartResult {
   thread: CodexThread;
@@ -117,7 +108,9 @@ export interface CodexInterruptResult {
 
 export interface CodexTransport {
   request<T>(method: string, params?: unknown, timeoutMs?: number): Promise<T>;
+  notify(method: string, params?: unknown): Promise<void>;
   onNotification(handler: (message: CodexNotification) => void): () => void;
+  onServerRequest(handler: (message: CodexJsonRpcRequest) => void): () => void;
   close(): Promise<void>;
 }
 
@@ -133,6 +126,15 @@ export function createCodexJsonRpcRequest(
   };
   if (params !== undefined) request.params = params;
   return request;
+}
+
+export function createCodexNotification(
+  method: string,
+  params?: unknown,
+): CodexNotification {
+  const notification: CodexNotification = { method };
+  if (params !== undefined) notification.params = params;
+  return notification;
 }
 
 export function codexTextInput(text: string): CodexTextUserInput {
@@ -187,7 +189,7 @@ export function codexNotificationToRuntimeEvent(
     const thread = isRecord(params.thread) ? params.thread : undefined;
     const threadId =
       typeof thread?.id === "string" ? thread.id : asString(params.threadId);
-    return { kind: "thread.started", ...params, threadId };
+    return { ...params, kind: "thread.started", threadId };
   }
 
   if (notification.method === "turn/started") {
@@ -195,8 +197,8 @@ export function codexNotificationToRuntimeEvent(
     const turnId =
       typeof turn?.id === "string" ? turn.id : asString(params.turnId);
     return {
-      kind: "turn.started",
       ...params,
+      kind: "turn.started",
       threadId: asString(params.threadId),
       turnId,
     };
@@ -204,8 +206,8 @@ export function codexNotificationToRuntimeEvent(
 
   if (notification.method === "item/agentMessage/delta") {
     return {
-      kind: "assistant.delta",
       ...params,
+      kind: "assistant.delta",
       threadId: asString(params.threadId),
       turnId: asString(params.turnId),
       itemId: asString(params.itemId),
@@ -213,8 +215,45 @@ export function codexNotificationToRuntimeEvent(
     };
   }
 
-  if (typeof params.kind !== "string") return null;
-  return params as CodexRuntimeEvent;
+  const fallback: CodexRuntimeEvent = {
+    ...params,
+    kind:
+      typeof params.kind === "string"
+        ? params.kind
+        : notification.method.replaceAll("/", "."),
+  };
+  const text = textFromParams(params);
+  if (text !== undefined) fallback.text = text;
+  return fallback;
+}
+
+export function codexServerRequestToRuntimeEvent(
+  request: CodexJsonRpcRequest,
+): CodexRuntimeEvent | null {
+  const params = isRecord(request.params) ? request.params : {};
+  const approvalMethods = new Set([
+    "item/commandExecution/requestApproval",
+    "item/fileChange/requestApproval",
+    "item/permissions/requestApproval",
+    "execCommandApproval",
+    "applyPatchApproval",
+  ]);
+  const userInputMethods = new Set([
+    "item/tool/requestUserInput",
+    "mcpServer/elicitation/request",
+  ]);
+  let kind = "server.request";
+  if (approvalMethods.has(request.method)) kind = "approval.requested";
+  if (userInputMethods.has(request.method)) kind = "question.requested";
+  return {
+    ...params,
+    kind,
+    requestId: String(request.id),
+    method: request.method,
+    threadId: asString(params.threadId),
+    turnId: asString(params.turnId),
+    itemId: asString(params.itemId),
+  };
 }
 
 function hasJsonRpcId(
@@ -229,4 +268,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function asString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
+}
+
+function textFromParams(params: Record<string, unknown>): string | undefined {
+  for (const key of ["delta", "text", "output"]) {
+    const value = params[key];
+    if (typeof value === "string") return value;
+  }
+  return undefined;
 }
