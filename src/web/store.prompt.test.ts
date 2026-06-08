@@ -1,11 +1,16 @@
 import { afterEach, expect, test } from "bun:test";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
-import type { TimelinePromptItem } from "../shared/domain";
+import { type TimelinePromptItem, createSession } from "../shared/domain";
 import type { RoomEvent } from "../shared/events";
 import { PromptCard } from "./hud/PromptCard";
-import { type RoomState, type RoomStateWithPrototype, reduce } from "./store";
+import {
+  type RoomState,
+  type RoomStateWithPrototype,
+  reduce,
+  useRoomStore,
+} from "./store";
 import { type RoomConnection, connectRoom } from "./ws-client";
 
 const originalWebSocket = globalThis.WebSocket;
@@ -65,6 +70,13 @@ afterEach(() => {
   connection = null;
   globalThis.WebSocket = originalWebSocket;
   cleanup();
+  useRoomStore.setState({
+    sessions: {},
+    currentSessionId: null,
+    projectOrder: [],
+    connection: "connecting",
+    limits: null,
+  });
 });
 
 test("prompt.resolved updates prompt cards to answered and dismissed states", () => {
@@ -166,4 +178,82 @@ test("PromptCard disables repeated permission responses after a click", async ()
     },
   ]);
   expect((approve as HTMLButtonElement).disabled).toBe(true);
+});
+
+test("PromptCard allows retry after a prompt response failure", async () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  connection = connectRoom("ws://roguent.test");
+  const user = userEvent.setup();
+  const item: TimelinePromptItem = {
+    kind: "prompt",
+    id: "p1",
+    promptKind: "permission",
+    data: { toolName: "Bash", inputSummary: "git status" },
+    status: "pending",
+    ts: 0,
+    source: { kind: "desktop" },
+    runtime: "codex",
+  };
+  const session = createSession({
+    id: "s1",
+    title: "Codex task",
+    runtime: "codex",
+    model: "gpt-5",
+    timeline: [item],
+  });
+  useRoomStore.setState({
+    sessions: { s1: session },
+    currentSessionId: "s1",
+  });
+
+  render(createElement(PromptCard, { item, sessionId: "s1" }));
+  const approve = screen.getByRole("button", { name: "允许" });
+  await user.click(approve);
+  expect((approve as HTMLButtonElement).disabled).toBe(true);
+
+  act(() => {
+    useRoomStore.setState({
+      sessions: {
+        s1: {
+          ...session,
+          status: "error",
+          timeline: [
+            item,
+            {
+              kind: "message",
+              id: "err1",
+              role: "system",
+              text: "Prompt response failed: transport closed",
+              ts: 1,
+              source: { kind: "desktop" },
+              runtime: "codex",
+              status: "final",
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  await waitFor(() =>
+    expect((approve as HTMLButtonElement).disabled).toBe(false),
+  );
+  await user.click(approve);
+
+  const sent = FakeWebSocket.instances[0]?.sent.map((raw) => JSON.parse(raw));
+  expect(sent).toEqual([
+    {
+      cmd: "respondPermission",
+      sessionId: "s1",
+      promptId: "p1",
+      behavior: "allow",
+    },
+    {
+      cmd: "respondPermission",
+      sessionId: "s1",
+      promptId: "p1",
+      behavior: "allow",
+    },
+  ]);
 });

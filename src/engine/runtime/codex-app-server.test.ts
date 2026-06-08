@@ -361,6 +361,23 @@ test("driver end closes an in-flight startup client", async () => {
   expect(fake.children[0]?.killed).toBe(true);
 });
 
+test("driver does not restart after it has ended", async () => {
+  const fake = new FakeCodexServer();
+  const driver = new CodexAppServerDriver(
+    { onDraft() {} },
+    codexDriverConfig(),
+    { spawn: fake.spawn, requestTimeoutMs: 10, startupTimeoutMs: 10 },
+  );
+
+  driver.end();
+  driver.start();
+  await expect(
+    driver.respondPermission("99", { behavior: "allow" }),
+  ).rejects.toThrow("driver ended");
+
+  expect(fake.children).toHaveLength(0);
+});
+
 test("interrupt sends a JSON-RPC request for the active thread", async () => {
   const fake = new FakeCodexServer();
   const client = await CodexAppServerClient.start({

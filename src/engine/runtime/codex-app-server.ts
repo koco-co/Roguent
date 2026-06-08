@@ -192,6 +192,9 @@ export class CodexAppServerDriver implements IDriver {
   }
 
   private ensureClient(): Promise<CodexAppServerClient> {
+    if (this.ended) {
+      return Promise.reject(new Error("Codex app-server driver ended"));
+    }
     if (this.client) return Promise.resolve(this.client);
     if (this.clientPromise) return this.clientPromise;
     this.emitStatus({ status: "starting" });

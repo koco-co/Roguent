@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   PermissionPromptData,
   QuestionData,
   TimelinePromptItem,
 } from "../../shared/domain";
+import { useRoomStore } from "../store";
 import { sendCommand } from "../ws-client";
 
 interface Props {
@@ -13,6 +14,22 @@ interface Props {
 
 export function PromptCard({ item, sessionId }: Props) {
   const [submitted, setSubmitted] = useState(false);
+  const errorSignal = useRoomStore((state) => {
+    const session = state.sessions[sessionId];
+    if (!session || session.status !== "error") return "";
+    for (let i = session.timeline.length - 1; i >= 0; i -= 1) {
+      const entry = session.timeline[i];
+      if (entry?.kind === "message" && entry.role === "system") {
+        return `${entry.id}:${entry.ts}:${entry.text}`;
+      }
+    }
+    return "";
+  });
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorSignal 是失败后重试的复位触发器, effect 内只需检查 prompt 是否仍 pending。
+  useEffect(() => {
+    if (item.status === "pending") setSubmitted(false);
+  }, [errorSignal, item.status]);
 
   if (item.status !== "pending") {
     return (
