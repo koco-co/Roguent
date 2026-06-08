@@ -158,6 +158,67 @@ test("setRuntimeConfig uses the aggregate driver hook instead of partial setters
   expect(got.at(-1)?.type).toBe("session.error");
 });
 
+test("setRuntimeConfig serializes updates per session", async () => {
+  const resolvers: Array<() => void> = [];
+  const applied: string[] = [];
+  const driver = driverStub({
+    setRuntimeConfig: (config) =>
+      new Promise<void>((resolve) => {
+        resolvers.push(() => {
+          applied.push(config.reasoningEffort ?? "none");
+          resolve();
+        });
+      }),
+  });
+  const mgr = new SessionManager(runtimeManager(driver), "/tmp");
+  const got: RoomEvent[] = [];
+  mgr.subscribe((event) => got.push(event));
+  mgr.createSession("s1", {
+    title: "Codex",
+    runtime: "codex",
+    model: "gpt-5",
+    sandboxMode: "workspace-write",
+    reasoningEffort: "medium",
+    networkAccess: false,
+  });
+
+  const first = mgr.setRuntimeConfig("s1", {
+    runtime: "codex",
+    model: "gpt-5",
+    permissionMode: "default",
+    approvalPolicy: "on-request",
+    sandboxMode: "workspace-write",
+    reasoningEffort: "low",
+    networkAccess: false,
+  });
+  const second = mgr.setRuntimeConfig("s1", {
+    runtime: "codex",
+    model: "gpt-5",
+    permissionMode: "default",
+    approvalPolicy: "on-request",
+    sandboxMode: "workspace-write",
+    reasoningEffort: "high",
+    networkAccess: false,
+  });
+
+  await waitFor(() => resolvers.length === 1);
+  resolvers[0]?.();
+  await waitFor(() => resolvers.length === 2);
+  resolvers[1]?.();
+  await Promise.all([first, second]);
+
+  expect(applied).toEqual(["low", "high"]);
+  const updates = got
+    .filter((event) => event.type === "runtime.config.updated")
+    .map(
+      (event) =>
+        (event.payload as { config: { reasoningEffort?: string } }).config
+          .reasoningEffort,
+    );
+  expect(updates).toEqual(["low", "high"]);
+  expect(updates.at(-1)).toBe("high");
+});
+
 test("context usage failures are surfaced as session errors", async () => {
   const driver = driverStub({
     getContextUsage: async () => {
@@ -189,3 +250,16 @@ test("context usage failures are surfaced as session errors", async () => {
     message: "Context usage update failed: context unavailable",
   });
 });
+
+async function waitFor(
+  predicate: () => boolean,
+  timeoutMs = 100,
+): Promise<void> {
+  const started = Date.now();
+  while (!predicate()) {
+    if (Date.now() - started > timeoutMs) {
+      throw new Error("condition not met before timeout");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+}

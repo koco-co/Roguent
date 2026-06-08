@@ -60,6 +60,7 @@ export class SessionManager {
   private seq = new Sequencer();
   private drivers = new Map<string, IDriver>();
   private runtimeStates = new Map<string, SessionRuntimeState>();
+  private runtimeConfigQueues = new Map<string, Promise<void>>();
   private pendingPrompts = new Map<string, Map<string, PendingPromptKind>>();
   private respondingPrompts = new Map<string, Set<string>>();
   // 当前引擎认识的所有会话 id(live driver + 已导入的 transcript)。新连接对账用:
@@ -266,6 +267,7 @@ export class SessionManager {
     this.drivers.get(id)?.end();
     this.drivers.delete(id);
     this.runtimeStates.delete(id);
+    this.runtimeConfigQueues.delete(id);
     this.pendingPrompts.delete(id);
     this.respondingPrompts.delete(id);
     this.knownSessions.delete(id);
@@ -426,6 +428,23 @@ export class SessionManager {
   }
 
   async setRuntimeConfig(id: string, config: RuntimeConfig): Promise<void> {
+    const previous = this.runtimeConfigQueues.get(id) ?? Promise.resolve();
+    const queued = previous
+      .catch(() => {})
+      .then(() => this.applyRuntimeConfig(id, config));
+    const tracked = queued.finally(() => {
+      if (this.runtimeConfigQueues.get(id) === tracked) {
+        this.runtimeConfigQueues.delete(id);
+      }
+    });
+    this.runtimeConfigQueues.set(id, tracked);
+    return tracked;
+  }
+
+  private async applyRuntimeConfig(
+    id: string,
+    config: RuntimeConfig,
+  ): Promise<void> {
     const driver = this.drivers.get(id);
     const state = this.runtimeStates.get(id);
     if (!driver || !state || !this.knownSessions.has(id)) return;
