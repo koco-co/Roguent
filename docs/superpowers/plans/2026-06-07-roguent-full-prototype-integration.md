@@ -138,6 +138,7 @@
 
 **Output Standard:**
 - 测试栈装好:`@testing-library/react` + `@testing-library/user-event` + `happy-dom`(bun:test DOM env)+ `@playwright/test`;`bunfig.toml` 配 `preload`/DOM;`package.json` 加 `"test:e2e": "playwright test"`;`playwright.config.ts` 起 engine replay + Vite。
+- Playwright specs 必须与 `bun test` 隔离:使用 `tests/e2e/**/*.e2e.ts` 命名 + `playwright.config.ts` `testMatch`，并确保 `bun test` 不会直接加载 `@playwright/test` 文件。
 - 浏览器已安装(`bunx playwright install chromium`)。
 - **已存在文件盘点表**(写进本 task 日志,后续 task 以此为准):
 
@@ -192,6 +193,7 @@
 **Acceptance Standard:**
 - `bun test src/web/hud/_smoke.test.tsx` exit code 0(证明 DOM + testing-library 可跑)。
 - `bunx playwright --version` exit code 0;`bunx playwright install chromium` 完成。
+- `bun test` exit code 0，且不会因 `tests/e2e/**/*.e2e.ts` 中的 `@playwright/test` 报错。
 - `bunx tsc --noEmit` exit code 0。
 - 盘点表与 `find src -name "*.tsx"` 实际一致。
 
@@ -205,6 +207,7 @@
 - [ ] Run:
   ```bash
   bun test src/web/hud/_smoke.test.tsx
+  bun test
   bunx tsc --noEmit
   ```
 
@@ -2597,6 +2600,7 @@
 - Modify: `AGENTS.md` if reusable verification failure mode is discovered during implementation.
 
 **Output Standard:**
+- 更新 `docs/ROADMAP.md` 前先重新读取当前文件和 `git log -1 --oneline`,把 ROADMAP 里可能落后的 baseline/现状同步到 HEAD；不要基于旧 baseline(例如早于聊天组件 overhaul 的 commit)继续追加状态。
 - ROADMAP 反映已完成、blocked、remaining。
 - Integration docs 明确 secret storage、local tunnel、real smoke command、blocker handling。
 - Verification docs 明确 replay E2E 与真实外部 smoke 的区别。
@@ -2607,6 +2611,7 @@
 
 - [ ] Run:
   ```bash
+  git log -1 --oneline
   bun run check
   rg "full E2E|all cases|main flow passed" docs AGENTS.md
   ```
