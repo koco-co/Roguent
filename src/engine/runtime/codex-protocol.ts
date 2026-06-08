@@ -55,11 +55,18 @@ export interface CodexTurn {
   [key: string]: unknown;
 }
 
-export interface CodexUserInput {
-  type?: string;
-  text?: string;
-  [key: string]: unknown;
+export interface CodexTextUserInput {
+  type: "text";
+  text: string;
+  text_elements: unknown[];
 }
+
+export type CodexUserInput =
+  | CodexTextUserInput
+  | {
+      type: "image" | "localImage" | "skill" | "mention";
+      [key: string]: unknown;
+    };
 
 export interface CodexThreadStartParams {
   model?: string;
@@ -126,6 +133,14 @@ export function createCodexJsonRpcRequest(
   };
   if (params !== undefined) request.params = params;
   return request;
+}
+
+export function codexTextInput(text: string): CodexTextUserInput {
+  return {
+    type: "text",
+    text,
+    text_elements: [],
+  };
 }
 
 export function parseCodexProtocolLine(line: string): CodexProtocolMessage {

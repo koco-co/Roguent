@@ -12,6 +12,7 @@ import type {
   CodexNotification,
   CodexRuntimeEvent,
 } from "./codex-protocol";
+import { codexTextInput } from "./codex-protocol";
 
 test("start spawns codex app-server over stdio and closes the process", async () => {
   const fake = new FakeCodexServer();
@@ -44,7 +45,7 @@ test("request sends incrementing ids and resolves matching responses", async () 
 
   const thread = await client.startThread({ cwd: "/tmp/project" });
   const turn = await client.startTurn(thread.thread.id, [
-    { type: "text", text: "hello" },
+    codexTextInput("hello"),
   ]);
 
   expect(thread).toEqual({ thread: { id: "thread-1" } });
@@ -62,7 +63,35 @@ test("request sends incrementing ids and resolves matching responses", async () 
   });
   expect(fake.requests[2]?.params).toEqual({
     threadId: "thread-1",
-    input: [{ type: "text", text: "hello" }],
+    input: [{ type: "text", text: "hello", text_elements: [] }],
+  });
+
+  await client.close();
+});
+
+test("send creates a thread, sends generated text input, and interrupt uses active turn", async () => {
+  const fake = new FakeCodexServer();
+  const client = await CodexAppServerClient.start({
+    spawn: fake.spawn,
+    requestTimeoutMs: 50,
+  });
+
+  await client.send("ship it");
+  await client.interrupt();
+
+  const turnStart = fake.requests.find(
+    (request) => request.method === "turn/start",
+  );
+  expect(turnStart?.params).toEqual({
+    threadId: "thread-1",
+    input: [{ type: "text", text: "ship it", text_elements: [] }],
+  });
+  const interrupt = fake.requests.find(
+    (request) => request.method === "turn/interrupt",
+  );
+  expect(interrupt?.params).toEqual({
+    threadId: "thread-1",
+    turnId: "turn-1",
   });
 
   await client.close();
@@ -80,7 +109,7 @@ test("client maps generated app-server notifications into runtime events", async
   });
 
   const thread = await client.startThread();
-  await client.startTurn(thread.thread.id, [{ type: "text", text: "hello" }]);
+  await client.startTurn(thread.thread.id, [codexTextInput("hello")]);
 
   await waitFor(() =>
     events.some(
@@ -148,6 +177,25 @@ test("request rejects on timeout without closing the app-server", async () => {
   await client.close();
 });
 
+test("close rejects pending requests with an explicit client close reason", async () => {
+  const fake = new FakeCodexServer();
+  fake.ignoreMethods.add("turn/wait");
+  const client = await CodexAppServerClient.start({
+    spawn: fake.spawn,
+    requestTimeoutMs: 50,
+  });
+
+  const pending = client.request("turn/wait", {}, 1000);
+  await waitFor(() =>
+    fake.requests.some((request) => request.method === "turn/wait"),
+  );
+  await client.close();
+
+  const error = await captureError(() => pending);
+  expect(error.message).toContain("Codex app-server closed by client");
+  expect(fake.children[0]?.killed).toBe(true);
+});
+
 test("pending requests reject when the app-server closes", async () => {
   const fake = new FakeCodexServer();
   fake.closeOnMethods.add("turn/close");
@@ -205,6 +253,24 @@ test("start rejects with a clear capability error when app-server cannot spawn",
   expect(error.message).toContain("Codex app-server unavailable");
   expect(error.message).toContain("codex app-server --listen stdio://");
   expect(error.message).toContain("ENOENT");
+});
+
+test("start wraps synchronous spawn failures in a clear capability error", async () => {
+  const spawn: CodexAppServerSpawn = () => {
+    throw new Error("spawn exploded");
+  };
+
+  const error = await captureError(() =>
+    CodexAppServerClient.start({
+      spawn,
+      requestTimeoutMs: 10,
+      startupTimeoutMs: 10,
+    }),
+  );
+
+  expect(error).toBeInstanceOf(CodexAppServerUnavailableError);
+  expect(error.message).toContain("Codex app-server unavailable");
+  expect(error.message).toContain("spawn exploded");
 });
 
 class FakeChildProcess

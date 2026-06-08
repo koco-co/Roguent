@@ -19,6 +19,7 @@ import {
   type CodexTurnStartResult,
   type CodexUserInput,
   codexNotificationToRuntimeEvent,
+  codexTextInput,
   createCodexJsonRpcRequest,
   isCodexJsonRpcRequest,
   isCodexJsonRpcResponse,
@@ -74,6 +75,9 @@ export class CodexAppServerUnavailableError extends Error {
 }
 
 export class CodexAppServerClient implements CodexTransport {
+  private activeThreadId: string | undefined;
+  private activeTurnId: string | undefined;
+
   private constructor(
     private readonly transport: CodexStdioTransport,
     private readonly clientInfo: { name: string; version: string },
@@ -85,11 +89,19 @@ export class CodexAppServerClient implements CodexTransport {
     const env = options.env ?? process.env;
     const cliPath = options.cliPath?.trim() || resolveCodexCliPath(env);
     const spawn = options.spawn ?? spawnCodexAppServerProcess;
-    const child = spawn(cliPath, [...APP_SERVER_ARGS], {
-      cwd: options.cwd,
-      env: mergeEnv(process.env, options.env),
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    let child: CodexAppServerSpawnedProcess;
+    try {
+      child = spawn(cliPath, [...APP_SERVER_ARGS], {
+        cwd: options.cwd,
+        env: mergeEnv(process.env, options.env),
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+    } catch (error) {
+      throw new CodexAppServerUnavailableError(
+        `Codex app-server unavailable: ${errorMessage(error)}. Verify \`${cliPath} app-server --listen stdio://\` works.`,
+        { cause: error },
+      );
+    }
     const transport = new CodexStdioTransport(child, {
       requestTimeoutMs: options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
       onLog: options.onLog,
@@ -139,7 +151,13 @@ export class CodexAppServerClient implements CodexTransport {
       experimentalRawEvents: params.experimentalRawEvents ?? true,
       persistExtendedHistory: params.persistExtendedHistory ?? true,
     };
-    return this.request<CodexThreadStartResult>("thread/start", requestParams);
+    return this.request<CodexThreadStartResult>(
+      "thread/start",
+      requestParams,
+    ).then((result) => {
+      this.activeThreadId = result.thread.id;
+      return result;
+    });
   }
 
   startTurn(
@@ -152,7 +170,26 @@ export class CodexAppServerClient implements CodexTransport {
       threadId,
       input,
     };
-    return this.request<CodexTurnStartResult>("turn/start", requestParams);
+    return this.request<CodexTurnStartResult>("turn/start", requestParams).then(
+      (result) => {
+        this.activeThreadId = threadId;
+        this.activeTurnId = result.turn.id;
+        return result;
+      },
+    );
+  }
+
+  async send(
+    text: string,
+    options: {
+      thread?: CodexThreadStartInput;
+      turn?: Record<string, unknown>;
+    } = {},
+  ): Promise<CodexTurnStartResult> {
+    const threadId =
+      this.activeThreadId ??
+      (await this.startThread(options.thread ?? {})).thread.id;
+    return this.startTurn(threadId, [codexTextInput(text)], options.turn);
   }
 
   interruptTurn(
@@ -161,6 +198,13 @@ export class CodexAppServerClient implements CodexTransport {
   ): Promise<CodexInterruptResult> {
     const requestParams: CodexTurnInterruptParams = { threadId, turnId };
     return this.request<CodexInterruptResult>("turn/interrupt", requestParams);
+  }
+
+  interrupt(): Promise<CodexInterruptResult | null> {
+    if (!this.activeThreadId || !this.activeTurnId) {
+      return Promise.resolve(null);
+    }
+    return this.interruptTurn(this.activeThreadId, this.activeTurnId);
   }
 
   close(): Promise<void> {
@@ -286,8 +330,10 @@ class CodexStdioTransport implements CodexTransport {
         resolve();
         return;
       }
+      this.closed = true;
+      this.rejectAll(new Error("Codex app-server closed by client"));
       const timer = setTimeout(() => {
-        if (!this.closed) this.child.kill("SIGKILL");
+        this.child.kill("SIGKILL");
         resolve();
       }, CLOSE_TIMEOUT_MS);
       this.child.once("close", () => {
