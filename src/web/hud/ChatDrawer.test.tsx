@@ -131,3 +131,53 @@ test("new session from a Codex chat inherits runtime config", async () => {
     networkAccess: true,
   });
 });
+
+test("Codex runtime controls expose reasoning effort and send config updates", async () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  connection = connectRoom("ws://roguent.test");
+  const session = createSession({
+    id: "s1",
+    title: "Codex task",
+    runtime: "codex",
+    model: "gpt-5",
+    permissionMode: "default",
+    approvalPolicy: "on-request",
+    sandboxMode: "workspace-write",
+    reasoningEffort: "medium",
+    networkAccess: false,
+  });
+  useRoomStore.setState({
+    sessions: { s1: session },
+    currentSessionId: "s1",
+  });
+  useUiStore.setState({ activePanel: "chat" });
+
+  render(<ChatDrawer />);
+
+  expect(screen.getByText(/Codex.*gpt-5/)).toBeTruthy();
+
+  await userEvent.selectOptions(
+    screen.getByLabelText("reasoning effort"),
+    "high",
+  );
+
+  const sent = FakeWebSocket.instances[0]?.sent ?? [];
+  const command = JSON.parse(sent[sent.length - 1] ?? "{}") as Record<
+    string,
+    unknown
+  >;
+  expect(command).toMatchObject({
+    cmd: "setRuntimeConfig",
+    sessionId: "s1",
+    config: {
+      runtime: "codex",
+      model: "gpt-5",
+      permissionMode: "default",
+      approvalPolicy: "on-request",
+      sandboxMode: "workspace-write",
+      reasoningEffort: "high",
+      networkAccess: false,
+    },
+  });
+});
