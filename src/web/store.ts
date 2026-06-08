@@ -3,8 +3,11 @@ import {
   type Loot,
   ORCHESTRATOR_ID,
   type Session,
+  type TimelineItem,
   type TimelineMessageItem,
   type TimelinePromptItem,
+  type TimelineSource,
+  type TimelineThinkingItem,
   type TimelineToolItem,
   createAgent,
   createSession,
@@ -204,6 +207,51 @@ function mergeMetadata(
   if (!current) return next;
   if (!next) return current;
   return { ...current, ...next };
+}
+
+function desktopTimelineMeta(session: Session): {
+  source: TimelineSource;
+  runtime: Session["runtime"];
+} {
+  return { source: { kind: "desktop" }, runtime: session.runtime };
+}
+
+function isImTimelineChannel(
+  channel: IntegrationChannel,
+): channel is "wechat" | "feishu" {
+  return channel === "wechat" || channel === "feishu";
+}
+
+function integrationTimelineSource(
+  event: IntegrationEventReceivedPayload,
+): Extract<TimelineSource, { kind: "im" }> | undefined {
+  if (!isImTimelineChannel(event.channel) || !event.externalChatId) {
+    return undefined;
+  }
+  const displayName = event.from || undefined;
+  return displayName
+    ? {
+        kind: "im",
+        channel: event.channel,
+        externalChatId: event.externalChatId,
+        displayName,
+      }
+    : {
+        kind: "im",
+        channel: event.channel,
+        externalChatId: event.externalChatId,
+      };
+}
+
+function upsertTimelineItem(
+  timeline: TimelineItem[],
+  item: TimelineItem,
+): TimelineItem[] {
+  const idx = timeline.findIndex(
+    (current) => current.kind === item.kind && current.id === item.id,
+  );
+  if (idx === -1) return [...timeline, item];
+  return timeline.map((current, i) => (i === idx ? item : current));
 }
 
 function isPrototypeDomainOnlyEvent(type: RoomEvent["type"]): boolean {
@@ -457,9 +505,95 @@ function foldPrototypeDomainEvent(
   }
 }
 
+function foldPrototypeTimelineEvent(
+  state: RoomStateWithPrototype,
+  e: RoomEvent,
+): RoomStateWithPrototype {
+  switch (e.type) {
+    case "integration.event.received": {
+      const p = e.payload as IntegrationEventReceivedPayload;
+      if (p.direction !== "inbound") return state;
+      const text = p.bodyText || p.summary;
+      const source = integrationTimelineSource(p);
+      if (!text || !source) return state;
+      const boundSessionId =
+        state.pairings.byExternalKey[
+          pairingExternalKey(source.channel, source.externalChatId)
+        ]?.sessionId;
+      const targetSessionId = state.sessions[e.sessionId]
+        ? e.sessionId
+        : boundSessionId;
+      if (!targetSessionId) return state;
+      const session = state.sessions[targetSessionId];
+      if (!session) return state;
+      const item: TimelineMessageItem = {
+        kind: "message",
+        id: `integration:${p.id}`,
+        role: "user",
+        text,
+        ts: p.receivedAt ?? p.ts ?? e.ts,
+        source,
+        runtime: session.runtime,
+        status: "final",
+      };
+      return {
+        ...state,
+        sessions: {
+          ...state.sessions,
+          [targetSessionId]: {
+            ...session,
+            timeline: upsertTimelineItem(session.timeline, item),
+            lastActiveAt: e.ts,
+          },
+        },
+      };
+    }
+    case "scheduler.run.started":
+    case "scheduler.run.finished": {
+      const p = e.payload as SchedulerRunStartedPayload;
+      const run = p.run;
+      if (!run.sessionId) return state;
+      const session = state.sessions[run.sessionId];
+      if (!session || run.sessionId !== e.sessionId) return state;
+      const stage = e.type === "scheduler.run.started" ? "started" : "finished";
+      const taskLabel = state.scheduler.tasks[run.taskId]?.title ?? run.taskId;
+      const text =
+        stage === "started"
+          ? `Scheduler run started: ${taskLabel}`
+          : `Scheduler run ${run.status}: ${run.summary ?? taskLabel}`;
+      const item: TimelineMessageItem = {
+        kind: "message",
+        id: `scheduler:${run.id}:${stage}`,
+        role: "system",
+        text,
+        ts:
+          stage === "started"
+            ? (run.startedAt ?? e.ts)
+            : (run.finishedAt ?? e.ts),
+        source: { kind: "scheduler", taskId: run.taskId, runId: run.id },
+        runtime: session.runtime,
+        status: "final",
+      };
+      return {
+        ...state,
+        sessions: {
+          ...state.sessions,
+          [session.id]: {
+            ...session,
+            timeline: upsertTimelineItem(session.timeline, item),
+            lastActiveAt: e.ts,
+          },
+        },
+      };
+    }
+    default:
+      return state;
+  }
+}
+
 export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
   const baseState = withPrototypeStateSlices(state);
-  const sessions = { ...baseState.sessions };
+  let sessions = { ...baseState.sessions };
 
   if (e.type === "session.created") {
     const p = e.payload as {
@@ -588,6 +722,8 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
       role: "system",
       text: p.message,
       ts: e.ts,
+      ...desktopTimelineMeta(base),
+      status: "final",
     };
     sessions[e.sessionId] = {
       ...base,
@@ -604,10 +740,12 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
   }
 
   const domainState = foldPrototypeDomainEvent(baseState, e);
-  if (isPrototypeDomainOnlyEvent(e.type)) return domainState;
+  const domainTimelineState = foldPrototypeTimelineEvent(domainState, e);
+  if (isPrototypeDomainOnlyEvent(e.type)) return domainTimelineState;
 
+  sessions = { ...domainTimelineState.sessions };
   const prev = sessions[e.sessionId];
-  if (!prev) return domainState; // event for an unknown session — create/ignore per event type
+  if (!prev) return domainTimelineState; // event for an unknown session — create/ignore per event type
   const s: Session = { ...prev, agents: { ...prev.agents } };
 
   switch (e.type) {
@@ -649,6 +787,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
           status: "running",
           agentId: e.agentId,
           ts: e.ts,
+          ...desktopTimelineMeta(s),
         };
         s.timeline = [...s.timeline, toolItem];
       }
@@ -747,6 +886,10 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
       const p = e.payload as { text: string; role?: "user" | "assistant" };
       const role = p.role ?? "assistant";
       if (!p.text) break;
+      const status =
+        role === "assistant" && e.type === "message.delta"
+          ? "streaming"
+          : "final";
       const last = s.timeline[s.timeline.length - 1];
       const lastMsg =
         last?.kind === "message" ? (last as TimelineMessageItem) : undefined;
@@ -756,7 +899,16 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
         lastMsg.agentId === e.agentId;
       if (role === "assistant" && lastIsAssistantMsg && lastMsg) {
         // streaming: replace last assistant bubble from same agent
-        s.timeline = [...s.timeline.slice(0, -1), { ...lastMsg, text: p.text }];
+        s.timeline = [
+          ...s.timeline.slice(0, -1),
+          {
+            ...lastMsg,
+            text: p.text,
+            source: lastMsg.source ?? { kind: "desktop" },
+            runtime: lastMsg.runtime ?? s.runtime,
+            status,
+          },
+        ];
       } else {
         const item: TimelineMessageItem = {
           kind: "message",
@@ -765,6 +917,8 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
           agentId: role === "user" ? undefined : e.agentId,
           text: p.text,
           ts: e.ts,
+          ...desktopTimelineMeta(s),
+          status,
         };
         s.timeline = [...s.timeline, item];
       }
@@ -821,6 +975,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
         data: p.data,
         status: "pending",
         ts: e.ts,
+        ...desktopTimelineMeta(s),
       };
       s.timeline = [...s.timeline, item];
       break;
@@ -838,6 +993,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
     case "thinking.final": {
       const p = e.payload as { text: string };
       if (!p.text) break;
+      const status = e.type === "thinking.delta" ? "streaming" : "final";
       // Find last thinking item from same agent to update (streaming replace), or append new
       const lastThinkingIdx = [...s.timeline]
         .reverse()
@@ -845,7 +1001,15 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
       if (lastThinkingIdx !== -1) {
         const idx = s.timeline.length - 1 - lastThinkingIdx;
         s.timeline = s.timeline.map((item, i) =>
-          i === idx ? { ...item, text: p.text } : item,
+          i === idx
+            ? {
+                ...(item as TimelineThinkingItem),
+                text: p.text,
+                source: item.source ?? { kind: "desktop" },
+                runtime: item.runtime ?? s.runtime,
+                status,
+              }
+            : item,
         );
       } else {
         s.timeline = [
@@ -856,6 +1020,8 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
             agentId: e.agentId,
             text: p.text,
             ts: e.ts,
+            ...desktopTimelineMeta(s),
+            status,
           },
         ];
       }
@@ -869,7 +1035,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
   // 选择(spec §生命周期)。房间归属按 project 不按活跃度,故 NPC 不会因此挪位。
   s.lastActiveAt = e.ts;
   sessions[e.sessionId] = s;
-  return { ...domainState, sessions };
+  return { ...domainTimelineState, sessions };
 }
 
 export interface RoomStore extends RoomStateWithPrototype {
@@ -907,10 +1073,12 @@ export const useRoomStore = create<RoomStore>((set) => ({
       if (!prev) return st;
       const item: TimelineMessageItem = {
         kind: "message",
-        id: `u-${prev.timeline.length}-${Date.now()}`,
+        id: `u-${sessionId}-${prev.timeline.length}`,
         role: "user",
         text,
         ts: Date.now(),
+        ...desktopTimelineMeta(prev),
+        status: "final",
       };
       return {
         sessions: {

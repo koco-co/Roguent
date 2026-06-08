@@ -83,6 +83,34 @@ export interface QuestionData {
   }>;
 }
 
+export type TimelineSource =
+  | { kind: "desktop" }
+  | {
+      kind: "im";
+      channel: "wechat" | "feishu";
+      externalChatId: string;
+      displayName?: string;
+    }
+  | { kind: "scheduler"; taskId: string; runId: string }
+  | { kind: "subscription"; channel: "github" | "x"; deliveryId: string };
+
+export type TimelineDeliveryStatus =
+  | "pending"
+  | "sent"
+  | "delivered"
+  | "failed";
+
+export interface TimelineOutboundDelivery {
+  channel: "wechat" | "feishu" | "github" | "x";
+  deliveryId?: string;
+  status: TimelineDeliveryStatus;
+  error?: string;
+  updatedAt?: number;
+}
+
+export type TimelineMessageStatus = "streaming" | "final";
+export type TimelineThinkingStatus = "streaming" | "final";
+
 export interface TimelineMessageItem {
   kind: "message";
   id: string;
@@ -90,6 +118,10 @@ export interface TimelineMessageItem {
   agentId?: string;
   text: string;
   ts: number;
+  source: TimelineSource;
+  runtime: RuntimeKind;
+  status: TimelineMessageStatus;
+  delivery?: TimelineOutboundDelivery;
 }
 
 export interface TimelineThinkingItem {
@@ -98,6 +130,9 @@ export interface TimelineThinkingItem {
   agentId?: string;
   text: string;
   ts: number;
+  source: TimelineSource;
+  runtime: RuntimeKind;
+  status: TimelineThinkingStatus;
 }
 
 export interface TimelineToolItem {
@@ -108,6 +143,8 @@ export interface TimelineToolItem {
   status: "running" | "ok" | "failed";
   agentId?: string;
   ts: number;
+  source: TimelineSource;
+  runtime: RuntimeKind;
 }
 
 export interface TimelinePromptItem {
@@ -117,6 +154,8 @@ export interface TimelinePromptItem {
   data: PermissionPromptData | QuestionData;
   status: "pending" | "answered" | "dismissed";
   ts: number;
+  source: TimelineSource;
+  runtime: RuntimeKind;
 }
 
 export type TimelineItem =
