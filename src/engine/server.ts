@@ -6,6 +6,7 @@ import { openDatabase, resolveDatabasePath } from "./persistence/db";
 import { migrate } from "./persistence/migrations";
 import { resolvePort } from "./port";
 import { loadFixture, replayTimed } from "./record";
+import { KeychainSecretStore } from "./secrets/keychain";
 import { SessionManager } from "./session";
 import { UsagePoller, defaultFetchUsage } from "./usage-poller";
 import { WsGateway } from "./ws-gateway";
@@ -54,6 +55,7 @@ if (replayFixture) {
       db,
       port: ingressPort,
       router: integrations.router,
+      secretStore: new KeychainSecretStore(),
     });
     if (ingress) console.log(`INGRESS_PORT=${ingress.port}`);
   }

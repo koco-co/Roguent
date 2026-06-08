@@ -1558,16 +1558,23 @@
 - `bun test src/engine/integrations/github.test.ts` exit code 0。
 - Local fixture replay creates inbox item and routes to session。
 
-- [ ] Normalize push:
+- [x] Normalize push:
   ```ts
   expect(normalizeGitHubEvent("push", fixture)).toMatchObject({
     channel: "github",
     summary: expect.stringContaining("push"),
   });
   ```
-- [ ] Run:
+- [x] Run:
   ```bash
   bun test src/engine/integrations/github.test.ts
+  ```
+- [x] Verification:
+  ```text
+  bun test src/engine/integrations/github.test.ts src/engine/ingress/server.test.ts src/engine/ingress/signatures.test.ts: exit 0, 24 pass, 0 fail, 64 expect() calls.
+  bunx tsc --noEmit: exit 0.
+  bun run check: exit 0, checked 235 files.
+  bun test: exit 0, 499 pass, 0 fail, 1 snapshot, 4287 expect() calls.
   ```
 
 ---

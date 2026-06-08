@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import type { IntegrationRouteOptions } from "../integrations/types";
 import { createTestDatabase } from "../persistence/db";
 import { migrate } from "../persistence/migrations";
+import { MemorySecretStore } from "../secrets/memory-store";
 import { createIngressHandler, resolveIngressPort } from "./server";
 import { hmacSha256Base64, hmacSha256Hex } from "./signatures";
 
@@ -86,9 +87,10 @@ test("POST /webhooks/github audits accepted delivery and routes normalized event
           direction: "inbound",
           metadata: expect.objectContaining({
             eventName: "push",
+            sourceUrl: "https://github.com/poco/roguent",
             url: "https://github.com/poco/roguent",
           }),
-          summary: "github push: poco/roguent",
+          summary: "push in poco/roguent",
         }),
         options: { currentSessionId: "s1" },
       }),
@@ -102,6 +104,51 @@ test("POST /webhooks/github audits accepted delivery and routes normalized event
       }),
     );
     expect(harness.auditRows()[0]?.payload_hash).toMatch(/^[a-f0-9]{64}$/);
+  } finally {
+    harness.cleanup();
+  }
+});
+
+test("POST /webhooks/github resolves webhook secret through SecretStore ref", async () => {
+  const rawBody = JSON.stringify({
+    repository: { full_name: "poco/roguent" },
+  });
+  const secretStore = new MemorySecretStore();
+  await secretStore.put("secret:github:webhook", "hook-secret");
+  const harness = createHarness({
+    env: { ROGUENT_GITHUB_WEBHOOK_SECRET_REF: "secret:github:webhook" },
+    secretStore,
+  });
+  try {
+    const denied = await harness.fetch("http://ingress.test/webhooks/github", {
+      method: "POST",
+      headers: {
+        "x-github-delivery": "delivery-ref-denied",
+        "x-github-event": "push",
+        "x-hub-signature-256": githubSignature("wrong-secret", rawBody),
+      },
+      body: rawBody,
+    });
+    expect(denied.status).toBe(401);
+
+    const accepted = await harness.fetch(
+      "http://ingress.test/webhooks/github",
+      {
+        method: "POST",
+        headers: {
+          "x-github-delivery": "delivery-ref-ok",
+          "x-github-event": "push",
+          "x-hub-signature-256": githubSignature("hook-secret", rawBody),
+        },
+        body: rawBody,
+      },
+    );
+
+    expect(accepted.status).toBe(200);
+    expect(harness.routed.at(-1)?.event).toMatchObject({
+      channel: "github",
+      deliveryId: "delivery-ref-ok",
+    });
   } finally {
     harness.cleanup();
   }
@@ -322,6 +369,7 @@ function createHarness(
   options: {
     currentSessionId?: () => string | null | undefined;
     env?: Record<string, string | undefined>;
+    secretStore?: MemorySecretStore;
   } = {},
 ) {
   const testDb = createTestDatabase();
@@ -350,6 +398,7 @@ function createHarness(
         };
       },
     },
+    secretStore: options.secretStore,
   });
 
   return {

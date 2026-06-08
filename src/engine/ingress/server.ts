@@ -2,8 +2,13 @@ import type { Database } from "bun:sqlite";
 import { createHash, randomUUID } from "node:crypto";
 import type { IntegrationChannel } from "../../shared/integrations";
 import { appendAuditRecord } from "../audit/log";
+import {
+  normalizeGitHubEvent,
+  resolveGitHubWebhookSecret,
+} from "../integrations/github";
 import type { IntegrationRouter } from "../integrations/router";
 import type { IntegrationEvent } from "../integrations/types";
+import type { SecretStore } from "../secrets/types";
 import {
   verifyGitHubSignature,
   verifyHmacBase64Signature,
@@ -24,6 +29,7 @@ export interface IngressServerOptions {
   env?: Record<string, string | undefined>;
   port?: number | null;
   router: Pick<IntegrationRouter, "route">;
+  secretStore?: SecretStore;
 }
 
 export interface IngressRuntime {
@@ -109,6 +115,13 @@ async function handleGitHubWebhook(
     channel: "github",
     env,
     eventNameHeader: "x-github-event",
+    secret: () => resolveWebhookSecret(options, env),
+    normalize({ deliveryId, eventName, payload, rawBody }) {
+      return normalizeGitHubEvent(eventName, payload, {
+        deliveryId,
+        rawBodyHash: rawBodyHash(rawBody),
+      });
+    },
     secretName: "ROGUENT_GITHUB_WEBHOOK_SECRET",
     signatureHeader: "x-hub-signature-256",
     verifier: verifyGitHubSignature,
@@ -122,7 +135,14 @@ async function handleSignedJsonWebhook(
     channel: IntegrationChannel;
     env: Record<string, string | undefined>;
     eventNameHeader: string;
-    secretName: string;
+    normalize?: (input: {
+      deliveryId: string;
+      eventName: string;
+      payload: Record<string, unknown>;
+      rawBody: Uint8Array;
+    }) => IntegrationEvent;
+    secret?: () => Promise<string | undefined> | string | undefined;
+    secretName?: string;
     signatureHeader: string;
     verifier: (
       rawBody: Uint8Array,
@@ -134,7 +154,10 @@ async function handleSignedJsonWebhook(
   const rawBody = new Uint8Array(await request.arrayBuffer());
   const eventName = request.headers.get(config.eventNameHeader) ?? "webhook";
   const deliveryId = deliveryIdFor(config.channel, request, eventName);
-  const secret = config.env[config.secretName] ?? "";
+  const secret =
+    (await config.secret?.()) ??
+    (config.secretName ? config.env[config.secretName] : undefined) ??
+    "";
   const signature = request.headers.get(config.signatureHeader);
   if (!config.verifier(rawBody, secret, signature)) {
     appendIngressAudit(options.db, {
@@ -161,13 +184,20 @@ async function handleSignedJsonWebhook(
     return json({ error: "invalid json" }, 400);
   }
 
-  const event = normalizeWebhookEvent({
-    channel: config.channel,
-    deliveryId,
-    eventName,
-    payload: parsed.value,
-    rawBody,
-  });
+  const event =
+    config.normalize?.({
+      deliveryId,
+      eventName,
+      payload: parsed.value,
+      rawBody,
+    }) ??
+    normalizeWebhookEvent({
+      channel: config.channel,
+      deliveryId,
+      eventName,
+      payload: parsed.value,
+      rawBody,
+    });
   appendIngressAudit(options.db, {
     accepted: true,
     channel: config.channel,
@@ -180,6 +210,19 @@ async function handleSignedJsonWebhook(
     currentSessionId: options.currentSessionId?.() ?? null,
   });
   return json({ ok: true, id: event.id });
+}
+
+async function resolveWebhookSecret(
+  options: IngressServerOptions,
+  env: Record<string, string | undefined>,
+): Promise<string | undefined> {
+  const ref = env.ROGUENT_GITHUB_WEBHOOK_SECRET_REF?.trim();
+  if (ref) {
+    return options.secretStore
+      ? resolveGitHubWebhookSecret(options.secretStore, ref)
+      : undefined;
+  }
+  return env.ROGUENT_GITHUB_WEBHOOK_SECRET;
 }
 
 async function handleRelayWebhook(
