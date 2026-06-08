@@ -1,4 +1,5 @@
 import type {
+  SchedulerRunFinishedPayload,
   SchedulerRunStartedPayload,
   SchedulerTaskCreatedPayload,
   SchedulerTaskUpdatedPayload,
@@ -133,6 +134,12 @@ export type IntegrationRouterEvent =
       sessionId: string;
       type: "scheduler.run.started";
       payload: SchedulerRunStartedPayload;
+      ts: number;
+    }
+  | {
+      sessionId: string;
+      type: "scheduler.run.finished";
+      payload: SchedulerRunFinishedPayload;
       ts: number;
     };
 

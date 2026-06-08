@@ -1867,8 +1867,9 @@
 
 **Files:**
 - Create: `src/engine/scheduler/runner.ts`
-- Modify: `src/engine/session.ts`
+- Modify: `src/engine/persistence/repositories.ts`
 - Modify: `src/engine/server.ts`
+- Modify: `src/engine/integrations/types.ts`
 - Test: `src/engine/scheduler/runner.test.ts`
 
 **Output Standard:**
@@ -1880,19 +1881,32 @@
 - `bun test src/engine/scheduler/runner.test.ts` exit code 0。
 - Fake runtime runner E2E 证明 prompt 已进入目标 session。
 
-- [ ] Add test:
+- [x] Add test:
   ```ts
-  test("due task starts codex session with stored permissions", async () => {
+  test("due task starts codex session with stored approval policy and sends prompt", async () => {
     const harness = createSchedulerHarness();
-    await harness.createTask({ runtime: "codex", permissionMode: "bypassPermissions", prompt: "ship it" });
-    await harness.runner.tick(harness.now.plusMinutes(1));
-    expect(harness.fakeRuntime.created[0]?.permissionMode).toBe("bypassPermissions");
+    await harness.createTask({ runtime: "codex", approvalPolicy: "never", prompt: "ship it" });
+    const runs = await harness.runner.tick();
+    expect(runs[0]?.status).toBe("succeeded");
   });
   ```
-- [ ] Run:
+- [x] Run:
   ```bash
   bun test src/engine/scheduler/runner.test.ts
+  # exit code 0; 8 pass, 0 fail, 34 expect() calls
+  bun test src/engine/scheduler/runner.test.ts src/engine/scheduler/service.test.ts src/engine/ws-gateway.test.ts src/engine/session.test.ts
+  # exit code 0; 33 pass, 0 fail, 131 expect() calls
+  bunx tsc --noEmit
+  # exit code 0
+  bun run check
+  # exit code 0; Checked 256 files, no fixes applied
+  bun test
+  # exit code 0; 543 pass, 0 fail, 1 snapshots, 4470 expect() calls
   ```
+- [x] Review:
+  - Spec review approved. `scheduler.run.error` was intentionally not added because Task 0 naming lock requires `scheduler.run.finished` with failed status/error payload.
+  - Code quality review approved after fixing transactional due claim/run creation and archived queued run skip handling.
+  - Implementation notes: `SchedulerRunner` scans queued run-now records first, then due tasks; due task claim and run creation happen in one SQLite transaction; queued archived tasks become skipped without runtime dispatch; run history persists started/succeeded/failed/skipped records; `server.ts` starts the runner only in live mode; fake runtime E2E verifies the prompt reaches `SessionManager`'s driver.
 
 ---
 

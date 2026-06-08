@@ -702,6 +702,24 @@ export function createRepositories(db: Database) {
           .all(limit)
           .map(mapSchedulerTask);
       },
+
+      due(now: number, limit = 100): SchedulerTask[] {
+        return db
+          .query<SchedulerTaskRow, [number, number]>(
+            "SELECT * FROM scheduler_tasks WHERE status = 'enabled' AND next_run_at IS NOT NULL AND next_run_at <= ? ORDER BY next_run_at ASC, id ASC LIMIT ?",
+          )
+          .all(now, limit)
+          .map(mapSchedulerTask);
+      },
+
+      claimDue(id: string, nextRunAt: number, now: number): boolean {
+        const result = db
+          .query<unknown, [number, string, number]>(
+            "UPDATE scheduler_tasks SET next_run_at = NULL, updated_at = ? WHERE id = ? AND status = 'enabled' AND next_run_at = ?",
+          )
+          .run(now, id, nextRunAt);
+        return result.changes === 1;
+      },
     },
 
     schedulerRuns: {
@@ -774,6 +792,29 @@ export function createRepositories(db: Database) {
           )
           .all(taskId, limit)
           .map(mapSchedulerRun);
+      },
+
+      listQueued(limit = 100): SchedulerRun[] {
+        return db
+          .query<SchedulerRunRow, [number]>(
+            "SELECT * FROM scheduler_runs WHERE status = 'queued' ORDER BY COALESCE(queued_at, 0) ASC, id ASC LIMIT ?",
+          )
+          .all(limit)
+          .map(mapSchedulerRun);
+      },
+
+      claimQueued(
+        runId: string,
+        startedAt: number,
+        sessionId?: string,
+      ): SchedulerRun | null {
+        const result = db
+          .query<unknown, [number, string | null, string]>(
+            "UPDATE scheduler_runs SET status = 'running', started_at = ?, session_id = ? WHERE id = ? AND status = 'queued'",
+          )
+          .run(startedAt, sessionId ?? null, runId);
+        if (result.changes !== 1) return null;
+        return this.get(runId);
       },
     },
   };
