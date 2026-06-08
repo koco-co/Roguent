@@ -106,6 +106,23 @@ export class FakeWeChatConnector implements ImConnector {
     });
   }
 
+  async emitStatus(
+    state: "connecting" | "connected" | "disconnected" | "degraded" | "error",
+    error?: string,
+  ): Promise<void> {
+    await this.emit({
+      type: "status",
+      status: {
+        id: "fake-wechat",
+        channel: "wechat",
+        state,
+        label: "Fake WeChat",
+        error,
+        lastEventAt: this.now(),
+      },
+    });
+  }
+
   async sendMessage(
     target: OutboundImTarget,
     text: string,

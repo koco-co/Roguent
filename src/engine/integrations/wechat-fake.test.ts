@@ -122,3 +122,29 @@ test("IntegrationManager routes fake WeChat inbound messages through the router"
     }),
   );
 });
+
+test("IntegrationManager publishes connector status as integration.status", async () => {
+  const connector = new FakeWeChatConnector({ now: () => 1_717_452_000_000 });
+  const harness = createRouterHarness();
+  const manager = new IntegrationManager({
+    currentSessionId: () => "selected-session",
+    imConnectors: { wechat: connector },
+    router: harness.router,
+  });
+
+  manager.start();
+  await connector.emitStatus("error", "host crashed");
+
+  expect(harness.published).toContainEqual({
+    sessionId: "selected-session",
+    type: "integration.status",
+    payload: {
+      status: expect.objectContaining({
+        channel: "wechat",
+        state: "error",
+        error: "host crashed",
+      }),
+    },
+    ts: 1_717_452_000_000,
+  });
+});

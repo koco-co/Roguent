@@ -1,4 +1,5 @@
 import type { IntegrationChannel, PairingQr } from "../../shared/integrations";
+import type { IntegrationConnectorStatus } from "../../shared/integrations";
 import type { IntegrationEvent, MaybePromise } from "./types";
 
 export interface PairingQrState extends PairingQr {
@@ -48,6 +49,10 @@ export type ImConnectorEvent =
   | {
       type: "outbound.ack";
       result: OutboundDeliveryResult;
+    }
+  | {
+      type: "status";
+      status: IntegrationConnectorStatus;
     };
 
 export interface ImConnector {

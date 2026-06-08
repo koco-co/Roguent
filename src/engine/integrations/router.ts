@@ -1,5 +1,6 @@
 import type {
   IntegrationChannel,
+  IntegrationConnectorStatus,
   MailboxItem,
   NormalizedIntegrationEvent,
   PairingBinding,
@@ -20,6 +21,18 @@ const PAIRABLE_CHANNELS = new Set<IntegrationChannel>([
 
 export class IntegrationRouter {
   constructor(private readonly deps: IntegrationRouterDependencies) {}
+
+  async publishStatus(
+    status: IntegrationConnectorStatus,
+    options: IntegrationRouteOptions = {},
+  ): Promise<void> {
+    await this.deps.publish({
+      sessionId: options.currentSessionId?.trim() || "integrations",
+      type: "integration.status",
+      payload: { status },
+      ts: status.lastEventAt ?? Date.now(),
+    });
+  }
 
   async route(
     event: IntegrationEvent,

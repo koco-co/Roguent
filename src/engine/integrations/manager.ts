@@ -30,9 +30,16 @@ export class IntegrationManager {
   }
 
   private async handleConnectorEvent(event: ImConnectorEvent): Promise<void> {
-    if (event.type !== "message") return;
-    await this.options.router.route(event.event, {
-      currentSessionId: this.options.currentSessionId?.() ?? null,
-    });
+    if (event.type === "message") {
+      await this.options.router.route(event.event, {
+        currentSessionId: this.options.currentSessionId?.() ?? null,
+      });
+      return;
+    }
+    if (event.type === "status") {
+      await this.options.router.publishStatus(event.status, {
+        currentSessionId: this.options.currentSessionId?.() ?? null,
+      });
+    }
   }
 }

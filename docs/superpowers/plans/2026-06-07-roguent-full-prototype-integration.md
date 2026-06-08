@@ -1327,21 +1327,33 @@
 - Host 通过 newline JSON 与 Bun engine 通信。
 - 启动前检测 Node major >= 22。
 - Host crash 会发 `integration.status` error，并允许重启。
+- Bun connector 遇到 `wechat_bun_incompatible` typed error 时通过 fallback factory 切到 Node host，其他 Bun 错误不吞掉。
+- Node host 的 connector-local status 必须经 `IntegrationManager`/`IntegrationRouter` 发布成 engine-level `integration.status`。
 
 **Acceptance Standard:**
 - `bun test src/engine/integrations/wechat-node-host.test.ts` exit code 0。
 - `node --version` evidence 记录 major version；若小于 22，记录 blocker。
 
-- [ ] Define host messages:
+- [x] Define host messages:
   ```ts
   type WeChatHostRequest =
     | { id: string; type: "startPairing"; sessionId: string }
+    | { id: string; type: "stopPairing"; sessionId: string }
     | { id: string; type: "sendMessage"; externalChatId: string; text: string };
   ```
-- [ ] Run:
+- [x] Run:
   ```bash
-  bun test src/engine/integrations/wechat-node-host.test.ts
+  bun test src/engine/integrations/wechat-node-host.test.ts src/engine/integrations/wechat-fake.test.ts
   node --version
+  ```
+- [x] Verification:
+  ```text
+  bun test src/engine/integrations/wechat-node-host.test.ts src/engine/integrations/wechat-fake.test.ts: exit 0, 10 pass, 0 fail, 24 expect() calls.
+  node --version: v25.8.1.
+  bun run scripts/smoke-wechat-node-host.ts: exit 0, status=blocked, nodeVersion=v25.8.1, blocker="Network error: fetch failed".
+  bunx tsc --noEmit: exit 0.
+  bun run check: exit 0, checked 217 files.
+  bun test: exit 0, 451 pass, 0 fail, 1 snapshot, 4162 expect() calls.
   ```
 
 ---

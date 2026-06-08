@@ -1,6 +1,7 @@
 import type {
   IntegrationChannel,
   IntegrationDirection,
+  IntegrationStatusPayload,
   MailboxItem,
   MailboxItemCreatedPayload,
   NormalizedIntegrationEvent,
@@ -94,6 +95,12 @@ export type IntegrationRouterEvent =
       sessionId: string;
       type: "integration.event.received";
       payload: NormalizedIntegrationEvent;
+      ts: number;
+    }
+  | {
+      sessionId: string;
+      type: "integration.status";
+      payload: IntegrationStatusPayload;
       ts: number;
     };
 
