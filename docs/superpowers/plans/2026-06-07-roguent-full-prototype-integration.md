@@ -1375,7 +1375,7 @@
 **Acceptance Standard:**
 - `bun test src/engine/integrations/feishu-fake.test.ts` exit code 0。
 
-- [ ] Define normalized metadata:
+- [x] Define normalized metadata:
   ```ts
   export interface FeishuMessageMeta {
     messageId: string;
@@ -1384,9 +1384,16 @@
     chatType: "p2p" | "group";
   }
   ```
-- [ ] Run:
+- [x] Run:
   ```bash
   bun test src/engine/integrations/feishu-fake.test.ts
+  ```
+- [x] Verification:
+  ```text
+  bun test src/engine/integrations/feishu-fake.test.ts: exit 0, 3 pass, 0 fail, 11 expect() calls.
+  bunx tsc --noEmit: exit 0.
+  bun run check: exit 0, checked 220 files.
+  bun test: exit 0, 454 pass, 0 fail, 1 snapshot, 4173 expect() calls.
   ```
 
 ---
