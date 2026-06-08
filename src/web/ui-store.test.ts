@@ -7,6 +7,7 @@ beforeEach(() => {
     activePanel: null,
     localSessions: [],
     importError: null,
+    commandError: null,
     selectedAgentId: null,
     selectedNpcId: null,
     view: "overworld",
@@ -69,4 +70,11 @@ test("setLocalSessions / setImportError update import state", () => {
   expect(useUiStore.getState().importError).toBe("boom");
   useUiStore.getState().setLocalSessions([]); // 重新列表清掉旧错误
   expect(useUiStore.getState().importError).toBeNull();
+});
+
+test("setCommandError updates generic command error state", () => {
+  useUiStore.getState().setCommandError("Command not implemented");
+  expect(useUiStore.getState().commandError).toBe("Command not implemented");
+  useUiStore.getState().setCommandError(null);
+  expect(useUiStore.getState().commandError).toBeNull();
 });

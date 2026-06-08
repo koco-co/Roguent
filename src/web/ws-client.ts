@@ -1,4 +1,4 @@
-import type { Command } from "../engine/ws-gateway";
+import type { ClientCommand } from "../shared/commands";
 import type { AccountLimits, RoomEvent } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
 import { useRoomStore } from "./store";
@@ -32,15 +32,15 @@ export function handleIncoming(
 }
 
 export interface RoomConnection {
-  send: (cmd: object) => void;
+  send: (cmd: ClientCommand) => void;
   close: () => void;
   reconnect: () => void;
 }
 
 let active: RoomConnection | null = null;
-const pending: object[] = [];
+const pending: ClientCommand[] = [];
 
-export function sendCommand(cmd: Command): void {
+export function sendCommand(cmd: ClientCommand): void {
   if (active) active.send(cmd);
   else pending.push(cmd);
 }
@@ -51,6 +51,7 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
     const ui = useUiStore.getState();
     if (c.type === "localSessions") ui.setLocalSessions(c.items);
     else if (c.type === "importError") ui.setImportError(c.reason);
+    else if (c.type === "commandError") ui.setCommandError(c.reason);
     else if (c.type === "roster") {
       // 重连对账:清掉引擎花名册外的幽灵会话(导入会话豁免,见 reconcileSessions)。
       useRoomStore.getState().reconcileSessions(c.sessionIds);
@@ -67,7 +68,7 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
   const onLimits = (l: AccountLimits) => useRoomStore.getState().setLimits(l);
   // 连接建立前发出的命令(如 newSession)先入队,onopen 后补发;
   // 断线非主动关闭则退避重连(spec §10)。
-  const buffer: object[] = [];
+  const buffer: ClientCommand[] = [];
   let ws: WebSocket;
   let closedByUser = false;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;

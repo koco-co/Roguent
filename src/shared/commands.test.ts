@@ -1,0 +1,282 @@
+import { expect, test } from "bun:test";
+import { parseClientCommand } from "./commands";
+
+test("parseClientCommand accepts known commands and rejects junk", () => {
+  expect(
+    parseClientCommand('{"cmd":"sendMessage","sessionId":"s1","text":"hi"}'),
+  ).toEqual({
+    ok: true,
+    command: { cmd: "sendMessage", sessionId: "s1", text: "hi" },
+  });
+  const setModel = parseClientCommand({
+    cmd: "setModel",
+    sessionId: "s1",
+    model: "claude-opus-4-8",
+  });
+  expect(setModel.ok && setModel.command.cmd).toBe("setModel");
+  expect(parseClientCommand("not json").ok).toBe(false);
+  expect(parseClientCommand({ cmd: "explode" }).ok).toBe(false);
+});
+
+test("parseClientCommand rejects type-only protocol", () => {
+  expect(parseClientCommand({ type: "unknown" }).ok).toBe(false);
+  expect(
+    parseClientCommand({
+      type: "newSession",
+      sessionId: "s1",
+      title: "Wrong protocol",
+      model: "claude-sonnet-4",
+    }).ok,
+  ).toBe(false);
+});
+
+test("parseClientCommand accepts newSession with an optional cwd", () => {
+  expect(
+    parseClientCommand({
+      cmd: "newSession",
+      sessionId: "s1",
+      title: "t",
+      model: "m",
+      cwd: "/repo",
+    }),
+  ).toEqual({
+    ok: true,
+    command: {
+      cmd: "newSession",
+      sessionId: "s1",
+      title: "t",
+      model: "m",
+      runtime: "claude",
+      cwd: "/repo",
+    },
+  });
+  const omitted = parseClientCommand({
+    cmd: "newSession",
+    sessionId: "s1",
+    title: "t",
+    model: "m",
+  });
+  expect(omitted.ok && omitted.command.cmd).toBe("newSession");
+  expect(
+    parseClientCommand({
+      cmd: "newSession",
+      sessionId: "s1",
+      title: "t",
+      model: "m",
+      cwd: 5,
+    }).ok,
+  ).toBe(false);
+});
+
+test("parseClientCommand accepts newSession runtime config and defaults runtime to Claude", () => {
+  expect(
+    parseClientCommand({
+      cmd: "newSession",
+      sessionId: "s1",
+      title: "t",
+      model: "claude-sonnet-4-5",
+      cwd: "/repo",
+      permissionMode: "acceptEdits",
+      sandboxMode: "danger-full-access",
+      reasoningEffort: "high",
+      networkAccess: false,
+      approvalPolicy: "never",
+    }),
+  ).toEqual({
+    ok: true,
+    command: {
+      cmd: "newSession",
+      sessionId: "s1",
+      title: "t",
+      model: "claude-sonnet-4-5",
+      runtime: "claude",
+      cwd: "/repo",
+      permissionMode: "acceptEdits",
+      sandboxMode: "danger-full-access",
+      reasoningEffort: "high",
+      networkAccess: false,
+      approvalPolicy: "never",
+    },
+  });
+
+  const codexCommand = parseClientCommand({
+    cmd: "newSession",
+    sessionId: "s2",
+    title: "t",
+    model: "gpt-5",
+    runtime: "codex",
+  });
+  expect(
+    codexCommand.ok &&
+      codexCommand.command.cmd === "newSession" &&
+      codexCommand.command.runtime,
+  ).toBe("codex");
+});
+
+test("parseClientCommand rejects invalid newSession runtime config fields", () => {
+  const base = {
+    cmd: "newSession",
+    sessionId: "s1",
+    title: "t",
+    model: "m",
+  };
+  for (const patch of [
+    { runtime: "other" },
+    { permissionMode: "ask" },
+    { sandboxMode: "unsafe" },
+    { reasoningEffort: "extreme" },
+    { approvalPolicy: "always" },
+    { networkAccess: "true" },
+    { cwd: 5 },
+  ]) {
+    expect(parseClientCommand({ ...base, ...patch }).ok).toBe(false);
+  }
+});
+
+test("parseClientCommand accepts existing session and prompt commands", () => {
+  expect(parseClientCommand({ cmd: "deleteSession", sessionId: "s1" })).toEqual(
+    {
+      ok: true,
+      command: { cmd: "deleteSession", sessionId: "s1" },
+    },
+  );
+  expect(parseClientCommand({ cmd: "deleteSession" }).ok).toBe(false);
+  expect(parseClientCommand({ cmd: "listLocalSessions" })).toEqual({
+    ok: true,
+    command: { cmd: "listLocalSessions" },
+  });
+  expect(
+    parseClientCommand({ cmd: "importSession", path: "/a/b.jsonl" }),
+  ).toEqual({
+    ok: true,
+    command: { cmd: "importSession", path: "/a/b.jsonl" },
+  });
+  expect(parseClientCommand({ cmd: "importSession", path: 5 }).ok).toBe(false);
+
+  const permission = parseClientCommand({
+    cmd: "respondPermission",
+    sessionId: "s1",
+    promptId: "p1",
+    behavior: "allow",
+  });
+  expect(permission.ok && permission.command.cmd).toBe("respondPermission");
+  expect(
+    parseClientCommand({
+      cmd: "respondPermission",
+      sessionId: "s1",
+      promptId: "p1",
+      behavior: "maybe",
+    }).ok,
+  ).toBe(false);
+
+  const question = parseClientCommand({
+    cmd: "respondQuestion",
+    sessionId: "s1",
+    promptId: "p1",
+    selectedLabels: ["A"],
+  });
+  expect(question.ok && question.command.cmd).toBe("respondQuestion");
+
+  const permissionMode = parseClientCommand({
+    cmd: "setPermissionMode",
+    sessionId: "s1",
+    mode: "acceptEdits",
+  });
+  expect(permissionMode.ok && permissionMode.command.cmd).toBe(
+    "setPermissionMode",
+  );
+  expect(
+    parseClientCommand({
+      cmd: "setPermissionMode",
+      sessionId: "s1",
+      mode: "ask",
+    }).ok,
+  ).toBe(false);
+});
+
+test("parseClientCommand accepts prototype command groups with typed shapes", () => {
+  const runtime = parseClientCommand({
+    cmd: "setRuntimeConfig",
+    sessionId: "s1",
+    config: {
+      runtime: "codex",
+      model: "gpt-5",
+      permissionMode: "default",
+      approvalPolicy: "on-request",
+      sandboxMode: "workspace-write",
+      reasoningEffort: "medium",
+      networkAccess: false,
+    },
+  });
+  expect(runtime.ok && runtime.command.cmd).toBe("setRuntimeConfig");
+  expect(
+    runtime.ok &&
+      runtime.command.cmd === "setRuntimeConfig" &&
+      runtime.command.config.runtime,
+  ).toBe("codex");
+
+  const pairing = parseClientCommand({
+    cmd: "createPairing",
+    sessionId: "s1",
+    channel: "wechat",
+    externalChatId: "chat-a",
+    forwardingEnabled: true,
+  });
+  expect(pairing.ok && pairing.command.cmd).toBe("createPairing");
+
+  const scheduler = parseClientCommand({
+    cmd: "scheduler",
+    action: "createTask",
+    task: {
+      id: "task-1",
+      title: "Daily review",
+      prompt: "Summarize changes",
+      status: "enabled",
+      createdAt: 1,
+      schedule: { kind: "once", runAt: 2 },
+    },
+  });
+  expect(scheduler.ok && scheduler.command.cmd).toBe("scheduler");
+  expect(
+    scheduler.ok &&
+      scheduler.command.cmd === "scheduler" &&
+      scheduler.command.action,
+  ).toBe("createTask");
+});
+
+test("parseClientCommand rejects unknown prototype actions", () => {
+  expect(
+    parseClientCommand({
+      cmd: "scheduler",
+      action: "explode",
+      taskId: "task-1",
+    }).ok,
+  ).toBe(false);
+  expect(
+    parseClientCommand({
+      cmd: "mailbox",
+      action: "teleport",
+      itemId: "mail-1",
+    }).ok,
+  ).toBe(false);
+});
+
+test("parseClientCommand rejects non-conservative prototype payloads", () => {
+  expect(
+    parseClientCommand({
+      cmd: "scheduler",
+      action: "updateTask",
+      taskId: "task-1",
+      changes: { madeUp: 1 },
+    }).ok,
+  ).toBe(false);
+
+  expect(
+    parseClientCommand({
+      cmd: "settings",
+      action: "update",
+      scope: "user",
+      settings: { scheduler: { enabled: "yes" } },
+    }).ok,
+  ).toBe(false);
+});

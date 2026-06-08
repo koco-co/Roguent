@@ -1,144 +1,10 @@
 import { basename } from "node:path";
 import { type WebSocket, WebSocketServer } from "ws";
+import { type ClientCommand, parseClientCommand } from "../shared/commands";
 import type { AccountLimits, LimitsMessage, RoomEvent } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
-import {
-  isCodexApprovalPolicy,
-  isPermissionMode,
-  isReasoningEffort,
-  isRuntimeKind,
-  isSandboxMode,
-  normalizeRuntimeKind,
-} from "../shared/runtime";
-import type {
-  CodexApprovalPolicy,
-  PermissionMode,
-  ReasoningEffort,
-  RuntimeKind,
-  SandboxMode,
-} from "../shared/runtime";
 import { listLocalSessions } from "./local-sessions";
 import type { SessionManager } from "./session";
-
-export type Command =
-  | {
-      cmd: "newSession";
-      sessionId: string;
-      title: string;
-      model: string;
-      runtime?: RuntimeKind;
-      cwd?: string;
-      permissionMode?: PermissionMode;
-      approvalPolicy?: CodexApprovalPolicy;
-      sandboxMode?: SandboxMode;
-      reasoningEffort?: ReasoningEffort;
-      networkAccess?: boolean;
-    }
-  | { cmd: "sendMessage"; sessionId: string; text: string }
-  | { cmd: "setModel"; sessionId: string; model: string }
-  | { cmd: "interrupt"; sessionId: string }
-  | { cmd: "deleteSession"; sessionId: string }
-  | { cmd: "listLocalSessions" }
-  | { cmd: "importSession"; path: string }
-  | {
-      cmd: "respondPermission";
-      sessionId: string;
-      promptId: string;
-      behavior: "allow" | "deny";
-      message?: string;
-    }
-  | {
-      cmd: "respondQuestion";
-      sessionId: string;
-      promptId: string;
-      selectedLabels: string[];
-    }
-  | { cmd: "setPermissionMode"; sessionId: string; mode: string };
-
-export function parseCommand(raw: string): Command | null {
-  let o: Record<string, unknown>;
-  try {
-    o = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-  switch (o.cmd) {
-    case "newSession":
-      // cwd 可选(默认服务端 cwd);带了就必须是字符串。
-      if (
-        typeof o.sessionId !== "string" ||
-        typeof o.title !== "string" ||
-        typeof o.model !== "string" ||
-        (o.cwd !== undefined && typeof o.cwd !== "string") ||
-        (o.runtime !== undefined && !isRuntimeKind(o.runtime)) ||
-        (o.permissionMode !== undefined &&
-          !isPermissionMode(o.permissionMode)) ||
-        (o.approvalPolicy !== undefined &&
-          !isCodexApprovalPolicy(o.approvalPolicy)) ||
-        (o.sandboxMode !== undefined && !isSandboxMode(o.sandboxMode)) ||
-        (o.reasoningEffort !== undefined &&
-          !isReasoningEffort(o.reasoningEffort)) ||
-        (o.networkAccess !== undefined && typeof o.networkAccess !== "boolean")
-      ) {
-        return null;
-      }
-      return {
-        cmd: "newSession",
-        sessionId: o.sessionId,
-        title: o.title,
-        model: o.model,
-        runtime: normalizeRuntimeKind(o.runtime),
-        ...(o.cwd !== undefined ? { cwd: o.cwd } : {}),
-        ...(o.permissionMode !== undefined
-          ? { permissionMode: o.permissionMode }
-          : {}),
-        ...(o.approvalPolicy !== undefined
-          ? { approvalPolicy: o.approvalPolicy }
-          : {}),
-        ...(o.sandboxMode !== undefined ? { sandboxMode: o.sandboxMode } : {}),
-        ...(o.reasoningEffort !== undefined
-          ? { reasoningEffort: o.reasoningEffort }
-          : {}),
-        ...(o.networkAccess !== undefined
-          ? { networkAccess: o.networkAccess }
-          : {}),
-      };
-    case "sendMessage":
-      return typeof o.sessionId === "string" && typeof o.text === "string"
-        ? (o as Command)
-        : null;
-    case "setModel":
-      return typeof o.sessionId === "string" && typeof o.model === "string"
-        ? (o as Command)
-        : null;
-    case "interrupt":
-      return typeof o.sessionId === "string" ? (o as Command) : null;
-    case "deleteSession":
-      return typeof o.sessionId === "string" ? (o as Command) : null;
-    case "listLocalSessions":
-      return { cmd: "listLocalSessions" };
-    case "importSession":
-      return typeof o.path === "string" ? (o as Command) : null;
-    case "respondPermission":
-      return typeof o.sessionId === "string" &&
-        typeof o.promptId === "string" &&
-        (o.behavior === "allow" || o.behavior === "deny")
-        ? (o as Command)
-        : null;
-    case "respondQuestion":
-      return typeof o.sessionId === "string" &&
-        typeof o.promptId === "string" &&
-        Array.isArray(o.selectedLabels)
-        ? (o as Command)
-        : null;
-    case "setPermissionMode":
-      return typeof o.sessionId === "string" && typeof o.mode === "string"
-        ? (o as Command)
-        : null;
-    default:
-      return null;
-  }
-}
 
 export class WsGateway {
   private wss: WebSocketServer;
@@ -186,8 +52,16 @@ export class WsGateway {
   }
 
   private onCommand(raw: string, ws: WebSocket): void {
-    const c = parseCommand(raw);
-    if (!c) return;
+    const parsed = parseClientCommand(raw);
+    if (!parsed.ok) {
+      this.replyCommandError(
+        ws,
+        parsed.sessionId ?? "__command__",
+        "Invalid client command",
+      );
+      return;
+    }
+    const c = parsed.command;
     if (c.cmd === "newSession")
       this.mgr.createSession(c.sessionId, {
         title: c.title,
@@ -232,10 +106,40 @@ export class WsGateway {
       this.mgr.respondQuestion(c.sessionId, c.promptId, c.selectedLabels);
     } else if (c.cmd === "setPermissionMode") {
       void this.mgr.setPermissionMode(c.sessionId, c.mode);
+    } else {
+      this.replyCommandError(
+        ws,
+        commandSessionId(c),
+        `Command not implemented: ${commandLabel(c)}`,
+      );
     }
   }
 
   private reply(ws: WebSocket, msg: ControlMessage): void {
     if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
   }
+
+  private replyCommandError(
+    ws: WebSocket,
+    sessionId: string | undefined,
+    message: string,
+  ): void {
+    const msg: ControlMessage = {
+      kind: "control",
+      type: "commandError",
+      reason: message,
+      ...(sessionId !== undefined ? { sessionId } : {}),
+    };
+    this.reply(ws, msg);
+  }
+}
+
+function commandSessionId(command: ClientCommand): string | undefined {
+  return "sessionId" in command && typeof command.sessionId === "string"
+    ? command.sessionId
+    : undefined;
+}
+
+function commandLabel(command: ClientCommand): string {
+  return "action" in command ? `${command.cmd}.${command.action}` : command.cmd;
 }
