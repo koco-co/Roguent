@@ -3,8 +3,32 @@ import type { ControlMessage } from "../shared/local-sessions";
 import type { SessionManager } from "./session";
 import { WsGateway } from "./ws-gateway";
 
-function closeGateway(gateway: WsGateway): void {
-  (gateway as unknown as { wss: { close(): void } }).wss.close();
+type TestWebSocketServer = {
+  address(): unknown;
+  close(cb?: () => void): void;
+  once(event: "listening" | "error", cb: () => void): void;
+  off(event: "listening" | "error", cb: () => void): void;
+};
+
+function closeGateway(gateway: WsGateway): Promise<void> {
+  const wss = (gateway as unknown as { wss: TestWebSocketServer }).wss;
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      wss.off("listening", close);
+      wss.off("error", finish);
+      resolve();
+    };
+    const close = () => wss.close(finish);
+
+    if (wss.address()) close();
+    else {
+      wss.once("listening", close);
+      wss.once("error", finish);
+    }
+  });
 }
 
 function invokeOnCommand(
@@ -19,7 +43,7 @@ function invokeOnCommand(
   ).onCommand(raw, ws);
 }
 
-test("WsGateway passes newSession runtime config through to SessionManager", () => {
+test("WsGateway passes newSession runtime config through to SessionManager", async () => {
   const calls: Array<{ id: string; opts: unknown }> = [];
   const mgr = {
     sessionIds: () => [],
@@ -45,7 +69,7 @@ test("WsGateway passes newSession runtime config through to SessionManager", () 
       }),
     );
   } finally {
-    closeGateway(gateway);
+    await closeGateway(gateway);
   }
 
   expect(calls).toEqual([
@@ -66,7 +90,7 @@ test("WsGateway passes newSession runtime config through to SessionManager", () 
   ]);
 });
 
-test("WsGateway replies with commandError control when command parsing fails", () => {
+test("WsGateway replies with commandError control when command parsing fails", async () => {
   const sent: string[] = [];
   const ws = {
     OPEN: 1,
@@ -91,7 +115,7 @@ test("WsGateway replies with commandError control when command parsing fails", (
       ws,
     );
   } finally {
-    closeGateway(gateway);
+    await closeGateway(gateway);
   }
 
   expect(sent).toHaveLength(1);
@@ -105,7 +129,7 @@ test("WsGateway replies with commandError control when command parsing fails", (
   expect("seq" in msg).toBe(false);
 });
 
-test("WsGateway replies with commandError control for unimplemented prototype commands", () => {
+test("WsGateway replies with commandError control for unimplemented prototype commands", async () => {
   const sent: string[] = [];
   const ws = {
     OPEN: 1,
@@ -129,7 +153,7 @@ test("WsGateway replies with commandError control for unimplemented prototype co
       ws,
     );
   } finally {
-    closeGateway(gateway);
+    await closeGateway(gateway);
   }
 
   expect(sent).toHaveLength(1);
@@ -142,7 +166,7 @@ test("WsGateway replies with commandError control for unimplemented prototype co
   expect("seq" in msg).toBe(false);
 });
 
-test("WsGateway passes setRuntimeConfig through to SessionManager", () => {
+test("WsGateway passes setRuntimeConfig through to SessionManager", async () => {
   const calls: unknown[] = [];
   const sent: string[] = [];
   const ws = {
@@ -176,7 +200,7 @@ test("WsGateway passes setRuntimeConfig through to SessionManager", () => {
       ws,
     );
   } finally {
-    closeGateway(gateway);
+    await closeGateway(gateway);
   }
 
   expect(sent).toEqual([]);
@@ -196,7 +220,7 @@ test("WsGateway passes setRuntimeConfig through to SessionManager", () => {
   ]);
 });
 
-test("WsGateway dispatches rollback and retryFrom commands to SessionManager", () => {
+test("WsGateway dispatches rollback and retryFrom commands to SessionManager", async () => {
   const calls: unknown[] = [];
   const sent: string[] = [];
   const ws = {
@@ -233,7 +257,7 @@ test("WsGateway dispatches rollback and retryFrom commands to SessionManager", (
       ws,
     );
   } finally {
-    closeGateway(gateway);
+    await closeGateway(gateway);
   }
 
   expect(sent).toEqual([]);

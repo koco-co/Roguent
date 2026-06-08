@@ -1124,8 +1124,8 @@
     receivedAt: number;
   }
   ```
-- [ ] Add route tests for paired IM, current session subscription, auto-created subscription session.
-- [ ] Run:
+- [x] Add route tests for paired IM, current session subscription, auto-created subscription session.
+- [x] Run:
   ```bash
   bun test src/engine/integrations/router.test.ts
   ```
