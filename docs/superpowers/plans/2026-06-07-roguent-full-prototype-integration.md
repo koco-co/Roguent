@@ -12,6 +12,15 @@
 
 **Verification Rule:** 每个 task 的验收只能覆盖该 task 声明的范围。完成时必须记录实际命令、exit code、pass/fail/skip 数、截图或 trace artifact 路径。未执行的外部账号流程必须列入 blocker 表，不得描述为已通过。
 
+**Review Corrections Incorporated:** 本计划已按评审反馈修正以下阻断/返工风险,后续执行不得回退:
+
+- 测试基建不再假设已存在:Task 0 先安装/configure `@testing-library/*`、`happy-dom`、Playwright、`bunfig.toml`、`playwright.config.ts`,再允许后续 `.test.tsx` 和浏览器 E2E task 使用这些命令。
+- 已存在聊天/面板组件不再重复创建:`src/web/hud/*` 的 `MessageBubble`/`ToolCard`/`ThinkingBlock`/`PromptCard`/`TimelineItem`/`SlashMenu` 等均按 Modify/extend 执行,不要新建 `src/web/hud/chat/*` 平行组件树。
+- Claude prompt/permission 管线按“复用并扩展”处理:已有 `canUseTool`、`respondPermission`、`respondQuestion`、`setPermissionMode`、`prompt.requested`、`prompt.resolved`,Task 17 只接 Codex approval 和补 UI/测试缺口。
+- 事件命名以 Task 3 锁定表为准:`tool.finished` 只能作为 Codex 原始输入 kind 出现在 fixture,归一化后的 Roguent 协议事件必须是既有 `tool.ended`;prompt resolved UI 状态对齐 `"answered" | "dismissed"`。
+- workflow 路径以 `.claude/rules/workflow.md` 为准,不引用不存在的 `.Codex/rules/workflow.md`;`PermissionMode` 只包含 Claude SDK 合法四值,不加入 `"ask"`。
+- 重叠面板按现有文件接真改造:`Settings.tsx`、`Shop.tsx`、`Tasks.tsx`/`SessionGrid.tsx`、`hud/Minimap.tsx`、`room/Lights.tsx`、`room/Particles.tsx` 均优先复用;`RuntimeEventDraft` 只定义在 `src/engine/runtime/types.ts`。
+
 ---
 
 ## File Structure
@@ -1150,18 +1159,18 @@
 - `bun test src/engine/integrations/pairing.test.ts` exit code 0。
 - SQLite unique index 阻止重复 active binding。
 
-- [ ] Add DB unique index:
+- [x] Confirm DB unique index exists(当前 schema 已有 `idx_pairing_bindings_external_key`;不要再按旧名重复创建平行索引):
   ```sql
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_pairing_external
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_pairing_bindings_external_key
   ON pairing_bindings(channel, external_chat_id);
   ```
-- [ ] Add overwrite test:
+- [x] Add overwrite test:
   ```ts
   await service.bind({ channel: "wechat", externalChatId: "chat1", sessionId: "s1" });
   await service.bind({ channel: "wechat", externalChatId: "chat1", sessionId: "s2" });
   expect(await service.resolve("wechat", "chat1")).toMatchObject({ sessionId: "s2" });
   ```
-- [ ] Run:
+- [x] Run:
   ```bash
   bun test src/engine/integrations/pairing.test.ts
   ```
