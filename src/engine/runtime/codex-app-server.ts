@@ -80,6 +80,7 @@ export interface CodexAppServerClientOptions {
   startupTimeoutMs?: number;
   clientInfo?: { name: string; version: string };
   onLog?: (entry: CodexAppServerLogEntry) => void;
+  onClientCreated?: (client: CodexAppServerClient) => void;
 }
 
 export class CodexAppServerUnavailableError extends Error {
@@ -94,6 +95,7 @@ export interface CodexAppServerDriverOptions
 
 export class CodexAppServerDriver implements IDriver {
   private client: CodexAppServerClient | null = null;
+  private startupClient: CodexAppServerClient | null = null;
   private clientPromise: Promise<CodexAppServerClient> | null = null;
   private unsubscribeEvents: (() => void) | null = null;
   private ended = false;
@@ -106,7 +108,7 @@ export class CodexAppServerDriver implements IDriver {
   ) {}
 
   start(): void {
-    void this.ensureClient();
+    void this.ensureClient().catch(() => {});
   }
 
   send(text: string, _meta?: RuntimeSendMeta): void {
@@ -157,7 +159,9 @@ export class CodexAppServerDriver implements IDriver {
     this.unsubscribeEvents?.();
     this.unsubscribeEvents = null;
     void this.client?.close();
+    void this.startupClient?.close();
     this.client = null;
+    this.startupClient = null;
     this.clientPromise = null;
   }
 
@@ -175,18 +179,16 @@ export class CodexAppServerDriver implements IDriver {
     };
   }
 
-  respondPermission(promptId: string, result: PermissionResult): void {
-    void this.ensureClient()
+  respondPermission(promptId: string, result: PermissionResult): Promise<void> {
+    return this.ensureClient()
       .then((client) => client.respondApproval(promptId, result.behavior))
-      .then(() => this.emitPromptResolved(promptId))
-      .catch((error) => this.emitError(errorMessage(error)));
+      .then(() => this.emitPromptResolved(promptId));
   }
 
-  respondQuestion(promptId: string, selectedLabels: string[]): void {
-    void this.ensureClient()
+  respondQuestion(promptId: string, selectedLabels: string[]): Promise<void> {
+    return this.ensureClient()
       .then((client) => client.respondQuestion(promptId, selectedLabels))
-      .then(() => this.emitPromptResolved(promptId))
-      .catch((error) => this.emitError(errorMessage(error)));
+      .then(() => this.emitPromptResolved(promptId));
   }
 
   private ensureClient(): Promise<CodexAppServerClient> {
@@ -196,12 +198,17 @@ export class CodexAppServerDriver implements IDriver {
     this.clientPromise = CodexAppServerClient.start({
       ...this.options,
       cwd: this.config.cwd,
+      onClientCreated: (client) => {
+        this.startupClient = client;
+        if (this.ended) void client.close();
+      },
     })
       .then((client) => {
         if (this.ended) {
           void client.close();
           throw new Error("Codex app-server driver ended");
         }
+        this.startupClient = null;
         this.client = client;
         this.unsubscribeEvents = client.onEvent((event) => {
           const drafts = this.normalizer.normalize(event);
@@ -214,12 +221,15 @@ export class CodexAppServerDriver implements IDriver {
         return client;
       })
       .catch((error) => {
+        this.startupClient = null;
         this.clientPromise = null;
-        this.emitStatus({
-          status: "error",
-          error: errorMessage(error),
-          metadata: { mode: "app-server", realtime: true },
-        });
+        if (!this.ended) {
+          this.emitStatus({
+            status: "error",
+            error: errorMessage(error),
+            metadata: { mode: "app-server", realtime: true },
+          });
+        }
         throw error;
       });
     return this.clientPromise;
@@ -300,6 +310,7 @@ export class CodexAppServerClient implements CodexTransport {
       transport,
       options.clientInfo ?? { name: "roguent", version: "0" },
     );
+    options.onClientCreated?.(client);
 
     try {
       await client.initialize(
@@ -438,6 +449,7 @@ export class CodexAppServerClient implements CodexTransport {
       "initialize",
       {
         clientInfo: this.clientInfo,
+        capabilities: { experimentalApi: true },
       },
       timeoutMs,
     );

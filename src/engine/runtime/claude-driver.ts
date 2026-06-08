@@ -93,7 +93,10 @@ export interface ClaudeDriverCompatibility {
     description?: string;
     agentID?: string;
   }): Promise<PermissionResult>;
-  respondPermission(promptId: string, result: PermissionResult): void;
+  respondPermission(
+    promptId: string,
+    result: PermissionResult,
+  ): void | Promise<void>;
 }
 
 export type IDriver = RuntimeDriver & ClaudeDriverCompatibility;

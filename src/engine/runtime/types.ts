@@ -36,7 +36,10 @@ export interface RuntimeDriver {
   setPermissionMode(mode: string): Promise<void>;
   setSandboxMode?(mode: string): Promise<void>;
   setReasoningEffort?(effort: string): Promise<void>;
-  respondQuestion?(promptId: string, selectedLabels: string[]): void;
+  respondQuestion?(
+    promptId: string,
+    selectedLabels: string[],
+  ): void | Promise<void>;
   interrupt(): Promise<void>;
   end(): void;
 }

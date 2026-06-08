@@ -32,6 +32,10 @@ test("start spawns codex app-server over stdio and closes the process", async ()
   expect(fake.requests.map((request) => request.method)).toEqual([
     "initialize",
   ]);
+  expect(fake.requests[0]?.params).toEqual({
+    clientInfo: { name: "roguent", version: "0" },
+    capabilities: { experimentalApi: true },
+  });
   expect(fake.clientNotifications.map((message) => message.method)).toEqual([
     "initialized",
   ]);
@@ -310,6 +314,51 @@ test("driver forwards app-server approval responses and emits prompt resolution"
   });
 
   driver.end();
+});
+
+test("driver startup failure emits status without leaking an unhandled rejection", async () => {
+  const drafts: Array<{ type: string; payload: unknown }> = [];
+  const driver = new CodexAppServerDriver(
+    {
+      onDraft(items) {
+        drafts.push(...items);
+      },
+    },
+    codexDriverConfig(),
+    {
+      spawn: () => {
+        throw new Error("spawn exploded");
+      },
+      requestTimeoutMs: 10,
+      startupTimeoutMs: 10,
+    },
+  );
+
+  driver.start();
+
+  await waitFor(() =>
+    drafts.some(
+      (draft) =>
+        draft.type === "runtime.status" &&
+        (draft.payload as { status?: string }).status === "error",
+    ),
+  );
+});
+
+test("driver end closes an in-flight startup client", async () => {
+  const fake = new FakeCodexServer();
+  fake.ignoreMethods.add("initialize");
+  const driver = new CodexAppServerDriver(
+    { onDraft() {} },
+    codexDriverConfig(),
+    { spawn: fake.spawn, requestTimeoutMs: 100, startupTimeoutMs: 100 },
+  );
+
+  driver.start();
+  await waitFor(() => fake.children.length === 1);
+  driver.end();
+
+  expect(fake.children[0]?.killed).toBe(true);
 });
 
 test("interrupt sends a JSON-RPC request for the active thread", async () => {
@@ -603,6 +652,19 @@ async function captureError(run: () => Promise<unknown>): Promise<Error> {
     return error as Error;
   }
   throw new Error("expected promise to reject");
+}
+
+function codexDriverConfig() {
+  return {
+    runtime: "codex" as const,
+    model: "gpt-5",
+    cwd: "/tmp/project",
+    permissionMode: "default" as const,
+    approvalPolicy: "on-request" as const,
+    sandboxMode: "workspace-write" as const,
+    reasoningEffort: "medium" as const,
+    networkAccess: false,
+  };
 }
 
 async function waitFor(

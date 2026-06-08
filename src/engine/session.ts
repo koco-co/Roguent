@@ -63,6 +63,7 @@ export class SessionManager {
   private drivers = new Map<string, IDriver>();
   private runtimeStates = new Map<string, SessionRuntimeState>();
   private pendingPrompts = new Map<string, Map<string, PendingPromptKind>>();
+  private respondingPrompts = new Map<string, Set<string>>();
   // 当前引擎认识的所有会话 id(live driver + 已导入的 transcript)。新连接对账用:
   // gateway 把它下发给客户端清幽灵会话。进程重启即清零(会话确实没了)。
   private knownSessions = new Set<string>();
@@ -257,6 +258,7 @@ export class SessionManager {
     this.drivers.delete(id);
     this.runtimeStates.delete(id);
     this.pendingPrompts.delete(id);
+    this.respondingPrompts.delete(id);
     this.knownSessions.delete(id);
   }
 
@@ -289,8 +291,10 @@ export class SessionManager {
     promptId: string,
     result: PermissionResult,
   ): void {
-    if (!this.takePendingPrompt(id, promptId, "permission")) return;
-    this.drivers.get(id)?.respondPermission(promptId, result);
+    if (!this.startPromptResponse(id, promptId, "permission")) return;
+    this.handlePromptResponse(id, promptId, () =>
+      this.drivers.get(id)?.respondPermission(promptId, result),
+    );
   }
 
   respondQuestion(
@@ -298,21 +302,25 @@ export class SessionManager {
     promptId: string,
     selectedLabels: string[],
   ): void {
-    if (!this.takePendingPrompt(id, promptId, "question")) return;
+    if (!this.startPromptResponse(id, promptId, "question")) return;
     const driver = this.drivers.get(id);
     if (driver?.respondQuestion) {
-      driver.respondQuestion(promptId, selectedLabels);
+      this.handlePromptResponse(id, promptId, () =>
+        driver.respondQuestion?.(promptId, selectedLabels),
+      );
       return;
     }
-    driver?.send(selectedLabels.join("、"));
-    this.emit(
-      this.seq.stamp(
-        id,
-        "prompt.resolved",
-        { promptId, result: "answered" },
-        Date.now(),
-      ),
-    );
+    this.handlePromptResponse(id, promptId, () => {
+      driver?.send(selectedLabels.join("、"));
+      this.emit(
+        this.seq.stamp(
+          id,
+          "prompt.resolved",
+          { promptId, result: "answered" },
+          Date.now(),
+        ),
+      );
+    });
   }
 
   private applyPromptDraft(
@@ -333,18 +341,58 @@ export class SessionManager {
     if (type === "prompt.resolved") {
       const resolved = payload as PromptResolvedPayload;
       this.pendingPrompts.get(sessionId)?.delete(resolved.promptId);
+      this.respondingPrompts.get(sessionId)?.delete(resolved.promptId);
     }
   }
 
-  private takePendingPrompt(
+  private startPromptResponse(
     sessionId: string,
     promptId: string,
     expectedKind: PendingPromptKind,
   ): boolean {
     const prompts = this.pendingPrompts.get(sessionId);
     if (prompts?.get(promptId) !== expectedKind) return false;
-    prompts.delete(promptId);
+    let responding = this.respondingPrompts.get(sessionId);
+    if (!responding) {
+      responding = new Set();
+      this.respondingPrompts.set(sessionId, responding);
+    }
+    if (responding.has(promptId)) return false;
+    responding.add(promptId);
     return true;
+  }
+
+  private handlePromptResponse(
+    sessionId: string,
+    promptId: string,
+    action: () => void | Promise<void>,
+  ): void {
+    try {
+      const result = action();
+      if (isPromiseLike(result)) {
+        void result.catch((error) =>
+          this.failPromptResponse(sessionId, promptId, error),
+        );
+      }
+    } catch (error) {
+      this.failPromptResponse(sessionId, promptId, error);
+    }
+  }
+
+  private failPromptResponse(
+    sessionId: string,
+    promptId: string,
+    error: unknown,
+  ): void {
+    this.respondingPrompts.get(sessionId)?.delete(promptId);
+    this.emit(
+      this.seq.stamp(
+        sessionId,
+        "session.error",
+        { message: `Prompt response failed: ${errorMessage(error)}` },
+        Date.now(),
+      ),
+    );
   }
 
   async setPermissionMode(id: string, mode: string): Promise<void> {
@@ -478,4 +526,18 @@ function changedRuntimeKeys(
     "networkAccess",
   ];
   return keys.filter((key) => previous[key] !== next[key]);
+}
+
+function isPromiseLike(value: unknown): value is Promise<void> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "then" in value &&
+    typeof (value as { then?: unknown }).then === "function"
+  );
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
 }
