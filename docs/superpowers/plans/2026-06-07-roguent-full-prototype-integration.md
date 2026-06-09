@@ -2188,12 +2188,12 @@
 
 **Files:**(已有 `room/Lights.tsx`、`room/Particles.tsx`、`hud/Minimap.tsx`、`room/layout.ts`/`layout.test.ts`——复用/扩展,不要重建或撞名。)
 - Modify: `src/web/room/Room.tsx`
-- Modify: `src/web/room/Character.tsx`
+- No change needed: `src/web/room/Character.tsx`(房间小人仍由 real agent state 驱动)
 - Modify: `src/web/hud/Hud.tsx`
 - Modify: `src/web/room/Lights.tsx`、`src/web/room/Particles.tsx`(glow/particles 已存在,扩为 ambience toggles 数据源)
-- Create: `src/web/room/AmbienceLayer.tsx`(若现有 Lights/Particles 不够再加;否则合并进它们)
+- Not created: `src/web/room/AmbienceLayer.tsx`(现有 Lights/Particles 已足够,避免复制逻辑)
 - Create: `src/web/room/DecorLayer.tsx`
-- Modify: `src/web/hud/Minimap.tsx`(已存在;勿在 `room/` 重建)
+- No change needed: `src/web/hud/Minimap.tsx`(已存在;勿在 `room/` 重建)
 - Modify: `src/web/room/layout.ts` + Test: `src/web/room/layout.test.ts`(已存在;扩展,勿新建 `room-layout.test.ts` 撞名)
 
 **Output Standard:**
@@ -2207,14 +2207,38 @@
 
 - [ ] Add layout constants test(追加进现有 `layout.test.ts`):
   ```ts
-  expect(ROOM_STAGE.width).toBe(1920);
-  expect(ROOM_STAGE.height).toBe(1080);
-  expect(HOTBAR_RECT.y + HOTBAR_RECT.height).toBeLessThanOrEqual(ROOM_STAGE.height);
+  expect(ROOM_STAGE.x + ROOM_STAGE.w).toBeLessThanOrEqual(1920);
+  expect(ROOM_STAGE.y + ROOM_STAGE.h).toBeLessThanOrEqual(1080);
+  expect(HOTBAR_RECT.y + HOTBAR_RECT.h).toBeLessThanOrEqual(1080);
   ```
 - [ ] Run:
   ```bash
   bun test src/web/room/layout.test.ts
   ```
+
+**Implementation Evidence (Task 42):**
+- Added persisted UI ambience toggles in `src/web/settings-store.ts`: `ambientGlow`, `ambientRain`, `ambientParticles`, `ambientSound`.
+- Added `AmbientControls` in `src/web/hud/Hud.tsx`; four switches update the settings store and root classes (`no-ambient-glow`, `no-ambient-rain`, `no-ambient-particles`, `sound-muted`).
+- Added `ROOM_STAGE`, HUD reservation rects, `rectsOverlap`, and fixed `clampRoomStage` in `src/web/room/layout.ts`; tests cover fixed stage bounds, HUD non-overlap, and negative/out-of-stage clamp intersections.
+- Updated `src/web/room/Room.tsx` to render the Pixi room inside the tested `ROOM_STAGE` safe art rect while preserving store-driven actor reconciliation.
+- Extended existing `GlowLayer` and `Particles` with setting-driven glow/rain/particle controls; no `AmbienceLayer.tsx` was needed.
+- Added `src/web/room/DecorLayer.tsx` for static floor accents and props, then reused it from `DungeonRoom.tsx`.
+
+**Verification Evidence (Task 42):**
+- `bun test src/web/room/layout.test.ts` exit 0: 5 pass / 0 fail / 16 expect calls.
+- `bun test src/web/settings-store.test.ts src/web/room/layout.test.ts` exit 0: 22 pass / 0 fail / 58 expect calls.
+- `bunx tsc --noEmit` exit 0.
+- `bun run check` exit 0: Checked 271 files, no fixes.
+- `bun test` exit 0: 563 pass / 0 fail / 1 snapshot / 4552 expect calls.
+- `git diff --check` exit 0.
+- Playwright canvas verification (seeded real-shaped session/agent state through the Vite-loaded app stores, not a live engine WS run) exit 0:
+  - `/tmp/roguent-task42-canvas.png`
+  - `/tmp/roguent-task42-playwright.png`
+  - `/tmp/roguent-task42-main-canvas.png`
+  - `/tmp/roguent-task42-page.png`
+  - Largest canvas/internal main canvas 1920x1080; canvas nonblank with non-flat sampled colors; ambient switches toggled root classes.
+- Spec review: approved after reviewer reran `bun test src/web/room/layout.test.ts` and Playwright canvas/layout/toggle measurements at 1920x1080 and 1366x768.
+- Code-quality review: initial P2 `clampRoomStage` intersection bug fixed with negative/out-of-stage tests; re-review approved.
 
 ---
 

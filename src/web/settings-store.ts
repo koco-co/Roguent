@@ -20,6 +20,14 @@ export interface Settings {
    * CHARSEL_HEROES。由大厅玩家(HubPlaza)消费并持久化。
    */
   avatarHero: string | null;
+  /** Additive room glows: door, fountains, and ambient light pools. */
+  ambientGlow: boolean;
+  /** Decorative rain streaks in the room air. */
+  ambientRain: boolean;
+  /** Ambient motes/sparks/loot/footstep particles. */
+  ambientParticles: boolean;
+  /** App-level ambience sound preference; audio engine may consume later. */
+  ambientSound: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -29,6 +37,10 @@ export const DEFAULT_SETTINGS: Settings = {
   density: "comfy",
   cjkPixel: true,
   avatarHero: null,
+  ambientGlow: true,
+  ambientRain: true,
+  ambientParticles: true,
+  ambientSound: true,
 };
 
 // theme → 核心辉光色(对标原型 GLOW 映射)。
@@ -57,6 +69,10 @@ export function settingsRootClass(s: Settings): string {
     s.motion ? "" : "no-motion",
     s.density === "compact" ? "hud-compact" : "",
     s.cjkPixel ? "" : "cjk-sys",
+    s.ambientGlow ? "" : "no-ambient-glow",
+    s.ambientRain ? "" : "no-ambient-rain",
+    s.ambientParticles ? "" : "no-ambient-particles",
+    s.ambientSound ? "" : "sound-muted",
   ]
     .filter(Boolean)
     .join(" ");
@@ -100,6 +116,18 @@ export function parsePersisted(raw: string | null): Partial<Settings> {
   if (typeof obj.avatarHero === "string" || obj.avatarHero === null) {
     out.avatarHero = obj.avatarHero;
   }
+  if (typeof obj.ambientGlow === "boolean") {
+    out.ambientGlow = obj.ambientGlow;
+  }
+  if (typeof obj.ambientRain === "boolean") {
+    out.ambientRain = obj.ambientRain;
+  }
+  if (typeof obj.ambientParticles === "boolean") {
+    out.ambientParticles = obj.ambientParticles;
+  }
+  if (typeof obj.ambientSound === "boolean") {
+    out.ambientSound = obj.ambientSound;
+  }
   return out;
 }
 
@@ -121,10 +149,32 @@ function loadPersisted(): Settings {
 function savePersisted(s: Settings): void {
   if (typeof localStorage === "undefined") return;
   try {
-    const { accent, theme, motion, density, cjkPixel, avatarHero } = s;
+    const {
+      accent,
+      theme,
+      motion,
+      density,
+      cjkPixel,
+      avatarHero,
+      ambientGlow,
+      ambientRain,
+      ambientParticles,
+      ambientSound,
+    } = s;
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ accent, theme, motion, density, cjkPixel, avatarHero }),
+      JSON.stringify({
+        accent,
+        theme,
+        motion,
+        density,
+        cjkPixel,
+        avatarHero,
+        ambientGlow,
+        ambientRain,
+        ambientParticles,
+        ambientSound,
+      }),
     );
   } catch {
     /* 隐私模式 / 配额满 —— 静默忽略,不挡 UI。 */

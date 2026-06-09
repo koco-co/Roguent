@@ -4,7 +4,7 @@ import { type RefObject, useCallback, useEffect, useRef } from "react";
 import { VH, VW } from "./config";
 import type { MotionMap } from "./motion";
 
-type Kind = "dust" | "spark" | "coin";
+type Kind = "dust" | "spark" | "coin" | "rain";
 
 interface P {
   kind: Kind;
@@ -43,6 +43,24 @@ function makeDust(): P {
   };
 }
 
+function makeRain(): P {
+  return {
+    kind: "rain",
+    loop: true,
+    x: rand(12, VW - 12),
+    y: rand(4, VH - 42),
+    vx: rand(-0.16, -0.04),
+    vy: rand(0.7, 1.2),
+    life: rand(40, 90),
+    fade: 18,
+    size: rand(5, 9),
+    color: 0x6fd8ff,
+    alpha: rand(0.1, 0.24),
+    gravity: 0,
+    floorY: VH,
+  };
+}
+
 /**
  * Imperative particle layer: ambient dust, sparks over working agents, footstep
  * dust under moving agents, a coin burst on loot, and a dust poof at the door
@@ -55,11 +73,15 @@ export function Particles({
   doorPos,
   lootCount,
   agentCount,
+  particlesEnabled = true,
+  rainEnabled = true,
 }: {
   motionRef: RefObject<MotionMap>;
   doorPos: { x: number; y: number };
   lootCount: number;
   agentCount: number;
+  particlesEnabled?: boolean;
+  rainEnabled?: boolean;
 }) {
   const gfxRef = useRef<Graphics | null>(null);
   const list = useRef<P[]>([]);
@@ -74,14 +96,28 @@ export function Particles({
     if (list.current.length < 500) list.current.push(p);
   }, []);
 
-  // seed ambient dust once
+  // seed ambient dust/rain from settings-controlled sources
   useEffect(() => {
-    for (let i = 0; i < 18; i++) push(makeDust());
-  }, [push]);
+    if (!particlesEnabled) {
+      list.current = list.current.filter((p) => p.kind === "rain");
+      return;
+    }
+    const dustCount = list.current.filter((p) => p.kind === "dust").length;
+    for (let i = dustCount; i < 18; i++) push(makeDust());
+  }, [particlesEnabled, push]);
+
+  useEffect(() => {
+    if (!rainEnabled) {
+      list.current = list.current.filter((p) => p.kind !== "rain");
+      return;
+    }
+    const rainCount = list.current.filter((p) => p.kind === "rain").length;
+    for (let i = rainCount; i < 26; i++) push(makeRain());
+  }, [rainEnabled, push]);
 
   // coin + sparkle burst when loot drops
   useEffect(() => {
-    if (lootCount > prevLoot.current) {
+    if (particlesEnabled && lootCount > prevLoot.current) {
       const cx = VW / 2;
       const cy = VH * 0.5;
       for (let i = 0; i < 16; i++) {
@@ -120,11 +156,11 @@ export function Particles({
       }
     }
     prevLoot.current = lootCount;
-  }, [lootCount, push]);
+  }, [lootCount, particlesEnabled, push]);
 
   // dust poof at the doorway when a new agent enters
   useEffect(() => {
-    if (agentCount > prevAgents.current) {
+    if (particlesEnabled && agentCount > prevAgents.current) {
       const { x, y } = doorRef.current;
       for (let i = 0; i < 12; i++) {
         push({
@@ -145,7 +181,7 @@ export function Particles({
       }
     }
     prevAgents.current = agentCount;
-  }, [agentCount, push]);
+  }, [agentCount, particlesEnabled, push]);
 
   const tick = useCallback(
     (ticker: { deltaTime: number }) => {
@@ -159,7 +195,7 @@ export function Particles({
       const dustTick = dustAccum.current >= 8;
       if (sparkTick) accum.current = 0;
       if (dustTick) dustAccum.current = 0;
-      if (sparkTick || dustTick) {
+      if (particlesEnabled && (sparkTick || dustTick)) {
         for (const w of Object.values(motionRef.current ?? {})) {
           // a spark rising off each working agent
           if (sparkTick && w.status === "working") {
@@ -217,7 +253,7 @@ export function Particles({
         }
         if (p.life <= 0) {
           if (p.loop) {
-            Object.assign(p, makeDust());
+            Object.assign(p, p.kind === "rain" ? makeRain() : makeDust());
           } else {
             arr.splice(i, 1);
             continue;
@@ -228,13 +264,15 @@ export function Particles({
         g.setFillStyle({ color: p.color, alpha: a });
         if (p.kind === "coin") {
           g.circle(p.x, p.y, p.size);
+        } else if (p.kind === "rain") {
+          g.rect(p.x, p.y, 1, p.size);
         } else {
           g.rect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
         }
         g.fill();
       }
     },
-    [push, motionRef],
+    [push, motionRef, particlesEnabled],
   );
   useTick(tick);
 

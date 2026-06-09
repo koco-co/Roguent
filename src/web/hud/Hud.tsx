@@ -1,3 +1,5 @@
+import { useSettingsStore } from "../settings-store";
+import { useUiStore } from "../ui-store";
 import { About } from "./About";
 import { Account } from "./Account";
 import { AgentCard } from "./AgentCard";
@@ -22,9 +24,72 @@ import { SystemMenu } from "./SystemMenu";
 import { TaskWindow } from "./TaskWindow";
 import { Tasks } from "./Tasks";
 import { ViewSwitch } from "./ViewSwitch";
+import { Icon, type IconName } from "./icons";
 import { BoardPanel } from "./mailbox/BoardPanel";
 import { MailboxPanel } from "./mailbox/MailboxPanel";
 import { PairingPanelHost } from "./pairing/PairingPanel";
+
+type AmbientKey =
+  | "ambientGlow"
+  | "ambientRain"
+  | "ambientParticles"
+  | "ambientSound";
+
+const AMBIENT_TOGGLES: {
+  key: AmbientKey;
+  label: string;
+  icon: IconName;
+}[] = [
+  { key: "ambientGlow", label: "辉光", icon: "crystal" },
+  { key: "ambientRain", label: "雨幕", icon: "gem" },
+  { key: "ambientParticles", label: "粒子", icon: "gear" },
+  { key: "ambientSound", label: "声音", icon: "pause" },
+];
+
+function AmbientControls() {
+  const inInterior = useUiStore((s) => s.view !== "overworld");
+  const ambientGlow = useSettingsStore((s) => s.ambientGlow);
+  const ambientRain = useSettingsStore((s) => s.ambientRain);
+  const ambientParticles = useSettingsStore((s) => s.ambientParticles);
+  const ambientSound = useSettingsStore((s) => s.ambientSound);
+  const setSetting = useSettingsStore((s) => s.setSetting);
+  const values: Record<AmbientKey, boolean> = {
+    ambientGlow,
+    ambientRain,
+    ambientParticles,
+    ambientSound,
+  };
+
+  if (!inInterior) return null;
+
+  return (
+    <div className="panel ambient-controls" aria-label="ambient controls">
+      <div className="ambient-head px">AMBIENCE</div>
+      <div className="ambient-grid">
+        {AMBIENT_TOGGLES.map((item) => {
+          const on = values[item.key];
+          return (
+            <button
+              key={item.key}
+              type="button"
+              role="switch"
+              aria-checked={on}
+              className={`ambient-toggle${on ? " on" : ""}`}
+              onClick={() => setSetting(item.key, !on)}
+              title={item.label}
+            >
+              <Icon name={item.icon} size={18} />
+              <span className="ambient-label">{item.label}</span>
+              <span className={`pxtoggle${on ? " on" : ""}`}>
+                <span className="knob" />
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function Hud() {
   return (
@@ -42,6 +107,9 @@ export function Hud() {
 
       {/* 顶右设置坞(两视图都显示,落 Currency 下方)*/}
       <ButtonDock />
+
+      {/* 右下环境控制:本地 UI 偏好,驱动内景辉光 / 雨幕 / 粒子 / 声音状态。*/}
+      <AmbientControls />
 
       {/* 底中操作坞(仅内景显示)*/}
       <Hotbar />

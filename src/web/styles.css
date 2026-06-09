@@ -890,6 +890,56 @@ img {
   margin: 2px 0;
 }
 
+/* ── 右下环境控制(AmbientControls)──────────────────────────────────── */
+.ambient-controls {
+  position: absolute;
+  right: 12px;
+  bottom: 112px;
+  width: 246px;
+  padding: 10px 12px 12px;
+}
+.ambient-head {
+  font-size: 9px;
+  color: var(--ink-dim);
+  margin-bottom: 8px;
+}
+.ambient-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ambient-toggle {
+  display: grid;
+  grid-template-columns: 18px 1fr 46px;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 7px;
+  border: 0;
+  background: rgba(11, 10, 18, 0.42);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  color: var(--ink-dim);
+  font-family: var(--font-cjk);
+  cursor: pointer;
+}
+.ambient-toggle.on {
+  color: var(--text);
+  box-shadow: inset 0 0 0 2px rgba(54, 197, 224, 0.58), 0 0 10px
+    rgba(54, 197, 224, 0.12);
+}
+.ambient-label {
+  font-size: 11px;
+  text-align: left;
+  white-space: nowrap;
+}
+.ambient-toggle .pxtoggle {
+  transform: scale(0.76);
+  transform-origin: right center;
+}
+.sound-muted .ambient-toggle[title="声音"] {
+  filter: saturate(0.55);
+}
+
 /* ── 视图切换段(ViewSwitch,移植自原型 layout.css 的 .view-switch / .vs-opt)── */
 /* 落左上栈(LimitBars top:12 / RosterCard top:150 下方);两视图都显示 */
 .view-switch {
