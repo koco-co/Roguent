@@ -1919,7 +1919,8 @@
 - Create: `src/web/hud/scheduler/ScheduleForm.tsx`
 - Create: `src/web/hud/scheduler/ScheduleList.tsx`
 - Create: `src/web/hud/scheduler/RunHistory.tsx`
-- Modify: `src/web/store.ts`
+- Modify: `src/web/hud/SessionGrid.tsx` — existing task desk entry now exposes Scheduled Tasks mode and keeps runtime tabs real.
+- Modify: `src/web/styles.css`
 - Test: `src/web/hud/scheduler/SchedulerPanel.test.tsx`
 
 **Output Standard:**
@@ -1931,15 +1932,41 @@
 - `bun test src/web/hud/scheduler/SchedulerPanel.test.tsx` exit code 0。
 - Playwright screenshot artifact 覆盖新建表单和列表。
 
-- [ ] Add form submit test:
+- [x] Add form submit test:
   ```tsx
   await user.click(screen.getByRole("button", { name: "Create" }));
   expect(sendCommand).toHaveBeenCalledWith(expect.objectContaining({ cmd: "scheduler", action: "createTask" }));
   ```
-- [ ] Run:
+- [x] Implemented:
+  - `SchedulerPanel` reads `scheduler.tasks`/`scheduler.runs` and active sessions from `useRoomStore`.
+  - `ScheduleForm` sends real `{ cmd: "scheduler", action: "createTask" }` commands with runtime, model, reasoning, permission, approval, sandbox, network, cwd, prompt, recurrence and target session.
+  - `ScheduleList` displays task status, next run and latest run, and sends real `runTask`, `updateTask`, and `deleteTask` commands.
+  - `RunHistory` displays real scheduler run records.
+  - `SessionGrid` adds `Scheduled Tasks` mode and filters Claude/Codex runtime tabs by `session.runtime`.
+- [x] Run:
   ```bash
   bun test src/web/hud/scheduler/SchedulerPanel.test.tsx
   ```
+- [x] Evidence:
+  ```bash
+  bun test src/web/hud/scheduler/SchedulerPanel.test.tsx
+  # exit code 0; 4 pass, 0 fail, 15 expect() calls
+
+  bunx tsc --noEmit
+  # exit code 0
+
+  bun run check
+  # exit code 0; Checked 261 files, no fixes applied
+
+  bun test
+  # exit code 0; 547 pass, 0 fail, 1 snapshots, 4485 expect() calls
+  ```
+- [x] Browser screenshot artifact:
+  - `/private/tmp/roguent-task38-scheduler-panel.png`
+  - Generated with Playwright against Vite by importing the real `SchedulerPanel` module, seeding store data, and confirming both `Create Task` form and `Scheduled Tasks` list were visible.
+- [x] Review:
+  - Spec/code quality subagent review was attempted, but both agents errored with account usage limit before producing findings.
+  - Local spec/quality self-review found and fixed a SessionGrid regression where Codex tab was clickable but did not filter sessions. Added test coverage for Claude/Codex tab filtering.
 
 ---
 
