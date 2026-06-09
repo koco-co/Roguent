@@ -2120,11 +2120,10 @@
 **Feature:** Lobby 中的 task console、settings altar、achievements、mailbox、leaderboard、announcement board、shop、gacha、Claude/Codex doors 都可交互。
 
 **Files:**
-- Create: `src/web/lobby/LobbyView.tsx`
-- Create: `src/web/lobby/HubStructure.tsx`
-- Create: `src/web/lobby/RuntimeDoor.tsx`
-- Create: `src/web/lobby/AnnouncementBoard.tsx`
-- Modify: `src/web/App.tsx`
+- Modify: `src/web/lobby/HubPlaza.tsx`(现有大厅组件;扩展,不新建第二套 LobbyView/HubStructure/RuntimeDoor)
+- Modify: `src/web/hud/Shop.tsx`
+- Modify: `src/web/ui-store.ts`
+- Modify: `src/web/styles.css`
 - Test: `src/web/lobby/LobbyView.test.tsx`
 
 **Output Standard:**
@@ -2136,11 +2135,50 @@
 - `bun test src/web/lobby/LobbyView.test.tsx` exit code 0。
 - Playwright screenshot artifact 显示 lobby without overlap at desktop and mobile widths。
 
-- [ ] Add test that clicking Codex door sends `newSession` with `runtime: "codex"`。
-- [ ] Run:
+- [x] Add test that clicking Codex door sends `newSession` with `runtime: "codex"`。
+- [x] Implemented:
+  - `HubPlaza` always renders after hero selection; no duplicate lobby component was created.
+  - Added/interconnected structures: task console, settings altar, achievement/loot display, mailbox, leaderboard, announcement board, shop, gacha, Claude door, Codex door.
+  - Structure roots are real buttons with `aria-label`, hover/focus visuals, and native keyboard activation.
+  - Panel structures open existing panel routes: `sessiongrid`, `settings`, `backpack`, `mailbox`, `leaderboard`, `board`, `shop`, `gacha`.
+  - `gacha` is a `PanelId`; `Shop` treats `activePanel === "gacha"` as the item/gacha tab.
+  - Claude/Codex doors send `newSession` using `defaultRuntimeConfig(runtime)`; rapid clicks use a monotonic local session number to avoid duplicate ids before `session.created` arrives.
+  - Global hub shortcuts ignore focused input-like controls; focused buttons only own Enter/Space, preserving WASD/arrow/E movement and proximity controls.
+- [x] Run:
   ```bash
   bun test src/web/lobby/LobbyView.test.tsx
   ```
+- [x] Evidence:
+  ```text
+  bun test src/web/lobby/LobbyView.test.tsx
+  # exit code 0; 3 pass, 0 fail, 15 expect() calls
+
+  bun test src/web/lobby/LobbyView.test.tsx src/web/lobby/LoginGate.test.tsx src/web/ui-store.test.ts src/web/ws-client.test.ts src/web/hud/Settings.test.tsx
+  # exit code 0; 20 pass, 0 fail, 56 expect() calls
+
+  bunx tsc --noEmit
+  # exit code 0
+
+  bun run check
+  # exit code 0; Checked 270 files, no fixes applied
+
+  git diff --check
+  # exit code 0
+
+  bun test
+  # exit code 0; 557 pass, 0 fail, 1 snapshot, 4530 expect() calls
+
+  Playwright screenshots:
+  # /private/tmp/roguent-task41-lobby-desktop.png
+  # /private/tmp/roguent-task41-lobby-mobile.png
+  # commands exited 0; visual inspection showed no structure overlap. Mobile letterbox is expected fixed-stage scaling.
+  ```
+- [x] Review:
+  - Spec review initially found missing explicit hover/focus structure state and gacha opened the Shop plugin market instead of item/gacha view.
+  - Fixed with `.structure:hover`/`:focus-visible` styling and a `gacha` panel route that opens Shop on the item/gacha tab; spec re-review approved and personally ran `bun test src/web/lobby/LobbyView.test.tsx` exit code 0.
+  - Code quality review found focused structure Enter could double-trigger global proximity handling and native button activation.
+  - First fix over-suppressed movement keys while a structure button was focused; second fix scoped button ownership to Enter/Space only, preserving WASD/arrow/E.
+  - Added a near-door regression test using `HubPlaza initialPosition={{ x: 1690, y: 760 }}` so the test exercises the previous double-trigger path; code quality re-review approved.
 
 ---
 

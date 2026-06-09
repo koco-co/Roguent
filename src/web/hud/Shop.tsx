@@ -23,14 +23,16 @@ import { SHOP_CATS, SHOP_GEMS, SHOP_ITEMS, SHOP_PLUGINS } from "./shop-data";
  */
 
 export function Shop() {
-  const active = useUiStore((s) => s.activePanel === "shop");
+  const activePanel = useUiStore((s) => s.activePanel);
   const closePanel = useUiStore((s) => s.closePanel);
+  const active = activePanel === "shop" || activePanel === "gacha";
   // 当前 tab(market/items)、分类、搜索串,全为本地 mock 态。
   const [tab, setTab] = useState<"market" | "items">("market");
   const [cat, setCat] = useState("全部");
   const [q, setQ] = useState("");
 
   if (!active) return null;
+  const visibleTab = activePanel === "gacha" ? "items" : tab;
 
   // 在 render 体里对本地 mock 常量过滤(同原型逻辑):cat==='已安装'→ owned;
   // cat!=='全部'→ p.cat===cat;再叠加 q(name 或 desc 包含 q)。不在 selector 里。
@@ -59,21 +61,21 @@ export function Shop() {
         <div className="tabs">
           <button
             type="button"
-            className={`tab${tab === "market" ? " on" : ""}`}
+            className={`tab${visibleTab === "market" ? " on" : ""}`}
             onClick={() => setTab("market")}
           >
             插件市场
           </button>
           <button
             type="button"
-            className={`tab${tab === "items" ? " on" : ""}`}
+            className={`tab${visibleTab === "items" ? " on" : ""}`}
             onClick={() => setTab("items")}
           >
             道具店
           </button>
         </div>
 
-        {tab === "market" ? (
+        {visibleTab === "market" ? (
           <div className="shop-market">
             {/* 左侧:搜索框 + 分类列表。 */}
             <div className="shop-side">

@@ -3556,11 +3556,23 @@ img {
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
   z-index: 6;
 }
 .structure.near {
   filter: drop-shadow(0 0 10px var(--cyan));
+}
+.structure:hover,
+.structure:focus-visible {
+  filter: drop-shadow(0 0 12px var(--accent));
+}
+.structure:focus-visible .struct-label {
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--accent), 0 0 14px var(--accent);
 }
 .struct-label {
   display: flex;

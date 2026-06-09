@@ -1,10 +1,11 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { EmptyState } from "../hud/EmptyState";
+import { type RuntimeKind, defaultRuntimeConfig } from "../../shared/runtime";
 import { Icon } from "../hud/icons";
 import { useSettingsStore } from "../settings-store";
 import { useRoomStore } from "../store";
 import { type PanelId, useUiStore } from "../ui-store";
+import { sendCommand } from "../ws-client";
 import { CatPet } from "./CatPet";
 import { PixelSprite } from "./PixelSprite";
 import { useSpriteTick } from "./sprite-tick";
@@ -14,13 +15,28 @@ import { useSpriteTick } from "./sprite-tick";
 // 逻辑全在虚拟 1920×1080 坐标系里跑(速度/半径照搬原型),渲染时按 % 映射到实际视口,
 // 自适应不黑边。sessions 改由任务台打开的 SessionGrid 面板浏览(已实现)。
 //
-// 真假边界:任务台/项目门 → 真 SessionGrid(真会话列表);vendor → 真面板
-// (排行榜/商店/设置)。Codex 门是占位(引擎只跑 Claude),开同一 SessionGrid。
+// 真假边界:任务台/项目门 → 真 SessionGrid / newSession;vendor → 真面板。
+// 商店/扭蛋仍进入 Shop,由 Shop 自身显式标注 mock 经济边界。
 
 const VW = 1920;
 const VH = 1080;
 
-type Action = Extract<PanelId, "sessiongrid" | "shop" | "board" | "settings">;
+type PanelAction = Extract<
+  PanelId,
+  | "sessiongrid"
+  | "tasks"
+  | "shop"
+  | "gacha"
+  | "board"
+  | "settings"
+  | "mailbox"
+  | "leaderboard"
+  | "backpack"
+>;
+
+type InteractAction =
+  | { kind: "panel"; panel: PanelAction }
+  | { kind: "runtime"; runtime: RuntimeKind };
 
 interface Interactable {
   id: string;
@@ -29,8 +45,9 @@ interface Interactable {
   r: number;
   label: string;
   sub: string;
-  action: Action;
-  rt?: "claude" | "codex";
+  action: InteractAction;
+  icon: "quest" | "shop" | "trophy" | "gear" | "vault" | "pouch" | "crystal";
+  accent: string;
 }
 
 const INTERACT: Interactable[] = [
@@ -41,7 +58,9 @@ const INTERACT: Interactable[] = [
     r: 170,
     label: "任务台",
     sub: "QUEST CONSOLE",
-    action: "sessiongrid",
+    action: { kind: "panel", panel: "sessiongrid" },
+    icon: "quest",
+    accent: "#36c5e0",
   },
   {
     id: "shop",
@@ -50,7 +69,20 @@ const INTERACT: Interactable[] = [
     r: 140,
     label: "商店",
     sub: "SHOP",
-    action: "shop",
+    action: { kind: "panel", panel: "shop" },
+    icon: "shop",
+    accent: "#f2c84b",
+  },
+  {
+    id: "gacha",
+    x: 1640,
+    y: 555,
+    r: 120,
+    label: "扭蛋机",
+    sub: "GACHA",
+    action: { kind: "panel", panel: "gacha" },
+    icon: "crystal",
+    accent: "#a06cd5",
   },
   {
     id: "board",
@@ -59,7 +91,20 @@ const INTERACT: Interactable[] = [
     r: 140,
     label: "公告板",
     sub: "BOARD",
-    action: "board",
+    action: { kind: "panel", panel: "board" },
+    icon: "trophy",
+    accent: "#f2c84b",
+  },
+  {
+    id: "mailbox",
+    x: 285,
+    y: 555,
+    r: 120,
+    label: "信箱",
+    sub: "MAIL",
+    action: { kind: "panel", panel: "mailbox" },
+    icon: "vault",
+    accent: "#36c5e0",
   },
   {
     id: "altar",
@@ -68,7 +113,31 @@ const INTERACT: Interactable[] = [
     r: 130,
     label: "设置祭坛",
     sub: "CONFIG",
-    action: "settings",
+    action: { kind: "panel", panel: "settings" },
+    icon: "gear",
+    accent: "#36c5e0",
+  },
+  {
+    id: "achievements",
+    x: 650,
+    y: 235,
+    r: 120,
+    label: "成就陈列",
+    sub: "LOOT",
+    action: { kind: "panel", panel: "backpack" },
+    icon: "pouch",
+    accent: "#5fd35f",
+  },
+  {
+    id: "leaderboard",
+    x: 1270,
+    y: 235,
+    r: 120,
+    label: "排行榜",
+    sub: "RANK",
+    action: { kind: "panel", panel: "leaderboard" },
+    icon: "trophy",
+    accent: "#f2c84b",
   },
   {
     id: "cdoor",
@@ -77,8 +146,9 @@ const INTERACT: Interactable[] = [
     r: 120,
     label: "Claude 项目",
     sub: "",
-    action: "sessiongrid",
-    rt: "claude",
+    action: { kind: "runtime", runtime: "claude" },
+    icon: "quest",
+    accent: "#36c5e0",
   },
   {
     id: "xdoor",
@@ -87,8 +157,9 @@ const INTERACT: Interactable[] = [
     r: 120,
     label: "Codex 项目",
     sub: "",
-    action: "sessiongrid",
-    rt: "codex",
+    action: { kind: "runtime", runtime: "codex" },
+    icon: "quest",
+    accent: "#5fd35f",
   },
 ];
 
@@ -105,6 +176,20 @@ const dist = (
   p: { x: number; y: number },
   it: { x: number; y: number },
 ): number => Math.hypot(p.x - it.x, p.y - it.y);
+let runtimeDoorSessionSeq = 0;
+
+function isKeyboardOwnedElement(el: Element | null, key: string): boolean {
+  if (!(el instanceof HTMLElement)) return false;
+  if (el.tagName === "BUTTON") {
+    return key === "Enter" || key === " " || key === "Spacebar";
+  }
+  return (
+    el.tagName === "INPUT" ||
+    el.tagName === "TEXTAREA" ||
+    el.tagName === "SELECT" ||
+    el.isContentEditable
+  );
+}
 
 function Structure({
   it,
@@ -143,25 +228,24 @@ function Structure({
         </div>
       </div>
     );
-  } else if (it.id === "cdoor" || it.id === "xdoor") {
-    const col = it.rt === "codex" ? "#5fd35f" : "#36c5e0";
+  } else if (it.action.kind === "runtime") {
+    const col = it.accent;
     body = (
       <div
         className="struct-door"
         style={{ "--ac": col } as React.CSSProperties}
       >
         <div className="door-flag" style={{ background: col }}>
-          <Icon name={it.rt === "codex" ? "codex" : "claude"} size={18} />
+          <Icon
+            name={it.action.runtime === "codex" ? "codex" : "claude"}
+            size={18}
+          />
         </div>
         <PixelSprite name="doors_leaf_closed" scale={4} animated={false} />
       </div>
     );
   } else {
-    const ic = { shop: "shop", board: "trophy", altar: "gear" }[it.id] as
-      | "shop"
-      | "trophy"
-      | "gear";
-    const col = it.id === "altar" ? "#36c5e0" : "#f2c84b";
+    const col = it.accent;
     body = (
       <div className="struct-vendor">
         <div
@@ -173,16 +257,17 @@ function Structure({
             } as React.CSSProperties
           }
         >
-          <Icon name={ic} size={48} glow={col} />
+          <Icon name={it.icon} size={48} glow={col} />
         </div>
         <div className="vendor-ped" />
       </div>
     );
   }
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: 像素结构,E 键交互由 HubPlaza 集中处理
-    <div
+    <button
+      type="button"
       className={`structure${near ? " near" : ""}`}
+      aria-label={`${it.label}${it.sub ? ` ${it.sub}` : ""}`}
       style={{ left: pct(it.x, VW), top: pct(it.y, VH) }}
       onClick={onClick}
     >
@@ -191,18 +276,34 @@ function Structure({
         <span>{it.label}</span>
         {it.sub ? <span className="struct-sub px">{it.sub}</span> : null}
       </div>
-    </div>
+    </button>
   );
 }
 
-export function HubPlaza() {
+function nextSessionNumber(): number {
+  const nums = Object.keys(useRoomStore.getState().sessions)
+    .map((id) => Number(id.replace(/^s/, "")))
+    .filter((n) => Number.isFinite(n));
+  runtimeDoorSessionSeq =
+    Math.max(runtimeDoorSessionSeq, nums.length ? Math.max(...nums) : 0) + 1;
+  return runtimeDoorSessionSeq;
+}
+
+export interface HubPlazaProps {
+  initialPosition?: { x: number; y: number };
+}
+
+export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
   const openPanel = useUiStore((s) => s.openPanel);
   const avatarHero = useSettingsStore((s) => s.avatarHero) ?? "knight_m";
   const hubRef = useRef<HTMLDivElement>(null);
   const avRef = useRef<HTMLDivElement>(null);
   const petRef = useRef<HTMLDivElement>(null);
-  const pos = useRef({ x: 960, y: 900 });
-  const petPos = useRef({ x: 900, y: 930 });
+  const pos = useRef(initialPosition ?? { x: 960, y: 900 });
+  const petPos = useRef({
+    x: (initialPosition?.x ?? 960) - 60,
+    y: (initialPosition?.y ?? 900) + 30,
+  });
   const tgt = useRef<{ x: number; y: number } | null>(null);
   const keys = useRef<Set<string>>(new Set());
   const face = useRef(1);
@@ -220,7 +321,30 @@ export function HubPlaza() {
     [],
   );
   const fire = useCallback(
-    (it: Interactable) => openPanel(it.action),
+    (it: Interactable) => {
+      if (it.action.kind === "panel") {
+        openPanel(it.action.panel);
+        return;
+      }
+      const n = nextSessionNumber();
+      const config = defaultRuntimeConfig(it.action.runtime);
+      sendCommand({
+        cmd: "newSession",
+        sessionId: `s${n}`,
+        title: `${it.action.runtime === "codex" ? "Codex" : "Claude"} 会话 ${n}`,
+        model: config.model,
+        runtime: config.runtime,
+        permissionMode: config.permissionMode,
+        ...(config.approvalPolicy
+          ? { approvalPolicy: config.approvalPolicy }
+          : {}),
+        sandboxMode: config.sandboxMode,
+        ...(config.reasoningEffort
+          ? { reasoningEffort: config.reasoningEffort }
+          : {}),
+        networkAccess: config.networkAccess,
+      });
+    },
     [openPanel],
   );
 
@@ -238,8 +362,7 @@ export function HubPlaza() {
       arrowright: "right",
     };
     const kd = (e: KeyboardEvent) => {
-      const tag = document.activeElement?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (isKeyboardOwnedElement(document.activeElement, e.key)) return;
       if (blocked()) return;
       const k = e.key.toLowerCase();
       const dir = MAP[k];
@@ -359,8 +482,7 @@ export function HubPlaza() {
   const clickStruct = (e: React.MouseEvent, it: Interactable) => {
     e.stopPropagation();
     if (blocked()) return;
-    if (dist(pos.current, it) < it.r) fire(it);
-    else tgt.current = { x: it.x, y: it.y + 90 };
+    fire(it);
   };
 
   return (
@@ -420,14 +542,11 @@ export function HubPlaza() {
   );
 }
 
-/** 大厅视图:无活跃会话 → 空态(召唤小队);否则渲染可操控暖色广场。 */
+/** 大厅视图:始终渲染可操控暖色广场;新会话由 Claude/Codex 门创建。 */
 export function LobbyView() {
-  const hasSessions = useRoomStore((s) =>
-    Object.values(s.sessions).some((x) => !x.archived),
-  );
   return (
     <div data-testid="lobby-view">
-      {hasSessions ? <HubPlaza /> : <EmptyState />}
+      <HubPlaza />
     </div>
   );
 }
