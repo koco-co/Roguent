@@ -2247,7 +2247,7 @@
 **Feature:** gems/coins/skins/items 通过 append-only ledger 更新，不由 UI 直接改余额。
 
 **Files:**
-- Create: `src/shared/economy.ts`
+- Modify: `src/shared/economy.ts`
 - Create: `src/engine/economy/ledger.ts`
 - Modify: `src/web/store.ts`
 - Test: `src/engine/economy/ledger.test.ts`
@@ -2261,7 +2261,7 @@
 **Acceptance Standard:**
 - `bun test src/engine/economy/ledger.test.ts src/web/store.economy.test.ts` exit code 0。
 
-- [ ] Define ledger entry:
+- [x] Define ledger entry:
   ```ts
   export interface LedgerEntry {
     id: string;
@@ -2272,10 +2272,16 @@
     createdAt: number;
   }
   ```
-- [ ] Run:
+- [x] Run:
   ```bash
   bun test src/engine/economy/ledger.test.ts src/web/store.economy.test.ts
   ```
+
+**Evidence (2026-06-09):**
+- `bun test src/engine/economy/ledger.test.ts src/web/store.economy.test.ts` exit 0; 8 pass, 0 fail, 17 expect calls.
+- `bunx tsc --noEmit` exit 0.
+- `bun run check` exit 0; Biome checked 274 files.
+- `bun test` exit 0; 571 pass, 0 fail, 1 snapshot, 4569 expect calls.
 
 ---
 

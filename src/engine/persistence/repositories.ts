@@ -51,6 +51,19 @@ export interface StoredAuditRecord {
   createdAt: number;
 }
 
+export interface StoredLedgerEntry {
+  id: string;
+  sessionId: string | null;
+  agentId: string | null;
+  kind: string;
+  amount: number;
+  currency: string;
+  reason: string;
+  relatedEventId: string | null;
+  metadataJson: string | null;
+  createdAt: number;
+}
+
 export interface InboxBoardQueryOptions {
   now?: number;
   limit?: number;
@@ -95,6 +108,19 @@ type AuditRecordRow = {
   delivery_id: string | null;
   payload_hash: string;
   summary: string;
+  created_at: number;
+};
+
+type LedgerEntryRow = {
+  id: string;
+  session_id: string | null;
+  agent_id: string | null;
+  kind: string;
+  amount: number;
+  currency: string;
+  reason: string;
+  related_event_id: string | null;
+  metadata_json: string | null;
   created_at: number;
 };
 
@@ -188,6 +214,21 @@ function mapAuditRecord(row: AuditRecordRow): StoredAuditRecord {
     deliveryId: row.delivery_id,
     payloadHash: row.payload_hash,
     summary: row.summary,
+    createdAt: row.created_at,
+  };
+}
+
+function mapLedgerEntry(row: LedgerEntryRow): StoredLedgerEntry {
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    agentId: row.agent_id,
+    kind: row.kind,
+    amount: row.amount,
+    currency: row.currency,
+    reason: row.reason,
+    relatedEventId: row.related_event_id,
+    metadataJson: row.metadata_json,
     createdAt: row.created_at,
   };
 }
@@ -505,6 +546,76 @@ export function createRepositories(db: Database) {
           )
           .get(id);
         return row ? mapAuditRecord(row) : null;
+      },
+    },
+
+    ledgerEntries: {
+      append(entry: StoredLedgerEntry): void {
+        db.query<
+          unknown,
+          [
+            string,
+            string | null,
+            string | null,
+            string,
+            number,
+            string,
+            string,
+            string | null,
+            string | null,
+            number,
+          ]
+        >(`
+          INSERT INTO ledger_entries (
+            id,
+            session_id,
+            agent_id,
+            kind,
+            amount,
+            currency,
+            reason,
+            related_event_id,
+            metadata_json,
+            created_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          entry.id,
+          entry.sessionId,
+          entry.agentId,
+          entry.kind,
+          entry.amount,
+          entry.currency,
+          entry.reason,
+          entry.relatedEventId,
+          entry.metadataJson,
+          entry.createdAt,
+        );
+      },
+
+      listBySession(sessionId: string | null, limit = -1): StoredLedgerEntry[] {
+        const rows =
+          sessionId === null
+            ? db
+                .query<LedgerEntryRow, [number]>(
+                  "SELECT * FROM ledger_entries WHERE session_id IS NULL ORDER BY created_at ASC, id ASC LIMIT ?",
+                )
+                .all(limit)
+            : db
+                .query<LedgerEntryRow, [string, number]>(
+                  "SELECT * FROM ledger_entries WHERE session_id = ? ORDER BY created_at ASC, id ASC LIMIT ?",
+                )
+                .all(sessionId, limit);
+        return rows.map(mapLedgerEntry);
+      },
+
+      list(limit = -1): StoredLedgerEntry[] {
+        return db
+          .query<LedgerEntryRow, [number]>(
+            "SELECT * FROM ledger_entries ORDER BY created_at ASC, id ASC LIMIT ?",
+          )
+          .all(limit)
+          .map(mapLedgerEntry);
       },
     },
 

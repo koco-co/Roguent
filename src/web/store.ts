@@ -14,6 +14,7 @@ import {
   createAgent,
   createSession,
 } from "../shared/domain";
+import { reduceEconomyLedgerBalances } from "../shared/economy";
 import type {
   AccountLimits,
   AchievementProgress,
@@ -754,11 +755,12 @@ function foldPrototypeDomainEvent(
     }
     case "economy.ledger.appended": {
       const p = e.payload as EconomyLedgerAppendedPayload;
+      const entries = [...state.ledger.entries, p.entry];
       return {
         ...state,
         ledger: {
-          entries: [...state.ledger.entries, p.entry],
-          balances: { ...p.entry.balance },
+          entries,
+          balances: reduceEconomyLedgerBalances(entries),
         },
       };
     }
