@@ -99,25 +99,7 @@ test("economy ledger balances are reduced from appended entries", () => {
   expect(state.ledger.balances).toEqual({ coins: 4, gems: 7 });
 });
 
-test("legacy ledger entries with only delta still reduce into balances", () => {
-  const state = reduce(
-    initialState(),
-    ev(
-      {
-        id: "legacy-ledger",
-        ts: 1,
-        reason: "legacy",
-        delta: { coins: 6 },
-        balance: { coins: 600 },
-      },
-      1,
-    ),
-  );
-
-  expect(state.ledger.balances).toEqual({ coins: 6 });
-});
-
-test("inventory removal remains explicit and does not mutate balances", () => {
+test("inventory is derived from ledger inventory mutations", () => {
   const item: InventoryItem = {
     id: "skin-1",
     sku: "skin.green",
@@ -125,36 +107,57 @@ test("inventory removal remains explicit and does not mutate balances", () => {
     label: "Green",
     quantity: 1,
   };
-  let state = reduce(initialState(), {
+  let state = reduce(
+    initialState(),
+    ev(
+      ledgerEntry({
+        id: "ledger-item-add",
+        amount: 1,
+        currency: "item:skin.green",
+        sourceEventId: "event-item-add",
+        metadata: { inventory: { item, action: "added" } },
+      }),
+      1,
+    ),
+  );
+  expect(state.inventory["skin-1"]?.sku).toBe("skin.green");
+
+  state = reduce(
+    state,
+    ev(
+      ledgerEntry({
+        id: "ledger-item-remove",
+        amount: -1,
+        currency: "item:skin.green",
+        sourceEventId: "event-item-remove",
+        metadata: {
+          inventory: { item: { ...item, quantity: 0 }, action: "removed" },
+        },
+      }),
+      2,
+    ),
+  );
+
+  expect(state.inventory["skin-1"]).toBeUndefined();
+  expect(state.ledger.balances).toEqual({ "item:skin.green": 0 });
+});
+
+test("inventory.updated events cannot bypass the append-only ledger", () => {
+  const item: InventoryItem = {
+    id: "skin-1",
+    sku: "skin.green",
+    kind: "skin",
+    label: "Green",
+    quantity: 1,
+  };
+  const state = reduce(initialState(), {
     seq: 1,
     ts: 1,
-    sessionId: "session-1",
-    type: "economy.ledger.appended",
-    payload: {
-      entry: ledgerEntry({
-        id: "ledger-1",
-        amount: 5,
-        currency: "gems",
-        delta: { gems: 5 },
-        balance: { gems: 5 },
-      }),
-    },
-  });
-  state = reduce(state, {
-    seq: 2,
-    ts: 2,
     sessionId: "session-1",
     type: "inventory.updated",
     payload: { item, action: "added" },
   });
-  state = reduce(state, {
-    seq: 3,
-    ts: 3,
-    sessionId: "session-1",
-    type: "inventory.updated",
-    payload: { item: { ...item, quantity: 0 }, action: "removed" },
-  });
 
   expect(state.inventory["skin-1"]).toBeUndefined();
-  expect(state.ledger.balances).toEqual({ gems: 5 });
+  expect(state.ledger.entries).toEqual([]);
 });

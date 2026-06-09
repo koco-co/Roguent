@@ -4,6 +4,7 @@ import {
   type CurrencyBalances,
   type EconomyLedgerEntry,
   type EconomyLedgerReducibleEntry,
+  type InventoryLedgerMutation,
   reduceEconomyLedgerBalances,
 } from "../../shared/economy";
 import { type AuditRecordInput, appendAuditRecord } from "../audit/log";
@@ -22,6 +23,7 @@ export interface EconomyLedgerAppendInput {
   reason: string;
   sourceEventId: string;
   metadata?: Record<string, unknown>;
+  inventory?: InventoryLedgerMutation;
 }
 
 export interface EconomyLedgerServiceOptions {
@@ -137,7 +139,7 @@ export class EconomyLedgerService {
       "amount" | "currency" | "reason" | "sourceEventId"
     >
   > &
-    Pick<EconomyLedgerAppendInput, "metadata"> & {
+    Pick<EconomyLedgerAppendInput, "metadata" | "inventory"> & {
       sessionId: string | null;
       actorId: string | null;
     } {
@@ -159,7 +161,8 @@ export class EconomyLedgerService {
       sourceEventId,
       sessionId: input.sessionId ?? null,
       actorId: input.actorId ?? null,
-      metadata: input.metadata,
+      metadata: mergeLedgerMetadata(input.metadata, input.inventory),
+      inventory: input.inventory,
     };
   }
 
@@ -176,6 +179,14 @@ export class EconomyLedgerService {
   }
 }
 
+function mergeLedgerMetadata(
+  metadata: Record<string, unknown> | undefined,
+  inventory: InventoryLedgerMutation | undefined,
+): Record<string, unknown> | undefined {
+  if (!inventory) return metadata;
+  return { ...(metadata ?? {}), inventory };
+}
+
 export function createEconomyLedgerService(
   db: Database,
   options?: EconomyLedgerServiceOptions,
@@ -190,6 +201,7 @@ function materializeLedgerEntries(
   return rows.map((row) => {
     balances[row.currency] = (balances[row.currency] ?? 0) + row.amount;
     if (Object.is(balances[row.currency], -0)) balances[row.currency] = 0;
+    const sourceEventId = row.relatedEventId ?? row.id;
     const entry: EconomyLedgerEntry = {
       id: row.id,
       ts: row.createdAt,
@@ -199,7 +211,7 @@ function materializeLedgerEntries(
       delta: { [row.currency]: row.amount },
       balance: { ...balances },
       source: row.relatedEventId ?? undefined,
-      sourceEventId: row.relatedEventId ?? undefined,
+      sourceEventId,
       actorId: row.agentId ?? undefined,
       metadata: parseMetadata(row.metadataJson),
     };

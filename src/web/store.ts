@@ -14,7 +14,10 @@ import {
   createAgent,
   createSession,
 } from "../shared/domain";
-import { reduceEconomyLedgerBalances } from "../shared/economy";
+import {
+  reduceEconomyLedgerBalances,
+  reduceInventoryFromLedger,
+} from "../shared/economy";
 import type {
   AccountLimits,
   AchievementProgress,
@@ -28,7 +31,6 @@ import type {
   IntegrationEventReceivedPayload,
   IntegrationStatusPayload,
   InventoryItem,
-  InventoryUpdatedPayload,
   MailboxItem,
   MailboxItemCreatedPayload,
   MailboxItemUpdatedPayload,
@@ -762,6 +764,7 @@ function foldPrototypeDomainEvent(
           entries,
           balances: reduceEconomyLedgerBalances(entries),
         },
+        inventory: reduceInventoryFromLedger(entries),
       };
     }
     case "achievement.updated": {
@@ -775,11 +778,10 @@ function foldPrototypeDomainEvent(
       };
     }
     case "inventory.updated": {
-      const p = e.payload as InventoryUpdatedPayload;
-      const inventory = { ...state.inventory };
-      if (p.action === "removed") delete inventory[p.item.id];
-      else inventory[p.item.id] = p.item;
-      return { ...state, inventory };
+      // Task 43 makes ledger entries the authoritative economy source for
+      // skins/items. Keep the protocol event type for compatibility, but do not
+      // let it bypass the append-only ledger.
+      return state;
     }
     case "settings.updated": {
       const p = e.payload as SettingsUpdatedPayload;

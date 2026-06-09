@@ -2278,10 +2278,25 @@
   ```
 
 **Evidence (2026-06-09):**
-- `bun test src/engine/economy/ledger.test.ts src/web/store.economy.test.ts` exit 0; 8 pass, 0 fail, 17 expect calls.
-- `bunx tsc --noEmit` exit 0.
-- `bun run check` exit 0; Biome checked 274 files.
-- `bun test` exit 0; 571 pass, 0 fail, 1 snapshot, 4569 expect calls.
+- Initial implementation committed as `dc1d74e feat(economy): add append-only ledger`.
+- Initial verification:
+  - `bun test src/engine/economy/ledger.test.ts src/web/store.economy.test.ts` exit 0; 8 pass, 0 fail, 17 expect calls.
+  - `bunx tsc --noEmit` exit 0.
+  - `bun run check` exit 0; Biome checked 274 files.
+  - `bun test` exit 0; 571 pass, 0 fail, 1 snapshot, 4569 expect calls.
+- Spec review result: NOT APPROVED. Blocking gaps:
+  - `src/web/store.ts` still allowed `inventory.updated` to directly mutate `state.inventory`; skins/items must be derived from append-only ledger entries.
+  - Canonical `EconomyLedgerEntry` still had optional `amount`/`currency`/`sourceEventId`; emitted ledger event shape must require all three fields. Legacy delta-only reduction can remain a reducer compatibility path, but not the canonical event payload.
+- Follow-up fix:
+  - `EconomyLedgerEntry` now requires `amount`, `currency`, and `sourceEventId`; `EconomyLedgerReducibleEntry` remains the compatibility input for delta-only reducers.
+  - Inventory mutations are stored under ledger metadata (`metadata.inventory`) and `state.inventory` is rebuilt via `reduceInventoryFromLedger(entries)`.
+  - `inventory.updated` remains in the protocol for compatibility but no longer bypasses the ledger by mutating frontend inventory state.
+- Follow-up verification:
+  - `bun test src/engine/economy/ledger.test.ts src/web/store.economy.test.ts` exit 0; 9 pass, 0 fail, 22 expect calls.
+  - `bunx tsc --noEmit` exit 0.
+  - `bun run check` exit 0; Biome checked 274 files.
+  - `bun test` exit 0; 572 pass, 0 fail, 1 snapshot, 4574 expect calls.
+  - `git diff --check` exit 0.
 
 ---
 

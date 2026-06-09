@@ -150,6 +150,46 @@ test("balance is derived by reducing persisted multi-currency entries", () => {
   }
 });
 
+test("append stores inventory mutations inside append-only ledger metadata", () => {
+  const harness = createServiceHarness();
+  try {
+    const result = harness.service.append({
+      sessionId: "session-1",
+      amount: 1,
+      currency: "item:skin.green",
+      reason: "gacha.pull",
+      sourceEventId: "event-item-1",
+      inventory: {
+        item: {
+          id: "skin-1",
+          sku: "skin.green",
+          kind: "skin",
+          label: "Green",
+          quantity: 1,
+        },
+        action: "added",
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("append should succeed");
+    expect(result.entry.metadata?.inventory).toMatchObject({
+      action: "added",
+      item: {
+        id: "skin-1",
+        sku: "skin.green",
+        kind: "skin",
+        quantity: 1,
+      },
+    });
+    expect(harness.service.balance("session-1")).toEqual({
+      "item:skin.green": 1,
+    });
+  } finally {
+    harness.cleanup();
+  }
+});
+
 test("reduceLedgerBalances derives balances from entries without trusting embedded balance", () => {
   expect(
     reduceLedgerBalances([

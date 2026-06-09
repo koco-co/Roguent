@@ -306,8 +306,23 @@ test("prototype domain events fold without a known session", () => {
           id: "ledger-1",
           ts: 50,
           reason: "test",
+          amount: 5,
+          currency: "gems",
           delta: { gems: 5 },
           balance: { gems: 5 },
+          sourceEventId: "event-ledger-1",
+          metadata: {
+            inventory: {
+              item: {
+                id: "skin-1",
+                sku: "skin.green",
+                kind: "skin",
+                label: "Green",
+                quantity: 1,
+              },
+              action: "added",
+            },
+          },
         },
       },
     }),
@@ -542,20 +557,34 @@ test("scheduler.task.updated uses full payload task when changes are omitted", (
   expect(st.scheduler.tasks["task-1"]?.status).toBe("paused");
 });
 
-test("inventory.updated removes items when action is removed", () => {
+test("inventory.updated cannot bypass ledger-derived inventory", () => {
   let st = reduce(
     initialState(),
     ev({
-      type: "inventory.updated",
+      type: "economy.ledger.appended",
       payload: {
-        item: {
-          id: "skin-1",
-          sku: "skin.green",
-          kind: "skin",
-          label: "Green",
-          quantity: 1,
+        entry: {
+          id: "ledger-skin-add",
+          ts: 1,
+          reason: "test",
+          amount: 1,
+          currency: "item:skin.green",
+          delta: { "item:skin.green": 1 },
+          balance: { "item:skin.green": 1 },
+          sourceEventId: "event-skin-add",
+          metadata: {
+            inventory: {
+              item: {
+                id: "skin-1",
+                sku: "skin.green",
+                kind: "skin",
+                label: "Green",
+                quantity: 1,
+              },
+              action: "added",
+            },
+          },
         },
-        action: "added",
       },
     }),
   );
@@ -576,7 +605,7 @@ test("inventory.updated removes items when action is removed", () => {
     }),
   );
 
-  expect(st.inventory["skin-1"]).toBeUndefined();
+  expect(st.inventory["skin-1"]?.sku).toBe("skin.green");
 });
 
 test("a second session.created (from SDK init) merges, keeping messages and filling slashCommands", () => {

@@ -121,8 +121,11 @@ test("economy ledger payloads fit room envelope", () => {
         id: "ledger1",
         ts: 3,
         reason: "task.completed",
+        amount: 5,
+        currency: "coins",
         delta: { coins: 5 },
         balance: { coins: 15 },
+        sourceEventId: "event1",
       },
     },
   };
