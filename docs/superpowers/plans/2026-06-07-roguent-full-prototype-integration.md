@@ -2319,17 +2319,26 @@
 **Acceptance Standard:**
 - `bun test src/engine/economy/achievements.test.ts src/web/hud/economy/AchievementsPanel.test.tsx` exit code 0。
 
-- [ ] Add definition:
+- [x] Add definition:
   ```ts
   export const ACHIEVEMENTS = [
     { id: "first-codex-session", metric: "runtime.session.created.codex", target: 1, reward: { currency: "gem", amount: 20 } },
   ] as const;
   ```
-- [ ] Add test: creating first Codex session unlocks `first-codex-session`。
-- [ ] Run:
+- [x] Add test: creating first Codex session unlocks `first-codex-session`。
+- [x] Run:
   ```bash
   bun test src/engine/economy/achievements.test.ts src/web/hud/economy/AchievementsPanel.test.tsx
   ```
+
+**Task 44 Evidence (2026-06-09):**
+- RED: `bun test src/engine/economy/achievements.test.ts src/web/hud/economy/AchievementsPanel.test.tsx` exit 1; 0 pass, 2 fail, 2 errors. Missing modules: `./achievements`, `./AchievementsPanel`.
+- Targeted acceptance: `bun test src/engine/economy/achievements.test.ts src/web/hud/economy/AchievementsPanel.test.tsx` exit 0; 6 pass, 0 fail, 18 expect calls.
+- Gateway regression: `bun test src/engine/ws-gateway.test.ts` exit 0; 10 pass, 0 fail, 24 expect calls.
+- Typecheck: `bunx tsc --noEmit` exit 0.
+- Biome: `bun run check` exit 0; checked 278 files, no fixes applied.
+- Full unit suite: `bun test` exit 0; 579 pass, 0 fail, 1 snapshots, 4592 expect calls.
+- Whitespace: `git diff --check` exit 0.
 
 ---
 

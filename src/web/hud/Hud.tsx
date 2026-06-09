@@ -24,6 +24,7 @@ import { SystemMenu } from "./SystemMenu";
 import { TaskWindow } from "./TaskWindow";
 import { Tasks } from "./Tasks";
 import { ViewSwitch } from "./ViewSwitch";
+import { AchievementsPanel } from "./economy/AchievementsPanel";
 import { Icon, type IconName } from "./icons";
 import { BoardPanel } from "./mailbox/BoardPanel";
 import { MailboxPanel } from "./mailbox/MailboxPanel";
@@ -124,6 +125,7 @@ export function Hud() {
       <ChatDrawer />
       <MailboxPanel />
       <BoardPanel />
+      <AchievementsPanel />
       <PairingPanelHost />
       <ModelPicker />
       <Skills />

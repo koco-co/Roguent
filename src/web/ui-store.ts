@@ -13,6 +13,7 @@ export type PanelId =
   | "skills"
   | "shop"
   | "gacha"
+  | "achievements"
   | "leaderboard"
   | "backpack"
   | "chat"

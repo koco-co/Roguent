@@ -3,6 +3,8 @@ import { type WebSocket, WebSocketServer } from "ws";
 import { type ClientCommand, parseClientCommand } from "../shared/commands";
 import type {
   AccountLimits,
+  AchievementUpdatedPayload,
+  EconomyLedgerAppendedPayload,
   LimitsMessage,
   MailboxItem,
   RoguentSettings,
@@ -45,10 +47,25 @@ export interface GatewaySettingsService {
   load(scope: SettingsScope): Promise<RoguentSettings | null>;
 }
 
+export interface GatewayAchievementsService {
+  applyEvent?: (event: RoomEvent) => AchievementUpdatedPayload[];
+  claim: (
+    achievementId: string,
+    options?: { sessionId?: string | null; sourceEventId?: string },
+  ) =>
+    | {
+        ok: true;
+        achievement: AchievementUpdatedPayload["achievement"];
+        ledgerEntry: EconomyLedgerAppendedPayload["entry"];
+      }
+    | { ok: false; reason: string; detail?: string };
+}
+
 export interface WsGatewayOptions {
   mailbox?: GatewayMailboxService;
   scheduler?: GatewaySchedulerService;
   settings?: GatewaySettingsService;
+  achievements?: GatewayAchievementsService;
 }
 
 export class WsGateway {
@@ -71,7 +88,10 @@ export class WsGateway {
       });
     }
     this.wss.on("connection", (ws) => this.handleConnection(ws));
-    mgr.subscribe((e) => this.broadcast(e));
+    mgr.subscribe((e) => {
+      this.broadcast(e);
+      this.publishAchievementUpdatesFor(e);
+    });
   }
 
   private handleConnection(ws: WebSocket): void {
@@ -195,6 +215,8 @@ export class WsGateway {
       this.handleSchedulerCommand(c, ws);
     } else if (c.cmd === "settings") {
       void this.handleSettingsCommand(c, ws);
+    } else if (c.cmd === "economy") {
+      this.handleEconomyCommand(c, ws);
     } else {
       this.replyCommandError(
         ws,
@@ -202,6 +224,64 @@ export class WsGateway {
         `Command not implemented: ${commandLabel(c)}`,
       );
     }
+  }
+
+  private publishAchievementUpdatesFor(event: RoomEvent): void {
+    const achievements = this.options.achievements;
+    if (!achievements?.applyEvent) return;
+    for (const payload of achievements.applyEvent(event)) {
+      this.mgr.publishIntegrationEvent({
+        ts: Date.now(),
+        sessionId: event.sessionId,
+        type: "achievement.updated",
+        payload,
+      });
+    }
+  }
+
+  private handleEconomyCommand(
+    c: Extract<ClientCommand, { cmd: "economy" }>,
+    ws: WebSocket,
+  ): void {
+    if (c.action !== "claimAchievement") {
+      this.replyCommandError(
+        ws,
+        undefined,
+        `Economy command not implemented: ${commandLabel(c)}`,
+      );
+      return;
+    }
+    const achievements = this.options.achievements;
+    if (!achievements) {
+      this.replyCommandError(ws, undefined, "Achievements service unavailable");
+      return;
+    }
+
+    const result = achievements.claim(c.achievementId, {
+      sessionId: null,
+      sourceEventId: `achievement.claimed:${c.achievementId}`,
+    });
+    if (!result.ok) {
+      this.replyCommandError(
+        ws,
+        undefined,
+        `Achievement claim failed: ${result.reason}`,
+      );
+      return;
+    }
+
+    this.mgr.publishIntegrationEvent({
+      ts: Date.now(),
+      sessionId: "__economy__",
+      type: "achievement.updated",
+      payload: { achievement: result.achievement },
+    });
+    this.mgr.publishIntegrationEvent({
+      ts: Date.now(),
+      sessionId: "__economy__",
+      type: "economy.ledger.appended",
+      payload: { entry: result.ledgerEntry },
+    });
   }
 
   private async handleSettingsCommand(

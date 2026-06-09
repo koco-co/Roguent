@@ -144,7 +144,85 @@ test("WsGateway replies with commandError control when command parsing fails", a
   expect("seq" in msg).toBe(false);
 });
 
-test("WsGateway replies with commandError control for unimplemented prototype commands", async () => {
+test("WsGateway handles economy claimAchievement through achievement service and publishes reward events", async () => {
+  const sent: string[] = [];
+  const published: unknown[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const achievements = {
+    claim: (achievementId: string) => ({
+      ok: true as const,
+      achievement: {
+        id: achievementId,
+        title: "First Codex Session",
+        progress: 1,
+        target: 1,
+        completed: true,
+        claimed: true,
+        updatedAt: 1,
+      },
+      ledgerEntry: {
+        id: "ledger-1",
+        ts: 1,
+        reason: "achievement.claimed",
+        amount: 20,
+        currency: "gem",
+        delta: { gem: 20 },
+        balance: { gem: 20 },
+        sourceEventId: "achievement.claimed:first-codex-session",
+      },
+    }),
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    publishIntegrationEvent: (event: unknown) => published.push(event),
+  } as unknown as SessionManager;
+  const gateway = new WsGateway(0, mgr, undefined, { achievements });
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "economy",
+        action: "claimAchievement",
+        achievementId: "first-codex-session",
+      }),
+      ws,
+    );
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(sent).toEqual([]);
+  expect(published).toMatchObject([
+    {
+      sessionId: "__economy__",
+      type: "achievement.updated",
+      payload: {
+        achievement: {
+          id: "first-codex-session",
+          claimed: true,
+        },
+      },
+    },
+    {
+      sessionId: "__economy__",
+      type: "economy.ledger.appended",
+      payload: {
+        entry: {
+          id: "ledger-1",
+          amount: 20,
+          currency: "gem",
+        },
+      },
+    },
+  ]);
+});
+
+test("WsGateway keeps unsupported economy actions explicit", async () => {
   const sent: string[] = [];
   const ws = {
     OPEN: 1,
@@ -161,8 +239,8 @@ test("WsGateway replies with commandError control for unimplemented prototype co
       gateway,
       JSON.stringify({
         cmd: "economy",
-        action: "claimAchievement",
-        achievementId: "first-codex-session",
+        action: "purchaseItem",
+        sku: "skin.green",
       }),
       ws,
     );
@@ -170,14 +248,11 @@ test("WsGateway replies with commandError control for unimplemented prototype co
     await closeGateway(gateway);
   }
 
-  expect(sent).toHaveLength(1);
-  const msg = JSON.parse(sent[0] ?? "") as ControlMessage;
-  expect(msg).toEqual({
+  expect(JSON.parse(sent[0] ?? "") as ControlMessage).toEqual({
     kind: "control",
     type: "commandError",
-    reason: "Command not implemented: economy.claimAchievement",
+    reason: "Economy command not implemented: economy.purchaseItem",
   });
-  expect("seq" in msg).toBe(false);
 });
 
 test("WsGateway handles settings commands through SettingsService and publishes updates", async () => {

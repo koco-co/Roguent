@@ -1,4 +1,6 @@
 import type {
+  AchievementUpdatedPayload,
+  EconomyLedgerAppendedPayload,
   SchedulerRunFinishedPayload,
   SchedulerRunStartedPayload,
   SchedulerTaskCreatedPayload,
@@ -147,6 +149,18 @@ export type IntegrationRouterEvent =
       sessionId: string;
       type: "settings.updated";
       payload: SettingsUpdatedPayload;
+      ts: number;
+    }
+  | {
+      sessionId: string;
+      type: "achievement.updated";
+      payload: AchievementUpdatedPayload;
+      ts: number;
+    }
+  | {
+      sessionId: string;
+      type: "economy.ledger.appended";
+      payload: EconomyLedgerAppendedPayload;
       ts: number;
     };
 

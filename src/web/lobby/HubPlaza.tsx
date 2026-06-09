@@ -27,6 +27,7 @@ type PanelAction = Extract<
   | "tasks"
   | "shop"
   | "gacha"
+  | "achievements"
   | "board"
   | "settings"
   | "mailbox"
@@ -124,7 +125,7 @@ const INTERACT: Interactable[] = [
     r: 120,
     label: "成就陈列",
     sub: "LOOT",
-    action: { kind: "panel", panel: "backpack" },
+    action: { kind: "panel", panel: "achievements" },
     icon: "pouch",
     accent: "#5fd35f",
   },
