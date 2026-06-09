@@ -2047,7 +2047,9 @@
 - Modify: `src/web/App.tsx`
 - Create: `src/web/lobby/LoginGate.tsx`
 - Create: `src/web/lobby/HeroSelect.tsx`
-- Modify: `src/web/store.ts`
+- Modify: `src/web/hud/CharacterSelect.tsx`
+- Modify: `src/web/lobby/HubPlaza.tsx`
+- Modify: `src/web/styles.css`
 - Test: `src/web/lobby/LoginGate.test.tsx`
 
 **Output Standard:**
@@ -2059,16 +2061,57 @@
 - `bun test src/web/lobby/LoginGate.test.tsx` exit code 0。
 - Playwright mobile/desktop screenshot artifact 覆盖 first viewport。
 
-- [ ] Add test:
+- [x] Add test:
   ```tsx
   await user.click(screen.getByRole("button", { name: /Start/i }));
   await user.click(screen.getByRole("button", { name: /Orc/i }));
   expect(screen.getByTestId("lobby-view")).toBeVisible();
   ```
-- [ ] Run:
+- [x] Implemented:
+  - `src/web/lobby/LoginGate.tsx` renders a first-open Start gate before hero selection.
+  - `src/web/lobby/HeroSelect.tsx` provides button-based hero choices and persists selection through `useSettingsStore().setSetting("avatarHero", ...)`.
+  - `src/web/App.tsx` keeps engine connection setup independent of the gate and renders `LoginGate` as an overlay.
+  - `src/web/lobby/HubPlaza.tsx` exposes `data-testid="lobby-view"` for the accepted lobby state.
+- [x] Run:
   ```bash
   bun test src/web/lobby/LoginGate.test.tsx
   ```
+- [x] Evidence:
+  ```text
+  bun test src/web/lobby/LoginGate.test.tsx
+  # exit code 0; 1 pass, 0 fail, 6 expect() calls
+
+  bun test src/web/lobby/LoginGate.test.tsx src/web/settings-store.test.ts src/web/ui-store.test.ts
+  # exit code 0; 23 pass, 0 fail, 57 expect() calls
+
+  bunx tsc --noEmit
+  # exit code 0
+
+  bun run check
+  # exit code 0; Checked 269 files, no fixes applied
+
+	  bun test
+	  # exit code 0; 554 pass, 0 fail, 1 snapshot, 4515 expect() calls
+
+	  bunx playwright screenshot --viewport-size=1440,900 http://localhost:5174 /private/tmp/roguent-task40-login-desktop.png
+	  # exit code 0; artifact /private/tmp/roguent-task40-login-desktop.png
+
+	  bunx playwright screenshot --viewport-size=390,844 http://localhost:5174 /private/tmp/roguent-task40-login-mobile.png
+	  # exit code 0; artifact /private/tmp/roguent-task40-login-mobile.png
+
+	  git diff --check
+	  # exit code 0
+	  ```
+- [x] Screenshot notes:
+  - `http://127.0.0.1:5174` returned `ERR_CONNECTION_REFUSED`; Vite reported `http://localhost:5174`, and the successful screenshot evidence used that URL.
+  - Temporary Vite server was stopped after screenshot generation.
+- [x] Review:
+  - Spec review initially found hero cards were clickable `div`s and the test did not use `getByRole("button", { name: /Orc/i })`.
+  - Fixed hero cards to real buttons and updated the test; spec re-review approved.
+  - Code quality review initially found the login modal did not block keyboard focus into the background and the panel allowed background UI to interfere visually.
+  - Fixed by making the live layer `inert`/`aria-hidden`, rendering the gate as a reset native `dialog`, focusing Start on open, making the panel opaque, and dimming the mounted live layer while the gate is active.
+  - Code quality re-review found two unrelated TaskWindow CSS changes from an earlier broad patch; reverted both so Task40 CSS is scoped to login gate, live layer, and hero button reset.
+  - Final code quality re-review approved and independently ran `git diff --check` exit code 0.
 
 ---
 

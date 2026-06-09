@@ -425,5 +425,9 @@ export function LobbyView() {
   const hasSessions = useRoomStore((s) =>
     Object.values(s.sessions).some((x) => !x.archived),
   );
-  return hasSessions ? <HubPlaza /> : <EmptyState />;
+  return (
+    <div data-testid="lobby-view">
+      {hasSessions ? <HubPlaza /> : <EmptyState />}
+    </div>
+  );
 }
