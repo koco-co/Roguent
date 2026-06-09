@@ -1992,14 +1992,50 @@
 - `bun test src/engine/settings/service.test.ts src/web/hud/Settings.test.tsx` exit code 0。
 - Test DB 查询不到 secret 明文。
 
-- [ ] Add no-plaintext test:
+- [x] Add no-plaintext test:
   ```ts
   expect(readRawDbText(testDb)).not.toContain("github-secret-value");
   ```
-- [ ] Run:
+- [x] Implemented:
+  - `src/engine/settings/service.ts` persists sanitized settings rows in the new `settings` table and recursively replaces sensitive string fields with `{ secretRef }`.
+  - `src/engine/server.ts` wires one `KeychainSecretStore` into both ingress and settings persistence.
+  - `src/engine/ws-gateway.ts` handles `cmd: "settings"` / `action: "update"` through `SettingsService` and broadcasts `settings.updated`.
+  - `src/web/hud/Settings.tsx` saves real Roguent settings via WS command and shows Claude/Codex runtime summaries through `ClaudeSettings.tsx` / `CodexSettings.tsx` / `IntegrationSettings.tsx`.
+  - `src/web/hud/settings-schema.ts` now includes IM/GitHub/X/relay config fields plus Codex MCP profile, and `Settings.test.tsx` asserts the save payload includes integration config and Codex `mcpProfile`.
+  - `WsGateway` loads saved user settings on client connect and republishes `settings.updated`, while `Settings.tsx` hydrates form values from `useRoomStore().settings`.
+  - `SettingsService` reconciles `settings/<scope>` SecretStore refs after overwrite so stale secret values are deleted.
+- [x] Run:
   ```bash
   bun test src/engine/settings/service.test.ts src/web/hud/Settings.test.tsx
   ```
+- [x] Evidence:
+  ```text
+  bun test src/engine/settings/service.test.ts src/web/hud/Settings.test.tsx
+  # exit code 0; 5 pass, 0 fail, 20 expect() calls
+
+  bun test src/engine/settings/service.test.ts src/engine/ws-gateway.test.ts src/engine/persistence/db.test.ts src/web/hud/Settings.test.tsx src/web/store.test.ts
+  # exit code 0; 74 pass, 0 fail, 221 expect() calls
+
+  bunx tsc --noEmit
+  # exit code 0
+
+  bun run check
+  # exit code 0; Checked 266 files, no fixes applied
+
+  bun test
+  # exit code 0; 553 pass, 0 fail, 1 snapshot, 4509 expect() calls
+
+  git diff --check
+  # exit code 0
+  ```
+- [x] Sensitive storage evidence:
+  - `src/engine/settings/service.test.ts` asserts SQLite raw `settings_json` does not contain `github-secret-value` or `x-token-value`.
+  - The same test asserts the values are retrievable only through `MemorySecretStore` refs and that SQLite contains `secretRef`.
+- [x] Review:
+  - Spec review initially found missing integration save payload and missing Codex MCP profile.
+  - Fixed both gaps; spec re-review approved.
+  - Code quality review found settings were write-only on reconnect and stale secret refs were not pruned.
+  - Fixed both gaps with reconnect load/hydration tests and stale SecretStore ref deletion tests.
 
 ---
 

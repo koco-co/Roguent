@@ -11,6 +11,7 @@ import { createSchedulerRunner } from "./scheduler/runner";
 import { createSchedulerService } from "./scheduler/service";
 import { KeychainSecretStore } from "./secrets/keychain";
 import { SessionManager } from "./session";
+import { createSettingsService } from "./settings/service";
 import { UsagePoller, defaultFetchUsage } from "./usage-poller";
 import { WsGateway } from "./ws-gateway";
 
@@ -45,11 +46,13 @@ if (replayFixture) {
 } else {
   const db = openDatabase(resolveDatabasePath());
   migrate(db);
+  const secretStore = new KeychainSecretStore();
   const mgr = new SessionManager(undefined, process.cwd(), { auditDb: db });
   const scheduler = createSchedulerService(db);
   const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`), {
     mailbox: createMailboxService(db),
     scheduler,
+    settings: createSettingsService(db, secretStore),
   });
   const schedulerRunner = createSchedulerRunner({ db, sessions: mgr });
   schedulerRunner.start();
@@ -64,7 +67,7 @@ if (replayFixture) {
       db,
       port: ingressPort,
       router: integrations.router,
-      secretStore: new KeychainSecretStore(),
+      secretStore,
     });
     if (ingress) console.log(`INGRESS_PORT=${ingress.port}`);
   }

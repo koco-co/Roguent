@@ -5,7 +5,10 @@ import type {
   AccountLimits,
   LimitsMessage,
   MailboxItem,
+  RoguentSettings,
   RoomEvent,
+  SettingsScope,
+  SettingsUpdatedPayload,
 } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
 import type {
@@ -32,9 +35,20 @@ export interface GatewaySchedulerService {
   runTask(taskId: string): SchedulerRun;
 }
 
+export interface GatewaySettingsService {
+  update(
+    scope: SettingsScope,
+    settings: RoguentSettings,
+    changedKeys?: string[],
+    metadata?: Record<string, unknown>,
+  ): Promise<SettingsUpdatedPayload>;
+  load(scope: SettingsScope): Promise<RoguentSettings | null>;
+}
+
 export interface WsGatewayOptions {
   mailbox?: GatewayMailboxService;
   scheduler?: GatewaySchedulerService;
+  settings?: GatewaySettingsService;
 }
 
 export class WsGateway {
@@ -56,19 +70,44 @@ export class WsGateway {
         if (addr && typeof addr === "object") onListening(addr.port);
       });
     }
-    this.wss.on("connection", (ws) => {
-      this.clients.add(ws);
-      if (this.lastLimits) ws.send(JSON.stringify(this.lastLimits));
-      // 当前会话花名册 → 客户端对账清幽灵(重连/换引擎后残留的旧会话)。
-      this.reply(ws, {
-        kind: "control",
-        type: "roster",
-        sessionIds: this.mgr.sessionIds(),
-      });
-      ws.on("message", (data) => void this.onCommand(String(data), ws));
-      ws.on("close", () => this.clients.delete(ws));
-    });
+    this.wss.on("connection", (ws) => this.handleConnection(ws));
     mgr.subscribe((e) => this.broadcast(e));
+  }
+
+  private handleConnection(ws: WebSocket): void {
+    this.clients.add(ws);
+    if (this.lastLimits) ws.send(JSON.stringify(this.lastLimits));
+    // 当前会话花名册 → 客户端对账清幽灵(重连/换引擎后残留的旧会话)。
+    this.reply(ws, {
+      kind: "control",
+      type: "roster",
+      sessionIds: this.mgr.sessionIds(),
+    });
+    void this.publishSavedSettings();
+    ws.on("message", (data) => void this.onCommand(String(data), ws));
+    ws.on("close", () => this.clients.delete(ws));
+  }
+
+  private async publishSavedSettings(): Promise<void> {
+    const settings = this.options.settings;
+    if (!settings) return;
+    try {
+      const saved = await settings.load("user");
+      if (!saved) return;
+      this.mgr.publishIntegrationEvent({
+        ts: Date.now(),
+        sessionId: "__settings__",
+        type: "settings.updated",
+        payload: {
+          scope: "user",
+          settings: saved,
+          metadata: { source: "settings-load" },
+        },
+      });
+    } catch {
+      // Settings hydration is best-effort on reconnect; explicit save commands
+      // still surface errors to the active client.
+    }
   }
 
   broadcast(e: RoomEvent): void {
@@ -154,11 +193,44 @@ export class WsGateway {
       this.handleMailboxCommand(c, ws);
     } else if (c.cmd === "scheduler") {
       this.handleSchedulerCommand(c, ws);
+    } else if (c.cmd === "settings") {
+      void this.handleSettingsCommand(c, ws);
     } else {
       this.replyCommandError(
         ws,
         commandSessionId(c),
         `Command not implemented: ${commandLabel(c)}`,
+      );
+    }
+  }
+
+  private async handleSettingsCommand(
+    c: Extract<ClientCommand, { cmd: "settings" }>,
+    ws: WebSocket,
+  ): Promise<void> {
+    const settings = this.options.settings;
+    if (!settings) {
+      this.replyCommandError(ws, undefined, "Settings service unavailable");
+      return;
+    }
+    try {
+      const payload = await settings.update(
+        c.scope,
+        c.settings,
+        c.changedKeys,
+        c.metadata,
+      );
+      this.mgr.publishIntegrationEvent({
+        ts: Date.now(),
+        sessionId: "__settings__",
+        type: "settings.updated",
+        payload,
+      });
+    } catch (error) {
+      this.replyCommandError(
+        ws,
+        undefined,
+        error instanceof Error ? error.message : String(error),
       );
     }
   }

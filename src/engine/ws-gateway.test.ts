@@ -6,6 +6,7 @@ import type { SessionManager } from "./session";
 import {
   type GatewayMailboxService,
   type GatewaySchedulerService,
+  type GatewaySettingsService,
   WsGateway,
 } from "./ws-gateway";
 
@@ -47,6 +48,14 @@ function invokeOnCommand(
       onCommand(raw: string, ws: unknown): void;
     }
   ).onCommand(raw, ws);
+}
+
+function invokeHandleConnection(gateway: WsGateway, ws: unknown): void {
+  (
+    gateway as unknown as {
+      handleConnection(ws: unknown): void;
+    }
+  ).handleConnection(ws);
 }
 
 test("WsGateway passes newSession runtime config through to SessionManager", async () => {
@@ -151,10 +160,9 @@ test("WsGateway replies with commandError control for unimplemented prototype co
     invokeOnCommand(
       gateway,
       JSON.stringify({
-        cmd: "settings",
-        action: "update",
-        scope: "user",
-        settings: { scheduler: { enabled: true } },
+        cmd: "economy",
+        action: "claimAchievement",
+        achievementId: "first-codex-session",
       }),
       ws,
     );
@@ -167,9 +175,150 @@ test("WsGateway replies with commandError control for unimplemented prototype co
   expect(msg).toEqual({
     kind: "control",
     type: "commandError",
-    reason: "Command not implemented: settings.update",
+    reason: "Command not implemented: economy.claimAchievement",
   });
   expect("seq" in msg).toBe(false);
+});
+
+test("WsGateway handles settings commands through SettingsService and publishes updates", async () => {
+  const sent: string[] = [];
+  const published: unknown[] = [];
+  const settingsCalls: unknown[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const settings: GatewaySettingsService = {
+    async load() {
+      return null;
+    },
+    async update(scope, input, changedKeys, metadata) {
+      settingsCalls.push({ scope, input, changedKeys, metadata });
+      return {
+        scope,
+        settings: input,
+        ...(changedKeys ? { changedKeys } : {}),
+        ...(metadata ? { metadata } : {}),
+      };
+    },
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    publishIntegrationEvent: (event: unknown) => published.push(event),
+  } as unknown as SessionManager;
+  const gateway = new WsGateway(0, mgr, undefined, { settings });
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "settings",
+        action: "update",
+        scope: "user",
+        settings: { scheduler: { enabled: true, timezone: "UTC" } },
+        changedKeys: ["scheduler.enabled"],
+        metadata: { source: "settings-panel" },
+      }),
+      ws,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(sent).toEqual([]);
+  expect(settingsCalls).toEqual([
+    {
+      scope: "user",
+      input: { scheduler: { enabled: true, timezone: "UTC" } },
+      changedKeys: ["scheduler.enabled"],
+      metadata: { source: "settings-panel" },
+    },
+  ]);
+  expect(published).toEqual([
+    {
+      sessionId: "__settings__",
+      type: "settings.updated",
+      ts: expect.any(Number),
+      payload: {
+        scope: "user",
+        settings: { scheduler: { enabled: true, timezone: "UTC" } },
+        changedKeys: ["scheduler.enabled"],
+        metadata: { source: "settings-panel" },
+      },
+    },
+  ]);
+});
+
+test("WsGateway publishes saved settings when a client connects", async () => {
+  const sent: string[] = [];
+  const published: unknown[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+    on: () => undefined,
+  };
+  const settings: GatewaySettingsService = {
+    async load(scope) {
+      expect(scope).toBe("user");
+      return {
+        runtime: {
+          runtime: "codex",
+          model: "gpt-5",
+          permissionMode: "default",
+          approvalPolicy: "on-request",
+          sandboxMode: "workspace-write",
+          networkAccess: false,
+        },
+        metadata: { codex: { mcpProfile: "mobile-dev" } },
+      };
+    },
+    async update() {
+      throw new Error("not used");
+    },
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    publishIntegrationEvent: (event: unknown) => published.push(event),
+  } as unknown as SessionManager;
+  const gateway = new WsGateway(0, mgr, undefined, { settings });
+  try {
+    invokeHandleConnection(gateway, ws);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(JSON.parse(sent[0] ?? "")).toEqual({
+    kind: "control",
+    type: "roster",
+    sessionIds: [],
+  });
+  expect(published).toEqual([
+    {
+      sessionId: "__settings__",
+      type: "settings.updated",
+      ts: expect.any(Number),
+      payload: {
+        scope: "user",
+        settings: {
+          runtime: {
+            runtime: "codex",
+            model: "gpt-5",
+            permissionMode: "default",
+            approvalPolicy: "on-request",
+            sandboxMode: "workspace-write",
+            networkAccess: false,
+          },
+          metadata: { codex: { mcpProfile: "mobile-dev" } },
+        },
+        metadata: { source: "settings-load" },
+      },
+    },
+  ]);
 });
 
 test("WsGateway handles mailbox commands through MailboxService and publishes updates", async () => {

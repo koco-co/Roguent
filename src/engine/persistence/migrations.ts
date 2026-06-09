@@ -2,7 +2,7 @@ import type { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import { withTransaction } from "./db";
 
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 export const REQUIRED_TABLE_NAMES = [
   "sessions",
@@ -14,6 +14,7 @@ export const REQUIRED_TABLE_NAMES = [
   "ledger_entries",
   "inventory_items",
   "achievement_progress",
+  "settings",
   "audit_records",
 ] as const;
 
@@ -469,6 +470,21 @@ function migrateToVersion3(db: Database): void {
   createAuditRecordsV3Schema(db);
 }
 
+function migrateToVersion4(db: Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS settings (
+      scope TEXT PRIMARY KEY,
+      settings_json TEXT NOT NULL,
+      changed_keys_json TEXT,
+      metadata_json TEXT,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_settings_updated_at
+      ON settings(updated_at);
+  `);
+}
+
 export function migrate(db: Database): void {
   withTransaction(db, () => {
     let version = readSchemaVersion(db);
@@ -493,6 +509,12 @@ export function migrate(db: Database): void {
     if (version < 3) {
       migrateToVersion3(db);
       setSchemaVersion(db, 3);
+      version = 3;
+    }
+
+    if (version < 4) {
+      migrateToVersion4(db);
+      setSchemaVersion(db, 4);
     }
   });
 }

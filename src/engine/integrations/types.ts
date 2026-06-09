@@ -3,6 +3,7 @@ import type {
   SchedulerRunStartedPayload,
   SchedulerTaskCreatedPayload,
   SchedulerTaskUpdatedPayload,
+  SettingsUpdatedPayload,
 } from "../../shared/events";
 import type {
   IntegrationChannel,
@@ -140,6 +141,12 @@ export type IntegrationRouterEvent =
       sessionId: string;
       type: "scheduler.run.finished";
       payload: SchedulerRunFinishedPayload;
+      ts: number;
+    }
+  | {
+      sessionId: string;
+      type: "settings.updated";
+      payload: SettingsUpdatedPayload;
       ts: number;
     };
 

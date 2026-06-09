@@ -1,7 +1,11 @@
 import { expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { createTestDatabase } from "../persistence/db";
-import { migrate, readSchemaVersion } from "../persistence/migrations";
+import {
+  CURRENT_SCHEMA_VERSION,
+  migrate,
+  readSchemaVersion,
+} from "../persistence/migrations";
 import { createRepositories } from "../persistence/repositories";
 import {
   appendAuditRecord,
@@ -587,7 +591,7 @@ test("migration upgrades v2 audit rows into the Task 6 shape", () => {
 
     migrate(testDb.db);
 
-    expect(readSchemaVersion(testDb.db)).toBe(3);
+    expect(readSchemaVersion(testDb.db)).toBe(CURRENT_SCHEMA_VERSION);
     expect(
       createRepositories(testDb.db).auditRecords.get("legacy-audit-1"),
     ).toEqual({

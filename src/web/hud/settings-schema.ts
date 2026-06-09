@@ -61,6 +61,98 @@ export interface CompactModel {
   note: string;
 }
 
+const INTEGRATION_SETTINGS_GROUP: SettingGroup = {
+  id: "integrations",
+  name: "IM / 订阅",
+  icon: "account",
+  items: [
+    {
+      k: "im_wechat_enabled",
+      label: "微信扫码配对 WeChat",
+      type: "toggle",
+      val: true,
+      tip: "允许微信单会话扫码配对并把 agent 回复转发回当前微信会话。",
+    },
+    {
+      k: "im_feishu_enabled",
+      label: "飞书长连接 Feishu",
+      type: "toggle",
+      val: false,
+      tip: "启用飞书/Lark bot 长连接收发消息。",
+    },
+    {
+      k: "feishu_app_id",
+      label: "飞书 App ID",
+      type: "text",
+      val: "",
+      tip: "飞书/Lark bot 的 app_id。",
+    },
+    {
+      k: "feishu_app_secret",
+      label: "飞书 App Secret",
+      type: "text",
+      val: "",
+      tip: "敏感字段,保存时只写入 SecretStore 引用。",
+    },
+    {
+      k: "github_enabled",
+      label: "GitHub 订阅",
+      type: "toggle",
+      val: false,
+      tip: "接收 GitHub webhook 并路由到邮箱/公告板/会话。",
+    },
+    {
+      k: "github_repo",
+      label: "GitHub repo",
+      type: "text",
+      val: "",
+      tip: "订阅仓库,格式 owner/repo。",
+    },
+    {
+      k: "github_webhook_secret",
+      label: "GitHub webhookSecret",
+      type: "text",
+      val: "",
+      tip: "GitHub webhook HMAC secret,保存时只写 SecretStore 引用。",
+    },
+    {
+      k: "x_enabled",
+      label: "X 订阅",
+      type: "toggle",
+      val: false,
+      tip: "启用 X webhook/订阅事件接入。",
+    },
+    {
+      k: "x_bearer_token",
+      label: "X bearerToken",
+      type: "text",
+      val: "",
+      tip: "X API bearer token,保存时只写 SecretStore 引用。",
+    },
+    {
+      k: "relay_enabled",
+      label: "Relay 转发",
+      type: "toggle",
+      val: false,
+      tip: "启用本地 tunnel 或生产 relay 转发 webhook。",
+    },
+    {
+      k: "relay_endpoint",
+      label: "Relay endpoint",
+      type: "text",
+      val: "",
+      tip: "Relay 服务地址。",
+    },
+    {
+      k: "relay_token",
+      label: "Relay token",
+      type: "text",
+      val: "",
+      tip: "Relay capability token,保存时只写 SecretStore 引用。",
+    },
+  ],
+};
+
 // ── Claude settings.json 分组(8 组,逐字段照搬原型 data.js)────────────────
 export const SETTINGS_GROUPS: SettingGroup[] = [
   {
@@ -273,6 +365,7 @@ export const SETTINGS_GROUPS: SettingGroup[] = [
       },
     ],
   },
+  INTEGRATION_SETTINGS_GROUP,
 ];
 
 // ── 压缩阈值模型(3 个,§6.8 CompactGroup 用)──────────────────────────────
@@ -382,6 +475,15 @@ export const CODEX_SETTINGS_GROUPS: SettingGroup[] = [
         val: ["github-mcp"],
         tip: "config.toml 中配置的 MCP 服务器。",
       },
+      {
+        k: "cx_mcp_profile",
+        label: "MCP profile",
+        type: "select",
+        val: "default",
+        opts: ["default", "mobile-dev", "ci"],
+        tip: "Roguent 保存的 Codex MCP 配置 profile。",
+      },
     ],
   },
+  INTEGRATION_SETTINGS_GROUP,
 ];
