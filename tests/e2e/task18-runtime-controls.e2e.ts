@@ -1,4 +1,4 @@
-import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import { expect, test } from "@playwright/test";
 import WebSocket from "ws";
 import type { ClientCommand } from "../../src/shared/commands";
@@ -13,7 +13,10 @@ test("Task 18 runtime controls round-trip through live engine WebSocket", async 
   const ws = await openWs(engine.url);
   const events: RoomEvent[] = [];
   ws.on("message", (data) => {
-    const parsed = JSON.parse(String(data)) as RoomEvent | { kind?: string };
+    // Non-event frames (e.g. the limits message) carry a `kind` discriminator;
+    // RoomEvents never do. `kind` is required here so the `in` guard narrows
+    // `parsed` down to `RoomEvent` for the push.
+    const parsed = JSON.parse(String(data)) as RoomEvent | { kind: string };
     if (!("kind" in parsed)) events.push(parsed);
   });
 
@@ -47,7 +50,7 @@ test("Task 18 runtime controls round-trip through live engine WebSocket", async 
       // onopen to expose a flag the test can poll from outside the page.
       const OrigWS = window.WebSocket;
       class PatchedWebSocket extends OrigWS {
-        constructor(...args: ConstructorParameters<typeof WebSocket>) {
+        constructor(...args: ConstructorParameters<typeof OrigWS>) {
           super(...args);
           this.addEventListener("open", () => {
             (window as unknown as { __engineWsOpen: boolean }).__engineWsOpen =
@@ -55,8 +58,8 @@ test("Task 18 runtime controls round-trip through live engine WebSocket", async 
           });
         }
       }
-      (window as unknown as { WebSocket: typeof WebSocket }).WebSocket =
-        PatchedWebSocket as unknown as typeof WebSocket;
+      (window as unknown as { WebSocket: typeof OrigWS }).WebSocket =
+        PatchedWebSocket as unknown as typeof OrigWS;
     }, engine.url);
 
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -227,6 +230,6 @@ function startLiveEngine(): Promise<{
   });
 }
 
-function stopChild(child: ChildProcessWithoutNullStreams): void {
+function stopChild(child: ChildProcess): void {
   if (!child.killed) child.kill("SIGTERM");
 }
