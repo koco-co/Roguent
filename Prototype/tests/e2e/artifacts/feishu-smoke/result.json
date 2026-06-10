@@ -1,0 +1,14 @@
+{
+  "target": "feishu-long-connection",
+  "mode": "none",
+  "status": "blocked",
+  "observedEvents": [],
+  "blockers": [
+    {
+      "stage": "config",
+      "reason": "Feishu appId/appSecret not configured. Set FEISHU_APP_ID + FEISHU_APP_SECRET env vars, or store in KeychainSecretStore under refs \"feishu/appId\" / \"feishu/appSecret\"."
+    }
+  ],
+  "notes": "No credentials found in env or keychain. This is expected in CI / dev environments without a Feishu app.",
+  "ranAtMs": 1781076631589
+}

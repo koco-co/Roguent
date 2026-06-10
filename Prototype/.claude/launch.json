@@ -1,0 +1,7 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "web", "runtimeExecutable": "bunx", "runtimeArgs": ["vite"], "port": 5173, "autoPort": true },
+    { "name": "engine", "runtimeExecutable": "bun", "runtimeArgs": ["run", "dev:engine"], "port": 8787, "env": { "ROGUENT_PORT": "8787" } }
+  ]
+}
