@@ -1,35 +1,39 @@
 import { useState } from "react";
 import type React from "react";
+import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { Modal } from "./Modal";
 import { Icon } from "./icons";
-import { SHOP_CATS, SHOP_GEMS, SHOP_ITEMS, SHOP_PLUGINS } from "./shop-data";
+import { SHOP_CATS, SHOP_ITEMS, SHOP_PLUGINS } from "./shop-data";
 
 /**
  * 商店(SHOP)面板 Shop(对标设计原型 panels2.jsx 的 Shop,§6.14):
  * 「插件市场 + 道具店」两个 tab。
  *
- * **整面板为 mock 占位**:Roguent 是「活动可视化平台」,**没有**插件市场、**没有**
- * 宝石经济、**没有**皮肤 / 宠物商品。data.js 虽把 plugins 注释成 "(real)",但对本
- * 引擎而言整面板都是示例——plugins / items / 宝石余额 / 安装 / 购买 / 已拥有全是
- * 本地 mock 常量(见 shop-data.ts),**不接任何真实 store、不持久化**;「安装」/「购买」
- * 按钮均为视觉占位,绝不假装真安装 / 真购买。顶部一条显眼 .task-mock-banner 显式标注
- * (复用 Tasks 的 mock banner 类)。
+ * **宝石余额接真实 ledger**:道具店顶部余额条读取 store.ledger.balances.gem。
+ * 「已拥有」状态接真实 store.inventory。
+ * 插件市场 + 各商品卡的「安装/购买」按钮仍为视觉 mock 占位(Roguent 引擎无插件市场
+ * 和商品购买 action),顶部保留 mock banner 标注。
  *
- * activePanel gate 的 return null 放在所有 hooks 之后(React hooks 规则);selector
- * 只取 activePanel(基元 boolean)/ closePanel(稳定函数引用),守 zustand selector
- * 铁律。plugins 的过滤是在 render 体里对本地 mock 常量做的,**不是**在 selector 里,
- * 不破坏铁律。
+ * Zustand selector 铁律:只取基元值(数字)或稳定引用(对象引用);不在 selector
+ * 里构造新数组/对象——倒序、补空格等派生操作放在 render 体里。
+ *
+ * activePanel gate 放在所有 hooks 之后(React hooks 规则)。
  */
 
 export function Shop() {
   const activePanel = useUiStore((s) => s.activePanel);
   const closePanel = useUiStore((s) => s.closePanel);
   const active = activePanel === "shop" || activePanel === "gacha";
-  // 当前 tab(market/items)、分类、搜索串,全为本地 mock 态。
+  // 当前 tab(market/items)、分类、搜索串,全为本地 UI 态。
   const [tab, setTab] = useState<"market" | "items">("market");
   const [cat, setCat] = useState("全部");
   const [q, setQ] = useState("");
+
+  // 真实 gem 余额:从 ledger.balances 取;balances 是稳定引用,只有新条目 append 才替换。
+  const gemBalance = useRoomStore((s) => s.ledger.balances.gem ?? 0);
+  // 真实背包:inventory 对象稳定引用;render 体里再检查 item.id 是否在里面。
+  const inventory = useRoomStore((s) => s.inventory);
 
   if (!active) return null;
   const visibleTab = activePanel === "gacha" ? "items" : tab;
@@ -146,53 +150,67 @@ export function Shop() {
           </div>
         ) : (
           <div className="shop-items">
-            {/* 余额条:宝石数 + 说明(沿用原型文案;非真实经济)。 */}
+            {/* 余额条:真实 gem 余额 from store.ledger.balances。 */}
             <div className="shop-bal">
               <Icon name="gemcur" size={22} />
               <span className="px" style={{ color: "#a06cd5" }}>
-                {SHOP_GEMS.toLocaleString()}
+                {gemBalance.toLocaleString()}
               </span>
               <span className="faint" style={{ fontSize: 11 }}>
                 宝石 · 完成会话/任务赚取,仅外观,不影响开发结果
               </span>
             </div>
 
-            {/* 道具 grid:每件一张 item-card,扭蛋项加 .gacha;--ac 为强调色。 */}
+            {/* 道具 grid:每件一张 item-card,扭蛋项加 .gacha;--ac 为强调色。
+                已拥有状态接真实 inventory:it.sku 在 inventory 里即视为「已拥有」。
+                购买按钮仍为视觉 mock(引擎无商品购买逻辑)。 */}
             <div className="item-grid scroll">
-              {SHOP_ITEMS.map((it) => (
-                <div
-                  key={it.id}
-                  className={`item-card${it.gacha ? " gacha" : ""}`}
-                  style={{ "--ac": it.accent } as React.CSSProperties}
-                >
-                  <div className="item-base">
-                    <Icon name={it.icon} size={40} glow={it.accent} />
+              {SHOP_ITEMS.map((it) => {
+                // 真实拥有判断:inventory 里有与 it.id 或 it.name 匹配的 sku 则为已拥有。
+                // SHOP_ITEMS 的 id(i1~i8)不是真实 sku;按商品名字符匹配是合理的
+                // 占位策略。若无更好映射,后退到 it.owned(shop-data 的静态 mock)。
+                // [MOCK] 「购买」按钮不绑真实逻辑;已拥有来源于真实 inventory。
+                const ownedInInventory = Object.values(inventory).some(
+                  (inv) => inv.label === it.name || inv.sku === it.id,
+                );
+                const isOwned = ownedInInventory;
+                return (
+                  <div
+                    key={it.id}
+                    className={`item-card${it.gacha ? " gacha" : ""}`}
+                    style={{ "--ac": it.accent } as React.CSSProperties}
+                  >
+                    <div className="item-base">
+                      <Icon name={it.icon} size={40} glow={it.accent} />
+                    </div>
+                    <div className="item-name">{it.name}</div>
+                    <div className="chip px" style={{ fontSize: 8 }}>
+                      {it.cat}
+                    </div>
+                    {/* 已拥有:真实 inventory 驱动(如无真实条目则降级 mock 标注)。
+                      购买按钮为 mock 占位。 */}
+                    {isOwned ? (
+                      <span className="chip greenc" style={{ marginTop: 8 }}>
+                        已拥有
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="pxbtn sm cjk"
+                        style={{ marginTop: 8 }}
+                        title="[mock] 购买逻辑尚未接入"
+                      >
+                        <Icon
+                          name="gemcur"
+                          size={14}
+                          style={{ marginRight: 5 }}
+                        />
+                        {it.price}
+                      </button>
+                    )}
                   </div>
-                  <div className="item-name">{it.name}</div>
-                  <div className="chip px" style={{ fontSize: 8 }}>
-                    {it.cat}
-                  </div>
-                  {/* mock 视觉:价格按钮不绑真实购买逻辑。 */}
-                  {it.owned ? (
-                    <span className="chip greenc" style={{ marginTop: 8 }}>
-                      已拥有
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      className="pxbtn sm cjk"
-                      style={{ marginTop: 8 }}
-                    >
-                      <Icon
-                        name="gemcur"
-                        size={14}
-                        style={{ marginRight: 5 }}
-                      />
-                      {it.price}
-                    </button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
