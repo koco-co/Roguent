@@ -95,3 +95,75 @@ test("Claude chat replay", async ({ page }) => {
     handle.cleanup();
   }
 });
+
+test("WeChat fake pairing", async ({ page }) => {
+  const handle = await openReplay(
+    page,
+    "fixtures/integrations/wechat-pairing.jsonl",
+  );
+
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    // Enter the session interior — fixture emits session.created for sessionId
+    // "replay", which triggers the auto-focus and shows the "内景" button in
+    // the lobby NPC card.
+    await page.getByRole("button", { name: "内景" }).click();
+
+    // Open the pairing panel via the Hotbar "配对" button (mcp icon, label "配对").
+    // The Hotbar is only visible in the interior view.
+    await page.getByRole("button", { name: "配对" }).click();
+
+    // The PairingPanel renders a <dialog aria-label="Pairing">.
+    const panel = page.getByRole("dialog", { name: "Pairing" });
+    await expect(panel).toBeVisible({ timeout: 8_000 });
+
+    // The WeChat tab (label "微信") should be present and selected by default —
+    // PairingPanel initialises channel state to "wechat".
+    const wechatTab = panel.getByRole("button", { name: "微信" });
+    await expect(wechatTab).toBeVisible();
+    await expect(wechatTab).toHaveAttribute("aria-pressed", "true");
+
+    // Binding overwrite assertion: the fixture sends two pairing.binding.updated
+    // events for the same externalChatId ("wx-group-fake-9900").  The store
+    // reducer removes the first binding (binding-a / "Test User (chat-a)") and
+    // keeps only the latest (binding-b / "Test User").  Assert exactly one
+    // binding row is visible and it carries the final display name.
+    const bindingList = panel.locator(".pair-binding-list");
+    await expect(bindingList).toBeVisible({ timeout: 8_000 });
+
+    // Only the second binding's display name should appear.
+    await expect(bindingList.getByText("Test User")).toBeVisible();
+    // The overwritten first binding's display name must NOT be present.
+    await expect(bindingList.getByText("Test User (chat-a)")).not.toBeVisible();
+
+    // The binding status badge should read "active".
+    await expect(bindingList.locator(".pair-status.active")).toBeVisible();
+
+    // Close the pairing panel before opening the chat drawer —
+    // the modal scrim blocks pointer events to the Hotbar underneath.
+    await page.keyboard.press("Escape");
+    await expect(panel).not.toBeVisible({ timeout: 4_000 });
+
+    // The inbound message text lands in the session timeline via the chat drawer.
+    // Open the chat drawer to verify the WeChat inbound message is present.
+    await page.getByRole("button", { name: /聊天/ }).click();
+    const drawer = page.locator(".cdrawer");
+    await expect(drawer).toBeVisible();
+    // The fixture's inbound bodyText is "请帮我检查一下最新的 PR" (exact user message).
+    await expect(
+      drawer.getByText("请帮我检查一下最新的 PR", { exact: true }),
+    ).toBeVisible({
+      timeout: 8_000,
+    });
+
+    // Screenshot evidence.
+    const dir = await artifactDir("task51");
+    await page.screenshot({
+      path: `${dir}/wechat-pairing.png`,
+      fullPage: false,
+    });
+  } finally {
+    handle.cleanup();
+  }
+});
