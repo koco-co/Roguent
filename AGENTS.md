@@ -2,6 +2,14 @@
 
 Roguent —— Claude Code agent 活动的游戏化实时可视化平台。把**订阅模式**驱动的真实 subagent 活动,渲染成《元气骑士》画风 top-down 像素地牢里「一屋子小人在干活」。完整设计见 [docs/superpowers/specs/2026-06-04-roguent-design.md](docs/superpowers/specs/2026-06-04-roguent-design.md);**当前现状 + 待办 backlog(改 / 修 / 加功能前先读)见 [docs/ROADMAP.md](docs/ROADMAP.md)**。
 
+## Verification Scope & Feedback
+
+- 用户质疑结果、状态或测试结论后,先给证据:精确命令或工作流目标、exit code、passed/failed/skipped 数量,以及可用的 artifact 路径。
+- 范围词必须按字面使用。除非该范围内声明的每个 case 都实际执行并通过,不要说或暗示 "full E2E"、"all cases"、"main flow passed" 或同义表述。
+- 生成的 runner 通过,只说明该 runner 覆盖的子集通过。若存在更大的 Archive、PRD、产品流或客户流,必须说明已执行子集和未验证余项。
+- 反馈暴露可复用失败模式时,判断持久规则应写入全局 agent 规则、项目 `AGENTS.md`、对应 skill 或多层位置;在当前可写范围内同步更新。
+- 如果先前结论的口径大于证据,继续前必须直接更正。
+
 ## 命令
 
 | 命令 | 作用 |

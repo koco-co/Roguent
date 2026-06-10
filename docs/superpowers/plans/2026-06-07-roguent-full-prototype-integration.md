@@ -21,10 +21,19 @@
 | Claude permission/question 后端已实现,旧稿像从零实现 | Task 0 和 Task 17 明确这些 commit/协议已存在,后续只做迁移/扩展到 Codex approval 和 UI 状态。 |
 | `tool.finished` 与协议不一致 | Task 11 明确 `tool.finished` 只是 Codex 原始 fixture kind,归一化后的 Roguent 事件必须是 `tool.ended`。 |
 | `.Codex/rules/workflow.md` 不存在 | Task 1 改为读取 `.claude/rules/workflow.md`;AGENTS.md 仅作为 Codex 侧提示副本参考。 |
+| AGENTS.md 曾被机械替换成 Codex SDK/CLI 表述 | AGENTS.md 必须保持项目事实:当前真实后端仍是 Claude Agent SDK + `claude` CLI,新增 Codex 运行时是本计划要实现的扩展;工作流链接必须指向 `.claude/rules/workflow.md`。 |
 | `PermissionMode` 错含 `"ask"` 且混入 Codex 权限语义 | Task 2/36/37 改为 Claude `permissionMode` 与 Codex `approvalPolicy` 分开存储和传递。 |
 | 新事件命名在 spec/计划/现有风格间不一致 | Task 3 增加最终命名对照表;不在表内的事件名不要新增。 |
 | Settings/Shop/Scheduler/Minimap/Room ambience 等已有面板或测试未对账 | File Structure、Task 0、Task 39、Task 42 明确复用/改造现有文件,避免另起同名组件或撞测试名。 |
+| Relay 设置子组件路径在旧稿里写成扁平 `src/web/hud/RelaySettings.tsx` | Task 32 锁定为:若 Task 39 已创建 `src/web/hud/settings/RelaySettings.tsx`,后续只扩展该文件;否则扩展 `src/web/hud/IntegrationSettings.tsx`,不要再新建扁平同名组件。 |
 | `RuntimeEventDraft` 被引用但无定义 | Task 0 先定义唯一形状和位置;Task 7 只迁移旧 `DraftEvent` alias/import。 |
+| connector `blocked` 状态未定型 | Task 3/20 明确 `IntegrationConnectionState` 包含 `"blocked"`;外部账号/权限/entitlement 不可用时不要伪装成普通 `"error"`。 |
+| WeChat/Feishu 单会话配对被误写成 `(channel, externalChatId)` 多绑定 | Task 13/21/28/51/52 改为每个平台只有一个 active binding;新扫码绑定覆盖同平台旧绑定,`externalChatId` 只是当前绑定的消息目标。 |
+| 长计划跨 worktree 执行后,后续 task 的 `Create` 可能已由前序 task 落地 | 执行每个 task 前必须先 `test -f` / `rg --files` 盘点目标路径;若文件已存在,该条 `Create` 自动降级为 Modify/Extend,保留现有测试与兼容导出,不得另建平行文件。 |
+| WS command 示例混用 `type` 与仓库现有 `cmd` 协议 | Task 8/14/19 锁定上行客户端命令统一用 `cmd`;只有外部 SDK/child-process 私有消息允许在本地 adapter 内部使用 `type`。 |
+| Web store pairing 示例仍残留 `byExternalKey` 旧索引 | Task 13 改为以 `byChannel` 作为唯一 active binding 视图;如实现需要 `externalChatId` 反查,只能派生当前 active binding 的临时索引,不得持久保留被覆盖 chat。 |
+| Task 15 标题仍写 `Rebuild` 容易诱导重建 timeline 类型 | Task 15 改为 `Extend Existing Chat Timeline Domain`;只扩展 `src/shared/domain.ts` 既有 `TimelineItem` union。 |
+| lobby/room 文件结构仍像整目录新建 | Web App 文件结构和 Task 41/42 改为复用 `HubPlaza`、`CharacterSelect`、`Room`、`Lights`、`Particles`、`Minimap` 等现有入口;新增文件只允许作为缺失边界的子组件。 |
 | worktree 命令与项目 workflow 不一致 | Task 1 使用 `git worktree add --detach ... main`。 |
 | Task 15 旧稿重建 timeline 类型 | Task 15 改为扩展 `src/shared/domain.ts` 现有 `TimelineItem` union。 |
 | ROADMAP baseline 可能落后 | Task 66 要先读 `git log -1 --oneline` 和当前 ROADMAP,再更新状态。 |
@@ -40,8 +49,8 @@
 - Modify: `src/shared/events.ts` — 扩展 `RoomEvent` 类型、payload 类型和 type guards。
 - Create: `src/shared/runtime.ts` — `RuntimeKind`、runtime config、permission/sandbox/reasoning 类型。
 - Create: `src/shared/integrations.ts` — IM、GitHub、X、relay、webhook 的 normalized event 类型。
-- Create: `src/shared/scheduler.ts` — schedule definition、run state、recurrence 类型。
-- Create: `src/shared/economy.ts` — achievement、ledger、inventory、gacha pool 类型。
+- Create/Modify: `src/shared/scheduler.ts` — schedule definition、run state、recurrence 类型;若 Task 3 已创建,后续 scheduler task 只扩展。
+- Create/Modify: `src/shared/economy.ts` — achievement、ledger、inventory、gacha pool 类型;Task 43 不得重建。
 - Create: `src/shared/fixtures.ts` — replay fixture schema、fixture validation helpers。
 
 ### Engine Runtime
@@ -84,10 +93,10 @@
 
 ### Engine Scheduler And Economy
 
-- Create: `src/engine/scheduler/next-run.ts` — deterministic recurrence calculation。
-- Create: `src/engine/scheduler/runner.ts` — run due tasks, create/resume sessions, send prompts。
-- Create: `src/engine/scheduler/service.ts` — CRUD, enable/disable, run-now, run history。
-- Create: `src/engine/economy/ledger.ts` — append-only gem/coin ledger。
+- Create/Modify: `src/engine/scheduler/next-run.ts` — deterministic recurrence calculation。
+- Create/Modify: `src/engine/scheduler/runner.ts` — run due tasks, create/resume sessions, send prompts。
+- Create/Modify: `src/engine/scheduler/service.ts` — CRUD, enable/disable, run-now, run history。
+- Create/Modify: `src/engine/economy/ledger.ts` — append-only gem/coin ledger。
 - Create: `src/engine/economy/achievements.ts` — event-driven achievement evaluator。
 - Create: `src/engine/economy/gacha.ts` — deterministic pull logic with seeded tests。
 
@@ -102,11 +111,12 @@
 - Create: `src/web/hud/mailbox/MailboxPanel.tsx` — inbox, board, resend/open actions。
 - Create: `src/web/hud/scheduler/SchedulerPanel.tsx` — create/edit/run scheduled tasks(整合现有 `Tasks.tsx`/`SessionGrid.tsx` 的 Scheduled Tasks mode,非另起)。
 - Modify: `src/web/hud/Settings.tsx` — 现有整面板 mock(ROADMAP §3.5),本计划把 Claude/Codex/runtime/integration 设置接真;不要新建 `settings/SettingsPanel.tsx`。
+- Create/Modify: `src/web/hud/IntegrationSettings.tsx` and optional `src/web/hud/settings/RelaySettings.tsx` — integration/relay 设置入口。若后续 task 已存在 `settings/RelaySettings.tsx`,继续复用;不要创建 `src/web/hud/RelaySettings.tsx` 平行组件。
 - Create: `src/web/hud/economy/AchievementsPanel.tsx` — achievement list and claim state。
 - Create: `src/web/hud/economy/GachaPanel.tsx` — gacha animation, inventory, ledger updates。
 - Modify: `src/web/hud/Shop.tsx` — 现有整面板 mock,接真 ledger/inventory;不要新建 `economy/ShopPanel.tsx`。
-- Create: `src/web/lobby/*` — prototype lobby structures and interactions。
-- Create: `src/web/room/*` updates — art scene, ambience, easter eggs, decorative states。
+- Modify/Create: `src/web/lobby/*` — prototype lobby structures and interactions;优先扩展已存在 `HubPlaza.tsx`、`PixelSprite.tsx`、`CatPet.tsx`、`hud/CharacterSelect.tsx`,不要为已存在入口另建平行视图。
+- Modify/Create: `src/web/room/*` updates — art scene, ambience, easter eggs, decorative states;优先扩展已存在 `Room.tsx`、`DungeonRoom.tsx`、`Lights.tsx`、`Particles.tsx`、`hud/Minimap.tsx`、`layout.ts`。
 
 ### Fixtures And E2E
 
@@ -138,9 +148,24 @@
 
 ---
 
+## Next Execution Mode
+
+下一步执行方式:
+
+1. 推荐使用 `superpowers:subagent-driven-development` 逐 task 执行,不要跨 task 批量落地。
+2. 如果还没有隔离 worktree,先执行 Task 1 的 detached worktree 流程;如果已经在 `.worktrees/roguent-full-prototype` 中继续,必须先记录现场 `git status --short`。
+3. 执行顺序从 Task 0 开始。Task 0 没完成前,不要启动依赖 `.test.tsx`、Playwright、`RuntimeEventDraft` 或现有组件盘点的后续 task。
+4. 每个 task 的完成口径只按本 task 的 Acceptance Standard 报告。必须记录实际命令、exit code、pass/fail/skip 数、阻塞项和 artifact 路径;没跑的外部账号流程只能写 blocker。
+5. 每个 task 完成后先跑该 task 专项验证,再跑仓库纪律要求的 `bun test`、`bun run check`、`bunx tsc --noEmit`;失败先修,通过后再做 task commit。
+6. 涉及外部平台(WeChat/Feishu/GitHub/X/relay)时,真实 smoke 被 cookie、账号、手机号、网络或权限卡住就记录 blocker 并继续其他任务,不要因为单个平台阻塞整体执行。
+
+---
+
 ## Tasks
 
 > **执行顺序硬约束:Task 0 必须最先做。** 它建立后续几十个 task 验收命令所依赖的测试工具链,盘点已存在文件以免重复造组件,并锁定事件命名与 `RuntimeEventDraft`。在 Task 0 完成前不要开始 Task 2 起的实现 task。
+>
+> **路径状态硬约束:** 每个 task 开始前先盘点本 task 的 Files 列表。若计划写 `Create` 但当前 worktree 中目标文件已存在,按 Modify/Extend 执行并补测试,不要删除重建,也不要另起同名/近名文件。若已有实现来自前序 task commit,先读现有测试和导出契约,再做本 task 增量。
 
 ### Task 0: Foundation-0 — Test Toolchain, Asset Inventory, Naming Lock
 
@@ -149,13 +174,14 @@
 **Files:**
 - Modify: `package.json` — devDeps + scripts。
 - Create: `bunfig.toml` — bun:test DOM preload。
+- Create: `tests/setup-dom.ts` — happy-dom 全局 DOM preload。
 - Create: `playwright.config.ts`
 - Create: `src/web/hud/_smoke.test.tsx` — 验证 testing-library + DOM 环境可跑的最小样例。
 - Create: `src/engine/runtime/types.ts` — 先固定 `RuntimeEventDraft` 单一位置和形状;Task 7 在同一文件补 `RuntimeDriver`。
 - Read(盘点,不改): `src/web/hud/`、`src/web/lobby/`、`src/web/room/` 现有组件。
 
 **Output Standard:**
-- 测试栈装好:`@testing-library/react` + `@testing-library/user-event` + `happy-dom`(bun:test DOM env)+ `@playwright/test`;`bunfig.toml` 配 `preload`/DOM;`package.json` 加 `"test:e2e": "playwright test"`;`playwright.config.ts` 起 engine replay + Vite。
+- 测试栈装好:`@testing-library/react` + `@testing-library/user-event` + `happy-dom`(bun:test DOM env)+ `@playwright/test`;`bunfig.toml` 配 `preload = ["./tests/setup-dom.ts"]`,`tests/setup-dom.ts` 挂载 `window/document/navigator/HTMLElement` 等 DOM globals;`package.json` 加 `"test:e2e": "playwright test"`;`playwright.config.ts` 起 engine replay + Vite。
 - Playwright specs 必须与 `bun test` 隔离:使用 `tests/e2e/**/*.e2e.ts` 命名 + `playwright.config.ts` `testMatch`，并确保 `bun test` 不会直接加载 `@playwright/test` 文件。
 - 浏览器已安装(`bunx playwright install chromium`)。
 - **已存在文件盘点表**(写进本 task 日志,后续 task 以此为准):
@@ -168,6 +194,7 @@
   | `hud/chat/PromptCard.tsx` | `src/web/hud/PromptCard.tsx` | Modify |
   | `hud/chat/*`(Timeline rows) | `src/web/hud/TimelineItem.tsx`、`SlashMenu.tsx` | Modify |
   | `settings/SettingsPanel.tsx` | `src/web/hud/Settings.tsx` | Modify |
+  | `hud/RelaySettings.tsx` | `src/web/hud/settings/RelaySettings.tsx`(若 Task 39 已创建)或 `src/web/hud/IntegrationSettings.tsx` | Modify/Extend |
   | `economy/ShopPanel.tsx` | `src/web/hud/Shop.tsx` | Modify |
   | `scheduler/SchedulerPanel.tsx` | 整合 `src/web/hud/Tasks.tsx`/`SessionGrid.tsx` | Modify+Create |
   | `room/Minimap.tsx` | `src/web/hud/Minimap.tsx` | Modify(勿在 room/ 重建) |
@@ -221,6 +248,7 @@
   bunx playwright install chromium
   ```
 - [ ] 写 `bunfig.toml`(DOM preload)+ `_smoke.test.tsx` 最小样例,确认 `bun test` 能渲染组件。
+- [ ] 写 `tests/setup-dom.ts`,从 `happy-dom` 创建 `Window` 并把 testing-library 需要的 DOM globals 挂到 `globalThis`。
 - [ ] 产出已存在文件盘点表,回写本 task 日志。
 - [ ] Run:
   ```bash
@@ -344,14 +372,15 @@
 **Files:**
 - Modify: `src/shared/events.ts`
 - Create: `src/shared/integrations.ts`
-- Create: `src/shared/scheduler.ts`
-- Create: `src/shared/economy.ts`
+- Create or Modify: `src/shared/scheduler.ts` — 若 Task 0/前序执行已落地基础类型,本 task 只扩展。
+- Create or Modify: `src/shared/economy.ts` — 若 Task 0/前序执行已落地基础类型,本 task 只扩展。
 - Test: `src/shared/events.test.ts`
 
 **Output Standard:**
 - 新事件类型有明确 payload 类型。
 - 事件 union 支持 exhaustive reducer 检查。
 - 新 payload 类型不引入 engine-only 或 web-only dependency。
+- `integration.status` 使用统一状态字面量: `"connecting" | "connected" | "disconnected" | "error" | "blocked"`。`blocked` 表示外部账号、权限、手机号验证、平台 entitlement 或本机凭据缺失导致无法继续真实连接;普通运行时异常才用 `error`。
 
 **Acceptance Standard:**
 - `bun test src/shared/events.test.ts` exit code 0。
@@ -388,6 +417,22 @@
     | "achievement.updated"
     | "inventory.updated"
     | "settings.updated";
+  ```
+- [ ] Define shared integration status payload:
+  ```ts
+  export type IntegrationConnectionState =
+    | "connecting"
+    | "connected"
+    | "disconnected"
+    | "error"
+    | "blocked";
+
+  export interface IntegrationStatusPayload {
+    channel: "wechat" | "feishu" | "github" | "x" | "relay";
+    state: IntegrationConnectionState;
+    reason?: string;
+    updatedAt: number;
+  }
   ```
 - [ ] Add type guard tests:
   ```ts
@@ -847,10 +892,18 @@
 
 - [ ] Add reducer test:
   ```ts
-  test("pairing binding update overwrites by channel and external chat id", () => {
+  test("pairing binding update overwrites the one active binding per platform", () => {
     const state = reduce(initialState(), bindingEvent("wechat", "chat-a", "s1"));
-    const next = reduce(state, bindingEvent("wechat", "chat-a", "s2"));
-    expect(next.pairings.byExternalKey["wechat:chat-a"]?.sessionId).toBe("s2");
+    const next = reduce(state, bindingEvent("wechat", "chat-b", "s2"));
+    expect(next.pairings.byChannel.wechat).toMatchObject({
+      externalChatId: "chat-b",
+      sessionId: "s2",
+    });
+    expect(
+      Object.values(next.pairings.byChannel).some(
+        (binding) => binding?.externalChatId === "chat-a",
+      ),
+    ).toBe(false);
   });
   ```
 - [ ] Implement state slices without UI assumptions.
@@ -904,7 +957,7 @@
 
 ---
 
-### Task 15: Rebuild Chat Timeline Domain
+### Task 15: Extend Existing Chat Timeline Domain
 
 **Feature:** 聊天窗口成为统一 timeline，可显示 Claude/Codex、IM inbound、tool、thinking、approval、question、scheduler trigger。
 
@@ -1077,9 +1130,9 @@
 
 - [ ] Define commands:
   ```ts
-  type InterruptCommand = { type: "interrupt"; sessionId: string };
-  type RollbackCommand = { type: "rollback"; sessionId: string; checkpointId: string };
-  type RetryFromCommand = { type: "retryFrom"; sessionId: string; timelineItemId: string };
+  type InterruptCommand = { cmd: "interrupt"; sessionId: string };
+  type RollbackCommand = { cmd: "rollback"; sessionId: string; checkpointId: string };
+  type RetryFromCommand = { cmd: "retryFrom"; sessionId: string; timelineItemId: string };
   ```
 - [ ] Run:
   ```bash
@@ -1102,6 +1155,7 @@
 - IM 使用 pairing binding 精确路由。
 - X/GitHub 写 Mailbox 和 Board，再发当前 selected session。
 - 无当前 session 时自动创建 session，并把 sessionId 写回 inbox item。
+- connector status 必须使用 Task 3 的 `IntegrationConnectionState`;账号/权限/entitlement/cookie 阻塞用 `blocked` + `reason`,不可恢复运行错误用 `error`。
 
 **Acceptance Standard:**
 - `bun test src/engine/integrations/router.test.ts` exit code 0。
@@ -1129,7 +1183,7 @@
 
 ### Task 21: Implement Pairing Binding Overwrite Logic
 
-**Feature:** WeChat/Feishu 单会话扫码配对；新绑定覆盖同平台同 external chat 的旧绑定。
+**Feature:** WeChat/Feishu 单会话扫码配对；每个平台只有一个 active binding,新扫码绑定覆盖该平台旧绑定。
 
 **Files:**
 - Create: `src/engine/integrations/pairing.ts`
@@ -1137,24 +1191,26 @@
 - Test: `src/engine/integrations/pairing.test.ts`
 
 **Output Standard:**
-- Binding key 为 `(channel, externalChatId)`。
+- Active binding key 为 `channel`。`externalChatId` 仍保存,用于 inbound/outbound 消息路由目标,但不能让同一平台同时绑定多个 session。
 - 覆盖旧绑定时写 audit record。
 - forwardingEnabled 默认 true，可单独关闭。
 
 **Acceptance Standard:**
 - `bun test src/engine/integrations/pairing.test.ts` exit code 0。
-- SQLite unique index 阻止重复 active binding。
+- SQLite unique index 阻止同一 `channel` 出现多个 active binding。
 
 - [ ] Add DB unique index:
   ```sql
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_pairing_external
-  ON pairing_bindings(channel, external_chat_id);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_pairing_channel_active
+  ON pairing_bindings(channel)
+  WHERE active = 1;
   ```
 - [ ] Add overwrite test:
   ```ts
   await service.bind({ channel: "wechat", externalChatId: "chat1", sessionId: "s1" });
-  await service.bind({ channel: "wechat", externalChatId: "chat1", sessionId: "s2" });
-  expect(await service.resolve("wechat", "chat1")).toMatchObject({ sessionId: "s2" });
+  await service.bind({ channel: "wechat", externalChatId: "chat2", sessionId: "s2" });
+  expect(await service.resolve("wechat", "chat1")).toBeUndefined();
+  expect(await service.resolve("wechat", "chat2")).toMatchObject({ sessionId: "s2" });
   ```
 - [ ] Run:
   ```bash
@@ -1391,6 +1447,7 @@
 **Output Standard:**
 - 来自 IM 的 inbound user message 创建 timeline source。
 - 同一 turn 的 assistant final message 触发 outbound reply。
+- outbound reply 只发给该平台当前 active binding 的 `externalChatId`;新扫码覆盖旧绑定后,旧 chat 不再接收 agent 回复。
 - forwarding disabled 时只写 audit，不调用 connector。
 - outbound 成功/失败都更新 timeline delivery status。
 
@@ -1504,7 +1561,7 @@
 **Output Standard:**
 - GET CRC 返回 HMAC-SHA256 response token。
 - POST event 经过 signature/token 校验后 normalize。
-- 权限或账号不可用时 connector status 为 blocked，记录原因。
+- 权限或账号不可用时 connector status 使用 Task 3 的 `state: "blocked"` 并记录 `reason`。
 
 **Acceptance Standard:**
 - `bun test src/engine/integrations/x.test.ts` exit code 0。
@@ -1529,13 +1586,14 @@
 **Files:**
 - Create: `src/engine/integrations/relay.ts`
 - Modify: `src/engine/ingress/server.ts`
-- Create: `src/web/hud/settings/RelaySettings.tsx`
+- Create or Modify: `src/web/hud/settings/RelaySettings.tsx` — 若 Task 39 已创建此文件,本 task 只扩展它。
+- Modify: `src/web/hud/IntegrationSettings.tsx` — 若没有独立 `settings/RelaySettings.tsx`,relay 配置直接加在此入口;不要新建 `src/web/hud/RelaySettings.tsx` 扁平平行组件。
 - Test: `src/engine/integrations/relay.test.ts`
 
 **Output Standard:**
 - Relay token 存 SecretStore。
 - Relay forwarded request 仍走 signature validation。
-- UI 显示 relay connected/disconnected/blocked。
+- UI 显示 relay connected/disconnected/blocked;状态字面量复用 Task 3 的 `IntegrationConnectionState`。
 
 **Acceptance Standard:**
 - `bun test src/engine/integrations/relay.test.ts` exit code 0。
@@ -1631,8 +1689,8 @@
 **Feature:** 定时任务定义支持 once/daily/weekly/monthly，能确定下次运行时间。
 
 **Files:**
-- Create: `src/shared/scheduler.ts`
-- Create: `src/engine/scheduler/next-run.ts`
+- Create or Modify: `src/shared/scheduler.ts` — 若 Task 3 已先创建基础 scheduler 类型,本 task 扩展 recurrence/task/run domain,不要重建。
+- Create or Modify: `src/engine/scheduler/next-run.ts`
 - Test: `src/engine/scheduler/next-run.test.ts`
 
 **Output Standard:**
@@ -1664,7 +1722,7 @@
 **Feature:** 创建、编辑、删除、启停、run-now 定时任务，任务创建时按 runtime 选择 Claude `permissionMode` 或 Codex `approvalPolicy`。
 
 **Files:**
-- Create: `src/engine/scheduler/service.ts`
+- Create or Modify: `src/engine/scheduler/service.ts`
 - Modify: `src/engine/ws-gateway.ts`
 - Modify: `src/engine/persistence/repositories.ts`
 - Test: `src/engine/scheduler/service.test.ts`
@@ -1680,7 +1738,8 @@
 - [ ] Define command:
   ```ts
   type SchedulerCreateCommand = {
-    cmd: "scheduler.create";
+    cmd: "scheduler";
+    action: "createTask";
     task: SchedulerTaskDraft;
   };
   ```
@@ -1697,7 +1756,7 @@
 **Feature:** 到点自动创建或恢复 Claude/Codex session，按配置发送 prompt，并记录 run result。
 
 **Files:**
-- Create: `src/engine/scheduler/runner.ts`
+- Create or Modify: `src/engine/scheduler/runner.ts`
 - Modify: `src/engine/session.ts`
 - Modify: `src/engine/server.ts`
 - Test: `src/engine/scheduler/runner.test.ts`
@@ -1731,7 +1790,9 @@
 
 **Feature:** SessionGrid 的 Scheduled Tasks mode 成为真实 CRUD 和 run history 面板。
 
-**Files:**
+**Files:**(已有 `src/web/hud/Tasks.tsx` 和 `src/web/hud/SessionGrid.tsx` 承载任务/会话入口;本 task 是把 Scheduled Tasks mode 接真,不是绕开现有入口另起一套导航。)
+- Modify: `src/web/hud/Tasks.tsx`
+- Modify: `src/web/hud/SessionGrid.tsx`
 - Create: `src/web/hud/scheduler/SchedulerPanel.tsx`
 - Create: `src/web/hud/scheduler/ScheduleForm.tsx`
 - Create: `src/web/hud/scheduler/ScheduleList.tsx`
@@ -1751,7 +1812,9 @@
 - [ ] Add form submit test:
   ```tsx
   await user.click(screen.getByRole("button", { name: "Create" }));
-  expect(sendCommand).toHaveBeenCalledWith(expect.objectContaining({ cmd: "scheduler.create" }));
+  expect(sendCommand).toHaveBeenCalledWith(
+    expect.objectContaining({ cmd: "scheduler", action: "createTask" }),
+  );
   ```
 - [ ] Run:
   ```bash
@@ -1830,11 +1893,13 @@
 
 **Feature:** Lobby 中的 task console、settings altar、achievements、mailbox、leaderboard、announcement board、shop、gacha、Claude/Codex doors 都可交互。
 
-**Files:**
-- Create: `src/web/lobby/LobbyView.tsx`
-- Create: `src/web/lobby/HubStructure.tsx`
-- Create: `src/web/lobby/RuntimeDoor.tsx`
-- Create: `src/web/lobby/AnnouncementBoard.tsx`
+**Files:**(已有 `src/web/lobby/HubPlaza.tsx`、`PixelSprite.tsx`、`CatPet.tsx` 和 `src/web/hud/CharacterSelect.tsx`;优先扩展现有 lobby/hero 入口,只有缺少清晰边界时再新增子组件。若 Task 40/当前 worktree 已创建下列子组件,本 task 只 Modify/Extend。)
+- Modify: `src/web/lobby/HubPlaza.tsx`
+- Modify: `src/web/hud/CharacterSelect.tsx`
+- Create or Modify: `src/web/lobby/LobbyView.tsx`
+- Create or Modify: `src/web/lobby/HubStructure.tsx`
+- Create or Modify: `src/web/lobby/RuntimeDoor.tsx`
+- Create or Modify: `src/web/lobby/AnnouncementBoard.tsx`
 - Modify: `src/web/App.tsx`
 - Test: `src/web/lobby/LobbyView.test.tsx`
 
@@ -1864,10 +1929,11 @@
 - Modify: `src/web/room/Character.tsx`
 - Modify: `src/web/hud/Hud.tsx`
 - Modify: `src/web/room/Lights.tsx`、`src/web/room/Particles.tsx`(glow/particles 已存在,扩为 ambience toggles 数据源)
-- Create: `src/web/room/AmbienceLayer.tsx`(若现有 Lights/Particles 不够再加;否则合并进它们)
 - Create: `src/web/room/DecorLayer.tsx`
 - Modify: `src/web/hud/Minimap.tsx`(已存在;勿在 `room/` 重建)
 - Modify: `src/web/room/layout.ts` + Test: `src/web/room/layout.test.ts`(已存在;扩展,勿新建 `room-layout.test.ts` 撞名)
+
+**Optional New File:** `src/web/room/AmbienceLayer.tsx` 只有在先扩展 `Lights.tsx`/`Particles.tsx` 后仍无法清晰表达 ambience orchestration 时才允许新增;新增时必须在 task log 写明缺口,并确保它只是组合层,不复制已有 glow/particles 逻辑。
 
 **Output Standard:**
 - 场景在 1920x1080 fixed stage 和 responsive scaled container 中不重叠。
@@ -1896,8 +1962,8 @@
 **Feature:** gems/coins/skins/items 通过 append-only ledger 更新，不由 UI 直接改余额。
 
 **Files:**
-- Create: `src/shared/economy.ts`
-- Create: `src/engine/economy/ledger.ts`
+- Create or Modify: `src/shared/economy.ts` — 若 Task 3 已创建基础 economy payload,本 task 扩展 ledger/inventory contract。
+- Create or Modify: `src/engine/economy/ledger.ts`
 - Modify: `src/web/store.ts`
 - Test: `src/engine/economy/ledger.test.ts`
 - Test: `src/web/store.economy.test.ts`
@@ -1934,7 +2000,7 @@
 
 **Files:**
 - Create: `src/engine/economy/achievements.ts`
-- Modify: `src/engine/economy/ledger.ts`
+- Modify: `src/engine/economy/ledger.ts`(若 Task 43 已创建;否则先完成 Task 43)
 - Create: `src/web/hud/economy/AchievementsPanel.tsx`
 - Test: `src/engine/economy/achievements.test.ts`
 - Test: `src/web/hud/economy/AchievementsPanel.test.tsx`
