@@ -242,3 +242,80 @@ test("WeChat fake pairing", async ({ page }) => {
     handle.cleanup();
   }
 });
+
+test("GitHub and X subscription routing", async ({ page }) => {
+  const handle = await openReplay(
+    page,
+    "fixtures/integrations/subscription-routing.jsonl",
+  );
+
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    // Enter the session interior — fixture emits session.created for sessionId
+    // "replay", which auto-focuses and shows the "内景" button in the lobby NPC card.
+    await page.getByRole("button", { name: "内景" }).click();
+
+    // Open the Mailbox panel via the Hotbar "信箱" button (vault icon, label "信箱").
+    // Scope to .hotbar to avoid the identically-labelled lobby interactable button.
+    await page.locator(".hotbar").getByRole("button", { name: "信箱" }).click();
+
+    // The MailboxPanel renders inside a Modal with class .mailbox-panel.
+    const mailboxPanel = page.locator(".mailbox-panel");
+    await expect(mailboxPanel).toBeVisible({ timeout: 8_000 });
+
+    // Assert the GitHub mailbox item is present — InboxItemRow renders:
+    // - .inbox-source > span with "GitHub" (SOURCE_LABELS.github)
+    // - .inbox-title with the item title
+    // - .inbox-summary with the item summary text
+    const githubRow = mailboxPanel
+      .locator(".inbox-row")
+      .filter({ hasText: "GitHub" })
+      .first();
+    await expect(githubRow).toBeVisible({ timeout: 8_000 });
+
+    // The GitHub source label renders "GitHub" from SOURCE_LABELS in InboxItemRow.
+    await expect(githubRow.locator(".inbox-source span")).toHaveText("GitHub");
+
+    // Summary mentions the push commit and repo.
+    await expect(githubRow.locator(".inbox-summary")).toContainText(
+      "poco/roguent",
+    );
+
+    // The GitHub item is routed to the auto-created session "github-auto-session".
+    // The sessionTitle prop passed to InboxItemRow is sessions["github-auto-session"]?.title
+    // → "GitHub push: poco/roguent → main". It renders in .inbox-meta as a <span>.
+    await expect(githubRow.locator(".inbox-meta")).toContainText(
+      "GitHub push: poco/roguent → main",
+    );
+
+    // Assert the X mailbox item is present.
+    const xRow = mailboxPanel
+      .locator(".inbox-row")
+      .filter({ hasText: "X" })
+      .filter({ hasText: "@roguent" })
+      .first();
+    await expect(xRow).toBeVisible({ timeout: 8_000 });
+
+    // The X source label renders "X" from SOURCE_LABELS in InboxItemRow.
+    await expect(xRow.locator(".inbox-source span")).toHaveText("X");
+
+    // Summary mentions @roguent.
+    await expect(xRow.locator(".inbox-summary")).toContainText("@roguent");
+
+    // The auto-created session title "GitHub push: poco/roguent → main" should appear
+    // somewhere in the panel (shown in the GitHub row's inbox-meta).
+    await expect(mailboxPanel).toContainText(
+      "GitHub push: poco/roguent → main",
+    );
+
+    // Screenshot artifact for Task 53.
+    const dir = await artifactDir("task53");
+    await page.screenshot({
+      path: `${dir}/subscription-routing.png`,
+      fullPage: false,
+    });
+  } finally {
+    handle.cleanup();
+  }
+});
