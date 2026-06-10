@@ -14,7 +14,11 @@
  * existing replay command keeps working unchanged.
  */
 
-import type { RoomEvent, RoomEventType } from "../../shared/events";
+import {
+  type RoomEvent,
+  type RoomEventType,
+  VALID_ROOM_EVENT_TYPES,
+} from "../../shared/events";
 import type { NormalizedIntegrationEvent } from "../../shared/integrations";
 import type { RuntimeKind } from "../../shared/runtime";
 import type { IntegrationEvent } from "../integrations/types";
@@ -164,6 +168,10 @@ function validateIntegrationEvent(
   };
 }
 
+const VALID_ROOM_EVENT_TYPES_SET: ReadonlySet<string> = new Set(
+  VALID_ROOM_EVENT_TYPES,
+);
+
 function validateRuntimeDraft(
   raw: unknown,
   lineIndex?: number,
@@ -176,6 +184,12 @@ function validateRuntimeDraft(
   }
   const o = raw as Record<string, unknown>;
   const type = assertString(o.type, "draft.type", lineIndex);
+  if (!VALID_ROOM_EVENT_TYPES_SET.has(type)) {
+    throw new ReplayValidationError(
+      `draft.type "${type}" is not a valid RoomEventType`,
+      lineIndex,
+    );
+  }
   if (!o.payload || typeof o.payload !== "object") {
     throw new ReplayValidationError(
       `draft.payload must be an object (got ${typeof o.payload})`,
@@ -310,18 +324,19 @@ export function replayRecordToRoomEvents(
   record: ReplayRecord,
   ctx: ReplaySessionContext,
 ): RoomEvent[] {
-  const now = Date.now();
-
   if (record.kind === "roomEvent") {
     // Emit as-is; seq/sessionId from the stored event are preserved.
-    return [record.event];
+    // Use atMs as the scheduling ts so replayTimed paces correctly.
+    return [{ ...record.event, ts: record.atMs }];
   }
 
   if (record.kind === "runtimeDraft") {
     const { draft } = record;
+    // atMs is the authoritative replay-schedule timestamp; draft.ts (if set)
+    // is used as a preference, but atMs is always the pacing source.
     const event: RoomEvent = {
       seq: ctx.seq(),
-      ts: draft.ts ?? now,
+      ts: draft.ts ?? record.atMs,
       sessionId: ctx.sessionId,
       type: draft.type,
       payload: draft.payload,
@@ -338,18 +353,20 @@ export function replayRecordToRoomEvents(
       direction: intEvent.direction,
       summary: intEvent.summary,
       receivedAt: intEvent.receivedAt,
-      ts: intEvent.receivedAt,
+      // Use atMs as the scheduling ts for replay pacing consistency.
+      ts: record.atMs,
       externalChatId: intEvent.externalChatId,
       deliveryId: intEvent.deliveryId,
       bodyText: intEvent.bodyText,
       from: intEvent.from,
+      to: intEvent.to,
       displayName: intEvent.displayName,
       metadata: intEvent.metadata,
     };
     return [
       {
         seq: ctx.seq(),
-        ts: intEvent.receivedAt,
+        ts: record.atMs,
         sessionId: ctx.sessionId,
         type: "integration.event.received",
         payload: normalized,
@@ -375,7 +392,9 @@ export function detectFixtureFormat(jsonl: string): FixtureFormat {
     .split("\n")
     .map((l) => l.trim())
     .find((l) => l.length > 0);
-  if (!firstLine) return "roomEvent"; // empty → treat as legacy
+  if (!firstLine) {
+    throw new ReplayValidationError("fixture is empty");
+  }
 
   let parsed: unknown;
   try {
@@ -420,11 +439,26 @@ export async function loadAnyFixture(
     return normalizeCodexFixture(text, sessionId);
   }
 
-  // Legacy roomEvent JSONL
+  // Legacy roomEvent JSONL — assert each line has seq and type
   return text
     .split("\n")
     .filter((l) => l.trim().length > 0)
-    .map((l) => JSON.parse(l) as RoomEvent);
+    .map((l, i) => {
+      const parsed = JSON.parse(l) as Record<string, unknown>;
+      if (typeof parsed.seq !== "number") {
+        throw new ReplayValidationError(
+          `legacy roomEvent line missing "seq" field`,
+          i,
+        );
+      }
+      if (typeof parsed.type !== "string") {
+        throw new ReplayValidationError(
+          `legacy roomEvent line missing "type" field`,
+          i,
+        );
+      }
+      return parsed as unknown as RoomEvent;
+    });
 }
 
 /**

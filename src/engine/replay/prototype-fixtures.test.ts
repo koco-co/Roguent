@@ -13,6 +13,13 @@ import {
   validateReplayRecord,
 } from "./prototype-fixtures";
 
+// ── helpers (extended) ───────────────────────────────────────────────────────
+
+function makeCtx(sessionId = "test") {
+  let n = 0;
+  return { sessionId, seq: () => ++n };
+}
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 const baseRoomEvent = (): RoomEvent => ({
@@ -291,16 +298,17 @@ describe("parseReplayRecords", () => {
 // ── replayRecordToRoomEvents ─────────────────────────────────────────────────
 
 describe("replayRecordToRoomEvents", () => {
-  it("emits roomEvent as-is", () => {
+  it("emits roomEvent with ts overridden by atMs for pacing", () => {
     const record = validateReplayRecord({
       atMs: 0,
       kind: "roomEvent",
-      event: baseRoomEvent(),
+      event: baseRoomEvent(), // baseRoomEvent has ts: 1000
     });
     const ctx = { sessionId: "test", seq: makeSeq() };
     const events = replayRecordToRoomEvents(record, ctx);
     expect(events).toHaveLength(1);
-    expect(events[0]).toEqual(baseRoomEvent());
+    // ts is overridden by atMs (0), other fields preserved
+    expect(events[0]).toEqual({ ...baseRoomEvent(), ts: 0 });
   });
 
   it("converts integrationEvent to integration.event.received", () => {
@@ -361,9 +369,11 @@ describe("detectFixtureFormat", () => {
     expect(detectFixtureFormat(line)).toBe("codexEvent");
   });
 
-  it("defaults to roomEvent for empty string", () => {
-    expect(detectFixtureFormat("")).toBe("roomEvent");
-    expect(detectFixtureFormat("   \n   ")).toBe("roomEvent");
+  it("throws ReplayValidationError for empty / blank input", () => {
+    expect(() => detectFixtureFormat("")).toThrow(ReplayValidationError);
+    expect(() => detectFixtureFormat("   \n   ")).toThrow(
+      ReplayValidationError,
+    );
   });
 });
 
@@ -428,6 +438,168 @@ describe("loadAnyFixture — real fixtures", () => {
     expect(events.length).toBeGreaterThan(0);
     const types = events.map((e) => e.type);
     expect(types).toContain("session.created");
+  });
+});
+
+// ── Fix 1: atMs drives scheduling ts ────────────────────────────────────────
+
+describe("Fix 1 — replayRecordToRoomEvents: atMs drives scheduling ts", () => {
+  it("runtimeDraft: output ts equals record.atMs when draft.ts is absent", () => {
+    const record = validateReplayRecord({
+      atMs: 500,
+      kind: "runtimeDraft",
+      runtime: "claude",
+      draft: { type: "agent.thinking", payload: {} },
+    });
+    const events = replayRecordToRoomEvents(record, makeCtx());
+    expect(events[0]?.ts).toBe(500);
+  });
+
+  it("runtimeDraft: output ts falls back to draft.ts when explicitly set", () => {
+    const record = validateReplayRecord({
+      atMs: 500,
+      kind: "runtimeDraft",
+      runtime: "claude",
+      draft: { type: "agent.thinking", payload: {}, ts: 9999 },
+    });
+    const events = replayRecordToRoomEvents(record, makeCtx());
+    // draft.ts is the explicit override; atMs is still the pacing source
+    expect(events[0]?.ts).toBe(9999);
+  });
+
+  it("integrationEvent: output ts equals record.atMs (not receivedAt)", () => {
+    const record = validateReplayRecord({
+      atMs: 1234,
+      kind: "integrationEvent",
+      event: baseIntegrationEvent(), // receivedAt: 1717452000000
+    });
+    const events = replayRecordToRoomEvents(record, makeCtx());
+    expect(events[0]?.ts).toBe(1234);
+    // payload.ts (NormalizedIntegrationEvent.ts) should also use atMs
+    const payload = events[0]?.payload as { ts: number };
+    expect(payload.ts).toBe(1234);
+  });
+
+  it("roomEvent: output ts equals record.atMs, not the stored event.ts", () => {
+    const evt = baseRoomEvent(); // ts: 1000
+    const record = validateReplayRecord({
+      atMs: 42,
+      kind: "roomEvent",
+      event: evt,
+    });
+    const events = replayRecordToRoomEvents(record, makeCtx());
+    expect(events[0]?.ts).toBe(42);
+  });
+
+  it("claude-chat.jsonl: scheduling ts values are strictly non-decreasing and match atMs gaps", async () => {
+    const { replayRecordToRoomEvents: convert, parseReplayRecords: parse } =
+      await import("./prototype-fixtures");
+    const text = await Bun.file("fixtures/runtime/claude-chat.jsonl").text();
+    const records = parse(text);
+    let seq = 1;
+    const ctx = { sessionId: "replay", seq: () => seq++ };
+    const events = records.flatMap((r) => convert(r, ctx));
+
+    // All ts values must be non-decreasing
+    for (let i = 1; i < events.length; i++) {
+      expect(events[i]!.ts).toBeGreaterThanOrEqual(events[i - 1]!.ts);
+    }
+
+    // The authored atMs sequence in the fixture is:
+    // 0, 200, 600, 900, 2400, 2700, 3000, 3100, 3200
+    // Each event's ts must equal the corresponding record's atMs.
+    const expectedAtMs = [0, 200, 600, 900, 2400, 2700, 3000, 3100, 3200];
+    expect(events.length).toBe(expectedAtMs.length);
+    for (const [i, atMs] of expectedAtMs.entries()) {
+      expect(events[i]!.ts).toBe(atMs);
+    }
+  });
+});
+
+// ── Fix 2: integrationEvent `to` field survives conversion ──────────────────
+
+describe("Fix 2 — integrationEvent: `to` field is preserved through conversion", () => {
+  it("carries `to` into NormalizedIntegrationEvent payload when present", () => {
+    const record = validateReplayRecord({
+      atMs: 100,
+      kind: "integrationEvent",
+      event: { ...baseIntegrationEvent(), to: "target_user_id" },
+    });
+    const events = replayRecordToRoomEvents(record, makeCtx());
+    const payload = events[0]?.payload as { to?: string };
+    expect(payload.to).toBe("target_user_id");
+  });
+
+  it("`to` is undefined in payload when absent from the source event", () => {
+    const record = validateReplayRecord({
+      atMs: 100,
+      kind: "integrationEvent",
+      event: baseIntegrationEvent(), // no `to` field
+    });
+    const events = replayRecordToRoomEvents(record, makeCtx());
+    const payload = events[0]?.payload as { to?: string };
+    expect(payload.to).toBeUndefined();
+  });
+});
+
+// ── Fix 3: empty fixture throws ReplayValidationError ───────────────────────
+
+describe("Fix 3 — detectFixtureFormat throws on empty fixtures", () => {
+  it("throws ReplayValidationError with 'fixture is empty' for empty string", () => {
+    expect(() => detectFixtureFormat("")).toThrow(ReplayValidationError);
+    try {
+      detectFixtureFormat("");
+    } catch (e) {
+      expect((e as Error).message).toContain("fixture is empty");
+    }
+  });
+
+  it("throws for all-whitespace / blank-line-only content", () => {
+    expect(() => detectFixtureFormat("\n\n  \n")).toThrow(
+      ReplayValidationError,
+    );
+  });
+});
+
+// ── Fix 4: validateRuntimeDraft rejects unknown draft.type ──────────────────
+
+describe("Fix 4 — validateRuntimeDraft: unknown draft.type is rejected", () => {
+  it("rejects a made-up event type", () => {
+    const raw = {
+      atMs: 0,
+      kind: "runtimeDraft",
+      runtime: "claude",
+      draft: { type: "made_up.event", payload: {} },
+    };
+    expect(() => validateReplayRecord(raw)).toThrow(ReplayValidationError);
+    try {
+      validateReplayRecord(raw);
+    } catch (e) {
+      expect((e as Error).message).toContain("made_up.event");
+    }
+  });
+
+  it("accepts all legitimate RoomEventType values", () => {
+    // Spot-check a cross-section of the valid union
+    const validTypes = [
+      "session.created",
+      "agent.spawned",
+      "tool.started",
+      "message.delta",
+      "integration.event.received",
+      "scheduler.run.finished",
+      "settings.updated",
+    ] as const;
+    for (const type of validTypes) {
+      expect(() =>
+        validateReplayRecord({
+          atMs: 0,
+          kind: "runtimeDraft",
+          runtime: "claude",
+          draft: { type, payload: {} },
+        }),
+      ).not.toThrow();
+    }
   });
 });
 

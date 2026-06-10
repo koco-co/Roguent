@@ -77,45 +77,48 @@ export type {
   SchedulerTaskUpdatedPayload,
 } from "./scheduler";
 
-export type RoomEventType =
-  | "session.created"
-  | "session.updated"
-  | "session.cleared"
-  | "session.rolled_back"
-  | "session.error"
-  | "agent.spawned"
-  | "agent.thinking"
-  | "agent.idle"
-  | "agent.done"
-  | "tool.started"
-  | "tool.ended"
-  | "tool.failed"
-  | "loot.dropped"
-  | "message.delta"
-  | "message.final"
-  | "usage.updated"
-  | "context.updated"
-  | "todos.updated"
-  | "thinking.delta"
-  | "thinking.final"
-  | "prompt.requested"
-  | "prompt.resolved"
-  | "runtime.status"
-  | "runtime.config.updated"
-  | "integration.status"
-  | "integration.event.received"
-  | "pairing.qr.updated"
-  | "pairing.binding.updated"
-  | "mailbox.item.created"
-  | "mailbox.item.updated"
-  | "scheduler.task.created"
-  | "scheduler.task.updated"
-  | "scheduler.run.started"
-  | "scheduler.run.finished"
-  | "economy.ledger.appended"
-  | "achievement.updated"
-  | "inventory.updated"
-  | "settings.updated";
+export const VALID_ROOM_EVENT_TYPES = [
+  "session.created",
+  "session.updated",
+  "session.cleared",
+  "session.rolled_back",
+  "session.error",
+  "agent.spawned",
+  "agent.thinking",
+  "agent.idle",
+  "agent.done",
+  "tool.started",
+  "tool.ended",
+  "tool.failed",
+  "loot.dropped",
+  "message.delta",
+  "message.final",
+  "usage.updated",
+  "context.updated",
+  "todos.updated",
+  "thinking.delta",
+  "thinking.final",
+  "prompt.requested",
+  "prompt.resolved",
+  "runtime.status",
+  "runtime.config.updated",
+  "integration.status",
+  "integration.event.received",
+  "pairing.qr.updated",
+  "pairing.binding.updated",
+  "mailbox.item.created",
+  "mailbox.item.updated",
+  "scheduler.task.created",
+  "scheduler.task.updated",
+  "scheduler.run.started",
+  "scheduler.run.finished",
+  "economy.ledger.appended",
+  "achievement.updated",
+  "inventory.updated",
+  "settings.updated",
+] as const;
+
+export type RoomEventType = (typeof VALID_ROOM_EVENT_TYPES)[number];
 
 export interface RoomEvent<T = unknown> {
   seq: number; // server-side monotonic order key
