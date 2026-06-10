@@ -1,8 +1,10 @@
 import type React from "react";
 import { useEffect, useRef } from "react";
+import { KonamiListener } from "./easter/KonamiListener";
 import { resolveEngineUrl } from "./engine-url";
 import { Hud } from "./hud/Hud";
 import { NpcCard } from "./hud/NpcCard";
+import { AnnouncementPopup } from "./hud/mailbox/AnnouncementPopup";
 import { LobbyView } from "./lobby/HubPlaza";
 import { LoginGate } from "./lobby/LoginGate";
 import { PortalTransition } from "./overworld/PortalTransition";
@@ -118,6 +120,10 @@ export function App() {
 
   return (
     <div id="viewport" ref={viewportRef} className="viewport">
+      {/* Always-mounted global listeners and overlays (outside live layer so they
+          survive LoginGate's inert attribute). */}
+      <KonamiListener />
+      <AnnouncementPopup />
       <div
         id="stage"
         className={`stage ${settingsRootClass(settings)}`}
