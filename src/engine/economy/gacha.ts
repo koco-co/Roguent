@@ -186,6 +186,14 @@ export interface GachaPullInput {
   inventory: Record<string, InventoryItem>;
   /** Cost override; defaults to GACHA_PULL_COST. */
   cost?: number;
+  /**
+   * Timestamp (ms since epoch) to embed in the ledger-persisted InventoryItem
+   * as `acquiredAt`. The caller (GachaService) supplies this so the ledger-
+   * derived inventory carries a sensible acquisition time. Tests may omit it
+   * (defaults to undefined, which is acceptable for pure-function tests that
+   * don't exercise the ledger path).
+   */
+  acquiredAt?: number;
 }
 
 // ── main function ─────────────────────────────────────────────────────────────
@@ -214,7 +222,9 @@ export function pullGacha(input: GachaPullInput): GachaPullResult {
     kind: picked.kind,
     label: picked.label,
     quantity: 1,
-    acquiredAt: undefined,
+    // acquiredAt is threaded in from the caller so the ledger-embedded item
+    // carries a sensible acquisition time. Pure-function tests may omit it.
+    acquiredAt: input.acquiredAt,
   };
 
   const ledgerEntries: GachaLedgerEntryInput[] = [

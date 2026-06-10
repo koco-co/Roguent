@@ -170,6 +170,11 @@ export function Shop() {
                 // SHOP_ITEMS 的 id(i1~i8)不是真实 sku;按商品名字符匹配是合理的
                 // 占位策略。若无更好映射,后退到 it.owned(shop-data 的静态 mock)。
                 // [MOCK] 「购买」按钮不绑真实逻辑;已拥有来源于真实 inventory。
+                // TODO: SHOP_ITEMS ids (i1–i8) do not map to real gacha SKUs.
+                // The label-equality check (inv.label === it.name) is a placeholder
+                // that can false-positive when gacha items share display names with
+                // shop items. Fix by assigning real SKUs to SHOP_ITEMS and matching
+                // on inv.sku === it.sku when gacha/shop item catalogs are unified.
                 const ownedInInventory = Object.values(inventory).some(
                   (inv) => inv.label === it.name || inv.sku === it.id,
                 );

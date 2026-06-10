@@ -81,13 +81,28 @@ export interface WsGatewayOptions {
   settings?: GatewaySettingsService;
   achievements?: GatewayAchievementsService;
   gacha?: GatewayGachaService;
+  /**
+   * Returns the initial value for the pull sequence counter. Called lazily on
+   * the first pull so the gateway does not need to be async.
+   *
+   * Callers should supply `() => ledger.entries(null).length` (or similar
+   * persistent monotonic count) so that pull seeds remain unique across gateway
+   * restarts. Without this, `pullSeq` resets to 0 on restart and reissues
+   * identical seeds for the first N pulls of a new process lifetime.
+   *
+   * Using a ledger entry count (rather than Date.now / Math.random) keeps the
+   * seed derivation deterministic within a single pull while still being unique
+   * across restarts.
+   */
+  initialPullSeq?: () => number;
 }
 
 export class WsGateway {
   private wss: WebSocketServer;
   private clients = new Set<WebSocket>();
   private importSeq = 0;
-  private pullSeq = 0;
+  /** Lazily initialized from options.initialPullSeq on the first pull. */
+  private pullSeq: number | null = null;
   private lastLimits: LimitsMessage | null = null;
 
   constructor(
@@ -321,6 +336,13 @@ export class WsGateway {
 
     // Derive a deterministic seed from a monotonically-increasing pull counter.
     // This avoids Math.random()/Date.now() while ensuring successive pulls differ.
+    //
+    // Lazy initialization: on the first pull we read the persistent count from
+    // options.initialPullSeq (e.g. ledger.entries(null).length). This makes the
+    // counter unique across gateway restarts without requiring an async constructor.
+    if (this.pullSeq === null) {
+      this.pullSeq = this.options.initialPullSeq?.() ?? 0;
+    }
     const seed = `gacha.pull:${c.sku}:${++this.pullSeq}`;
     const result = gacha.pull(c.sku, seed);
 
@@ -342,12 +364,12 @@ export class WsGateway {
         payload: { entry } satisfies EconomyLedgerAppendedPayload,
       });
     }
-    this.mgr.publishIntegrationEvent({
-      ts,
-      sessionId: "__economy__",
-      type: "inventory.updated",
-      payload: result.inventoryUpdate satisfies InventoryUpdatedPayload,
-    });
+    // Note: inventory.updated is intentionally NOT emitted here.
+    // The store reducer for "inventory.updated" is a no-op (returns state
+    // unchanged); inventory is derived from "economy.ledger.appended" via
+    // reduceInventoryFromLedger. The ledger entry above already carries the
+    // embedded InventoryLedgerMutation, so the UI updates correctly without a
+    // separate inventory.updated broadcast.
   }
 
   private async handleSettingsCommand(

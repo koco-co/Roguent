@@ -79,21 +79,33 @@ export class GachaService implements GatewayGachaService {
     // Use the relevant pool (full pool for catalog pulls, single-item pool otherwise).
     const activePool = poolItem ? [poolItem] : this.pool;
 
+    const now = this.options.now?.() ?? Date.now();
     const result = pullGacha({
       seed,
       pool: activePool,
       balance,
       inventory: currentInventory,
       cost: this.cost,
+      // Thread the acquisition timestamp into pullGacha so the ledger-embedded
+      // InventoryItem.acquiredAt is set. The store derives inventory from ledger
+      // entries, so this is the only path that makes acquiredAt visible in the UI.
+      acquiredAt: now,
     });
 
     if (!result.ok) {
       return { ok: false, reason: result.reason };
     }
 
-    // Commit ledger entries one by one; abort on ledger rejection.
+    // Commit ledger entries one by one.
+    //
+    // Atomicity invariant: the first entry is always a debit (gems spent), and
+    // any subsequent entry is a refund credit (amount > 0). A credit can never
+    // make the balance go negative, so the ledger will never reject it.
+    // Therefore partial commitment (debit committed, credit rejected) is a dead
+    // path — the ledger only rejects entries that would produce a negative
+    // balance. This assertion documents the invariant so that a future change to
+    // the ledger's rejection logic cannot silently introduce a double-spend.
     const committedEntries: EconomyLedgerAppendedPayload["entry"][] = [];
-    const now = this.options.now?.() ?? Date.now();
     for (const input of result.ledgerEntries) {
       const appended = this.ledger.append({
         sessionId: null,
@@ -101,11 +113,23 @@ export class GachaService implements GatewayGachaService {
         currency: input.currency,
         reason: input.reason,
         sourceEventId: `${seed}:${input.reason}`,
-        metadata: input.inventory ? { inventory: input.inventory } : undefined,
+        // Note: do NOT pass metadata here — ledger.normalizeInput calls
+        // mergeLedgerMetadata which already embeds the inventory field into the
+        // stored metadata JSON. Passing a duplicate { inventory } in metadata
+        // would double-embed it.
         inventory: input.inventory,
       });
       if (!appended.ok) {
-        // Ledger rejected (e.g. would go negative) — treat as insufficient.
+        // This branch should be unreachable for credit entries (amount > 0)
+        // because credits never make the balance go negative. If we get here it
+        // means a debit entry was rejected after a prior debit was committed,
+        // which is only possible if the ledger's rejection criteria changed.
+        if (input.amount > 0) {
+          throw new Error(
+            `Invariant violation: gacha refund credit was rejected by ledger (reason=${appended.reason}). A credit with amount > 0 cannot make the balance negative.`,
+          );
+        }
+        // Debit rejected (insufficient balance after all — race or concurrent mutation).
         return { ok: false, reason: "insufficient_balance" };
       }
       committedEntries.push(appended.entry);

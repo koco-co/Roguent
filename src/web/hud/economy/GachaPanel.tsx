@@ -1,3 +1,4 @@
+import type React from "react";
 import { useMemo } from "react";
 import { GACHA_POOL, GACHA_PULL_COST } from "../../../engine/economy/gacha";
 import { useRoomStore } from "../../store";

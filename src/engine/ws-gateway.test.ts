@@ -346,17 +346,15 @@ test("WsGateway purchaseItem with sufficient balance emits ledger and inventory 
 
   // No error response sent to client.
   expect(sent).toEqual([]);
-  // Two events published: ledger debit + inventory update.
-  expect(published).toHaveLength(2);
+  // One event published: ledger debit only.
+  // inventory.updated is NOT emitted — inventory is derived from the ledger
+  // entry via reduceInventoryFromLedger in the store (the inventory.updated
+  // reducer is a no-op that returns state unchanged).
+  expect(published).toHaveLength(1);
   expect(published[0]).toMatchObject({
     sessionId: "__economy__",
     type: "economy.ledger.appended",
     payload: { entry: { id: "entry-1", amount: -100, currency: "gem" } },
-  });
-  expect(published[1]).toMatchObject({
-    sessionId: "__economy__",
-    type: "inventory.updated",
-    payload: { item: { id: "pet.slime" }, action: "added" },
   });
 });
 

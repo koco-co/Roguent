@@ -1,7 +1,6 @@
 import type {
   AchievementUpdatedPayload,
   EconomyLedgerAppendedPayload,
-  InventoryUpdatedPayload,
   SchedulerRunFinishedPayload,
   SchedulerRunStartedPayload,
   SchedulerTaskCreatedPayload,
@@ -162,12 +161,6 @@ export type IntegrationRouterEvent =
       sessionId: string;
       type: "economy.ledger.appended";
       payload: EconomyLedgerAppendedPayload;
-      ts: number;
-    }
-  | {
-      sessionId: string;
-      type: "inventory.updated";
-      payload: InventoryUpdatedPayload;
       ts: number;
     };
 
