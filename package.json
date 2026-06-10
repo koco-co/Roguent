@@ -8,6 +8,7 @@
     "build": "vite build",
     "test": "bun test",
     "test:e2e": "playwright test",
+    "typecheck:e2e": "tsc -p tsconfig.e2e.json",
     "check": "biome check .",
     "dev:app": "bun scripts/build-sidecar.ts && bun scripts/stage-cli.ts && tauri dev",
     "build:app": "bun run build && bun scripts/build-sidecar.ts && bun scripts/stage-cli.ts && tauri build"
