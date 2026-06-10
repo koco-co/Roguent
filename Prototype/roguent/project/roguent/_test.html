@@ -1,0 +1,34 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>body{overflow:auto;padding:24px;background:#1f2e33;}
+.grid{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;}
+.cell{display:flex;flex-direction:column;align-items:center;gap:6px;width:90px;}
+.lbl{font-size:10px;color:#c9b79a;font-family:var(--font-px);}
+.box{background:#2c1c10;padding:10px;box-shadow:inset 0 0 0 2px #7a5638;}
+h3{font-family:var(--font-px);color:#f2c84b;font-size:13px;margin:26px 0 10px;}
+</style></head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="atlas-frames.js"></script>
+<script type="text/babel" src="sprites.jsx"></script>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel">
+const heroes=['knight_m','knight_f','wizzard_m','wizzard_f','elf_m','elf_f','lizard_m','lizard_f','dwarf_m','dwarf_f','doc','goblin'];
+const props=['chest_full_open_anim_f1','crate','flask_big_blue','flask_red','coin_anim_f0','wall_fountain_top_1','doors_leaf_closed','column'];
+function App(){
+  return <div>
+    <h3>ICONS ({window.ICONS.length})</h3>
+    <div className="grid">{window.ICONS.map(n=><div className="cell" key={n}><div className="box"><Icon name={n} size={40}/></div><div className="lbl">{n}</div></div>)}</div>
+    <h3>HEROES (idle)</h3>
+    <div className="grid">{heroes.map(b=><div className="cell" key={b}><div className="box"><PixelSprite base={b} anim="idle" scale={5}/></div><div className="lbl">{b}</div></div>)}</div>
+    <h3>PROPS</h3>
+    <div className="grid">{props.map(b=><div className="cell" key={b}><div className="box"><PixelSprite name={b} scale={5}/></div><div className="lbl" style={{fontSize:8}}>{b}</div></div>)}</div>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body></html>
