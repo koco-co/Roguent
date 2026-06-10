@@ -7,7 +7,7 @@
 import { expect, test } from "@playwright/test";
 import { artifactDir, openReplay } from "./helpers";
 
-test("codex replay chat shows assistant, tool, and runtime controls", async ({
+test("Codex chat replay shows assistant, tool, runtime controls, and reasoning effort", async ({
   page,
 }) => {
   const handle = await openReplay(page, "fixtures/runtime/codex-chat.jsonl");
@@ -36,8 +36,13 @@ test("codex replay chat shows assistant, tool, and runtime controls", async ({
     await expect(drawer.getByLabel("permission")).toBeVisible();
     await expect(drawer.getByLabel("sandbox")).toBeVisible();
 
-    // Screenshot artifact
-    const dir = await artifactDir("task48");
+    // Codex-specific: reasoning effort select (aria-label="reasoning effort").
+    // This control is only rendered when isCodex === true (see RuntimeControls.tsx).
+    // The fixture sets reasoningEffort: "medium" so the select should be visible.
+    await expect(drawer.getByLabel("reasoning effort")).toBeVisible();
+
+    // Screenshot artifact (satisfies both Task 48 and Task 50 artifact requirements)
+    const dir = await artifactDir("task48-task50");
     await page.screenshot({
       path: `${dir}/codex-replay-chat.png`,
       fullPage: false,
