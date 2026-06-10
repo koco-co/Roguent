@@ -1,6 +1,0 @@
-{"seq":1,"ts":0,"sessionId":"sA","type":"session.created","payload":{"title":"alpha project","model":"claude-opus-4-8","permissionMode":"default","apiKeySource":"oauth","cwd":"/repo/alpha","project":"alpha","slashCommands":[]}}
-{"seq":2,"ts":100,"sessionId":"sB","type":"session.created","payload":{"title":"beta project","model":"claude-sonnet-4-6","permissionMode":"default","apiKeySource":"oauth","cwd":"/repo/beta","project":"beta","slashCommands":[]}}
-{"seq":3,"ts":200,"sessionId":"sA","type":"agent.spawned","agentId":"ag-a","payload":{"role":"coder","promptSummary":"work","parentId":"orchestrator"}}
-{"seq":4,"ts":300,"sessionId":"sB","type":"agent.spawned","agentId":"ag-b","payload":{"role":"researcher","promptSummary":"find","parentId":"orchestrator"}}
-{"seq":5,"ts":400,"sessionId":"sA","type":"loot.dropped","payload":{"kind":"file","label":"alpha.ts","sourceRef":"src/alpha.ts"}}
-{"seq":6,"ts":500,"sessionId":"sB","type":"session.cleared","payload":{}}

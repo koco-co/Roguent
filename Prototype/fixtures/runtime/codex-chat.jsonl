@@ -1,6 +1,0 @@
-{"kind":"thread.created","threadId":"thread-1","model":"gpt-5","cwd":"/tmp/roguent","approvalPolicy":"on-request","sandboxMode":"workspace-write","reasoningEffort":"medium","networkAccess":false}
-{"kind":"turn.started","threadId":"thread-1","turnId":"turn-1"}
-{"kind":"assistant.delta","threadId":"thread-1","turnId":"turn-1","itemId":"msg-1","text":"I can help"}
-{"kind":"tool.started","threadId":"thread-1","turnId":"turn-1","toolName":"shell","callId":"tool-1","command":"bun test"}
-{"kind":"tool.finished","threadId":"thread-1","turnId":"turn-1","callId":"tool-1","exitCode":0}
-{"kind":"turn.finished","threadId":"thread-1","turnId":"turn-1","usage":{"inputTokens":10,"outputTokens":20}}
