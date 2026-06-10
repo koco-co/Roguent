@@ -372,3 +372,243 @@ test("GitHub and X subscription routing", async ({ page }) => {
     handle.cleanup();
   }
 });
+
+/**
+ * Task 55 — prototype game panels replay.
+ *
+ * Fixture (fixtures/game-panels.jsonl) drives:
+ * - economy.ledger.appended  → 250 gem balance + one inventory item (skin.ninja)
+ * - achievement.updated      → one completed/claimable + one in-progress
+ * - settings.updated         → user settings with github.enabled = true
+ *
+ * What we prove: the panels (AchievementsPanel, GachaPanel/Shop, Settings, lobby)
+ * render REAL replayed state — not static placeholder images.
+ *
+ * What we canNOT prove in replay mode: claim/pull/save round-trips (commands are
+ * ignored by the replay engine). We assert: action controls EXIST and data matches
+ * replayed values.
+ */
+test("prototype game panels render replayed economy, achievement, and settings state", async ({
+  page,
+}) => {
+  const handle = await openReplay(page, "fixtures/game-panels.jsonl");
+
+  try {
+    // ── Lobby viewport assertions (desktop) ──────────────────────────────────
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const dir = await artifactDir("task55");
+
+    // The fixture emits session.created for "replay" — the lobby (overworld view)
+    // should be visible.  Wait for the hub to appear.
+    const hub = page.locator(".hub");
+    await expect(hub).toBeVisible({ timeout: 10_000 });
+
+    // Core lobby structures: each INTERACT entry renders as a <button class="structure">.
+    // Verify the key named structures are present using their aria-labels.
+    await expect(
+      page.getByRole("button", { name: "任务台 QUEST CONSOLE" }),
+    ).toBeVisible({ timeout: 8_000 });
+    await expect(
+      page.getByRole("button", { name: "成就陈列 LOOT" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "扭蛋机 GACHA" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "设置祭坛 CONFIG" }),
+    ).toBeVisible();
+
+    // Desktop screenshot.
+    await page.screenshot({
+      path: `${dir}/game-panels-desktop.png`,
+      fullPage: false,
+    });
+
+    // ── No-overlap check (desktop) ────────────────────────────────────────────
+    // Key structure buttons must stay within the 1440×900 viewport and must not
+    // overlap each other.  Collect bounding boxes and assert mutual exclusion.
+    const towerBox = await page
+      .getByRole("button", { name: "任务台 QUEST CONSOLE" })
+      .boundingBox();
+    const achievementsBox = await page
+      .getByRole("button", { name: "成就陈列 LOOT" })
+      .boundingBox();
+    const gachaBox = await page
+      .getByRole("button", { name: "扭蛋机 GACHA" })
+      .boundingBox();
+
+    // All boxes must exist and fit within the viewport.
+    for (const box of [towerBox, achievementsBox, gachaBox]) {
+      expect(box).not.toBeNull();
+      if (box) {
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.y).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(1440 + 1); // allow 1px rounding
+        expect(box.y + box.height).toBeLessThanOrEqual(900 + 1);
+      }
+    }
+
+    // Verify tower and achievements don't overlap (they live in different quadrants).
+    if (towerBox && achievementsBox) {
+      const overlapX =
+        towerBox.x < achievementsBox.x + achievementsBox.width &&
+        towerBox.x + towerBox.width > achievementsBox.x;
+      const overlapY =
+        towerBox.y < achievementsBox.y + achievementsBox.height &&
+        towerBox.y + towerBox.height > achievementsBox.y;
+      expect(overlapX && overlapY).toBe(false);
+    }
+
+    // ── Mobile screenshot ─────────────────────────────────────────────────────
+    await page.setViewportSize({ width: 390, height: 844 });
+    // Hub is responsive (%-based layout); give it a moment to reflow.
+    await expect(hub).toBeVisible({ timeout: 5_000 });
+    await page.screenshot({
+      path: `${dir}/game-panels-mobile.png`,
+      fullPage: false,
+    });
+
+    // On mobile the hub still fits within the 390×844 viewport.
+    const hubBoxMobile = await hub.boundingBox();
+    expect(hubBoxMobile).not.toBeNull();
+    if (hubBoxMobile) {
+      expect(hubBoxMobile.x).toBeGreaterThanOrEqual(-1);
+      expect(hubBoxMobile.y).toBeGreaterThanOrEqual(-1);
+    }
+
+    // Reset to desktop for panel tests.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expect(hub).toBeVisible({ timeout: 5_000 });
+
+    // ── AchievementsPanel ─────────────────────────────────────────────────────
+    // Trigger via the "成就陈列 LOOT" lobby structure button.
+    await page.getByRole("button", { name: "成就陈列 LOOT" }).click();
+
+    // The AchievementsPanel renders inside a Modal (no specific dialog role).
+    // Wait for a known element rendered by the panel.
+    const achievementsPanel = page.locator(".achievements-panel");
+    await expect(achievementsPanel).toBeVisible({ timeout: 8_000 });
+
+    // The fixture emits two achievements:
+    // 1. "First Session" — completed=true, progress=1, target=1, claimable.
+    // 2. "Code Master" — completed=false, progress=4, target=10.
+
+    // achievement-row renders each achievement; .achievement-title has the title.
+    await expect(achievementsPanel.getByText("First Session")).toBeVisible({
+      timeout: 5_000,
+    });
+    await expect(achievementsPanel.getByText("Code Master")).toBeVisible();
+
+    // Progress labels: progressLabel() renders "progress / target".
+    // "First Session": "1 / 1"; "Code Master": "4 / 10".
+    // These render inside .achievement-meter via progressLabel(achievement).
+    const firstRow = achievementsPanel
+      .locator(".achievement-row")
+      .filter({ hasText: "First Session" });
+    await expect(firstRow.locator(".achievement-meter")).toContainText("1 / 1");
+
+    const codeRow = achievementsPanel
+      .locator(".achievement-row")
+      .filter({ hasText: "Code Master" });
+    await expect(codeRow.locator(".achievement-meter")).toContainText("4 / 10");
+
+    // "First Session" is completed and not yet claimed → "Claim" button must be
+    // ENABLED (claimable = true).
+    const claimBtn = firstRow.getByRole("button", {
+      name: "Claim First Session",
+    });
+    await expect(claimBtn).toBeVisible();
+    await expect(claimBtn).not.toBeDisabled();
+
+    // "Code Master" is not completed → "Claim" button must be disabled (.dis class).
+    const claimBtnDisabled = codeRow.getByRole("button", {
+      name: "Claim Code Master",
+    });
+    await expect(claimBtnDisabled).toBeVisible();
+    await expect(claimBtnDisabled).toBeDisabled();
+
+    // Close the panel before opening the next one (modal scrim blocks pointer events).
+    await page.keyboard.press("Escape");
+    await expect(achievementsPanel).not.toBeVisible({ timeout: 5_000 });
+
+    // ── Shop / Gacha items tab (gem balance + inventory owned state) ─────────
+    // "扭蛋机 GACHA" lobby button → openPanel("gacha").
+    // The Shop component handles both "shop" and "gacha" activePanel values; when
+    // activePanel === "gacha" it renders with the items tab active (.shop-items).
+    // GachaPanel (economy/GachaPanel.tsx) is a separate component that is NOT
+    // mounted in Hud.tsx; it is used only in unit tests. The actual in-app gacha
+    // entry point is the Shop items tab.
+    await page.getByRole("button", { name: "扭蛋机 GACHA" }).click();
+
+    // Shop renders when active (activePanel === "shop" || "gacha").
+    const shopWrap = page.locator(".shop-wrap");
+    await expect(shopWrap).toBeVisible({ timeout: 8_000 });
+
+    // Items tab must be visible (activePanel==="gacha" forces visibleTab="items").
+    const shopItems = shopWrap.locator(".shop-items");
+    await expect(shopItems).toBeVisible({ timeout: 5_000 });
+
+    // The fixture emitted economy.ledger.appended events:
+    // +250 gem (welcome bonus) then -100 gem (gacha pull) → final balance = 150.
+    // Shop items tab renders gem balance in .shop-bal > span.px.
+    const shopGemBalance = shopItems.locator(".shop-bal span.px");
+    await expect(shopGemBalance).toBeVisible({ timeout: 5_000 });
+    await expect(shopGemBalance).toHaveText("150");
+
+    // The ledger entry added inventory item {id:"skin.ninja", label:"忍者皮肤"}.
+    // Shop.tsx checks: ownedInInventory = Object.values(inventory).some(
+    //   (inv) => inv.label === it.name || inv.sku === it.id
+    // )
+    // SHOP_ITEMS[4] is {id:"i5", name:"忍者皮肤"} → inv.label === "忍者皮肤" matches.
+    // So the "忍者皮肤" item card should show the "已拥有" chip (.chip.greenc).
+    const ninjaSkinCard = shopItems
+      .locator(".item-card")
+      .filter({ hasText: "忍者皮肤" });
+    await expect(ninjaSkinCard).toBeVisible({ timeout: 5_000 });
+    await expect(ninjaSkinCard.locator(".chip.greenc")).toBeVisible();
+    await expect(ninjaSkinCard.locator(".chip.greenc")).toHaveText("已拥有");
+
+    // Close shop before opening settings.
+    await page.keyboard.press("Escape");
+    await expect(shopWrap).not.toBeVisible({ timeout: 5_000 });
+
+    // ── Settings panel ────────────────────────────────────────────────────────
+    // Trigger via the "设置祭坛 CONFIG" lobby structure button.
+    await page.getByRole("button", { name: "设置祭坛 CONFIG" }).click();
+
+    // Settings panel renders inside a Modal with class .settings-wrap.
+    const settingsWrap = page.locator(".settings-wrap");
+    await expect(settingsWrap).toBeVisible({ timeout: 8_000 });
+
+    // The fixture emitted settings.updated with integrations.github.enabled = true.
+    // Settings.tsx maps this to savedVals.github_enabled = true via settingsFieldValues().
+    // The "github_enabled" toggle (label "GitHub 订阅") lives in the "IM / 订阅"
+    // settings group. Navigate there by clicking the nav button.
+    const imNavBtn = settingsWrap
+      .locator(".set-nav")
+      .getByRole("button", { name: "IM / 订阅" });
+    await expect(imNavBtn).toBeVisible({ timeout: 5_000 });
+    await imNavBtn.click();
+
+    // Now the integrations fields are visible. The "github_enabled" toggle has
+    // aria-label="GitHub 订阅" (from the field schema label).
+    // aria-pressed="true" means enabled=true (as replayed from the fixture).
+    const githubToggle = settingsWrap.getByRole("button", {
+      name: "GitHub 订阅",
+    });
+    await expect(githubToggle).toBeVisible({ timeout: 5_000 });
+    await expect(githubToggle).toHaveAttribute("aria-pressed", "true");
+
+    // The save button must exist (bottom .set-foot > .pxbtn.primary).
+    // In replay mode clicking save sends a WS command (ignored by replay engine) —
+    // we only verify the control exists, not the round-trip result.
+    const saveBtn = page.locator(".set-foot .pxbtn.primary");
+    await expect(saveBtn).toBeVisible();
+
+    // Close the settings panel.
+    await page.keyboard.press("Escape");
+    await expect(settingsWrap).not.toBeVisible({ timeout: 5_000 });
+  } finally {
+    handle.cleanup();
+  }
+});
