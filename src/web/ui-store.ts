@@ -12,9 +12,14 @@ export type PanelId =
   | "settings"
   | "skills"
   | "shop"
+  | "gacha"
+  | "achievements"
   | "leaderboard"
   | "backpack"
   | "chat"
+  | "mailbox"
+  | "board"
+  | "pairing"
   | "model"
   | "import"
   | "account"
@@ -27,6 +32,7 @@ export interface UiState {
   activePanel: PanelId | null;
   localSessions: LocalSessionMeta[];
   importError: string | null;
+  commandError: string | null;
   selectedAgentId: string | null;
   // 当前选中的 NPC(总览里打开了它的信息卡的那个会话);与 selectedAgentId(内景里
   // 选中的某个 subagent)是不同语境。
@@ -46,12 +52,14 @@ export interface UiState {
   /** Replaces the session list and clears any previous importError. */
   setLocalSessions: (items: LocalSessionMeta[]) => void;
   setImportError: (reason: string | null) => void;
+  setCommandError: (reason: string | null) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
   activePanel: null,
   localSessions: [],
   importError: null,
+  commandError: null,
   selectedAgentId: null,
   selectedNpcId: null,
   view: "overworld",
@@ -70,4 +78,5 @@ export const useUiStore = create<UiState>((set) => ({
   endTransition: () => set({ transition: null }),
   setLocalSessions: (items) => set({ localSessions: items, importError: null }),
   setImportError: (reason) => set({ importError: reason }),
+  setCommandError: (reason) => set({ commandError: reason }),
 }));

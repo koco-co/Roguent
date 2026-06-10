@@ -1,3 +1,13 @@
+import type { RuntimeStatusPayload } from "./events";
+import { defaultRuntimeConfig } from "./runtime";
+import type {
+  CodexApprovalPolicy,
+  PermissionMode,
+  ReasoningEffort,
+  RuntimeKind,
+  SandboxMode,
+} from "./runtime";
+
 export type AgentKind = "orchestrator" | "subagent";
 export type AgentStatus = "spawning" | "thinking" | "working" | "idle" | "done";
 export type SessionStatus = "idle" | "busy" | "done" | "error";
@@ -73,6 +83,34 @@ export interface QuestionData {
   }>;
 }
 
+export type TimelineSource =
+  | { kind: "desktop" }
+  | {
+      kind: "im";
+      channel: "wechat" | "feishu";
+      externalChatId: string;
+      displayName?: string;
+    }
+  | { kind: "scheduler"; taskId: string; runId: string }
+  | { kind: "subscription"; channel: "github" | "x"; deliveryId: string };
+
+export type TimelineDeliveryStatus =
+  | "pending"
+  | "sent"
+  | "delivered"
+  | "failed";
+
+export interface TimelineOutboundDelivery {
+  channel: "wechat" | "feishu" | "github" | "x";
+  deliveryId?: string;
+  status: TimelineDeliveryStatus;
+  error?: string;
+  updatedAt?: number;
+}
+
+export type TimelineMessageStatus = "streaming" | "final";
+export type TimelineThinkingStatus = "streaming" | "final";
+
 export interface TimelineMessageItem {
   kind: "message";
   id: string;
@@ -80,6 +118,10 @@ export interface TimelineMessageItem {
   agentId?: string;
   text: string;
   ts: number;
+  source: TimelineSource;
+  runtime: RuntimeKind;
+  status: TimelineMessageStatus;
+  delivery?: TimelineOutboundDelivery;
 }
 
 export interface TimelineThinkingItem {
@@ -88,6 +130,9 @@ export interface TimelineThinkingItem {
   agentId?: string;
   text: string;
   ts: number;
+  source: TimelineSource;
+  runtime: RuntimeKind;
+  status: TimelineThinkingStatus;
 }
 
 export interface TimelineToolItem {
@@ -98,6 +143,8 @@ export interface TimelineToolItem {
   status: "running" | "ok" | "failed";
   agentId?: string;
   ts: number;
+  source: TimelineSource;
+  runtime: RuntimeKind;
 }
 
 export interface TimelinePromptItem {
@@ -107,6 +154,8 @@ export interface TimelinePromptItem {
   data: PermissionPromptData | QuestionData;
   status: "pending" | "answered" | "dismissed";
   ts: number;
+  source: TimelineSource;
+  runtime: RuntimeKind;
 }
 
 export type TimelineItem =
@@ -119,8 +168,13 @@ export interface Session {
   id: string;
   title: string;
   status: SessionStatus;
+  runtime: RuntimeKind;
   model: string;
-  permissionMode: string;
+  permissionMode: PermissionMode;
+  approvalPolicy?: CodexApprovalPolicy;
+  sandboxMode: SandboxMode;
+  reasoningEffort?: ReasoningEffort;
+  networkAccess: boolean;
   slashCommands: string[];
   agents: Record<string, Agent>;
   timeline: TimelineItem[];
@@ -143,6 +197,7 @@ export interface Session {
   // 导入的本地 transcript:客户端自有的静态存档回看,无 Driver。reconcile 对账
   // 豁免之(引擎花名册不管辖导入会话),否则引擎 --watch 重启会误删用户载入的存档。
   imported?: boolean;
+  runtimeStatus?: RuntimeStatusPayload;
 }
 
 export const ORCHESTRATOR_ID = "orchestrator";
@@ -153,12 +208,46 @@ export function createAgent(
   return { kind: "subagent", status: "spawning", ...partial };
 }
 
-export function createSession(
-  partial: Partial<Session> & Pick<Session, "id" | "title" | "model">,
-): Session {
-  return {
+type CreateSessionInput = Omit<
+  Partial<Session>,
+  | "runtime"
+  | "model"
+  | "permissionMode"
+  | "approvalPolicy"
+  | "sandboxMode"
+  | "reasoningEffort"
+  | "networkAccess"
+> &
+  Pick<Session, "id" | "title"> & {
+    runtime?: RuntimeKind;
+    model?: string;
+    permissionMode?: PermissionMode;
+    approvalPolicy?: CodexApprovalPolicy;
+    sandboxMode?: SandboxMode;
+    reasoningEffort?: ReasoningEffort;
+    networkAccess?: boolean;
+  };
+
+export function createSession(partial: CreateSessionInput): Session {
+  const {
+    id,
+    title,
+    runtime: partialRuntime,
+    model: partialModel,
+    permissionMode: partialPermissionMode,
+    approvalPolicy: partialApprovalPolicy,
+    sandboxMode: partialSandboxMode,
+    reasoningEffort: partialReasoningEffort,
+    networkAccess: partialNetworkAccess,
+    ...rest
+  } = partial;
+  const runtime = partialRuntime ?? "claude";
+  const runtimeDefaults = defaultRuntimeConfig(runtime);
+  const session: Session = {
+    id,
+    title,
     status: "idle",
-    permissionMode: "default",
+    ...runtimeDefaults,
     agents: {
       [ORCHESTRATOR_ID]: {
         id: ORCHESTRATOR_ID,
@@ -176,6 +265,18 @@ export function createSession(
     createdAt: 0,
     lastActiveAt: 0,
     archived: false,
-    ...partial,
+    ...rest,
+    runtime,
+    model: partialModel ?? runtimeDefaults.model,
+    permissionMode: partialPermissionMode ?? runtimeDefaults.permissionMode,
+    sandboxMode: partialSandboxMode ?? runtimeDefaults.sandboxMode,
+    networkAccess: partialNetworkAccess ?? runtimeDefaults.networkAccess,
   };
+  const approvalPolicy =
+    partialApprovalPolicy ?? runtimeDefaults.approvalPolicy;
+  if (approvalPolicy !== undefined) session.approvalPolicy = approvalPolicy;
+  const reasoningEffort =
+    partialReasoningEffort ?? runtimeDefaults.reasoningEffort;
+  if (reasoningEffort !== undefined) session.reasoningEffort = reasoningEffort;
+  return session;
 }

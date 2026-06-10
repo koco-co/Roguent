@@ -1,0 +1,21 @@
+{
+  "ref": "refs/heads/main",
+  "compare": "https://github.com/poco/roguent/compare/abc...def",
+  "pusher": {
+    "name": "poco"
+  },
+  "sender": {
+    "login": "poco"
+  },
+  "repository": {
+    "full_name": "poco/roguent",
+    "html_url": "https://github.com/poco/roguent",
+    "name": "roguent"
+  },
+  "commits": [
+    {
+      "id": "def1234567890",
+      "message": "Add dungeon webhook"
+    }
+  ]
+}

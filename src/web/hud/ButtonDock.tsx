@@ -13,11 +13,13 @@ import { Icon, type IconName } from "./icons";
 //   "about" 暂保留在联合类型里(About 组件仍 working,T3.12 再正式接入口)。
 type DockBtn = {
   icon: IconName;
-  panel: "settings" | "menu" | "about" | "account";
+  panel: "settings" | "menu" | "about" | "account" | "mailbox" | "board";
   label: string;
 };
 
 const DOCK_BTNS: DockBtn[] = [
+  { icon: "vault", panel: "mailbox", label: "信箱" },
+  { icon: "trophy", panel: "board", label: "公告" },
   { icon: "gear", panel: "settings", label: "设置" }, // panel 待 T3.x
   { icon: "menu", panel: "menu", label: "菜单" }, // panel 待 T3.x
   // T3.11:账号正式接 Account 面板;原临时的 about 入口由 T3.12 SystemMenu 承接。

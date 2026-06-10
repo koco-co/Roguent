@@ -24,11 +24,27 @@ const formatTime = (ts: number) =>
 
 export function MessageBubble({ item, session }: Props) {
   const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   const copy = () => {
-    void navigator.clipboard.writeText(item.text).then(() => {
+    void copyText(item.text).then((ok) => {
+      if (!ok) return;
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  const copyCode = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest<HTMLButtonElement>("[data-code]");
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    void copyText(button.dataset.code ?? "").then((ok) => {
+      if (!ok) return;
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 1500);
     });
   };
 
@@ -66,11 +82,23 @@ export function MessageBubble({ item, session }: Props) {
           {copied ? "✓" : "⎘"}
         </button>
       </div>
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: markdown HTML is inert; code-copy button clicks are delegated from this container, keyboard activation on the real button still emits click */}
       <div
         className="cmsg-bubble md"
+        onClick={copyCode}
+        data-code-copied={copiedCode ? "true" : "false"}
         // biome-ignore lint/security/noDangerouslySetInnerHtml: mdToHtml 先 escHtml 再渲染
         dangerouslySetInnerHTML={{ __html: mdToHtml(item.text) }}
       />
     </div>
+  );
+}
+
+function copyText(text: string): Promise<boolean> {
+  const writeText = navigator.clipboard?.writeText;
+  if (typeof writeText !== "function") return Promise.resolve(false);
+  return writeText.call(navigator.clipboard, text).then(
+    () => true,
+    () => false,
   );
 }

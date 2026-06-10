@@ -17,6 +17,8 @@ import {
 } from "react";
 import type { Agent } from "../../shared/domain";
 import { ORCHESTRATOR_HERO, roleToHero } from "../../shared/mapping";
+import { useSettingsStore } from "../settings-store";
+import { STAGE_H, STAGE_W } from "../stage-scale";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { Character } from "./Character";
@@ -25,7 +27,7 @@ import { GlowLayer, Vignette } from "./Lights";
 import { Particles } from "./Particles";
 import { AtlasProvider, atlasErrorText, loadAtlas, resetAtlas } from "./atlas";
 import { DOOR_COL, TILE, VH, VW } from "./config";
-import { type Pos, roomLayout } from "./layout";
+import { type Pos, ROOM_STAGE, type Rect, roomLayout } from "./layout";
 import type { MotionMap } from "./motion";
 
 // Register PixiJS classes → <pixiContainer>, <pixiSprite>, etc. (module scope).
@@ -42,6 +44,17 @@ interface Actor {
   leaving: boolean;
 }
 
+function scaleRectToCanvas(rect: Rect, canvasW: number, canvasH: number): Rect {
+  const sx = canvasW / STAGE_W;
+  const sy = canvasH / STAGE_H;
+  return {
+    x: Math.round(rect.x * sx),
+    y: Math.round(rect.y * sy),
+    w: Math.round(rect.w * sx),
+    h: Math.round(rect.h * sy),
+  };
+}
+
 function Scene({
   canvasW,
   canvasH,
@@ -54,6 +67,9 @@ function Scene({
   );
   const selectedId = useUiStore((s) => s.selectedAgentId);
   const select = useUiStore((s) => s.select);
+  const ambientGlow = useSettingsStore((s) => s.ambientGlow);
+  const ambientRain = useSettingsStore((s) => s.ambientRain);
+  const ambientParticles = useSettingsStore((s) => s.ambientParticles);
   const agents: Agent[] = useMemo(
     () => (session ? Object.values(session.agents) : []),
     [session],
@@ -125,16 +141,20 @@ function Scene({
     setActors((prev) => prev.filter((a) => a.id !== id));
   }, []);
 
-  // Integer scale so pixels stay crisp; centre the room in the canvas.
-  const scale = Math.max(1, Math.floor(Math.min(canvasW / VW, canvasH / VH)));
-  const offX = Math.floor((canvasW - VW * scale) / 2);
-  const offY = Math.floor((canvasH - VH * scale) / 2);
+  // Integer scale so pixels stay crisp; centre the room in the HUD-safe art rect.
+  const roomStage = scaleRectToCanvas(ROOM_STAGE, canvasW, canvasH);
+  const scale = Math.max(
+    1,
+    Math.floor(Math.min(roomStage.w / VW, roomStage.h / VH)),
+  );
+  const offX = roomStage.x + Math.floor((roomStage.w - VW * scale) / 2);
+  const offY = roomStage.y + Math.floor((roomStage.h - VH * scale) / 2);
 
   return (
     <pixiContainer>
       <pixiContainer x={offX} y={offY} scale={scale}>
         <DungeonRoom />
-        <GlowLayer />
+        <GlowLayer enabled={ambientGlow} />
         {actors.map((act) => {
           const agent = session?.agents[act.id];
           return (
@@ -160,6 +180,8 @@ function Scene({
           doorPos={{ x: DOOR_COL * TILE, y: 2 * TILE }}
           lootCount={session?.loot.length ?? 0}
           agentCount={agents.length}
+          particlesEnabled={ambientParticles}
+          rainEnabled={ambientRain}
         />
       </pixiContainer>
       <Vignette w={canvasW} h={canvasH} />

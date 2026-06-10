@@ -30,7 +30,13 @@ test("renders ordered list under one ol wrapper", () => {
 
 test("renders fenced code block, escaping html inside", () => {
   expect(mdToHtml("```\nconst x = a < b;\n```")).toBe(
-    '<pre class="md-pre"><code>const x = a &lt; b;</code></pre>',
+    '<div class="md-codeblock"><button type="button" class="md-codecopy" data-code="const x = a &lt; b;" aria-label="复制代码" title="复制代码">⎘</button><pre class="md-pre"><code>const x = a &lt; b;</code></pre></div>',
+  );
+});
+
+test("escapes fenced code copied data attribute", () => {
+  expect(mdToHtml('```\nconst q = "x";\n```')).toBe(
+    '<div class="md-codeblock"><button type="button" class="md-codecopy" data-code="const q = &quot;x&quot;;" aria-label="复制代码" title="复制代码">⎘</button><pre class="md-pre"><code>const q = "x";</code></pre></div>',
   );
 });
 

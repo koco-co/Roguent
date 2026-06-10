@@ -20,6 +20,10 @@ test("默认值与 DEFAULT_SETTINGS 一致", () => {
   expect(s.density).toBe("comfy");
   expect(s.cjkPixel).toBe(true);
   expect(s.avatarHero).toBeNull();
+  expect(s.ambientGlow).toBe(true);
+  expect(s.ambientRain).toBe(true);
+  expect(s.ambientParticles).toBe(true);
+  expect(s.ambientSound).toBe(true);
 });
 
 test("setSetting 改单个键、不影响其它键", () => {
@@ -39,6 +43,16 @@ test("setSetting 支持 avatarHero(string 与 null)", () => {
   expect(useSettingsStore.getState().avatarHero).toBe("wizzard_m");
   useSettingsStore.getState().setSetting("avatarHero", null);
   expect(useSettingsStore.getState().avatarHero).toBeNull();
+});
+
+test("setSetting 支持独立 ambient toggles", () => {
+  const s = useSettingsStore.getState();
+  s.setSetting("ambientGlow", false);
+  s.setSetting("ambientRain", false);
+  expect(useSettingsStore.getState().ambientGlow).toBe(false);
+  expect(useSettingsStore.getState().ambientRain).toBe(false);
+  expect(useSettingsStore.getState().ambientParticles).toBe(true);
+  expect(useSettingsStore.getState().ambientSound).toBe(true);
 });
 
 test("reset 恢复默认", () => {
@@ -95,6 +109,20 @@ test("settingsRootClass: 全部 off 组合按序拼接", () => {
   ).toBe("room-cyber no-motion hud-compact cjk-sys");
 });
 
+test("settingsRootClass: ambient toggles expose root classes", () => {
+  expect(
+    settingsRootClass({
+      ...DEFAULT_SETTINGS,
+      ambientGlow: false,
+      ambientRain: false,
+      ambientParticles: false,
+      ambientSound: false,
+    }),
+  ).toBe(
+    "room-teal no-ambient-glow no-ambient-rain no-ambient-particles sound-muted",
+  );
+});
+
 test("settingsRootStyle: 三个 theme 各自的 --accent / --core-glow", () => {
   expect(settingsRootStyle(DEFAULT_SETTINGS)).toEqual({
     "--accent": "#36c5e0",
@@ -125,10 +153,19 @@ test("parsePersisted: null / 损坏 JSON → 空对象", () => {
 
 test("parsePersisted: 合法子集被保留", () => {
   expect(
-    parsePersisted(JSON.stringify({ theme: "cyber", motion: false })),
+    parsePersisted(
+      JSON.stringify({
+        theme: "cyber",
+        motion: false,
+        ambientGlow: false,
+        ambientSound: false,
+      }),
+    ),
   ).toEqual({
     theme: "cyber",
     motion: false,
+    ambientGlow: false,
+    ambientSound: false,
   });
 });
 

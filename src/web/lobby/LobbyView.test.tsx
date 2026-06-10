@@ -1,0 +1,136 @@
+import { afterEach, expect, test } from "bun:test";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { Shop } from "../hud/Shop";
+import { DEFAULT_SETTINGS, useSettingsStore } from "../settings-store";
+import { useRoomStore } from "../store";
+import { useUiStore } from "../ui-store";
+import { type RoomConnection, connectRoom } from "../ws-client";
+import { HubPlaza, LobbyView } from "./HubPlaza";
+
+const originalWebSocket = globalThis.WebSocket;
+let connection: RoomConnection | null = null;
+
+class FakeWebSocket {
+  static instances: FakeWebSocket[] = [];
+  readonly OPEN = 1;
+  readyState = 1;
+  sent: string[] = [];
+  onopen: ((event: Event) => void) | null = null;
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  onclose: ((event: CloseEvent) => void) | null = null;
+
+  constructor(readonly url: string) {
+    FakeWebSocket.instances.push(this);
+    queueMicrotask(() => this.onopen?.(new Event("open")));
+  }
+
+  send(raw: string): void {
+    this.sent.push(raw);
+  }
+
+  close(): void {
+    this.readyState = 3;
+    this.onclose?.(new CloseEvent("close"));
+  }
+}
+
+afterEach(() => {
+  connection?.close();
+  connection = null;
+  globalThis.WebSocket = originalWebSocket;
+  FakeWebSocket.instances = [];
+  cleanup();
+  useSettingsStore.setState({ ...DEFAULT_SETTINGS });
+  useRoomStore.setState({
+    sessions: {},
+    currentSessionId: null,
+    projectOrder: [],
+    connection: "connecting",
+  });
+  useUiStore.setState({
+    activePanel: null,
+    selectedAgentId: null,
+    selectedNpcId: null,
+    transition: null,
+    view: "overworld",
+  });
+});
+
+test("lobby structures expose panel actions and keyboard activation", async () => {
+  useSettingsStore.setState({ avatarHero: "orc_warrior" });
+
+  render(
+    <>
+      <LobbyView />
+      <Shop />
+    </>,
+  );
+
+  expect(screen.getByRole("button", { name: /任务台/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /公告板/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /信箱/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /排行榜/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /成就陈列/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /扭蛋机/ })).toBeTruthy();
+
+  await userEvent.click(screen.getByRole("button", { name: /信箱/ }));
+  expect(useUiStore.getState().activePanel).toBe("mailbox");
+
+  act(() => useUiStore.setState({ activePanel: null }));
+  screen.getByRole("button", { name: /排行榜/ }).focus();
+  await userEvent.keyboard("{Enter}");
+  expect(useUiStore.getState().activePanel).toBe("leaderboard");
+
+  act(() => useUiStore.setState({ activePanel: null }));
+  await userEvent.click(screen.getByRole("button", { name: /扭蛋机/ }));
+  expect(useUiStore.getState().activePanel).toBe("gacha");
+  expect(screen.getByText("扭蛋:随机皮肤")).toBeTruthy();
+});
+
+test("clicking Codex and Claude doors sends runtime-specific newSession commands", async () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  connection = connectRoom("ws://roguent.test");
+  useSettingsStore.setState({ avatarHero: "orc_warrior" });
+
+  render(<HubPlaza initialPosition={{ x: 1690, y: 760 }} />);
+
+  await userEvent.click(screen.getByRole("button", { name: /Codex 项目/ }));
+  await userEvent.click(screen.getByRole("button", { name: /Claude 项目/ }));
+
+  await waitFor(() => expect(FakeWebSocket.instances[0]?.sent.length).toBe(2));
+  const sent = FakeWebSocket.instances[0]?.sent.map((raw) => JSON.parse(raw));
+  expect(sent?.[0]).toMatchObject({
+    cmd: "newSession",
+    sessionId: "s1",
+    runtime: "codex",
+    model: "gpt-5",
+    approvalPolicy: "on-request",
+  });
+  expect(sent?.[1]).toMatchObject({
+    cmd: "newSession",
+    sessionId: "s2",
+    runtime: "claude",
+    model: "claude-opus-4-8",
+  });
+});
+
+test("focused structure Enter is owned by the button and not the global proximity handler", async () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  connection = connectRoom("ws://roguent.test");
+  useSettingsStore.setState({ avatarHero: "orc_warrior" });
+
+  render(<HubPlaza initialPosition={{ x: 1690, y: 760 }} />);
+
+  screen.getByRole("button", { name: /Codex 项目/ }).focus();
+  await userEvent.keyboard("{Enter}");
+
+  await waitFor(() => expect(FakeWebSocket.instances[0]?.sent.length).toBe(1));
+  const sent = FakeWebSocket.instances[0]?.sent.map((raw) => JSON.parse(raw));
+  expect(sent?.[0]).toMatchObject({
+    cmd: "newSession",
+    runtime: "codex",
+  });
+});

@@ -30,7 +30,8 @@ function Glow({ x, y, radius, color, alpha }: Omit<Light, "key">) {
  * character's warm glow now lives inside Character so it follows along as the
  * character moves (spec §5).
  */
-export function GlowLayer() {
+export function GlowLayer({ enabled = true }: { enabled?: boolean }) {
+  if (!enabled) return null;
   const statics: Light[] = [
     {
       key: "door",

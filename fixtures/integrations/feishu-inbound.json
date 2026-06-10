@@ -1,0 +1,21 @@
+{
+  "event_id": "evt-feishu-1",
+  "create_time": "1717452000000",
+  "event_type": "im.message.receive_v1",
+  "tenant_key": "tenant-redacted",
+  "sender": {
+    "sender_id": {
+      "open_id": "ou_user_1"
+    },
+    "sender_type": "user",
+    "tenant_key": "tenant-redacted"
+  },
+  "message": {
+    "message_id": "om_msg_1",
+    "create_time": "1717452000000",
+    "chat_id": "oc_group_1",
+    "chat_type": "group",
+    "message_type": "text",
+    "content": "{\"text\":\"请检查飞书长连接任务\"}"
+  }
+}

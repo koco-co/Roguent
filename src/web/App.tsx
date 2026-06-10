@@ -1,10 +1,12 @@
 import type React from "react";
 import { useEffect, useRef } from "react";
+import { KonamiListener } from "./easter/KonamiListener";
 import { resolveEngineUrl } from "./engine-url";
-import { CharacterSelect } from "./hud/CharacterSelect";
 import { Hud } from "./hud/Hud";
 import { NpcCard } from "./hud/NpcCard";
+import { AnnouncementPopup } from "./hud/mailbox/AnnouncementPopup";
 import { LobbyView } from "./lobby/HubPlaza";
+import { LoginGate } from "./lobby/LoginGate";
 import { PortalTransition } from "./overworld/PortalTransition";
 import { Room } from "./room/Room";
 import {
@@ -24,10 +26,9 @@ function useStageScale(ref: React.RefObject<HTMLDivElement | null>) {
     const el = ref.current;
     if (!el) return;
     const fit = () => {
-      el.style.setProperty(
-        "--stage-scale",
-        String(stageScale(window.innerWidth, window.innerHeight)),
-      );
+      const scale = stageScale(window.innerWidth, window.innerHeight);
+      el.style.setProperty("--stage-scale", String(scale));
+      el.style.setProperty("--stage-inverse-scale", String(1 / scale));
     };
     fit();
     window.addEventListener("resize", fit);
@@ -45,7 +46,9 @@ export function App() {
   const selectNpc = useUiStore((s) => s.selectNpc);
   const selectedAgentId = useUiStore((s) => s.selectedAgentId);
   const selectAgent = useUiStore((s) => s.select);
+  const avatarHero = useSettingsStore((s) => s.avatarHero);
   const inInterior = view !== "overworld";
+  const loginGateActive = avatarHero === null;
   const interiorId = typeof view === "object" ? view.interior : null;
   // 内景会话是否已不可见(被软归档或硬删除)。缺失 → 视作已离场。
   const interiorGone = useRoomStore((s) =>
@@ -117,36 +120,46 @@ export function App() {
 
   return (
     <div id="viewport" ref={viewportRef} className="viewport">
+      {/* Always-mounted global listeners and overlays (outside live layer so they
+          survive LoginGate's inert attribute). */}
+      <KonamiListener />
+      <AnnouncementPopup />
       <div
         id="stage"
         className={`stage ${settingsRootClass(settings)}`}
         style={settingsRootStyle(settings) as React.CSSProperties}
       >
-        {/* 双层缩放:总览大厅(暖色 DOM 广场)↔ 进入的会话内景(Pixi Room)。*/}
-        {inInterior ? <Room /> : <LobbyView />}
-        <Hud />
-        {inInterior ? (
-          <button
-            type="button"
-            className="px-btn pf"
-            style={{
-              position: "absolute",
-              top: 14,
-              left: 70,
-              padding: "8px 12px",
-              fontSize: 10,
-              color: "var(--cyan)",
-            }}
-            onClick={() => interiorId && beginExit(interiorId)}
-          >
-            ← 大厅
-          </button>
-        ) : (
-          <NpcCard />
-        )}
-        <PortalTransition />
-        {/* 首次进入的强制角色选择门(avatarHero === null 时显示,覆盖 overworld + HUD)。*/}
-        <CharacterSelect />
+        <div
+          className="app-live-layer"
+          aria-hidden={loginGateActive}
+          inert={loginGateActive || undefined}
+        >
+          {/* 双层缩放:总览大厅(暖色 DOM 广场)↔ 进入的会话内景(Pixi Room)。*/}
+          {inInterior ? <Room /> : <LobbyView />}
+          <Hud />
+          {inInterior ? (
+            <button
+              type="button"
+              className="px-btn pf"
+              style={{
+                position: "absolute",
+                top: 14,
+                left: 70,
+                padding: "8px 12px",
+                fontSize: 10,
+                color: "var(--cyan)",
+              }}
+              onClick={() => interiorId && beginExit(interiorId)}
+            >
+              ← 大厅
+            </button>
+          ) : (
+            <NpcCard />
+          )}
+          <PortalTransition />
+        </div>
+        {/* 首次进入的 start gate + 角色选择门(avatarHero === null 时覆盖 overworld + HUD)。*/}
+        <LoginGate />
       </div>
     </div>
   );

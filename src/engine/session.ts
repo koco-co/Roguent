@@ -1,30 +1,77 @@
+import type { Database } from "bun:sqlite";
 import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AccountLimits,
+  PromptRequestedPayload,
+  PromptResolvedPayload,
   RoomEvent,
   SessionCreatedPayload,
 } from "../shared/events";
-import { Driver, type DriverCallbacks, type IDriver } from "./driver";
+import type {
+  CodexApprovalPolicy,
+  PermissionMode,
+  ReasoningEffort,
+  RuntimeConfig,
+  RuntimeKind,
+  SandboxMode,
+} from "../shared/runtime";
+import { isPermissionMode, normalizePermissionMode } from "../shared/runtime";
+import {
+  normalizeReasoningEffort,
+  normalizeSandboxMode,
+} from "../shared/runtime";
+import { appendAuditRecordSafe } from "./audit/log";
+import type { DriverCallbacks, IDriver } from "./driver";
+import type { IntegrationRouterEvent } from "./integrations/types";
 import { LimitsAggregator } from "./limits-aggregator";
 import { readTranscriptLines } from "./local-sessions";
 import { projectFor } from "./project";
+import {
+  type RuntimeDriverConfig,
+  type RuntimeDriverCreator,
+  RuntimeManager,
+  resolveRuntimeDriverConfig,
+} from "./runtime/manager";
 import { Sequencer } from "./sequencer";
 import { normalizeTranscript } from "./transcript";
 
-export type DriverFactory = (
-  cb: DriverCallbacks,
-  model: string,
-  cwd: string,
-) => IDriver;
+export interface CreateSessionOptions {
+  title: string;
+  model?: string;
+  cwd?: string;
+  runtime?: RuntimeKind;
+  permissionMode?: PermissionMode;
+  approvalPolicy?: CodexApprovalPolicy;
+  sandboxMode?: SandboxMode;
+  reasoningEffort?: ReasoningEffort;
+  networkAccess?: boolean;
+}
+
+interface SessionRuntimeState {
+  title: string;
+  cwd: string;
+  project: string;
+  config: RuntimeDriverConfig;
+}
+
+type PendingPromptKind = PromptRequestedPayload["promptKind"];
+
 export type EventSink = (e: RoomEvent) => void;
 export type LimitsSink = (limits: AccountLimits) => void;
 
-const defaultFactory: DriverFactory = (cb, model, cwd) =>
-  new Driver(cb, model, cwd);
+export interface SessionManagerOptions {
+  auditDb?: Database;
+}
 
 export class SessionManager {
   private seq = new Sequencer();
   private drivers = new Map<string, IDriver>();
+  private runtimeStates = new Map<string, SessionRuntimeState>();
+  private runtimeConfigQueues = new Map<string, Promise<void>>();
+  private pendingPrompts = new Map<string, Map<string, PendingPromptKind>>();
+  private respondingPrompts = new Map<string, Set<string>>();
+  private knownTimelineItems = new Map<string, Set<string>>();
+  private retryTextByTimelineItem = new Map<string, Map<string, string>>();
   // 当前引擎认识的所有会话 id(live driver + 已导入的 transcript)。新连接对账用:
   // gateway 把它下发给客户端清幽灵会话。进程重启即清零(会话确实没了)。
   private knownSessions = new Set<string>();
@@ -35,8 +82,9 @@ export class SessionManager {
   private limits = new LimitsAggregator((l) => this.emitLimits(l));
 
   constructor(
-    private driverFactory: DriverFactory = defaultFactory,
+    private runtimeManager: RuntimeDriverCreator = new RuntimeManager(),
     private cwd: string = process.cwd(),
+    private options: SessionManagerOptions = {},
   ) {}
 
   subscribe(sink: EventSink): () => void {
@@ -45,7 +93,20 @@ export class SessionManager {
   }
 
   private emit(e: RoomEvent): void {
+    this.rememberTimelineItem(e);
     for (const sink of this.sinks) sink(e);
+  }
+
+  publishIntegrationEvent(event: IntegrationRouterEvent): void {
+    this.emit(
+      this.seq.stamp(event.sessionId, event.type, event.payload, event.ts),
+    );
+  }
+
+  private emitSessionError(sessionId: string, message: string): void {
+    this.emit(
+      this.seq.stamp(sessionId, "session.error", { message }, Date.now()),
+    );
   }
 
   // 账户级账号限额订阅(独立于 (sessionId,seq) 事件流)。
@@ -63,14 +124,27 @@ export class SessionManager {
     this.limits.applyPoll(l);
   }
 
-  createSession(
-    id: string,
-    opts: { title: string; model: string; cwd?: string },
-  ): void {
+  createSession(id: string, opts: CreateSessionOptions): void {
     // 每会话带自己的 cwd(默认服务端 cwd);project = 该 cwd 的 git 根 basename,
     // 是总览世界里「项目 = 房间」的分组键(spec §总览世界/生命周期)。
     const cwd = opts.cwd?.trim() || this.cwd;
     const project = projectFor(cwd);
+    const state: SessionRuntimeState = {
+      title: opts.title,
+      cwd,
+      project,
+      config: resolveRuntimeDriverConfig({
+        runtime: opts.runtime,
+        model: opts.model,
+        cwd,
+        permissionMode: opts.permissionMode,
+        approvalPolicy: opts.approvalPolicy,
+        sandboxMode: opts.sandboxMode,
+        reasoningEffort: opts.reasoningEffort,
+        networkAccess: opts.networkAccess,
+      }),
+    };
+    this.runtimeStates.set(id, state);
     // 会话的存在性必须立刻可见,不能依赖 SDK 的 system:init —— SDK 在 streaming
     // 输入下要等第一条 user 消息才发 init,否则就「没会话 → 发不了消息 → 不发 init
     // → 没会话」死锁,新建会话与对话都失效。先合成一条 session.created,把建会话时
@@ -79,15 +153,7 @@ export class SessionManager {
       this.seq.stamp(
         id,
         "session.created",
-        {
-          title: opts.title,
-          model: opts.model,
-          permissionMode: "default",
-          apiKeySource: "",
-          slashCommands: [],
-          cwd,
-          project,
-        },
+        this.sessionCreatedPayload(state),
         Date.now(),
       ),
     );
@@ -99,27 +165,85 @@ export class SessionManager {
           // SDK system:init 派生的 session.created 不带用户标题 / cwd / project
           //(spec §5),在这里把建会话时的值注入,避免抽屉里显示成 sessionId、
           // 也保证 reducer 拿得到 project 用于房间归属。
-          const payload =
-            d.type === "session.created"
-              ? {
-                  ...(d.payload as Record<string, unknown>),
-                  title: opts.title,
-                  cwd,
-                  project,
-                }
-              : d.payload;
+          const payload = (() => {
+            if (d.type !== "session.created") return d.payload;
+            const incoming = d.payload as Record<string, unknown>;
+            this.applySessionCreatedIncoming(state, incoming);
+            return this.sessionCreatedPayload(state, incoming);
+          })();
+          this.applyPromptDraft(id, d.type, payload);
           this.emit(this.seq.stamp(id, d.type, payload, ts, d.agentId));
         }
         // 一轮结束(result → usage.updated)即取真实上下文占用,发 context.updated。
         if (drafts.some((d) => d.type === "usage.updated")) {
-          void this.emitContextUsage(id);
+          void this.emitContextUsage(id).catch((error) =>
+            this.emit(
+              this.seq.stamp(
+                id,
+                "session.error",
+                {
+                  message: `Context usage update failed: ${errorMessage(error)}`,
+                },
+                Date.now(),
+              ),
+            ),
+          );
         }
       },
     };
-    const driver = this.driverFactory(cb, opts.model, cwd);
+    const driver = this.runtimeManager.createDriver(cb, state.config);
     this.drivers.set(id, driver);
     this.knownSessions.add(id);
     driver.start();
+  }
+
+  private applySessionCreatedIncoming(
+    state: SessionRuntimeState,
+    incoming: Record<string, unknown>,
+  ): void {
+    const model =
+      typeof incoming.model === "string" ? incoming.model.trim() : "";
+    if (model) state.config = { ...state.config, model };
+    if (
+      isPermissionMode(incoming.permissionMode) &&
+      incoming.permissionMode !== "default"
+    ) {
+      state.config = {
+        ...state.config,
+        permissionMode: incoming.permissionMode,
+      };
+    }
+  }
+
+  private sessionCreatedPayload(
+    state: SessionRuntimeState,
+    incoming: Record<string, unknown> = {},
+  ): SessionCreatedPayload {
+    const slashCommands = Array.isArray(incoming.slashCommands)
+      ? incoming.slashCommands.filter(
+          (item): item is string => typeof item === "string",
+        )
+      : [];
+    const payload: SessionCreatedPayload = {
+      title: state.title,
+      model: state.config.model,
+      runtime: state.config.runtime,
+      permissionMode: state.config.permissionMode,
+      apiKeySource:
+        typeof incoming.apiKeySource === "string" ? incoming.apiKeySource : "",
+      slashCommands,
+      cwd: state.cwd,
+      project: state.project,
+      sandboxMode: state.config.sandboxMode,
+      networkAccess: state.config.networkAccess,
+    };
+    if (state.config.approvalPolicy !== undefined) {
+      payload.approvalPolicy = state.config.approvalPolicy;
+    }
+    if (state.config.reasoningEffort !== undefined) {
+      payload.reasoningEffort = state.config.reasoningEffort;
+    }
+    return payload;
   }
 
   // 引擎当前认识的会话 id(新连接花名册;gateway 下发给客户端对账清幽灵)。
@@ -127,8 +251,126 @@ export class SessionManager {
     return [...this.knownSessions];
   }
 
-  sendMessage(id: string, text: string): void {
-    this.drivers.get(id)?.send(text);
+  sendMessage(id: string, text: string): boolean {
+    const driver = this.drivers.get(id);
+    if (!driver || !this.knownSessions.has(id)) return false;
+    try {
+      driver.send(text);
+    } catch (error) {
+      this.emitSessionError(id, `Send failed: ${errorMessage(error)}`);
+      return false;
+    }
+    this.emit(
+      this.seq.stamp(id, "message.final", { role: "user", text }, Date.now()),
+    );
+    return true;
+  }
+
+  async rollback(id: string, checkpointId: string): Promise<void> {
+    if (!this.knownTimelineItems.get(id)?.has(checkpointId)) {
+      this.emitSessionError(
+        id,
+        `Rollback checkpoint is not locally known: ${checkpointId}`,
+      );
+      return;
+    }
+
+    const driver = this.drivers.get(id);
+    const state = this.runtimeStates.get(id);
+    if (!driver || !state || !this.knownSessions.has(id)) {
+      this.emitSessionError(
+        id,
+        `Rollback is not supported without an active runtime for session ${id}`,
+      );
+      return;
+    }
+    if (!driver.rollback) {
+      this.emitSessionError(
+        id,
+        `Rollback is not supported by ${state.config.runtime} runtime`,
+      );
+      return;
+    }
+
+    try {
+      await driver.rollback(checkpointId);
+    } catch (error) {
+      this.emitSessionError(id, `Rollback failed: ${errorMessage(error)}`);
+      return;
+    }
+
+    this.emit(
+      this.seq.stamp(id, "session.rolled_back", { checkpointId }, Date.now()),
+    );
+  }
+
+  retryFrom(id: string, timelineItemId: string): void {
+    const text = this.retryTextByTimelineItem.get(id)?.get(timelineItemId);
+    if (!text) {
+      this.emitSessionError(
+        id,
+        `Cannot retry from unknown or non-message timeline item: ${timelineItemId}`,
+      );
+      return;
+    }
+    const driver = this.drivers.get(id);
+    if (!driver || !this.knownSessions.has(id)) {
+      this.emitSessionError(
+        id,
+        `Cannot retry without an active runtime for session ${id}`,
+      );
+      return;
+    }
+
+    try {
+      driver.send(text);
+    } catch (error) {
+      this.emitSessionError(id, `Retry failed: ${errorMessage(error)}`);
+      return;
+    }
+
+    this.appendRetryAudit(id, timelineItemId, text);
+    this.emit(
+      this.seq.stamp(
+        id,
+        "message.final",
+        {
+          role: "system",
+          text: `Audit: retryFrom resent timeline item ${timelineItemId} in session ${id}`,
+        },
+        Date.now(),
+      ),
+    );
+  }
+
+  private appendRetryAudit(
+    sessionId: string,
+    timelineItemId: string,
+    text: string,
+  ): void {
+    if (!this.options.auditDb) return;
+
+    const result = appendAuditRecordSafe(
+      this.options.auditDb,
+      {
+        source: "runtime",
+        action: "retry_from",
+        sessionId,
+        payload: { timelineItemId, text },
+        summary: `retryFrom resent timeline item ${timelineItemId}`,
+      },
+      { type: "session.error", sessionId },
+    );
+    if (result.ok) return;
+
+    this.emit(
+      this.seq.stamp(
+        result.warningEvent.sessionId,
+        result.warningEvent.type,
+        result.warningEvent.payload,
+        Date.now(),
+      ),
+    );
   }
 
   // 第三个事件来源:导入本地 CC transcript,零额度同步。不建 Driver,把整段
@@ -165,6 +407,12 @@ export class SessionManager {
   deleteSession(id: string): void {
     this.drivers.get(id)?.end();
     this.drivers.delete(id);
+    this.runtimeStates.delete(id);
+    this.runtimeConfigQueues.delete(id);
+    this.pendingPrompts.delete(id);
+    this.respondingPrompts.delete(id);
+    this.knownTimelineItems.delete(id);
+    this.retryTextByTimelineItem.delete(id);
     this.knownSessions.delete(id);
   }
 
@@ -173,17 +421,15 @@ export class SessionManager {
     // 广播模型变更:前端 store 对 session.created 做幂等合并(不清 transcript),
     // 只要 payload 携带非空 model 字符串就会更新 session.model。
     if (this.knownSessions.has(id)) {
+      const state = this.runtimeStates.get(id);
+      if (!state) return;
+      state.config = { ...state.config, model };
+      this.runtimeStates.set(id, state);
       this.emit(
         this.seq.stamp(
           id,
           "session.created",
-          {
-            title: "",
-            model,
-            permissionMode: "",
-            apiKeySource: "",
-            slashCommands: [],
-          },
+          this.sessionCreatedPayload(state),
           Date.now(),
         ),
       );
@@ -191,7 +437,28 @@ export class SessionManager {
   }
 
   async interrupt(id: string): Promise<void> {
-    await this.drivers.get(id)?.interrupt();
+    try {
+      await this.drivers.get(id)?.interrupt();
+    } catch (error) {
+      this.emitSessionError(id, `Interrupt failed: ${errorMessage(error)}`);
+      return;
+    }
+    const state = this.runtimeStates.get(id);
+    if (!state || !this.knownSessions.has(id)) return;
+    this.emit(
+      this.seq.stamp(
+        id,
+        "runtime.status",
+        {
+          runtime: state.config.runtime,
+          status: "stopped",
+          config: runtimeConfigWithoutCwd(state.config),
+          cwd: state.cwd,
+          message: "Interrupted",
+        },
+        Date.now(),
+      ),
+    );
   }
 
   respondPermission(
@@ -199,7 +466,10 @@ export class SessionManager {
     promptId: string,
     result: PermissionResult,
   ): void {
-    this.drivers.get(id)?.respondPermission(promptId, result);
+    if (!this.startPromptResponse(id, promptId, "permission")) return;
+    this.handlePromptResponse(id, promptId, () =>
+      this.drivers.get(id)?.respondPermission(promptId, result),
+    );
   }
 
   respondQuestion(
@@ -207,27 +477,209 @@ export class SessionManager {
     promptId: string,
     selectedLabels: string[],
   ): void {
-    // Send the selection back to the agent as a user message
-    const text = selectedLabels.join("、");
-    this.drivers.get(id)?.send(text);
-    // Let the UI know the prompt is resolved
+    if (!this.startPromptResponse(id, promptId, "question")) return;
+    const driver = this.drivers.get(id);
+    if (driver?.respondQuestion) {
+      this.handlePromptResponse(id, promptId, () =>
+        driver.respondQuestion?.(promptId, selectedLabels),
+      );
+      return;
+    }
+    this.handlePromptResponse(id, promptId, () => {
+      driver?.send(selectedLabels.join("、"));
+      this.emit(
+        this.seq.stamp(
+          id,
+          "prompt.resolved",
+          { promptId, result: "answered" },
+          Date.now(),
+        ),
+      );
+    });
+  }
+
+  private applyPromptDraft(
+    sessionId: string,
+    type: RoomEvent["type"],
+    payload: unknown,
+  ): void {
+    if (type === "prompt.requested") {
+      const prompt = payload as PromptRequestedPayload;
+      let prompts = this.pendingPrompts.get(sessionId);
+      if (!prompts) {
+        prompts = new Map();
+        this.pendingPrompts.set(sessionId, prompts);
+      }
+      prompts.set(prompt.promptId, prompt.promptKind);
+      return;
+    }
+    if (type === "prompt.resolved") {
+      const resolved = payload as PromptResolvedPayload;
+      this.pendingPrompts.get(sessionId)?.delete(resolved.promptId);
+      this.respondingPrompts.get(sessionId)?.delete(resolved.promptId);
+    }
+  }
+
+  private startPromptResponse(
+    sessionId: string,
+    promptId: string,
+    expectedKind: PendingPromptKind,
+  ): boolean {
+    const prompts = this.pendingPrompts.get(sessionId);
+    if (prompts?.get(promptId) !== expectedKind) return false;
+    let responding = this.respondingPrompts.get(sessionId);
+    if (!responding) {
+      responding = new Set();
+      this.respondingPrompts.set(sessionId, responding);
+    }
+    if (responding.has(promptId)) return false;
+    responding.add(promptId);
+    return true;
+  }
+
+  private handlePromptResponse(
+    sessionId: string,
+    promptId: string,
+    action: () => void | Promise<void>,
+  ): void {
+    try {
+      const result = action();
+      if (isPromiseLike(result)) {
+        void result.catch((error) =>
+          this.failPromptResponse(sessionId, promptId, error),
+        );
+      }
+    } catch (error) {
+      this.failPromptResponse(sessionId, promptId, error);
+    }
+  }
+
+  private failPromptResponse(
+    sessionId: string,
+    promptId: string,
+    error: unknown,
+  ): void {
+    this.respondingPrompts.get(sessionId)?.delete(promptId);
     this.emit(
       this.seq.stamp(
-        id,
-        "prompt.resolved",
-        { promptId, result: "answered" },
+        sessionId,
+        "session.error",
+        { message: `Prompt response failed: ${errorMessage(error)}` },
         Date.now(),
       ),
     );
   }
 
   async setPermissionMode(id: string, mode: string): Promise<void> {
+    await this.drivers.get(id)?.setPermissionMode(mode);
+    const state = this.runtimeStates.get(id);
+    if (!state || !this.knownSessions.has(id)) return;
+    const permissionMode = normalizePermissionMode(
+      mode,
+      state.config.permissionMode,
+    );
+    if (permissionMode === state.config.permissionMode) return;
+    state.config = { ...state.config, permissionMode };
+    this.runtimeStates.set(id, state);
+    this.emit(
+      this.seq.stamp(
+        id,
+        "session.created",
+        this.sessionCreatedPayload(state),
+        Date.now(),
+      ),
+    );
+  }
+
+  async setRuntimeConfig(id: string, config: RuntimeConfig): Promise<void> {
+    const previous = this.runtimeConfigQueues.get(id) ?? Promise.resolve();
+    const queued = previous
+      .catch(() => {})
+      .then(() => this.applyRuntimeConfig(id, config));
+    const tracked = queued.finally(() => {
+      if (this.runtimeConfigQueues.get(id) === tracked) {
+        this.runtimeConfigQueues.delete(id);
+      }
+    });
+    this.runtimeConfigQueues.set(id, tracked);
+    return tracked;
+  }
+
+  private async applyRuntimeConfig(
+    id: string,
+    config: RuntimeConfig,
+  ): Promise<void> {
     const driver = this.drivers.get(id);
-    if (driver && "setPermissionMode" in driver) {
-      await (
-        driver as unknown as { setPermissionMode(m: string): Promise<void> }
-      ).setPermissionMode(mode);
+    const state = this.runtimeStates.get(id);
+    if (!driver || !state || !this.knownSessions.has(id)) return;
+
+    const previous = runtimeConfigWithoutCwd(state.config);
+    const {
+      approvalPolicy: _oldApprovalPolicy,
+      reasoningEffort: _oldReasoningEffort,
+      ...baseConfig
+    } = state.config;
+    const next: RuntimeDriverConfig = {
+      ...baseConfig,
+      runtime: state.config.runtime,
+      model: config.model.trim() || state.config.model,
+      permissionMode: normalizePermissionMode(
+        config.permissionMode,
+        state.config.permissionMode,
+      ),
+      sandboxMode: normalizeSandboxMode(
+        config.sandboxMode,
+        state.config.sandboxMode,
+      ),
+      networkAccess: config.networkAccess,
+    };
+    if (config.runtime === "codex" && config.approvalPolicy !== undefined) {
+      next.approvalPolicy = config.approvalPolicy;
     }
+    const reasoningEffort = normalizeReasoningEffort(
+      config.reasoningEffort,
+      state.config.reasoningEffort,
+    );
+    if (reasoningEffort !== undefined) {
+      next.reasoningEffort = reasoningEffort;
+    }
+
+    const changedKeys = changedRuntimeKeys(
+      previous,
+      runtimeConfigWithoutCwd(next),
+    );
+    if (changedKeys.length === 0) return;
+
+    try {
+      await applyRuntimeConfigToDriver(driver, next, state.config);
+    } catch (error) {
+      this.emit(
+        this.seq.stamp(
+          id,
+          "session.error",
+          {
+            message: `Runtime config update failed: ${errorMessage(error)}`,
+          },
+          Date.now(),
+        ),
+      );
+      return;
+    }
+
+    state.config = next;
+    this.runtimeStates.set(id, state);
+    this.emit(
+      this.seq.stamp(
+        id,
+        "runtime.config.updated",
+        {
+          config: runtimeConfigWithoutCwd(next),
+          previous,
+          changedKeys,
+        },
+        Date.now(),
+      ),
+    );
   }
 
   private async emitContextUsage(id: string): Promise<void> {
@@ -244,4 +696,114 @@ export class SessionManager {
       ),
     );
   }
+
+  private rememberTimelineItem(e: RoomEvent): void {
+    const checkpointId = timelineCheckpointId(e);
+    if (checkpointId) {
+      let ids = this.knownTimelineItems.get(e.sessionId);
+      if (!ids) {
+        ids = new Set();
+        this.knownTimelineItems.set(e.sessionId, ids);
+      }
+      ids.add(checkpointId);
+    }
+    this.rememberRetryText(e);
+  }
+
+  private rememberRetryText(e: RoomEvent): void {
+    if (e.type !== "message.delta" && e.type !== "message.final") return;
+    const p = e.payload as { text?: unknown; role?: unknown };
+    if (typeof p.text !== "string" || !p.text) return;
+    if (p.role !== "user") return;
+
+    let textByItem = this.retryTextByTimelineItem.get(e.sessionId);
+    if (!textByItem) {
+      textByItem = new Map();
+      this.retryTextByTimelineItem.set(e.sessionId, textByItem);
+    }
+
+    textByItem.set(String(e.seq), p.text);
+  }
+}
+
+function timelineCheckpointId(e: RoomEvent): string | null {
+  switch (e.type) {
+    case "message.delta":
+    case "message.final":
+    case "thinking.delta":
+    case "thinking.final":
+    case "session.error":
+      return String(e.seq);
+    case "tool.started":
+    case "tool.ended":
+    case "tool.failed": {
+      const id = (e.payload as { toolUseId?: unknown }).toolUseId;
+      return typeof id === "string" && id ? id : null;
+    }
+    case "prompt.requested":
+    case "prompt.resolved": {
+      const id = (e.payload as { promptId?: unknown }).promptId;
+      return typeof id === "string" && id ? id : null;
+    }
+    default:
+      return null;
+  }
+}
+
+async function applyRuntimeConfigToDriver(
+  driver: IDriver,
+  next: RuntimeDriverConfig,
+  current: RuntimeDriverConfig,
+): Promise<void> {
+  const config = runtimeConfigWithoutCwd(next);
+  if (driver.setRuntimeConfig) {
+    await driver.setRuntimeConfig(config);
+    return;
+  }
+  if (next.model !== current.model) await driver.setModel(next.model);
+  if (next.permissionMode !== current.permissionMode) {
+    await driver.setPermissionMode(next.permissionMode);
+  }
+  if (next.sandboxMode !== current.sandboxMode) {
+    await driver.setSandboxMode?.(next.sandboxMode);
+  }
+  if (next.reasoningEffort !== current.reasoningEffort) {
+    const effort = next.reasoningEffort;
+    if (effort !== undefined) await driver.setReasoningEffort?.(effort);
+  }
+}
+
+function runtimeConfigWithoutCwd(config: RuntimeDriverConfig): RuntimeConfig {
+  const { cwd: _cwd, ...runtimeConfig } = config;
+  return runtimeConfig;
+}
+
+function changedRuntimeKeys(
+  previous: RuntimeConfig,
+  next: RuntimeConfig,
+): string[] {
+  const keys: Array<keyof RuntimeConfig> = [
+    "runtime",
+    "model",
+    "permissionMode",
+    "approvalPolicy",
+    "sandboxMode",
+    "reasoningEffort",
+    "networkAccess",
+  ];
+  return keys.filter((key) => previous[key] !== next[key]);
+}
+
+function isPromiseLike(value: unknown): value is Promise<void> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "then" in value &&
+    typeof (value as { then?: unknown }).then === "function"
+  );
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
 }

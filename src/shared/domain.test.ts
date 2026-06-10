@@ -1,6 +1,13 @@
 import { expect, test } from "bun:test";
 import { ORCHESTRATOR_ID, createAgent, createSession } from "./domain";
 
+const compileTimeOnly = false;
+
+if (compileTimeOnly) {
+  // @ts-expect-error "ask" is not a Claude SDK PermissionMode.
+  createSession({ id: "bad-mode", title: "bad", permissionMode: "ask" });
+}
+
 test("createSession seeds an orchestrator agent and sane defaults", () => {
   const s = createSession({
     id: "s1",

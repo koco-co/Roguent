@@ -1,5 +1,19 @@
 import { useState } from "react";
+import type { RoguentSettings } from "../../shared/events";
+import type {
+  CodexApprovalPolicy,
+  PermissionMode,
+  ReasoningEffort,
+  RuntimeConfig,
+  SandboxMode,
+} from "../../shared/runtime";
+import { defaultRuntimeConfig } from "../../shared/runtime";
+import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
+import { sendCommand } from "../ws-client";
+import { ClaudeSettings } from "./ClaudeSettings";
+import { CodexSettings } from "./CodexSettings";
+import { IntegrationSettings } from "./IntegrationSettings";
 import { Modal } from "./Modal";
 import { Icon } from "./icons";
 import {
@@ -16,11 +30,9 @@ import {
  * 设置(CONFIG)面板 Settings(对标设计原型 panels2.jsx 的 Settings,§6.10):
  * 游戏内的 Claude Code settings.json / Codex ~/.codex/config.toml 可视化编辑器外观。
  *
- * **整面板为 mock 占位**:Roguent 是「活动可视化平台」,**不读写** Claude Code 的
- * settings.json,也未接入 Codex runtime。所以本面板所有字段 / 值 / 保存 / 还原都是
- * 本地 state,**不接任何真实 store、不持久化**——「保存」只清未保存标志,不写盘。
- * 顶部一条显眼 .task-mock-banner 显式标注(复用 Tasks 的 mock banner 类),绝不冒充
- * 真实配置。注意:别与 src/web/settings-store.ts(app 自己的 UI 偏好)混淆。
+ * **真假边界**:字段 schema 仍来自 prototype,但「保存」已通过真实 WS command
+ * 持久化 Roguent runtime/integration settings;不直接读写 Claude Code settings.json
+ * 或 Codex config.toml。注意:别与 src/web/settings-store.ts(app 自己的 UI 偏好)混淆。
  *
  * activePanel gate 的 return null 放在所有 hooks 之后(React hooks 规则);selector
  * 只取 activePanel(基元 boolean)/ closePanel(稳定函数引用),守 zustand selector 铁律。
@@ -64,6 +76,7 @@ function renderCtrl(
         className={`pxtoggle${on ? " on" : ""}`}
         onClick={() => set(it.k, !on)}
         aria-pressed={on}
+        aria-label={it.label}
       >
         <span className="knob" />
       </button>
@@ -73,6 +86,7 @@ function renderCtrl(
     return (
       <select
         className="pxselect"
+        aria-label={it.label}
         value={typeof val === "string" ? val : ""}
         onChange={(e) => set(it.k, e.target.value)}
       >
@@ -93,6 +107,7 @@ function renderCtrl(
             type="button"
             className={`seg-opt${val === o ? " on" : ""}`}
             onClick={() => set(it.k, o)}
+            aria-label={`${it.label}: ${o}`}
           >
             {o}
           </button>
@@ -147,10 +162,348 @@ function renderCtrl(
   return (
     <input
       className="pxinput"
+      aria-label={it.label}
       value={typeof val === "string" ? val : ""}
       onChange={(e) => set(it.k, e.target.value)}
     />
   );
+}
+
+function fieldValue(
+  vals: Record<string, SettingValue>,
+  key: string,
+  groups: SettingGroup[],
+): SettingValue | undefined {
+  if (vals[key] !== undefined) return vals[key];
+  for (const group of groups) {
+    const found = group.items.find((item) => item.k === key);
+    if (found) return found.val;
+  }
+  return undefined;
+}
+
+function stringField(
+  vals: Record<string, SettingValue>,
+  key: string,
+  groups: SettingGroup[],
+  fallback: string,
+): string {
+  const value = fieldValue(vals, key, groups);
+  return typeof value === "string" ? value : fallback;
+}
+
+function booleanField(
+  vals: Record<string, SettingValue>,
+  key: string,
+  groups: SettingGroup[],
+  fallback: boolean,
+): boolean {
+  const value = fieldValue(vals, key, groups);
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function stringListField(
+  vals: Record<string, SettingValue>,
+  key: string,
+  groups: SettingGroup[],
+): string[] {
+  const value = fieldValue(vals, key, groups);
+  return Array.isArray(value) && value.every((item) => typeof item === "string")
+    ? value
+    : [];
+}
+
+function nonEmptyStringField(
+  vals: Record<string, SettingValue>,
+  key: string,
+  groups: SettingGroup[],
+): string | undefined {
+  const value = stringField(vals, key, groups, "").trim();
+  return value ? value : undefined;
+}
+
+const SETTINGS_VALUE_GROUPS = [...SETTINGS_GROUPS, ...CODEX_SETTINGS_GROUPS];
+
+function hasField(vals: Record<string, SettingValue>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(vals, key);
+}
+
+function metadataRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function stringMetadata(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function metadataField(
+  overrides: Record<string, SettingValue>,
+  key: string,
+  existing: unknown,
+): unknown {
+  if (hasField(overrides, key)) {
+    return nonEmptyStringField(overrides, key, SETTINGS_VALUE_GROUPS);
+  }
+  return existing;
+}
+
+function settingsFieldValues(
+  settings: RoguentSettings | null | undefined,
+  rt: "claude" | "codex",
+): Record<string, SettingValue> {
+  const values: Record<string, SettingValue> = {};
+  const runtime = settings?.runtime;
+  if (runtime?.runtime === rt) {
+    if (rt === "codex") {
+      values.cx_model = runtime.model;
+      if (runtime.reasoningEffort)
+        values.cx_reasoning = runtime.reasoningEffort;
+      if (runtime.approvalPolicy) values.cx_approval = runtime.approvalPolicy;
+      values.cx_sandbox = runtime.sandboxMode;
+      values.cx_network = runtime.networkAccess;
+    } else {
+      values.model = runtime.model;
+    }
+  }
+
+  if (settings?.ui) {
+    for (const [key, value] of Object.entries(settings.ui)) {
+      if (
+        typeof value === "string" ||
+        typeof value === "boolean" ||
+        (Array.isArray(value) &&
+          value.every((entry) => typeof entry === "string"))
+      ) {
+        values[key] = value;
+      }
+    }
+  }
+
+  const codex = metadataRecord(settings?.metadata?.codex);
+  if (rt === "codex" && codex) {
+    if (typeof codex.provider === "string") values.cx_provider = codex.provider;
+    if (
+      Array.isArray(codex.mcpServers) &&
+      codex.mcpServers.every((entry) => typeof entry === "string")
+    ) {
+      values.cx_mcp = codex.mcpServers;
+    }
+    if (typeof codex.mcpProfile === "string") {
+      values.cx_mcp_profile = codex.mcpProfile;
+    }
+  }
+
+  const integrations = settings?.integrations;
+  if (integrations?.wechat)
+    values.im_wechat_enabled = integrations.wechat.enabled;
+  if (integrations?.feishu) {
+    values.im_feishu_enabled = integrations.feishu.enabled;
+    const meta = integrations.feishu.metadata;
+    const appId = stringMetadata(meta?.appId);
+    const appSecret = stringMetadata(meta?.appSecret);
+    if (appId) values.feishu_app_id = appId;
+    if (appSecret) values.feishu_app_secret = appSecret;
+  }
+  if (integrations?.github) {
+    values.github_enabled = integrations.github.enabled;
+    const meta = integrations.github.metadata;
+    const repo = stringMetadata(meta?.repo);
+    const webhookSecret = stringMetadata(meta?.webhookSecret);
+    if (repo) values.github_repo = repo;
+    if (webhookSecret) values.github_webhook_secret = webhookSecret;
+  }
+  if (integrations?.x) {
+    values.x_enabled = integrations.x.enabled;
+    const bearerToken = stringMetadata(integrations.x.metadata?.bearerToken);
+    if (bearerToken) values.x_bearer_token = bearerToken;
+  }
+  if (integrations?.relay) {
+    values.relay_enabled = integrations.relay.enabled;
+    const meta = integrations.relay.metadata;
+    const endpoint = stringMetadata(meta?.endpoint);
+    const token = stringMetadata(meta?.token);
+    if (endpoint) values.relay_endpoint = endpoint;
+    if (token) values.relay_token = token;
+  }
+  return values;
+}
+
+function runtimeSettings(
+  rt: "claude" | "codex",
+  vals: Record<string, SettingValue>,
+): RuntimeConfig {
+  if (rt === "codex") {
+    const defaults = defaultRuntimeConfig("codex");
+    return {
+      ...defaults,
+      model: stringField(
+        vals,
+        "cx_model",
+        CODEX_SETTINGS_GROUPS,
+        defaults.model,
+      ),
+      reasoningEffort: stringField(
+        vals,
+        "cx_reasoning",
+        CODEX_SETTINGS_GROUPS,
+        defaults.reasoningEffort ?? "medium",
+      ) as ReasoningEffort,
+      approvalPolicy: stringField(
+        vals,
+        "cx_approval",
+        CODEX_SETTINGS_GROUPS,
+        defaults.approvalPolicy ?? "on-request",
+      ) as CodexApprovalPolicy,
+      sandboxMode: stringField(
+        vals,
+        "cx_sandbox",
+        CODEX_SETTINGS_GROUPS,
+        defaults.sandboxMode,
+      ) as SandboxMode,
+      networkAccess: booleanField(
+        vals,
+        "cx_network",
+        CODEX_SETTINGS_GROUPS,
+        defaults.networkAccess,
+      ),
+    };
+  }
+
+  const defaults = defaultRuntimeConfig("claude");
+  return {
+    ...defaults,
+    model: stringField(vals, "model", SETTINGS_GROUPS, defaults.model),
+    permissionMode: "default" as PermissionMode,
+    sandboxMode: defaults.sandboxMode,
+    networkAccess: defaults.networkAccess,
+  };
+}
+
+function integrationSettings(
+  vals: Record<string, SettingValue>,
+  overrides: Record<string, SettingValue>,
+  savedSettings: RoguentSettings | null | undefined,
+): NonNullable<RoguentSettings["integrations"]> {
+  const saved = savedSettings?.integrations;
+  return {
+    wechat: {
+      enabled: booleanField(
+        vals,
+        "im_wechat_enabled",
+        SETTINGS_VALUE_GROUPS,
+        true,
+      ),
+      metadata: { pairingMode: "single-active-session" },
+    },
+    feishu: {
+      enabled: booleanField(
+        vals,
+        "im_feishu_enabled",
+        SETTINGS_VALUE_GROUPS,
+        false,
+      ),
+      metadata: {
+        appId: metadataField(
+          overrides,
+          "feishu_app_id",
+          saved?.feishu?.metadata?.appId,
+        ),
+        appSecret: metadataField(
+          overrides,
+          "feishu_app_secret",
+          saved?.feishu?.metadata?.appSecret,
+        ),
+      },
+    },
+    github: {
+      enabled: booleanField(
+        vals,
+        "github_enabled",
+        SETTINGS_VALUE_GROUPS,
+        false,
+      ),
+      metadata: {
+        repo: metadataField(
+          overrides,
+          "github_repo",
+          saved?.github?.metadata?.repo,
+        ),
+        webhookSecret: metadataField(
+          overrides,
+          "github_webhook_secret",
+          saved?.github?.metadata?.webhookSecret,
+        ),
+      },
+    },
+    x: {
+      enabled: booleanField(vals, "x_enabled", SETTINGS_VALUE_GROUPS, false),
+      metadata: {
+        bearerToken: metadataField(
+          overrides,
+          "x_bearer_token",
+          saved?.x?.metadata?.bearerToken,
+        ),
+      },
+    },
+    relay: {
+      enabled: booleanField(
+        vals,
+        "relay_enabled",
+        SETTINGS_VALUE_GROUPS,
+        false,
+      ),
+      metadata: {
+        endpoint: metadataField(
+          overrides,
+          "relay_endpoint",
+          saved?.relay?.metadata?.endpoint,
+        ),
+        token: metadataField(
+          overrides,
+          "relay_token",
+          saved?.relay?.metadata?.token,
+        ),
+      },
+    },
+  };
+}
+
+function buildSettings(
+  rt: "claude" | "codex",
+  vals: Record<string, SettingValue>,
+  overrides: Record<string, SettingValue>,
+  savedSettings: RoguentSettings | null | undefined,
+): RoguentSettings {
+  if (rt === "codex") {
+    return {
+      runtime: runtimeSettings(rt, vals),
+      integrations: integrationSettings(vals, overrides, savedSettings),
+      metadata: {
+        codex: {
+          provider: stringField(
+            vals,
+            "cx_provider",
+            CODEX_SETTINGS_GROUPS,
+            "openai",
+          ),
+          mcpServers: stringListField(vals, "cx_mcp", CODEX_SETTINGS_GROUPS),
+          mcpProfile: stringField(
+            vals,
+            "cx_mcp_profile",
+            CODEX_SETTINGS_GROUPS,
+            "default",
+          ),
+        },
+      },
+    };
+  }
+  return {
+    runtime: runtimeSettings(rt, vals),
+    integrations: integrationSettings(vals, overrides, savedSettings),
+    ui: Object.fromEntries(Object.entries(vals)),
+  };
 }
 
 // 单个字段行:label(+ QTip)+ 控件。
@@ -308,6 +661,8 @@ function CompactGroup() {
 export function Settings() {
   const active = useUiStore((s) => s.activePanel === "settings");
   const closePanel = useUiStore((s) => s.closePanel);
+  const relayStatus = useRoomStore((s) => s.connectorStatus?.relay ?? null);
+  const savedSettings = useRoomStore((s) => s.settings);
   // 当前 runtime(claude/codex)、当前分组 id、改动覆盖 map、未保存标志,全为本地 mock 态。
   const [rt, setRt] = useState<"claude" | "codex">("claude");
   const [grp, setGrp] = useState("general");
@@ -340,6 +695,26 @@ export function Settings() {
     set(`custom_${customN}`, "");
     setCustomN((n) => n + 1);
   };
+  const savedVals = settingsFieldValues(savedSettings, rt);
+  const effectiveVals = { ...savedVals, ...vals };
+  const runtimePreview = runtimeSettings(rt, effectiveVals);
+  const codexProvider = stringField(
+    effectiveVals,
+    "cx_provider",
+    CODEX_SETTINGS_GROUPS,
+    "openai",
+  );
+  const codexMcpServers = stringListField(
+    effectiveVals,
+    "cx_mcp",
+    CODEX_SETTINGS_GROUPS,
+  );
+  const codexMcpProfile = stringField(
+    effectiveVals,
+    "cx_mcp_profile",
+    CODEX_SETTINGS_GROUPS,
+    "default",
+  );
 
   return (
     <Modal
@@ -353,10 +728,11 @@ export function Settings() {
       {/* .set-foot 在原型里是 Modal 第三子节点(panel-body 之外);我们的 Modal 只渲染
           单个 children 进 .panel-body,故把它作 .settings-wrap 的兄弟节点放进 children。 */}
       <>
-        {/* mock 标注:整面板示例数据,显眼 banner——引擎不读写真实配置。 */}
+        {/* 真实保存 Roguent 设置;不直接改 Claude/Codex 原生配置文件。 */}
         <div className="task-mock-banner">
           <Icon name="error" size={14} glow="#f2c84b" />
-          示例数据 · 引擎不读写 Claude Code settings.json / Codex config.toml
+          保存会写入 Roguent 设置库；不会直接改 Claude settings.json / Codex
+          config.toml
         </div>
 
         <div className="settings-wrap">
@@ -395,6 +771,17 @@ export function Settings() {
 
           {/* 右侧表单:compact 组特殊渲染 CompactGroup;否则 Field 列表 + 末尾添加项。 */}
           <div className="set-form scroll">
+            <IntegrationSettings relayStatus={relayStatus} />
+            {rt === "codex" ? (
+              <CodexSettings
+                runtime={runtimePreview}
+                provider={codexProvider}
+                mcpServers={codexMcpServers}
+                mcpProfile={codexMcpProfile}
+              />
+            ) : (
+              <ClaudeSettings runtime={runtimePreview} />
+            )}
             {grp === "compact" ? (
               <CompactGroup />
             ) : (
@@ -405,7 +792,7 @@ export function Settings() {
                     it={it}
                     // 本地覆盖优先,无覆盖回落 schema 默认值(?? 只对 null/undefined
                     // 回落,toggle 的 false 覆盖能正确保留)。
-                    val={vals[it.k] ?? it.val}
+                    val={effectiveVals[it.k] ?? it.val}
                     set={set}
                   />
                 ))}
@@ -417,7 +804,7 @@ export function Settings() {
           </div>
         </div>
 
-        {/* 底部:未保存状态 + 还原 / 保存(全 mock,不写盘)。 */}
+        {/* 底部:未保存状态 + 还原 / 保存。 */}
         <div className="set-foot">
           {dirty ? (
             <span className="px" style={{ fontSize: 10, color: "var(--gold)" }}>
@@ -439,11 +826,26 @@ export function Settings() {
           >
             还原
           </button>
-          {/* 「保存」仅清未保存标志,不持久化任何数据。 */}
           <button
             type="button"
             className="pxbtn primary sm cjk"
-            onClick={() => setDirty(false)}
+            onClick={() => {
+              const settings = buildSettings(
+                rt,
+                effectiveVals,
+                vals,
+                savedSettings,
+              );
+              sendCommand({
+                cmd: "settings",
+                action: "update",
+                scope: "user",
+                settings,
+                changedKeys: Object.keys(vals),
+                metadata: { source: "settings-panel", runtime: rt },
+              });
+              setDirty(false);
+            }}
           >
             保存
           </button>

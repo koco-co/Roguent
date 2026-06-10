@@ -1,7 +1,53 @@
-import { expect, test } from "bun:test";
+import { afterEach, expect, test } from "bun:test";
 import type { RoomEvent } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
+import { useUiStore } from "./ui-store";
 import { handleIncoming, sendCommand } from "./ws-client";
+import { connectRoom } from "./ws-client";
+
+const originalWebSocket = globalThis.WebSocket;
+
+afterEach(() => {
+  globalThis.WebSocket = originalWebSocket;
+  useUiStore.setState({
+    activePanel: null,
+    localSessions: [],
+    importError: null,
+    commandError: null,
+    selectedAgentId: null,
+    selectedNpcId: null,
+    view: "overworld",
+    transition: null,
+  });
+});
+
+class FakeWebSocket {
+  static instances: FakeWebSocket[] = [];
+  readonly OPEN = 1;
+  readonly CONNECTING = 0;
+  readyState = 1;
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  onopen: (() => void) | null = null;
+  onclose: (() => void) | null = null;
+  sent: string[] = [];
+
+  constructor(readonly url: string) {
+    FakeWebSocket.instances.push(this);
+  }
+
+  send(raw: string): void {
+    this.sent.push(raw);
+  }
+
+  close(): void {
+    this.readyState = 3;
+    this.onclose?.();
+  }
+
+  receive(raw: string): void {
+    this.onmessage?.({ data: raw } as MessageEvent);
+  }
+}
 
 test("handleIncoming applies valid events and ignores malformed", () => {
   const got: RoomEvent[] = [];
@@ -55,4 +101,22 @@ test("handleIncoming routes kind:limits to onLimits, not the event sink", () => 
   );
   expect(events).toHaveLength(0);
   expect((limits as { planName?: string })?.planName).toBe("Max");
+});
+
+test("connectRoom stores commandError control messages in ui state", () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  const conn = connectRoom("ws://roguent.test");
+  try {
+    FakeWebSocket.instances[0]?.receive(
+      JSON.stringify({
+        kind: "control",
+        type: "commandError",
+        reason: "Command not implemented",
+      }),
+    );
+    expect(useUiStore.getState().commandError).toBe("Command not implemented");
+  } finally {
+    conn.close();
+  }
 });

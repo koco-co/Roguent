@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRoomStore } from "../store";
+import { useUiStore } from "../ui-store";
 import { reconnectRoom } from "../ws-client";
 import { Icon } from "./icons";
 
@@ -15,6 +16,8 @@ const GRACE_MS = 2500;
 
 export function ErrorOverlay() {
   const connection = useRoomStore((s) => s.connection);
+  const commandError = useUiStore((s) => s.commandError);
+  const setCommandError = useUiStore((s) => s.setCommandError);
   const [show, setShow] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
@@ -28,6 +31,36 @@ export function ErrorOverlay() {
     const t = setTimeout(() => setShow(true), GRACE_MS);
     return () => clearTimeout(t);
   }, [connection]);
+
+  if (commandError) {
+    return (
+      // biome-ignore lint/a11y/useKeyWithClickEvents: scrim 是覆盖遮罩;键盘关闭由 App 的 Esc 集中处理
+      <div className="scrim" onClick={() => setCommandError(null)}>
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: 内层吞掉冒泡 */}
+        <div className="error-overlay" onClick={(e) => e.stopPropagation()}>
+          <div className="error-spark">
+            <Icon name="error" size={64} glow="#ff4d6d" />
+          </div>
+          <div
+            className="px"
+            style={{ fontSize: 14, color: "#ff8197", margin: "18px 0 10px" }}
+          >
+            命令失败
+          </div>
+          <div className="dim" style={{ marginBottom: 22 }}>
+            {commandError}
+          </div>
+          <button
+            type="button"
+            className="pxbtn primary cjk"
+            onClick={() => setCommandError(null)}
+          >
+            关闭
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!show || dismissed) return null;
 

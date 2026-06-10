@@ -1,6 +1,8 @@
 .worktrees/
 node_modules/
 dist/
+test-results/
+tests/e2e/artifacts/**/*.png
 *.log
 .DS_Store
 fixtures/*.local.jsonl

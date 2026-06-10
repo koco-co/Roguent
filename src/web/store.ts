@@ -2,25 +2,89 @@ import { create } from "zustand";
 import {
   type Loot,
   ORCHESTRATOR_ID,
+  type PermissionPromptData,
+  type QuestionData,
   type Session,
+  type TimelineItem,
   type TimelineMessageItem,
   type TimelinePromptItem,
+  type TimelineSource,
+  type TimelineThinkingItem,
   type TimelineToolItem,
   createAgent,
   createSession,
 } from "../shared/domain";
+import {
+  reduceEconomyLedgerBalances,
+  reduceInventoryFromLedger,
+} from "../shared/economy";
 import type {
   AccountLimits,
+  AchievementProgress,
+  AchievementUpdatedPayload,
   ContextUpdatedPayload,
+  CurrencyBalances,
+  EconomyLedgerAppendedPayload,
+  EconomyLedgerEntry,
+  IntegrationChannel,
+  IntegrationConnectorStatus,
+  IntegrationEventReceivedPayload,
+  IntegrationStatusPayload,
+  InventoryItem,
+  MailboxItem,
+  MailboxItemCreatedPayload,
+  MailboxItemUpdatedPayload,
+  PairingBinding,
+  PairingBindingUpdatedPayload,
+  PairingQr,
+  PairingQrUpdatedPayload,
   PromptRequestedPayload,
   PromptResolvedPayload,
+  RoguentSettings,
   RoomEvent,
+  RuntimeConfigUpdatedPayload,
+  RuntimeStatusPayload,
+  SchedulerRun,
+  SchedulerRunFinishedPayload,
+  SchedulerRunStartedPayload,
+  SchedulerTask,
+  SchedulerTaskCreatedPayload,
+  SchedulerTaskUpdatedPayload,
+  SettingsUpdatedPayload,
 } from "../shared/events";
 import { agentTypeToSkin } from "../shared/mapping";
+import {
+  isCodexApprovalPolicy,
+  isReasoningEffort,
+  isRuntimeKind,
+  isSandboxMode,
+  normalizePermissionMode,
+} from "../shared/runtime";
 
 // WS 连接生命周期状态:connecting(建连/退避重连中)/ open(已连)/ closed(已断,
 // 含 engine URL 解析失败)。ErrorOverlay 据此去抖显示离线错误层(T4.3)。
 export type ConnectionStatus = "connecting" | "open" | "closed";
+
+export interface PairingState {
+  qrByChannel: Partial<Record<IntegrationChannel, PairingQr>>;
+  byId: Record<string, PairingBinding>;
+  byExternalKey: Record<string, PairingBinding>;
+}
+
+export interface MailboxState {
+  items: Record<string, MailboxItem>;
+  order: string[];
+}
+
+export interface SchedulerState {
+  tasks: Record<string, SchedulerTask>;
+  runs: Record<string, SchedulerRun>;
+}
+
+export interface LedgerState {
+  entries: EconomyLedgerEntry[];
+  balances: CurrencyBalances;
+}
 
 export interface RoomState {
   sessions: Record<string, Session>;
@@ -29,7 +93,30 @@ export interface RoomState {
   // 重排,房间因此不抖动(spec §总览世界:布局对已存在项目稳定/追加式)。
   projectOrder: string[];
   connection: ConnectionStatus;
+  runtimeStatusBySession?: Record<string, RuntimeStatusPayload>;
+  connectorStatus?: Record<string, IntegrationConnectorStatus>;
+  pairings?: PairingState;
+  mailbox?: MailboxState;
+  scheduler?: SchedulerState;
+  ledger?: LedgerState;
+  achievements?: Record<string, AchievementProgress>;
+  inventory?: Record<string, InventoryItem>;
+  settings?: RoguentSettings | null;
 }
+
+type PrototypeStateKeys =
+  | "runtimeStatusBySession"
+  | "connectorStatus"
+  | "pairings"
+  | "mailbox"
+  | "scheduler"
+  | "ledger"
+  | "achievements"
+  | "inventory"
+  | "settings";
+
+export type RoomStateWithPrototype = RoomState &
+  Required<Pick<RoomState, PrototypeStateKeys>>;
 
 // 大厅最多同时显示这么多活跃(未归档)会话;新建/激活第 11 个会把活跃度最低者
 // 软归档(spec §生命周期:≤10/LRU)。
@@ -60,8 +147,737 @@ function enforceActiveCap(
   }
 }
 
-export function reduce(state: RoomState, e: RoomEvent): RoomState {
-  const sessions = { ...state.sessions };
+function createPairingState(): PairingState {
+  return { qrByChannel: {}, byId: {}, byExternalKey: {} };
+}
+
+function createMailboxState(): MailboxState {
+  return { items: {}, order: [] };
+}
+
+function createSchedulerState(): SchedulerState {
+  return { tasks: {}, runs: {} };
+}
+
+function createLedgerState(): LedgerState {
+  return { entries: [], balances: {} };
+}
+
+function createPrototypeStateSlices(): Required<
+  Pick<RoomState, PrototypeStateKeys>
+> {
+  return {
+    runtimeStatusBySession: {},
+    connectorStatus: {},
+    pairings: createPairingState(),
+    mailbox: createMailboxState(),
+    scheduler: createSchedulerState(),
+    ledger: createLedgerState(),
+    achievements: {},
+    inventory: {},
+    settings: null,
+  };
+}
+
+export interface MailboxBoardItemsOptions {
+  now?: number;
+  limit?: number;
+}
+
+function withPrototypeStateSlices(state: RoomState): RoomStateWithPrototype {
+  return {
+    ...state,
+    runtimeStatusBySession: state.runtimeStatusBySession ?? {},
+    connectorStatus: state.connectorStatus ?? {},
+    pairings: state.pairings ?? createPairingState(),
+    mailbox: state.mailbox ?? createMailboxState(),
+    scheduler: state.scheduler ?? createSchedulerState(),
+    ledger: state.ledger ?? createLedgerState(),
+    achievements: state.achievements ?? {},
+    inventory: state.inventory ?? {},
+    settings: state.settings ?? null,
+  };
+}
+
+function pairingExternalKey(
+  channel: IntegrationChannel,
+  externalChatId: string,
+): string {
+  return `${channel}:${externalChatId}`;
+}
+
+function appendIdOnce(order: string[], id: string): string[] {
+  return order.includes(id) ? order : [...order, id];
+}
+
+function withMailboxItem(
+  state: RoomStateWithPrototype,
+  item: MailboxItem | null,
+): RoomStateWithPrototype {
+  if (!item) return state;
+  return {
+    ...state,
+    mailbox: {
+      items: { ...state.mailbox.items, [item.id]: item },
+      order: appendIdOnce(state.mailbox.order, item.id),
+    },
+  };
+}
+
+function mergeMetadata(
+  current?: Record<string, unknown>,
+  next?: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  if (!current) return next;
+  if (!next) return current;
+  return { ...current, ...next };
+}
+
+function startOfLocalDay(ts: number): number {
+  const date = new Date(ts);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+function isSameLocalDay(left: number, right: number): boolean {
+  return startOfLocalDay(left) === startOfLocalDay(right);
+}
+
+function isMailboxBoardItem(item: MailboxItem, now: number): boolean {
+  if (item.status === "archived") return false;
+  if (item.metadata?.board === true && isSameLocalDay(item.ts, now)) {
+    return true;
+  }
+  return (
+    item.status === "unread" &&
+    (item.kind === "alert" || item.priority === "high")
+  );
+}
+
+export function selectMailboxBoardItems(
+  state: RoomState,
+  options: MailboxBoardItemsOptions = {},
+): MailboxItem[] {
+  const mailbox = state.mailbox ?? createMailboxState();
+  return selectMailboxBoardItemsFromMailbox(mailbox, options);
+}
+
+export function selectMailboxBoardItemsFromMailbox(
+  mailbox: MailboxState,
+  options: MailboxBoardItemsOptions = {},
+): MailboxItem[] {
+  const now = options.now ?? Date.now();
+  const start = startOfLocalDay(now);
+  const end = start + 24 * 60 * 60 * 1000;
+  const limit = options.limit ?? 20;
+
+  return mailbox.order
+    .map((id) => mailbox.items[id])
+    .filter((item): item is MailboxItem => Boolean(item))
+    .filter(
+      (item) =>
+        (item.ts >= start && item.ts < end) ||
+        (item.status === "unread" &&
+          (item.kind === "alert" || item.priority === "high")),
+    )
+    .filter((item) => isMailboxBoardItem(item, now))
+    .sort((a, b) => b.ts - a.ts || b.id.localeCompare(a.id))
+    .slice(0, limit);
+}
+
+function runtimeMailboxItem(
+  event: RoomEvent,
+  payload: RuntimeStatusPayload,
+): MailboxItem | null {
+  if (
+    payload.status !== "degraded" &&
+    payload.status !== "error" &&
+    payload.status !== "stopped"
+  ) {
+    return null;
+  }
+  const summary =
+    payload.error ??
+    payload.message ??
+    `${payload.runtime} runtime ${payload.status}`;
+  return {
+    id: `runtime:${event.sessionId}:${payload.status}:${event.seq}`,
+    source: "runtime",
+    title: `${payload.runtime} runtime ${payload.status}`,
+    summary,
+    ts: event.ts,
+    status: "unread",
+    kind: "alert",
+    priority: payload.status === "error" ? "high" : "normal",
+    sessionId: event.sessionId,
+    metadata: {
+      board: payload.status === "error" || payload.status === "degraded",
+      runtime: payload.runtime,
+      status: payload.status,
+    },
+  };
+}
+
+function promptMailboxItem(
+  event: RoomEvent,
+  payload: PromptRequestedPayload,
+): MailboxItem {
+  return {
+    id: `prompt:${payload.promptId}`,
+    source: "runtime",
+    title:
+      payload.promptKind === "permission"
+        ? "Permission requested"
+        : "Question requested",
+    summary: promptSummary(payload),
+    ts: event.ts,
+    status: "unread",
+    kind: "alert",
+    priority: "high",
+    sessionId: event.sessionId,
+    relatedEventId: payload.promptId,
+    metadata: {
+      board: true,
+      promptId: payload.promptId,
+      promptKind: payload.promptKind,
+    },
+  };
+}
+
+function promptSummary(payload: PromptRequestedPayload): string {
+  if (payload.promptKind === "permission") {
+    const data = payload.data as PermissionPromptData;
+    return (
+      data.title ??
+      data.displayName ??
+      `${data.toolName}: ${data.inputSummary}`.trim()
+    );
+  }
+  const data = payload.data as QuestionData;
+  return data.questions[0]?.question ?? "Agent requested input";
+}
+
+function schedulerMailboxItem(
+  event: RoomEvent,
+  run: SchedulerRun,
+  task: SchedulerTask | undefined,
+): MailboxItem {
+  const failed =
+    run.status === "failed" || run.status === "cancelled" || Boolean(run.error);
+  const taskTitle = task?.title ?? run.taskId;
+  const finished = event.type === "scheduler.run.finished";
+  const summary =
+    run.error ??
+    run.summary ??
+    (finished
+      ? `Scheduler run ${run.status}: ${taskTitle}`
+      : `Scheduler run started: ${taskTitle}`);
+  return {
+    id: `scheduler:${run.id}:${finished ? "finished" : "started"}`,
+    source: "scheduler",
+    title: finished ? `Scheduler run ${run.status}` : "Scheduler run started",
+    summary,
+    ts: run.finishedAt ?? run.startedAt ?? event.ts,
+    status: "unread",
+    kind: failed ? "alert" : "task",
+    priority: failed ? "high" : "normal",
+    sessionId: run.sessionId,
+    relatedEventId: run.id,
+    metadata: {
+      board: failed,
+      runId: run.id,
+      taskId: run.taskId,
+      status: run.status,
+    },
+  };
+}
+
+function desktopTimelineMeta(session: Session): {
+  source: TimelineSource;
+  runtime: Session["runtime"];
+} {
+  return { source: { kind: "desktop" }, runtime: session.runtime };
+}
+
+function isImTimelineChannel(
+  channel: IntegrationChannel,
+): channel is "wechat" | "feishu" {
+  return channel === "wechat" || channel === "feishu";
+}
+
+function integrationTimelineSource(
+  event: IntegrationEventReceivedPayload,
+): Extract<TimelineSource, { kind: "im" }> | undefined {
+  if (!isImTimelineChannel(event.channel) || !event.externalChatId) {
+    return undefined;
+  }
+  const displayName = event.from || undefined;
+  return displayName
+    ? {
+        kind: "im",
+        channel: event.channel,
+        externalChatId: event.externalChatId,
+        displayName,
+      }
+    : {
+        kind: "im",
+        channel: event.channel,
+        externalChatId: event.externalChatId,
+      };
+}
+
+function resolveForwardingBindingSessionId(
+  state: RoomStateWithPrototype,
+  source: Extract<TimelineSource, { kind: "im" }>,
+): string | null | undefined {
+  const binding =
+    state.pairings.byExternalKey[
+      pairingExternalKey(source.channel, source.externalChatId)
+    ];
+  if (!binding) return undefined;
+  if (binding?.status !== "active" || !binding.forwardingEnabled) {
+    return null;
+  }
+  return binding.sessionId;
+}
+
+function upsertTimelineItem(
+  timeline: TimelineItem[],
+  item: TimelineItem,
+): TimelineItem[] {
+  const idx = timeline.findIndex(
+    (current) => current.kind === item.kind && current.id === item.id,
+  );
+  if (idx === -1) return [...timeline, item];
+  return timeline.map((current, i) => (i === idx ? item : current));
+}
+
+function isTimelineDeliveryStatus(
+  value: unknown,
+): value is NonNullable<TimelineMessageItem["delivery"]>["status"] {
+  return (
+    value === "pending" ||
+    value === "sent" ||
+    value === "delivered" ||
+    value === "failed"
+  );
+}
+
+function isTimelineDeliveryChannel(
+  channel: IntegrationChannel,
+): channel is NonNullable<TimelineMessageItem["delivery"]>["channel"] {
+  return channel !== "relay";
+}
+
+function applyOutboundDelivery(
+  state: RoomStateWithPrototype,
+  e: RoomEvent,
+  event: IntegrationEventReceivedPayload,
+): RoomStateWithPrototype {
+  if (!isTimelineDeliveryChannel(event.channel)) return state;
+  const metadata = event.metadata ?? {};
+  const status = isTimelineDeliveryStatus(metadata.deliveryStatus)
+    ? metadata.deliveryStatus
+    : undefined;
+  if (!status) return state;
+  const session = state.sessions[e.sessionId];
+  if (!session) return state;
+  const replyToTimelineItemId =
+    typeof metadata.replyToTimelineItemId === "string"
+      ? metadata.replyToTimelineItemId
+      : undefined;
+  const error = typeof metadata.error === "string" ? metadata.error : undefined;
+  const delivery = {
+    channel: event.channel,
+    deliveryId: event.deliveryId,
+    status,
+    ...(error ? { error } : {}),
+    updatedAt: event.receivedAt ?? event.ts ?? e.ts,
+  };
+
+  let updated = false;
+  const timeline = session.timeline.map((item) => {
+    if (
+      item.kind === "message" &&
+      item.role === "assistant" &&
+      replyToTimelineItemId &&
+      item.id === replyToTimelineItemId
+    ) {
+      updated = true;
+      return { ...item, delivery };
+    }
+    return item;
+  });
+  if (replyToTimelineItemId && !updated) return state;
+  if (!updated) {
+    for (let i = timeline.length - 1; i >= 0; i--) {
+      const item = timeline[i];
+      if (item?.kind !== "message" || item.role !== "assistant") continue;
+      timeline[i] = { ...item, delivery };
+      updated = true;
+      break;
+    }
+  }
+  if (!updated) return state;
+  return {
+    ...state,
+    sessions: {
+      ...state.sessions,
+      [e.sessionId]: {
+        ...session,
+        timeline,
+      },
+    },
+  };
+}
+
+function isPrototypeDomainOnlyEvent(type: RoomEvent["type"]): boolean {
+  return (
+    type === "integration.status" ||
+    type === "integration.event.received" ||
+    type === "pairing.qr.updated" ||
+    type === "pairing.binding.updated" ||
+    type === "mailbox.item.created" ||
+    type === "mailbox.item.updated" ||
+    type === "scheduler.task.created" ||
+    type === "scheduler.task.updated" ||
+    type === "scheduler.run.started" ||
+    type === "scheduler.run.finished" ||
+    type === "economy.ledger.appended" ||
+    type === "achievement.updated" ||
+    type === "inventory.updated" ||
+    type === "settings.updated"
+  );
+}
+
+function foldPrototypeDomainEvent(
+  state: RoomStateWithPrototype,
+  e: RoomEvent,
+): RoomStateWithPrototype {
+  switch (e.type) {
+    case "runtime.status": {
+      const p = e.payload as RuntimeStatusPayload;
+      const nextState = {
+        ...state,
+        runtimeStatusBySession: {
+          ...state.runtimeStatusBySession,
+          [e.sessionId]: p,
+        },
+      };
+      return withMailboxItem(nextState, runtimeMailboxItem(e, p));
+    }
+    case "runtime.config.updated": {
+      const p = e.payload as RuntimeConfigUpdatedPayload;
+      const current = state.runtimeStatusBySession[e.sessionId];
+      const nextStatus: RuntimeStatusPayload = current
+        ? {
+            ...current,
+            runtime: p.config.runtime,
+            config: p.config,
+            metadata: mergeMetadata(current.metadata, p.metadata),
+          }
+        : {
+            runtime: p.config.runtime,
+            status: "idle",
+            config: p.config,
+            metadata: p.metadata,
+          };
+      return {
+        ...state,
+        runtimeStatusBySession: {
+          ...state.runtimeStatusBySession,
+          [e.sessionId]: nextStatus,
+        },
+      };
+    }
+    case "integration.status": {
+      const p = e.payload as IntegrationStatusPayload;
+      return {
+        ...state,
+        connectorStatus: {
+          ...state.connectorStatus,
+          [p.status.id]: p.status,
+        },
+      };
+    }
+    case "integration.event.received": {
+      const p = e.payload as IntegrationEventReceivedPayload;
+      if (!p.connectorId) return state;
+      const current = state.connectorStatus[p.connectorId];
+      const status: IntegrationConnectorStatus = {
+        id: p.connectorId,
+        channel: p.channel,
+        state: current?.state ?? "connected",
+        ...current,
+        lastEventAt: p.receivedAt ?? p.ts ?? e.ts,
+      };
+      return {
+        ...state,
+        connectorStatus: {
+          ...state.connectorStatus,
+          [p.connectorId]: status,
+        },
+      };
+    }
+    case "pairing.qr.updated": {
+      const p = e.payload as PairingQrUpdatedPayload;
+      if (!p.qr) {
+        const channel = (e.payload as { channel?: IntegrationChannel }).channel;
+        if (!channel) {
+          return {
+            ...state,
+            pairings: {
+              ...state.pairings,
+              qrByChannel: {},
+            },
+          };
+        }
+        const qrByChannel = { ...state.pairings.qrByChannel };
+        delete qrByChannel[channel];
+        return {
+          ...state,
+          pairings: {
+            ...state.pairings,
+            qrByChannel,
+          },
+        };
+      }
+      return {
+        ...state,
+        pairings: {
+          ...state.pairings,
+          qrByChannel: {
+            ...state.pairings.qrByChannel,
+            [p.qr.channel]: p.qr,
+          },
+        },
+      };
+    }
+    case "pairing.binding.updated": {
+      const p = e.payload as PairingBindingUpdatedPayload;
+      const key = pairingExternalKey(
+        p.binding.channel,
+        p.binding.externalChatId,
+      );
+      const byId = { ...state.pairings.byId };
+      const previous = state.pairings.byExternalKey[key];
+      if (previous && previous.id !== p.binding.id) delete byId[previous.id];
+      byId[p.binding.id] = p.binding;
+      return {
+        ...state,
+        pairings: {
+          ...state.pairings,
+          byId,
+          byExternalKey: {
+            ...state.pairings.byExternalKey,
+            [key]: p.binding,
+          },
+        },
+      };
+    }
+    case "mailbox.item.created": {
+      const p = e.payload as MailboxItemCreatedPayload;
+      return {
+        ...state,
+        mailbox: {
+          items: { ...state.mailbox.items, [p.item.id]: p.item },
+          order: appendIdOnce(state.mailbox.order, p.item.id),
+        },
+      };
+    }
+    case "mailbox.item.updated": {
+      const p = e.payload as MailboxItemUpdatedPayload;
+      const current = state.mailbox.items[p.item.id];
+      const item = current
+        ? p.changes
+          ? { ...current, ...p.changes }
+          : p.item
+        : p.item;
+      return {
+        ...state,
+        mailbox: {
+          items: { ...state.mailbox.items, [item.id]: item },
+          order: appendIdOnce(state.mailbox.order, item.id),
+        },
+      };
+    }
+    case "scheduler.task.created": {
+      const p = e.payload as SchedulerTaskCreatedPayload;
+      return {
+        ...state,
+        scheduler: {
+          ...state.scheduler,
+          tasks: { ...state.scheduler.tasks, [p.task.id]: p.task },
+        },
+      };
+    }
+    case "scheduler.task.updated": {
+      const p = e.payload as SchedulerTaskUpdatedPayload;
+      const current = state.scheduler.tasks[p.task.id];
+      const task = current
+        ? p.changes
+          ? { ...current, ...p.changes }
+          : p.task
+        : p.task;
+      return {
+        ...state,
+        scheduler: {
+          ...state.scheduler,
+          tasks: { ...state.scheduler.tasks, [task.id]: task },
+        },
+      };
+    }
+    case "scheduler.run.started": {
+      const p = e.payload as SchedulerRunStartedPayload;
+      const nextState = {
+        ...state,
+        scheduler: {
+          ...state.scheduler,
+          runs: { ...state.scheduler.runs, [p.run.id]: p.run },
+        },
+      };
+      return withMailboxItem(
+        nextState,
+        schedulerMailboxItem(e, p.run, state.scheduler.tasks[p.run.taskId]),
+      );
+    }
+    case "scheduler.run.finished": {
+      const p = e.payload as SchedulerRunFinishedPayload;
+      const nextState = {
+        ...state,
+        scheduler: {
+          ...state.scheduler,
+          runs: { ...state.scheduler.runs, [p.run.id]: p.run },
+        },
+      };
+      return withMailboxItem(
+        nextState,
+        schedulerMailboxItem(e, p.run, state.scheduler.tasks[p.run.taskId]),
+      );
+    }
+    case "economy.ledger.appended": {
+      const p = e.payload as EconomyLedgerAppendedPayload;
+      const entries = [...state.ledger.entries, p.entry];
+      return {
+        ...state,
+        ledger: {
+          entries,
+          balances: reduceEconomyLedgerBalances(entries),
+        },
+        inventory: reduceInventoryFromLedger(entries),
+      };
+    }
+    case "achievement.updated": {
+      const p = e.payload as AchievementUpdatedPayload;
+      return {
+        ...state,
+        achievements: {
+          ...state.achievements,
+          [p.achievement.id]: p.achievement,
+        },
+      };
+    }
+    case "inventory.updated": {
+      // Task 43 makes ledger entries the authoritative economy source for
+      // skins/items. Keep the protocol event type for compatibility, but do not
+      // let it bypass the append-only ledger.
+      return state;
+    }
+    case "settings.updated": {
+      const p = e.payload as SettingsUpdatedPayload;
+      return { ...state, settings: p.settings };
+    }
+    default:
+      return state;
+  }
+}
+
+function foldPrototypeTimelineEvent(
+  state: RoomStateWithPrototype,
+  e: RoomEvent,
+): RoomStateWithPrototype {
+  switch (e.type) {
+    case "integration.event.received": {
+      const p = e.payload as IntegrationEventReceivedPayload;
+      if (p.direction === "outbound") return applyOutboundDelivery(state, e, p);
+      if (p.direction !== "inbound") return state;
+      const text = p.bodyText || p.summary;
+      const source = integrationTimelineSource(p);
+      if (!text || !source) return state;
+      const boundSessionId = resolveForwardingBindingSessionId(state, source);
+      if (boundSessionId === null) return state;
+      const targetSessionId = boundSessionId ?? e.sessionId;
+      if (!targetSessionId) return state;
+      const session = state.sessions[targetSessionId];
+      if (!session) return state;
+      const item: TimelineMessageItem = {
+        kind: "message",
+        id: `integration:${p.id}`,
+        role: "user",
+        text,
+        ts: p.receivedAt ?? p.ts ?? e.ts,
+        source,
+        runtime: session.runtime,
+        status: "final",
+      };
+      return {
+        ...state,
+        sessions: {
+          ...state.sessions,
+          [targetSessionId]: {
+            ...session,
+            timeline: upsertTimelineItem(session.timeline, item),
+            lastActiveAt: e.ts,
+          },
+        },
+      };
+    }
+    case "scheduler.run.started":
+    case "scheduler.run.finished": {
+      const p = e.payload as SchedulerRunStartedPayload;
+      const run = p.run;
+      if (!run.sessionId) return state;
+      const session = state.sessions[run.sessionId];
+      if (!session || run.sessionId !== e.sessionId) return state;
+      const stage = e.type === "scheduler.run.started" ? "started" : "finished";
+      const taskLabel = state.scheduler.tasks[run.taskId]?.title ?? run.taskId;
+      const text =
+        stage === "started"
+          ? `Scheduler run started: ${taskLabel}`
+          : `Scheduler run ${run.status}: ${run.summary ?? taskLabel}`;
+      const item: TimelineMessageItem = {
+        kind: "message",
+        id: `scheduler:${run.id}:${stage}`,
+        role: "system",
+        text,
+        ts:
+          stage === "started"
+            ? (run.startedAt ?? e.ts)
+            : (run.finishedAt ?? e.ts),
+        source: { kind: "scheduler", taskId: run.taskId, runId: run.id },
+        runtime: session.runtime,
+        status: "final",
+      };
+      return {
+        ...state,
+        sessions: {
+          ...state.sessions,
+          [session.id]: {
+            ...session,
+            timeline: upsertTimelineItem(session.timeline, item),
+            lastActiveAt: e.ts,
+          },
+        },
+      };
+    }
+    default:
+      return state;
+  }
+}
+
+export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
+  const baseState = withPrototypeStateSlices(state);
+  let sessions = { ...baseState.sessions };
 
   if (e.type === "session.created") {
     const p = e.payload as {
@@ -71,6 +887,11 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       cwd?: string;
       project?: string;
       permissionMode?: string;
+      runtime?: unknown;
+      approvalPolicy?: unknown;
+      sandboxMode?: unknown;
+      reasoningEffort?: unknown;
+      networkAccess?: unknown;
       imported?: boolean;
     };
     // 幂等:engine 先合成一条 session.created,SDK init 后又派生一条。第二条必须
@@ -92,22 +913,37 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
         // 否则保留已知值(合成的第一条恒为 "default",不能把真实模式刷回去)。
         permissionMode:
           p.permissionMode && p.permissionMode !== "default"
-            ? p.permissionMode
+            ? normalizePermissionMode(p.permissionMode, existing.permissionMode)
             : existing.permissionMode,
+        runtime: isRuntimeKind(p.runtime) ? p.runtime : existing.runtime,
+        approvalPolicy: isCodexApprovalPolicy(p.approvalPolicy)
+          ? p.approvalPolicy
+          : existing.approvalPolicy,
+        sandboxMode: isSandboxMode(p.sandboxMode)
+          ? p.sandboxMode
+          : existing.sandboxMode,
+        reasoningEffort: isReasoningEffort(p.reasoningEffort)
+          ? p.reasoningEffort
+          : existing.reasoningEffort,
+        networkAccess:
+          typeof p.networkAccess === "boolean"
+            ? p.networkAccess
+            : existing.networkAccess,
         // 一旦是导入会话就恒为导入(幂等再导入不会把标记刷掉)。
         imported: existing.imported || p.imported,
       };
       const projectOrder =
-        proj && !state.projectOrder.includes(proj)
-          ? [...state.projectOrder, proj]
-          : state.projectOrder;
+        proj && !baseState.projectOrder.includes(proj)
+          ? [...baseState.projectOrder, proj]
+          : baseState.projectOrder;
       // SDK init 派生的第二条 session.created 绝不能抢焦点。
       // connection 是传输层状态,事件折叠从不改它 —— 原样透传。
       return {
+        ...baseState,
         sessions,
         projectOrder,
-        currentSessionId: state.currentSessionId,
-        connection: state.connection,
+        currentSessionId: baseState.currentSessionId,
+        connection: baseState.connection,
       };
     }
 
@@ -119,24 +955,35 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       cwd: p.cwd,
       project: p.project,
       // 合成的第一条恒为 "default";若首条已带真实模式(如 init 先于合成到达)则尊重之。
-      // 显式回落 "default":createSession 的默认会被 partial 里的 undefined 覆盖掉。
-      permissionMode: p.permissionMode ?? "default",
+      // event payload 是字符串边界,进 domain 前收敛到 Claude SDK 合法枚举。
+      permissionMode: normalizePermissionMode(p.permissionMode),
+      runtime: isRuntimeKind(p.runtime) ? p.runtime : undefined,
+      approvalPolicy: isCodexApprovalPolicy(p.approvalPolicy)
+        ? p.approvalPolicy
+        : undefined,
+      sandboxMode: isSandboxMode(p.sandboxMode) ? p.sandboxMode : undefined,
+      reasoningEffort: isReasoningEffort(p.reasoningEffort)
+        ? p.reasoningEffort
+        : undefined,
+      networkAccess:
+        typeof p.networkAccess === "boolean" ? p.networkAccess : undefined,
       lastActiveAt: e.ts, // 首次出现即视为刚活跃,供 LRU 排序
       imported: p.imported, // 导入会话:reconcile 对账豁免它
     });
     sessions[e.sessionId] = created;
     const projectOrder =
-      p.project && !state.projectOrder.includes(p.project)
-        ? [...state.projectOrder, p.project]
-        : state.projectOrder;
+      p.project && !baseState.projectOrder.includes(p.project)
+        ? [...baseState.projectOrder, p.project]
+        : baseState.projectOrder;
     // 新建即跳第 11 个 → 软归档活跃度最低者;新会话受保护,绝不被自己挤掉。
     enforceActiveCap(sessions, e.sessionId);
     // 新建即跳转:会话首次出现就把焦点切过去。connection 透传(见上)。
     return {
+      ...baseState,
       sessions,
       projectOrder,
       currentSessionId: e.sessionId,
-      connection: state.connection,
+      connection: baseState.connection,
     };
   }
 
@@ -159,6 +1006,8 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       role: "system",
       text: p.message,
       ts: e.ts,
+      ...desktopTimelineMeta(base),
+      status: "final",
     };
     sessions[e.sessionId] = {
       ...base,
@@ -166,15 +1015,21 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       timeline: [...base.timeline, errItem],
     };
     return {
+      ...baseState,
       sessions,
-      projectOrder: state.projectOrder,
-      currentSessionId: state.currentSessionId ?? e.sessionId,
-      connection: state.connection,
+      projectOrder: baseState.projectOrder,
+      currentSessionId: baseState.currentSessionId ?? e.sessionId,
+      connection: baseState.connection,
     };
   }
 
+  const domainState = foldPrototypeDomainEvent(baseState, e);
+  let domainTimelineState = foldPrototypeTimelineEvent(domainState, e);
+  if (isPrototypeDomainOnlyEvent(e.type)) return domainTimelineState;
+
+  sessions = { ...domainTimelineState.sessions };
   const prev = sessions[e.sessionId];
-  if (!prev) return state; // event for an unknown session — ignore
+  if (!prev) return domainTimelineState; // event for an unknown session — create/ignore per event type
   const s: Session = { ...prev, agents: { ...prev.agents } };
 
   switch (e.type) {
@@ -216,6 +1071,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
           status: "running",
           agentId: e.agentId,
           ts: e.ts,
+          ...desktopTimelineMeta(s),
         };
         s.timeline = [...s.timeline, toolItem];
       }
@@ -311,9 +1167,16 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       // role 默认 "assistant";导入历史会话时用户轮次带 role:"user"。
       // includePartialMessages=true:同一 agent 的 assistant partial 替换最后一条
       // 气泡而不是追加新条,实现逐字流式效果。
-      const p = e.payload as { text: string; role?: "user" | "assistant" };
+      const p = e.payload as {
+        text: string;
+        role?: "user" | "assistant" | "system";
+      };
       const role = p.role ?? "assistant";
       if (!p.text) break;
+      const status =
+        role === "assistant" && e.type === "message.delta"
+          ? "streaming"
+          : "final";
       const last = s.timeline[s.timeline.length - 1];
       const lastMsg =
         last?.kind === "message" ? (last as TimelineMessageItem) : undefined;
@@ -321,9 +1184,22 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
         lastMsg !== undefined &&
         lastMsg.role === "assistant" &&
         lastMsg.agentId === e.agentId;
-      if (role === "assistant" && lastIsAssistantMsg && lastMsg) {
+      if (
+        role === "assistant" &&
+        lastIsAssistantMsg &&
+        lastMsg?.status === "streaming"
+      ) {
         // streaming: replace last assistant bubble from same agent
-        s.timeline = [...s.timeline.slice(0, -1), { ...lastMsg, text: p.text }];
+        s.timeline = [
+          ...s.timeline.slice(0, -1),
+          {
+            ...lastMsg,
+            text: p.text,
+            source: lastMsg.source ?? { kind: "desktop" },
+            runtime: lastMsg.runtime ?? s.runtime,
+            status,
+          },
+        ];
       } else {
         const item: TimelineMessageItem = {
           kind: "message",
@@ -332,6 +1208,8 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
           agentId: role === "user" ? undefined : e.agentId,
           text: p.text,
           ts: e.ts,
+          ...desktopTimelineMeta(s),
+          status,
         };
         s.timeline = [...s.timeline, item];
       }
@@ -351,10 +1229,46 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       };
       break;
     }
+    case "runtime.status": {
+      const p = e.payload as RuntimeStatusPayload;
+      s.runtimeStatus = p;
+      if (isRuntimeKind(p.runtime)) s.runtime = p.runtime;
+      if (p.config?.model) s.model = p.config.model;
+      if (p.status === "running" || p.status === "starting") s.status = "busy";
+      if (p.status === "idle" || p.status === "degraded") s.status = "idle";
+      if (p.status === "stopped") s.status = "idle";
+      if (p.status === "error") s.status = "error";
+      break;
+    }
+    case "runtime.config.updated": {
+      const p = e.payload as RuntimeConfigUpdatedPayload;
+      s.runtime = p.config.runtime;
+      s.model = p.config.model;
+      s.permissionMode = p.config.permissionMode;
+      s.approvalPolicy = p.config.approvalPolicy;
+      s.sandboxMode = p.config.sandboxMode;
+      s.reasoningEffort = p.config.reasoningEffort;
+      s.networkAccess = p.config.networkAccess;
+      s.runtimeStatus = domainState.runtimeStatusBySession[e.sessionId];
+      break;
+    }
     case "session.cleared": {
       const orch = s.agents[ORCHESTRATOR_ID];
       s.agents = orch ? { [ORCHESTRATOR_ID]: orch } : {};
       s.status = "done";
+      break;
+    }
+    case "session.rolled_back": {
+      const p = e.payload as { checkpointId?: string };
+      const checkpointIndex = s.timeline.findIndex(
+        (item) => item.id === p.checkpointId,
+      );
+      if (checkpointIndex !== -1) {
+        s.timeline = s.timeline.slice(0, checkpointIndex + 1);
+      }
+      const orch = s.agents[ORCHESTRATOR_ID];
+      s.agents = orch ? { [ORCHESTRATOR_ID]: orch } : {};
+      s.status = "idle";
       break;
     }
     case "prompt.requested": {
@@ -366,8 +1280,13 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
         data: p.data,
         status: "pending",
         ts: e.ts,
+        ...desktopTimelineMeta(s),
       };
       s.timeline = [...s.timeline, item];
+      domainTimelineState = withMailboxItem(
+        domainTimelineState,
+        promptMailboxItem(e, p),
+      );
       break;
     }
     case "prompt.resolved": {
@@ -383,6 +1302,7 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
     case "thinking.final": {
       const p = e.payload as { text: string };
       if (!p.text) break;
+      const status = e.type === "thinking.delta" ? "streaming" : "final";
       // Find last thinking item from same agent to update (streaming replace), or append new
       const lastThinkingIdx = [...s.timeline]
         .reverse()
@@ -390,7 +1310,15 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
       if (lastThinkingIdx !== -1) {
         const idx = s.timeline.length - 1 - lastThinkingIdx;
         s.timeline = s.timeline.map((item, i) =>
-          i === idx ? { ...item, text: p.text } : item,
+          i === idx
+            ? {
+                ...(item as TimelineThinkingItem),
+                text: p.text,
+                source: item.source ?? { kind: "desktop" },
+                runtime: item.runtime ?? s.runtime,
+                status,
+              }
+            : item,
         );
       } else {
         s.timeline = [
@@ -401,6 +1329,8 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
             agentId: e.agentId,
             text: p.text,
             ts: e.ts,
+            ...desktopTimelineMeta(s),
+            status,
           },
         ];
       }
@@ -414,10 +1344,10 @@ export function reduce(state: RoomState, e: RoomEvent): RoomState {
   // 选择(spec §生命周期)。房间归属按 project 不按活跃度,故 NPC 不会因此挪位。
   s.lastActiveAt = e.ts;
   sessions[e.sessionId] = s;
-  return { ...state, sessions };
+  return { ...domainTimelineState, sessions };
 }
 
-export interface RoomStore extends RoomState {
+export interface RoomStore extends RoomStateWithPrototype {
   applyEvent: (e: RoomEvent) => void;
   switchSession: (id: string) => void;
   appendUserMessage: (sessionId: string, text: string) => void;
@@ -439,6 +1369,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
   currentSessionId: null,
   projectOrder: [],
   connection: "connecting",
+  ...createPrototypeStateSlices(),
   limits: null,
   setLimits: (limits) => set({ limits }),
   setConnection: (connection) => set({ connection }),
@@ -451,10 +1382,12 @@ export const useRoomStore = create<RoomStore>((set) => ({
       if (!prev) return st;
       const item: TimelineMessageItem = {
         kind: "message",
-        id: `u-${prev.timeline.length}-${Date.now()}`,
+        id: `u-${sessionId}-${prev.timeline.length}`,
         role: "user",
         text,
         ts: Date.now(),
+        ...desktopTimelineMeta(prev),
+        status: "final",
       };
       return {
         sessions: {

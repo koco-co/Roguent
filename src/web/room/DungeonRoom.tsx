@@ -1,5 +1,6 @@
 import type { AnimatedSprite, Texture } from "pixi.js";
 import { useEffect, useMemo, useRef } from "react";
+import { DecorLayer } from "./DecorLayer";
 import { anim, tex, useAtlas } from "./atlas";
 import { COLS, DOOR_COL, FOUNTAIN_COLS, ROWS, TILE } from "./config";
 
@@ -92,21 +93,6 @@ export function DungeonRoom() {
 
   const bannerCols = [DOOR_COL - 3, DOOR_COL + 2];
 
-  // Static floor props, placed in the periphery so they never sit under the
-  // central agent ring.
-  const props: { key: string; name: string; x: number; y: number }[] = [
-    { key: "crate1", name: "crate", x: 3 * TILE, y: (ROWS - 3) * TILE },
-    { key: "crate2", name: "crate", x: 4 * TILE, y: (ROWS - 3) * TILE },
-    {
-      key: "flaskA",
-      name: "flask_big_blue",
-      x: 3 * TILE,
-      y: (ROWS - 4) * TILE,
-    },
-    { key: "flaskB", name: "flask_red", x: (COLS - 3) * TILE, y: 3 * TILE },
-    { key: "skull", name: "skull", x: (COLS - 5) * TILE, y: (ROWS - 3) * TILE },
-  ];
-
   return (
     <pixiContainer>
       {/* floor + brick border */}
@@ -165,10 +151,7 @@ export function DungeonRoom() {
         speed={0.06}
       />
 
-      {/* scattered floor props */}
-      {props.map((p) => (
-        <pixiSprite key={p.key} texture={tex(sheet, p.name)} x={p.x} y={p.y} />
-      ))}
+      <DecorLayer />
     </pixiContainer>
   );
 }

@@ -1,8 +1,18 @@
 import { WebSocketServer } from "ws";
 import { readOauthCredentials } from "./credentials";
+import { resolveIngressPort, startIngressServer } from "./ingress/server";
+import { startLiveIntegrations } from "./integrations/live";
+import { createMailboxService } from "./mailbox/service";
+import { openDatabase, resolveDatabasePath } from "./persistence/db";
+import { migrate } from "./persistence/migrations";
 import { resolvePort } from "./port";
-import { loadFixture, replayTimed } from "./record";
+import { replayTimed } from "./record";
+import { loadAnyFixture } from "./replay/prototype-fixtures";
+import { createSchedulerRunner } from "./scheduler/runner";
+import { createSchedulerService } from "./scheduler/service";
+import { KeychainSecretStore } from "./secrets/keychain";
 import { SessionManager } from "./session";
+import { createSettingsService } from "./settings/service";
 import { UsagePoller, defaultFetchUsage } from "./usage-poller";
 import { WsGateway } from "./ws-gateway";
 
@@ -18,6 +28,8 @@ if (replayArg !== -1 && !process.argv[replayArg + 1]) {
 
 if (replayFixture) {
   // Cost-free demo: replay a fixture to every client, ignore commands.
+  // Real external connectors (WeChat/Feishu/GitHub/X) and runtime spawning are
+  // NOT started — only the WebSocket server + fixture loader run.
   const wss = new WebSocketServer({ port });
   wss.on("listening", () => {
     const addr = wss.address();
@@ -25,7 +37,11 @@ if (replayFixture) {
   });
   console.log(`[server] REPLAY ${replayFixture}`);
   wss.on("connection", async (ws) => {
-    const events = await loadFixture(replayFixture);
+    // loadAnyFixture auto-detects the fixture format:
+    //   - ReplayRecord JSONL (atMs + kind)  → validated, converted to RoomEvents
+    //   - CodexRuntimeEvent JSONL (kind)    → normalized via codex-normalize
+    //   - Legacy RoomEvent JSONL (seq+type) → loaded as-is (old path preserved)
+    const events = await loadAnyFixture(replayFixture, "replay");
     await replayTimed(
       events,
       (e) => {
@@ -35,8 +51,33 @@ if (replayFixture) {
     );
   });
 } else {
-  const mgr = new SessionManager();
-  const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`));
+  const db = openDatabase(resolveDatabasePath());
+  migrate(db);
+  const secretStore = new KeychainSecretStore();
+  const mgr = new SessionManager(undefined, process.cwd(), { auditDb: db });
+  const scheduler = createSchedulerService(db);
+  const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`), {
+    mailbox: createMailboxService(db),
+    scheduler,
+    settings: createSettingsService(db, secretStore),
+  });
+  const schedulerRunner = createSchedulerRunner({ db, sessions: mgr });
+  schedulerRunner.start();
+  const integrations = startLiveIntegrations({ db, sessions: mgr });
+  const ingressPort = resolveIngressPort(process.env);
+  if (ingressPort !== null && ingressPort === port && port !== 0) {
+    console.warn(
+      `[server] ingress disabled: ROGUENT_INGRESS_PORT=${ingressPort} conflicts with ROGUENT_PORT`,
+    );
+  } else {
+    const ingress = startIngressServer({
+      db,
+      port: ingressPort,
+      router: integrations.router,
+      secretStore,
+    });
+    if (ingress) console.log(`INGRESS_PORT=${ingress.port}`);
+  }
   // 限额两源都汇进 SessionManager 的 LimitsAggregator,合并后由它推 gateway:
   //   1) keychain 轮询 /api/oauth/usage(权威源、两窗口完整快照 + 唯一 planName 源)
   //      —— poller → applyPollLimits;和 claude-hud 同源同语义。

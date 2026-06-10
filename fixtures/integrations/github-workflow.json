@@ -1,0 +1,18 @@
+{
+  "action": "completed",
+  "repository": {
+    "full_name": "poco/roguent",
+    "html_url": "https://github.com/poco/roguent",
+    "name": "roguent"
+  },
+  "sender": {
+    "login": "github-actions"
+  },
+  "workflow_run": {
+    "conclusion": "success",
+    "display_title": "CI passed",
+    "html_url": "https://github.com/poco/roguent/actions/runs/42",
+    "name": "CI",
+    "status": "completed"
+  }
+}

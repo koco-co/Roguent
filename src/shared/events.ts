@@ -4,29 +4,121 @@ import type {
   QuestionData,
   TodoItem,
 } from "./domain";
+import type {
+  AchievementUpdatedPayload,
+  EconomyLedgerAppendedPayload,
+  InventoryUpdatedPayload,
+} from "./economy";
+import type {
+  IntegrationChannel,
+  IntegrationEventReceivedPayload,
+  IntegrationStatusPayload,
+  MailboxItemCreatedPayload,
+  MailboxItemUpdatedPayload,
+  PairingBindingUpdatedPayload,
+  PairingQrUpdatedPayload,
+} from "./integrations";
+import type {
+  CodexApprovalPolicy,
+  ReasoningEffort,
+  RuntimeConfig,
+  RuntimeKind,
+  SandboxMode,
+} from "./runtime";
+import type {
+  SchedulerRunFinishedPayload,
+  SchedulerRunStartedPayload,
+  SchedulerTaskCreatedPayload,
+  SchedulerTaskUpdatedPayload,
+} from "./scheduler";
 
-export type RoomEventType =
-  | "session.created"
-  | "session.updated"
-  | "session.cleared"
-  | "session.error"
-  | "agent.spawned"
-  | "agent.thinking"
-  | "agent.idle"
-  | "agent.done"
-  | "tool.started"
-  | "tool.ended"
-  | "tool.failed"
-  | "loot.dropped"
-  | "message.delta"
-  | "message.final"
-  | "usage.updated"
-  | "context.updated"
-  | "todos.updated"
-  | "thinking.delta"
-  | "thinking.final"
-  | "prompt.requested"
-  | "prompt.resolved";
+export type {
+  AchievementProgress,
+  AchievementUpdatedPayload,
+  CurrencyBalances,
+  EconomyLedgerAppendedPayload,
+  EconomyLedgerEntry,
+  InventoryItem,
+  InventoryItemKind,
+  InventoryUpdatedPayload,
+} from "./economy";
+export type {
+  IntegrationChannel,
+  IntegrationConnectionState,
+  IntegrationConnectorStatus,
+  IntegrationDirection,
+  IntegrationEventReceivedPayload,
+  IntegrationStatusPayload,
+  MailboxAction,
+  MailboxItem,
+  MailboxItemCreatedPayload,
+  MailboxItemKind,
+  MailboxItemPriority,
+  MailboxItemStatus,
+  MailboxItemUpdatedPayload,
+  MailboxSource,
+  NormalizedIntegrationEvent,
+  PairingBinding,
+  PairingBindingStatus,
+  PairingBindingUpdatedPayload,
+  PairingQr,
+  PairingQrStatus,
+  PairingQrUpdatedPayload,
+} from "./integrations";
+export type {
+  SchedulerRecurrence,
+  SchedulerRun,
+  SchedulerRunFinishedPayload,
+  SchedulerRunStartedPayload,
+  SchedulerRunStatus,
+  SchedulerTask,
+  SchedulerTaskCreatedPayload,
+  SchedulerTaskStatus,
+  SchedulerTaskUpdatedPayload,
+} from "./scheduler";
+
+export const VALID_ROOM_EVENT_TYPES = [
+  "session.created",
+  "session.updated",
+  "session.cleared",
+  "session.rolled_back",
+  "session.error",
+  "agent.spawned",
+  "agent.thinking",
+  "agent.idle",
+  "agent.done",
+  "tool.started",
+  "tool.ended",
+  "tool.failed",
+  "loot.dropped",
+  "message.delta",
+  "message.final",
+  "usage.updated",
+  "context.updated",
+  "todos.updated",
+  "thinking.delta",
+  "thinking.final",
+  "prompt.requested",
+  "prompt.resolved",
+  "runtime.status",
+  "runtime.config.updated",
+  "integration.status",
+  "integration.event.received",
+  "pairing.qr.updated",
+  "pairing.binding.updated",
+  "mailbox.item.created",
+  "mailbox.item.updated",
+  "scheduler.task.created",
+  "scheduler.task.updated",
+  "scheduler.run.started",
+  "scheduler.run.finished",
+  "economy.ledger.appended",
+  "achievement.updated",
+  "inventory.updated",
+  "settings.updated",
+] as const;
+
+export type RoomEventType = (typeof VALID_ROOM_EVENT_TYPES)[number];
 
 export interface RoomEvent<T = unknown> {
   seq: number; // server-side monotonic order key
@@ -42,6 +134,11 @@ export interface SessionCreatedPayload {
   title: string;
   model: string;
   permissionMode: string;
+  runtime?: RuntimeKind;
+  approvalPolicy?: CodexApprovalPolicy;
+  sandboxMode?: SandboxMode;
+  reasoningEffort?: ReasoningEffort;
+  networkAccess?: boolean;
   apiKeySource: string;
   slashCommands: string[];
   // 总览世界:服务端把会话 cwd + 算出的 project(git 根 basename)随会话一起下发。
@@ -77,8 +174,12 @@ export interface LootPayload {
 export interface MessagePayload {
   text: string;
   // 说话方:导入历史会话时,用户轮次与助手轮次都进聊天抽屉。
-  // 可选 → LIVE/REPLAY 的助手 delta 不带则默认 "assistant"(向后兼容)。
-  role?: "user" | "assistant";
+  // system 用于引擎生成的审计/控制记录。可选 → LIVE/REPLAY 的助手 delta 不带则默认
+  // "assistant"(向后兼容)。
+  role?: "user" | "assistant" | "system";
+}
+export interface RollbackPayload {
+  checkpointId: string;
 }
 export interface SessionErrorPayload {
   message: string;
@@ -114,6 +215,110 @@ export interface PromptResolvedPayload {
   promptId: string;
   result: "answered" | "dismissed";
 }
+
+export type RuntimeStatusState =
+  | "starting"
+  | "running"
+  | "idle"
+  | "degraded"
+  | "error"
+  | "stopped";
+
+export interface RuntimeStatusPayload {
+  runtime: RuntimeKind;
+  status: RuntimeStatusState;
+  config?: RuntimeConfig;
+  message?: string;
+  error?: string;
+  cwd?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface RuntimeConfigUpdatedPayload {
+  config: RuntimeConfig;
+  previous?: Partial<RuntimeConfig>;
+  changedKeys?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+export type SettingsScope = "user" | "project" | "session";
+
+export interface RoguentSettings {
+  runtime?: RuntimeConfig;
+  integrations?: Partial<
+    Record<
+      IntegrationChannel,
+      {
+        enabled: boolean;
+        metadata?: Record<string, unknown>;
+      }
+    >
+  >;
+  scheduler?: {
+    enabled?: boolean;
+    timezone?: string;
+    metadata?: Record<string, unknown>;
+  };
+  economy?: {
+    enabled?: boolean;
+    metadata?: Record<string, unknown>;
+  };
+  ui?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+}
+
+export interface SettingsUpdatedPayload {
+  scope: SettingsScope;
+  settings: RoguentSettings;
+  changedKeys?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface RoomEventPayloadMap {
+  "session.created": SessionCreatedPayload;
+  "session.updated": Partial<SessionCreatedPayload>;
+  "session.cleared": Record<string, never>;
+  "session.rolled_back": RollbackPayload;
+  "session.error": SessionErrorPayload;
+  "agent.spawned": AgentSpawnedPayload;
+  "agent.thinking": Record<string, never>;
+  "agent.idle": Record<string, never>;
+  "agent.done": AgentDonePayload;
+  "tool.started": ToolStartedPayload;
+  "tool.ended": ToolEndedPayload;
+  "tool.failed": ToolEndedPayload;
+  "loot.dropped": LootPayload;
+  "message.delta": MessagePayload;
+  "message.final": MessagePayload;
+  "usage.updated": UsagePayload;
+  "context.updated": ContextUpdatedPayload;
+  "todos.updated": TodosUpdatedPayload;
+  "thinking.delta": ThinkingPayload;
+  "thinking.final": ThinkingPayload;
+  "prompt.requested": PromptRequestedPayload;
+  "prompt.resolved": PromptResolvedPayload;
+  "runtime.status": RuntimeStatusPayload;
+  "runtime.config.updated": RuntimeConfigUpdatedPayload;
+  "integration.status": IntegrationStatusPayload;
+  "integration.event.received": IntegrationEventReceivedPayload;
+  "pairing.qr.updated": PairingQrUpdatedPayload;
+  "pairing.binding.updated": PairingBindingUpdatedPayload;
+  "mailbox.item.created": MailboxItemCreatedPayload;
+  "mailbox.item.updated": MailboxItemUpdatedPayload;
+  "scheduler.task.created": SchedulerTaskCreatedPayload;
+  "scheduler.task.updated": SchedulerTaskUpdatedPayload;
+  "scheduler.run.started": SchedulerRunStartedPayload;
+  "scheduler.run.finished": SchedulerRunFinishedPayload;
+  "economy.ledger.appended": EconomyLedgerAppendedPayload;
+  "achievement.updated": AchievementUpdatedPayload;
+  "inventory.updated": InventoryUpdatedPayload;
+  "settings.updated": SettingsUpdatedPayload;
+}
+
+export type TypedRoomEvent<K extends RoomEventType = RoomEventType> =
+  K extends RoomEventType
+    ? Omit<RoomEvent<RoomEventPayloadMap[K]>, "type"> & { type: K }
+    : never;
 
 // ── 信封之外的账户级兄弟消息(不带 seq;last-write-wins;与 (sessionId,seq) 顺序契约无关) ──
 export interface WindowUsage {

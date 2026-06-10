@@ -11,6 +11,10 @@ function escHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function escAttr(s: string): string {
+  return escHtml(s).replace(/"/g, "&quot;");
+}
+
 function mdInline(s: string): string {
   return s
     .replace(/`([^`]+)`/g, '<code class="md-code">$1</code>')
@@ -45,7 +49,8 @@ export function mdToHtml(src: string): string {
         i++;
       }
       i++;
-      out += `<pre class="md-pre"><code>${escHtml(code.replace(/\n$/, ""))}</code></pre>`;
+      const codeText = code.replace(/\n$/, "");
+      out += `<div class="md-codeblock"><button type="button" class="md-codecopy" data-code="${escAttr(codeText)}" aria-label="复制代码" title="复制代码">⎘</button><pre class="md-pre"><code>${escHtml(codeText)}</code></pre></div>`;
       continue;
     }
     const hm = ln.match(/^(#{1,4})\s+(.*)$/);
