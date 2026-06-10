@@ -11,7 +11,8 @@
     "typecheck:e2e": "tsc -p tsconfig.e2e.json",
     "check": "biome check .",
     "dev:app": "bun scripts/build-sidecar.ts && bun scripts/stage-cli.ts && tauri dev",
-    "build:app": "bun run build && bun scripts/build-sidecar.ts && bun scripts/stage-cli.ts && tauri build"
+    "build:app": "bun run build && bun scripts/build-sidecar.ts && bun scripts/stage-cli.ts && tauri build",
+    "verify:report": "bun run scripts/generate-verification-report.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.161",
