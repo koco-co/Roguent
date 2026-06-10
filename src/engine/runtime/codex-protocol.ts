@@ -68,12 +68,27 @@ export type CodexUserInput =
       [key: string]: unknown;
     };
 
+/**
+ * SandboxMode mirrors the codex-cli 0.133.0 app-server ThreadStartParams.sandbox field.
+ * It is a plain string — NOT an object.  The three valid values come from the
+ * codex app-server JSON Schema (generate-json-schema) definition of SandboxMode.
+ *
+ * Per-thread network access is NOT part of ThreadStartParams; it is controlled via
+ * TurnStartParams.sandboxPolicy (a richer object) or the global config.toml sandbox settings.
+ * We do not send a per-turn sandboxPolicy here — the sandbox mode set at thread-start
+ * is sufficient for Roguent's use-case (one sandbox level per conversation).
+ */
+export type CodexSandboxMode =
+  | "read-only"
+  | "workspace-write"
+  | "danger-full-access";
+
 export interface CodexThreadStartParams {
   model?: string;
   cwd?: string;
   approvalPolicy?: string;
-  sandbox?: unknown;
-  experimentalRawEvents?: boolean;
+  /** Plain string, one of CodexSandboxMode.  See comment above. */
+  sandbox?: CodexSandboxMode;
   persistExtendedHistory?: boolean;
   [key: string]: unknown;
 }

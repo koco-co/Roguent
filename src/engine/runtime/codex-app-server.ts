@@ -745,14 +745,27 @@ function spawnCodexAppServerProcess(
   return nodeSpawn(command, args, options) as CodexAppServerSpawnedProcess;
 }
 
+/**
+ * Build thread/start params for codex-cli 0.133.0 app-server.
+ *
+ * Key protocol facts (authoritative source: `codex app-server generate-json-schema`):
+ *   - `sandbox` is a PLAIN STRING ("read-only" | "workspace-write" | "danger-full-access"),
+ *     NOT an object {mode, networkAccess}.
+ *   - There is NO `reasoningEffort` field on ThreadStartParams; reasoning effort belongs on
+ *     TurnStartParams as `effort`.  We set it per-turn via startTurn options when needed.
+ *   - There is NO `experimentalRawEvents` field on ThreadStartParams in the 0.133.0 schema.
+ *   - Per-thread `networkAccess` does NOT exist on ThreadStartParams.  Network access is
+ *     controlled via codex config.toml sandbox settings or per-turn `sandboxPolicy`.
+ *     Roguent does not send a per-turn sandboxPolicy override; the `networkAccess` field
+ *     in RuntimeConfig is currently a no-op for the app-server path (by design — users
+ *     control network access via their codex config, not via Roguent's thread params).
+ */
 function threadStartInput(config: RuntimeConfig & { cwd: string }) {
   return {
     model: config.model,
     cwd: config.cwd,
     approvalPolicy: config.approvalPolicy,
-    sandbox: { mode: config.sandboxMode, networkAccess: config.networkAccess },
-    reasoningEffort: config.reasoningEffort,
-    experimentalRawEvents: true,
+    sandbox: config.sandboxMode,
   };
 }
 

@@ -341,13 +341,14 @@ test("driver setRuntimeConfig updates thread start approval and network settings
   const threadStart = fake.requests.find(
     (request) => request.method === "thread/start",
   );
+  // sandbox must be a plain string (codex-cli 0.133.0 ThreadStartParams.sandbox = SandboxMode).
+  // reasoningEffort and experimentalRawEvents are NOT valid ThreadStartParams fields and
+  // must not appear here.  networkAccess has no per-thread field on ThreadStartParams.
   expect(threadStart?.params).toEqual({
     model: "gpt-5.1",
     cwd: "/tmp/project",
     approvalPolicy: "never",
-    sandbox: { mode: "danger-full-access", networkAccess: true },
-    reasoningEffort: "high",
-    experimentalRawEvents: true,
+    sandbox: "danger-full-access",
   });
 
   driver.end();
