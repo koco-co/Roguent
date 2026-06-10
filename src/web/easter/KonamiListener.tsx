@@ -35,6 +35,23 @@ export function KonamiListener() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // Ignore keystrokes when the user is typing in a text field.
+      // Use nodeName / isContentEditable rather than instanceof checks so that
+      // the guard works both in browsers and in happy-dom test environments
+      // (where HTMLInputElement / HTMLTextAreaElement globals are unavailable).
+      const target = e.target as
+        | (EventTarget & { nodeName?: string; isContentEditable?: boolean })
+        | null;
+      if (target) {
+        const nodeName = target.nodeName?.toUpperCase();
+        if (
+          nodeName === "INPUT" ||
+          nodeName === "TEXTAREA" ||
+          target.isContentEditable === true
+        )
+          return;
+      }
+
       const buf = bufferRef.current;
       buf.push(e.key);
       // Keep only the most recent N keys where N = sequence length

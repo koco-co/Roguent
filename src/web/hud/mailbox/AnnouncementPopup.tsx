@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRoomStore } from "../../store";
 
 /**
@@ -111,24 +111,26 @@ export function AnnouncementPopup() {
   const [visible, setVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const announcement = deriveAnnouncement(
-    mailbox,
-    achievements,
-    ledger,
-    settings,
+  const announcement = useMemo(
+    () => deriveAnnouncement(mailbox, achievements, ledger, settings),
+    [mailbox, achievements, ledger, settings],
   );
+  const announcementId = announcement?.id ?? null;
   const isNewAnnouncement =
     announcement !== null && !dismissedIds.has(announcement.id);
 
   // Show when a new announcement arrives; auto-dismiss after 6 s.
+  // Depend only on stable primitives (announcementId, isNewAnnouncement) so the
+  // timer is NOT reset on every unrelated store update — only when the
+  // announcement identity actually changes.
   useEffect(() => {
     if (isNewAnnouncement) {
       setVisible(true);
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         setVisible(false);
-        if (announcement) {
-          setDismissedIds((prev) => new Set(prev).add(announcement.id));
+        if (announcementId !== null) {
+          setDismissedIds((prev) => new Set(prev).add(announcementId));
         }
       }, 6000);
     } else {
@@ -137,15 +139,15 @@ export function AnnouncementPopup() {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isNewAnnouncement, announcement]);
+  }, [isNewAnnouncement, announcementId]);
 
   const dismiss = useCallback(() => {
     setVisible(false);
-    if (announcement) {
-      setDismissedIds((prev) => new Set(prev).add(announcement.id));
+    if (announcementId !== null) {
+      setDismissedIds((prev) => new Set(prev).add(announcementId));
     }
     if (timerRef.current) clearTimeout(timerRef.current);
-  }, [announcement]);
+  }, [announcementId]);
 
   if (!visible || !announcement) return null;
 

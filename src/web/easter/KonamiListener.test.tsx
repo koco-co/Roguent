@@ -81,6 +81,46 @@ test("almost-correct sequence with one wrong key does not fire", () => {
   expect(state.lastEffect).toBeNull();
 });
 
+// ── text-input guard: keystrokes in inputs must not advance the buffer ────────
+
+/** Dispatch the full Konami sequence as bubbling KeyboardEvents from a given
+ * element, so that `e.target` is that element when the window listener fires. */
+function pressKeysFromElement(el: Element, keys: string[]) {
+  for (const key of keys) {
+    el.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+  }
+}
+
+test("keydown events from an <input> target do not fire konami", () => {
+  render(<KonamiListener />);
+
+  const input = document.createElement("input");
+  document.body.appendChild(input);
+
+  pressKeysFromElement(input, KONAMI_SEQUENCE);
+
+  const state = useEasterStore.getState();
+  expect(state.firedEggs.konami).toBeUndefined();
+  expect(state.lastEffect).toBeNull();
+
+  input.remove();
+});
+
+test("keydown events from a <textarea> target do not fire konami", () => {
+  render(<KonamiListener />);
+
+  const textarea = document.createElement("textarea");
+  document.body.appendChild(textarea);
+
+  pressKeysFromElement(textarea, KONAMI_SEQUENCE);
+
+  const state = useEasterStore.getState();
+  expect(state.firedEggs.konami).toBeUndefined();
+  expect(state.lastEffect).toBeNull();
+
+  textarea.remove();
+});
+
 // ── cleanup: listener is removed on unmount ───────────────────────────────────
 
 test("listener removed on unmount: sequence after unmount does not fire", () => {
