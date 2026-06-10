@@ -42,11 +42,12 @@ test("pullGacha produces different items for different seeds", () => {
 
 test("pullGacha returns known item for the canonical seed", () => {
   // This is the seeded regression test — if the PRNG or pool changes, update here.
+  // The expected value was observed by running pullGacha once with "fixed-seed".
   const result = pull({ seed: "fixed-seed", pool: GACHA_POOL, balance: 1000 });
   expect(result.ok).toBe(true);
   if (!result.ok) throw new Error("pull should succeed");
-  // itemId must be one of the pool item ids:
-  expect(GACHA_POOL.some((p) => p.id === result.itemId)).toBe(true);
+  // Pinned: fixed seed → fixed itemId (regression guard for PRNG/pool drift).
+  expect(result.itemId).toBe("pet.slime");
 });
 
 // ── cost deduction ────────────────────────────────────────────────────────────

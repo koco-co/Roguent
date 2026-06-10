@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { MailboxItem } from "../shared/events";
+import type { InventoryItemKind, MailboxItem } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
 import type { SchedulerTask } from "../shared/scheduler";
 import type { SessionManager } from "./session";
@@ -222,7 +222,41 @@ test("WsGateway handles economy claimAchievement through achievement service and
   ]);
 });
 
-test("WsGateway keeps unsupported economy actions explicit", async () => {
+test("WsGateway purchaseItem replies with error when gacha service is unavailable", async () => {
+  const sent: string[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+  } as unknown as SessionManager;
+  // No gacha service wired → should reply with an error, not crash.
+  const gateway = new WsGateway(0, mgr);
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "economy",
+        action: "purchaseItem",
+        sku: "gacha.hero",
+      }),
+      ws,
+    );
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(JSON.parse(sent[0] ?? "") as ControlMessage).toEqual({
+    kind: "control",
+    type: "commandError",
+    reason: "Gacha service unavailable",
+  });
+});
+
+test("WsGateway keeps equipItem/unequipItem economy actions explicit (not implemented)", async () => {
   const sent: string[] = [];
   const ws = {
     OPEN: 1,
@@ -239,8 +273,8 @@ test("WsGateway keeps unsupported economy actions explicit", async () => {
       gateway,
       JSON.stringify({
         cmd: "economy",
-        action: "purchaseItem",
-        sku: "skin.green",
+        action: "equipItem",
+        itemId: "skin.ninja",
       }),
       ws,
     );
@@ -248,11 +282,162 @@ test("WsGateway keeps unsupported economy actions explicit", async () => {
     await closeGateway(gateway);
   }
 
-  expect(JSON.parse(sent[0] ?? "") as ControlMessage).toEqual({
+  expect(JSON.parse(sent[0] ?? "") as ControlMessage).toMatchObject({
     kind: "control",
     type: "commandError",
-    reason: "Economy command not implemented: economy.purchaseItem",
   });
+});
+
+test("WsGateway purchaseItem with sufficient balance emits ledger and inventory events", async () => {
+  const sent: string[] = [];
+  const published: unknown[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const fakeEntry = {
+    id: "entry-1",
+    ts: 1,
+    reason: "gacha.pull",
+    amount: -100,
+    currency: "gem",
+    delta: { gem: -100 },
+    balance: { gem: 900 },
+    sourceEventId: "gacha.pull:gacha.hero:1:gacha.pull",
+  };
+  const fakeInventoryUpdate = {
+    item: {
+      id: "pet.slime",
+      sku: "pet.slime",
+      kind: "pet" as InventoryItemKind,
+      label: "史莱姆伙伴",
+      quantity: 1,
+      acquiredAt: 1,
+    },
+    action: "added" as const,
+  };
+  const gacha = {
+    pull: (_sku: string, _seed: string) => ({
+      ok: true as const,
+      ledgerEntries: [fakeEntry],
+      inventoryUpdate: fakeInventoryUpdate,
+    }),
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    publishIntegrationEvent: (event: unknown) => published.push(event),
+  } as unknown as SessionManager;
+  const gateway = new WsGateway(0, mgr, undefined, { gacha });
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "economy",
+        action: "purchaseItem",
+        sku: "gacha.hero",
+      }),
+      ws,
+    );
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  // No error response sent to client.
+  expect(sent).toEqual([]);
+  // Two events published: ledger debit + inventory update.
+  expect(published).toHaveLength(2);
+  expect(published[0]).toMatchObject({
+    sessionId: "__economy__",
+    type: "economy.ledger.appended",
+    payload: { entry: { id: "entry-1", amount: -100, currency: "gem" } },
+  });
+  expect(published[1]).toMatchObject({
+    sessionId: "__economy__",
+    type: "inventory.updated",
+    payload: { item: { id: "pet.slime" }, action: "added" },
+  });
+});
+
+test("WsGateway purchaseItem with insufficient balance replies with error without mutating", async () => {
+  const sent: string[] = [];
+  const published: unknown[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const gacha = {
+    pull: (_sku: string, _seed: string) => ({
+      ok: false as const,
+      reason: "insufficient_balance" as const,
+    }),
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    publishIntegrationEvent: (event: unknown) => published.push(event),
+  } as unknown as SessionManager;
+  const gateway = new WsGateway(0, mgr, undefined, { gacha });
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "economy",
+        action: "purchaseItem",
+        sku: "gacha.hero",
+      }),
+      ws,
+    );
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  // Error response sent.
+  expect(sent).toHaveLength(1);
+  expect(JSON.parse(sent[0] ?? "") as ControlMessage).toMatchObject({
+    kind: "control",
+    type: "commandError",
+    reason: "Gacha pull failed: insufficient_balance",
+  });
+  // No events published (ledger/inventory not mutated).
+  expect(published).toEqual([]);
+});
+
+test("WsGateway purchaseItem seed increments per pull (successive pulls get different seeds)", async () => {
+  const seeds: string[] = [];
+  const ws = { OPEN: 1, readyState: 1, send: () => {} };
+  const gacha = {
+    pull: (_sku: string, seed: string) => {
+      seeds.push(seed);
+      return { ok: false as const, reason: "insufficient_balance" as const };
+    },
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    publishIntegrationEvent: () => {},
+  } as unknown as SessionManager;
+  const gateway = new WsGateway(0, mgr, undefined, { gacha });
+  try {
+    for (let i = 0; i < 3; i++) {
+      invokeOnCommand(
+        gateway,
+        JSON.stringify({
+          cmd: "economy",
+          action: "purchaseItem",
+          sku: "gacha.hero",
+        }),
+        ws,
+      );
+    }
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  // All three seeds must be distinct.
+  expect(new Set(seeds).size).toBe(3);
 });
 
 test("WsGateway handles settings commands through SettingsService and publishes updates", async () => {

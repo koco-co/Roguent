@@ -55,6 +55,13 @@ export function LootPanel() {
   // 稳定引用:只有 ledger.appended 才替换 inventory 对象。
   const inventory = useRoomStore((s) => s.inventory);
 
+  // inventory 列表:按 id 排序(在 render 体里派生,依赖稳定引用 inventory)。
+  // useMemo 必须在所有 early return 之前(React hooks 规则)。
+  const inventoryItems = useMemo(
+    () => Object.values(inventory).toSorted((a, b) => a.id.localeCompare(b.id)),
+    [inventory],
+  );
+
   if (!active) return null;
 
   // 倒序:最新掉落在前(在 render 体里建新数组,不在 selector 里)。
@@ -63,12 +70,6 @@ export function LootPanel() {
   const minCells = Math.max(ordered.length, 8);
   const totalCells = Math.ceil(minCells / 4) * 4;
   const emptyCount = totalCells - ordered.length;
-
-  // inventory 列表:按 id 排序(在 render 体里派生,依赖稳定引用 inventory)。
-  const inventoryItems = useMemo(
-    () => Object.values(inventory).toSorted((a, b) => a.id.localeCompare(b.id)),
-    [inventory],
-  );
 
   return (
     <Modal

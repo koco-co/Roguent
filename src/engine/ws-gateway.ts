@@ -5,6 +5,7 @@ import type {
   AccountLimits,
   AchievementUpdatedPayload,
   EconomyLedgerAppendedPayload,
+  InventoryUpdatedPayload,
   LimitsMessage,
   MailboxItem,
   RoguentSettings,
@@ -61,17 +62,32 @@ export interface GatewayAchievementsService {
     | { ok: false; reason: string; detail?: string };
 }
 
+export interface GatewayGachaService {
+  pull(
+    sku: string,
+    seed: string,
+  ):
+    | {
+        ok: true;
+        ledgerEntries: EconomyLedgerAppendedPayload["entry"][];
+        inventoryUpdate: InventoryUpdatedPayload;
+      }
+    | { ok: false; reason: "insufficient_balance" | "unknown_sku" | string };
+}
+
 export interface WsGatewayOptions {
   mailbox?: GatewayMailboxService;
   scheduler?: GatewaySchedulerService;
   settings?: GatewaySettingsService;
   achievements?: GatewayAchievementsService;
+  gacha?: GatewayGachaService;
 }
 
 export class WsGateway {
   private wss: WebSocketServer;
   private clients = new Set<WebSocket>();
   private importSeq = 0;
+  private pullSeq = 0;
   private lastLimits: LimitsMessage | null = null;
 
   constructor(
@@ -243,14 +259,23 @@ export class WsGateway {
     c: Extract<ClientCommand, { cmd: "economy" }>,
     ws: WebSocket,
   ): void {
-    if (c.action !== "claimAchievement") {
+    if (c.action === "claimAchievement") {
+      this.handleClaimAchievement(c, ws);
+    } else if (c.action === "purchaseItem") {
+      this.handlePurchaseItem(c, ws);
+    } else {
       this.replyCommandError(
         ws,
         undefined,
         `Economy command not implemented: ${commandLabel(c)}`,
       );
-      return;
     }
+  }
+
+  private handleClaimAchievement(
+    c: Extract<ClientCommand, { cmd: "economy"; action: "claimAchievement" }>,
+    ws: WebSocket,
+  ): void {
     const achievements = this.options.achievements;
     if (!achievements) {
       this.replyCommandError(ws, undefined, "Achievements service unavailable");
@@ -281,6 +306,47 @@ export class WsGateway {
       sessionId: "__economy__",
       type: "economy.ledger.appended",
       payload: { entry: result.ledgerEntry },
+    });
+  }
+
+  private handlePurchaseItem(
+    c: Extract<ClientCommand, { cmd: "economy"; action: "purchaseItem" }>,
+    ws: WebSocket,
+  ): void {
+    const gacha = this.options.gacha;
+    if (!gacha) {
+      this.replyCommandError(ws, undefined, "Gacha service unavailable");
+      return;
+    }
+
+    // Derive a deterministic seed from a monotonically-increasing pull counter.
+    // This avoids Math.random()/Date.now() while ensuring successive pulls differ.
+    const seed = `gacha.pull:${c.sku}:${++this.pullSeq}`;
+    const result = gacha.pull(c.sku, seed);
+
+    if (!result.ok) {
+      this.replyCommandError(
+        ws,
+        undefined,
+        `Gacha pull failed: ${result.reason}`,
+      );
+      return;
+    }
+
+    const ts = Date.now();
+    for (const entry of result.ledgerEntries) {
+      this.mgr.publishIntegrationEvent({
+        ts,
+        sessionId: "__economy__",
+        type: "economy.ledger.appended",
+        payload: { entry } satisfies EconomyLedgerAppendedPayload,
+      });
+    }
+    this.mgr.publishIntegrationEvent({
+      ts,
+      sessionId: "__economy__",
+      type: "inventory.updated",
+      payload: result.inventoryUpdate satisfies InventoryUpdatedPayload,
     });
   }
 
