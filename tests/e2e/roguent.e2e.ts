@@ -243,6 +243,59 @@ test("WeChat fake pairing", async ({ page }) => {
   }
 });
 
+test("scheduler automatic run", async ({ page }) => {
+  const handle = await openReplay(page, "fixtures/scheduler/daily-task.jsonl");
+
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    // The fixture emits session.created for sessionId "replay", which auto-focuses
+    // and shows the "内景" button in the ViewSwitch (top-left).
+    await page.getByRole("button", { name: "内景" }).click();
+
+    // Now in the interior view — the session banner (top-center) is visible.
+    // Clicking it opens the SessionGrid modal (panel="sessiongrid").
+    const banner = page.locator(".session-banner");
+    await expect(banner).toBeVisible({ timeout: 8_000 });
+    await banner.locator(".sb-body").click();
+
+    // The SessionGrid modal should open.
+    const sgModal = page.locator(".sg-wrap");
+    await expect(sgModal).toBeVisible({ timeout: 8_000 });
+
+    // Click the "Scheduled Tasks" tab to reveal the SchedulerPanel.
+    await sgModal.getByRole("button", { name: "Scheduled Tasks" }).click();
+
+    // SchedulerPanel > ScheduleList renders the task created by the fixture.
+    // ScheduleList renders task.title in .scheduler-task-title.
+    const taskTitle = page.locator(".scheduler-task-title");
+    await expect(taskTitle).toHaveText("Daily Code Review", { timeout: 8_000 });
+
+    // RunHistory renders each run as <span class="chip">{run.status}</span>.
+    // The fixture delivers scheduler.run.finished with status="succeeded".
+    // The "succeeded" chip must be visible in the run history section.
+    const runHistory = page.locator(".scheduler-history");
+    await expect(runHistory).toBeVisible({ timeout: 8_000 });
+    await expect(
+      runHistory.locator(".chip").filter({ hasText: "succeeded" }),
+    ).toBeVisible();
+
+    // The run summary from the fixture should appear in the history entry.
+    await expect(
+      runHistory.getByText("Linting passed. All 42 tests passed."),
+    ).toBeVisible();
+
+    // Screenshot artifact.
+    const dir = await artifactDir("task54");
+    await page.screenshot({
+      path: `${dir}/scheduler-run.png`,
+      fullPage: false,
+    });
+  } finally {
+    handle.cleanup();
+  }
+});
+
 test("GitHub and X subscription routing", async ({ page }) => {
   const handle = await openReplay(
     page,
