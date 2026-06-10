@@ -96,6 +96,81 @@ test("Claude chat replay", async ({ page }) => {
   }
 });
 
+test("Feishu fake pairing", async ({ page }) => {
+  const handle = await openReplay(
+    page,
+    "fixtures/integrations/feishu-pairing.jsonl",
+  );
+
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    // Enter the session interior — fixture emits session.created for sessionId
+    // "replay", which triggers the auto-focus and shows the "内景" button in
+    // the lobby NPC card.
+    await page.getByRole("button", { name: "内景" }).click();
+
+    // Open the pairing panel via the Hotbar "配对" button.
+    // The Hotbar is only visible in the interior view.
+    await page.getByRole("button", { name: "配对" }).click();
+
+    // The PairingPanel renders a <dialog aria-label="Pairing">.
+    const panel = page.getByRole("dialog", { name: "Pairing" });
+    await expect(panel).toBeVisible({ timeout: 8_000 });
+
+    // The WeChat tab is the default; click the Feishu tab to switch.
+    // channelLabel("feishu") returns "飞书" (see PairingQr.tsx CHANNEL_COPY).
+    const feishuTab = panel.getByRole("button", { name: "飞书" });
+    await expect(feishuTab).toBeVisible();
+    await feishuTab.click();
+    await expect(feishuTab).toHaveAttribute("aria-pressed", "true");
+
+    // Binding overwrite assertion: the fixture sends two pairing.binding.updated
+    // events for the same externalChatId ("oc_group_1").  The store reducer
+    // removes the first binding ("飞书群聊 (binding-a)") and keeps only the
+    // latest (feishu-binding-b / "Li Mei (group)").  Assert exactly the final
+    // display name is visible and the overwritten name is not.
+    const bindingList = panel.locator(".pair-binding-list");
+    await expect(bindingList).toBeVisible({ timeout: 8_000 });
+
+    // Only the second binding's display name should appear.
+    await expect(bindingList.getByText("Li Mei (group)")).toBeVisible();
+    // The overwritten first binding's display name must NOT be present.
+    await expect(
+      bindingList.getByText("飞书群聊 (binding-a)"),
+    ).not.toBeVisible();
+
+    // The binding status badge should read "active".
+    await expect(bindingList.locator(".pair-status.active")).toBeVisible();
+
+    // Close the pairing panel before opening the chat drawer —
+    // the modal scrim blocks pointer events to the Hotbar underneath.
+    await page.keyboard.press("Escape");
+    await expect(panel).not.toBeVisible({ timeout: 4_000 });
+
+    // The inbound message text lands in the session timeline via the chat drawer.
+    // Open the chat drawer to verify the Feishu inbound message is present.
+    await page.getByRole("button", { name: /聊天/ }).click();
+    const drawer = page.locator(".cdrawer");
+    await expect(drawer).toBeVisible();
+    // The fixture's inbound bodyText is "请检查飞书长连接任务" (exact user message).
+    await expect(
+      drawer.getByText("请检查飞书长连接任务", { exact: true }),
+    ).toBeVisible({
+      timeout: 8_000,
+    });
+
+    // Screenshot evidence.
+    const dir = await artifactDir("task52");
+    await page.screenshot({
+      path: `${dir}/feishu-pairing.png`,
+      fullPage: false,
+    });
+  } finally {
+    handle.cleanup();
+  }
+});
+
 test("WeChat fake pairing", async ({ page }) => {
   const handle = await openReplay(
     page,
