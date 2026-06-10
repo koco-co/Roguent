@@ -1,0 +1,48 @@
+/**
+ * Consolidated E2E spec — Task 48 onwards.
+ * Each test uses openReplay() so it gets a dedicated engine replaying its
+ * own fixture on an ephemeral port.  Legacy task16-19 specs remain on the
+ * global 8787 engine and are unaffected.
+ */
+import { expect, test } from "@playwright/test";
+import { artifactDir, openReplay } from "./helpers";
+
+test("codex replay chat shows assistant, tool, and runtime controls", async ({
+  page,
+}) => {
+  const handle = await openReplay(page, "fixtures/runtime/codex-chat.jsonl");
+
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    // Navigate into a session interior and open the chat drawer —
+    // mirrors what task16-19 do with the global engine.
+    await page.getByRole("button", { name: "内景" }).click();
+    await page.getByRole("button", { name: /聊天/ }).click();
+
+    // The chat drawer should be open.
+    const drawer = page.locator(".cdrawer");
+    await expect(drawer).toBeVisible();
+
+    // RuntimeControls renders the runtime chip — for codex runtime it says "Codex".
+    // The chip lives inside .cdrawer, class "chip tag-codex".
+    await expect(drawer.locator(".tag-codex")).toBeVisible({ timeout: 8_000 });
+
+    // The tool card from the fixture ("shell") should appear in the timeline.
+    // ToolCard renders item.toolName in a monospace span.
+    await expect(drawer.getByText("shell")).toBeVisible({ timeout: 8_000 });
+
+    // RuntimeControls also renders permission/sandbox selects — these must exist.
+    await expect(drawer.getByLabel("permission")).toBeVisible();
+    await expect(drawer.getByLabel("sandbox")).toBeVisible();
+
+    // Screenshot artifact
+    const dir = await artifactDir("task48");
+    await page.screenshot({
+      path: `${dir}/codex-replay-chat.png`,
+      fullPage: false,
+    });
+  } finally {
+    handle.cleanup();
+  }
+});
