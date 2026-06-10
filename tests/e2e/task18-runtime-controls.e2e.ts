@@ -42,11 +42,43 @@ test("Task 18 runtime controls round-trip through live engine WebSocket", async 
           },
         },
       };
+      // Patch WebSocket to track when the page's engine connection opens.
+      // The app calls new WebSocket(engineUrl) inside connectRoom(); we intercept
+      // onopen to expose a flag the test can poll from outside the page.
+      const OrigWS = window.WebSocket;
+      class PatchedWebSocket extends OrigWS {
+        constructor(...args: ConstructorParameters<typeof WebSocket>) {
+          super(...args);
+          this.addEventListener("open", () => {
+            (window as unknown as { __engineWsOpen: boolean }).__engineWsOpen =
+              true;
+          });
+        }
+      }
+      (window as unknown as { WebSocket: typeof WebSocket }).WebSocket =
+        PatchedWebSocket as unknown as typeof WebSocket;
     }, engine.url);
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    await expect.poll(() => page.locator(".empty-center").count()).toBe(1);
+
+    // Wait for the lobby (lobby-first UI) — confirms the app is mounted and
+    // React has rendered the lobby view.  The lobby-view div is a zero-height
+    // wrapper (its .hub child is position:absolute), so check attachment rather
+    // than visibility.
+    await page.waitForSelector('[data-testid="lobby-view"]', {
+      state: "attached",
+    });
+
+    // Wait for the page's WebSocket to the live engine to open before sending
+    // any commands, so the page doesn't miss the broadcast session.created.
+    await page.waitForFunction(
+      () =>
+        (window as unknown as { __engineWsOpen?: boolean }).__engineWsOpen ===
+        true,
+      undefined,
+      { timeout: 10_000 },
+    );
 
     sendWs(ws, {
       cmd: "newSession",
@@ -66,6 +98,10 @@ test("Task 18 runtime controls round-trip through live engine WebSocket", async 
         event.sessionId === "s-runtime" && event.type === "session.created",
     );
 
+    // Wait for the 内景 button to become enabled — the page must also have
+    // received the session.created broadcast and updated its store (which sets
+    // currentSessionId and lifts the disabled state on the button).
+    await expect(page.getByRole("button", { name: "内景" })).toBeEnabled();
     await page.getByRole("button", { name: "内景" }).click();
     await page.getByRole("button", { name: /聊天/ }).click();
     await expect(page.getByLabel("reasoning effort")).toBeVisible();
