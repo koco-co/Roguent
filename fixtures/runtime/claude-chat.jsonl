@@ -1,0 +1,9 @@
+{"atMs":0,"kind":"roomEvent","event":{"seq":1,"ts":0,"sessionId":"claude-demo","type":"session.created","payload":{"title":"Claude Chat Demo","model":"claude-opus-4-8","permissionMode":"default","apiKeySource":"oauth","slashCommands":[],"cwd":"/tmp/demo","project":"demo"}}}
+{"atMs":200,"kind":"runtimeDraft","runtime":"claude","draft":{"type":"agent.thinking","payload":{},"agentId":"orchestrator"}}
+{"atMs":600,"kind":"runtimeDraft","runtime":"claude","draft":{"type":"message.delta","payload":{"text":"I'll help you with that. Let me run the tests first."},"agentId":"orchestrator"}}
+{"atMs":900,"kind":"runtimeDraft","runtime":"claude","draft":{"type":"tool.started","payload":{"toolName":"Bash","inputSummary":"bun test","toolUseId":"tool-use-1"},"agentId":"orchestrator"}}
+{"atMs":2400,"kind":"runtimeDraft","runtime":"claude","draft":{"type":"tool.ended","payload":{"toolUseId":"tool-use-1","ok":true},"agentId":"orchestrator"}}
+{"atMs":2700,"kind":"runtimeDraft","runtime":"claude","draft":{"type":"message.delta","payload":{"text":"All tests pass. Here is the summary:\n\n- 42 tests passed\n- 0 failures"},"agentId":"orchestrator"}}
+{"atMs":3000,"kind":"runtimeDraft","runtime":"claude","draft":{"type":"message.final","payload":{"text":"All tests pass. Here is the summary:\n\n- 42 tests passed\n- 0 failures"},"agentId":"orchestrator"}}
+{"atMs":3100,"kind":"runtimeDraft","runtime":"claude","draft":{"type":"agent.idle","payload":{},"agentId":"orchestrator"}}
+{"atMs":3200,"kind":"runtimeDraft","runtime":"claude","draft":{"type":"usage.updated","payload":{"tokens":1240,"cost":0.012}}}

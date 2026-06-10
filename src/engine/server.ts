@@ -6,7 +6,8 @@ import { createMailboxService } from "./mailbox/service";
 import { openDatabase, resolveDatabasePath } from "./persistence/db";
 import { migrate } from "./persistence/migrations";
 import { resolvePort } from "./port";
-import { loadFixture, replayTimed } from "./record";
+import { replayTimed } from "./record";
+import { loadAnyFixture } from "./replay/prototype-fixtures";
 import { createSchedulerRunner } from "./scheduler/runner";
 import { createSchedulerService } from "./scheduler/service";
 import { KeychainSecretStore } from "./secrets/keychain";
@@ -27,6 +28,8 @@ if (replayArg !== -1 && !process.argv[replayArg + 1]) {
 
 if (replayFixture) {
   // Cost-free demo: replay a fixture to every client, ignore commands.
+  // Real external connectors (WeChat/Feishu/GitHub/X) and runtime spawning are
+  // NOT started — only the WebSocket server + fixture loader run.
   const wss = new WebSocketServer({ port });
   wss.on("listening", () => {
     const addr = wss.address();
@@ -34,7 +37,11 @@ if (replayFixture) {
   });
   console.log(`[server] REPLAY ${replayFixture}`);
   wss.on("connection", async (ws) => {
-    const events = await loadFixture(replayFixture);
+    // loadAnyFixture auto-detects the fixture format:
+    //   - ReplayRecord JSONL (atMs + kind)  → validated, converted to RoomEvents
+    //   - CodexRuntimeEvent JSONL (kind)    → normalized via codex-normalize
+    //   - Legacy RoomEvent JSONL (seq+type) → loaded as-is (old path preserved)
+    const events = await loadAnyFixture(replayFixture, "replay");
     await replayTimed(
       events,
       (e) => {
