@@ -1,0 +1,17 @@
+{
+  "target": "wechat-pairing",
+  "mode": "bun-sdk",
+  "status": "blocked",
+  "observedEvents": [
+    "pairing.qr",
+    "pairing.qr"
+  ],
+  "blockers": [
+    {
+      "stage": "bun-sdk.scan.timeout",
+      "reason": "QR not scanned within 10000ms; no phone available in smoke environment"
+    }
+  ],
+  "notes": "QR URL was produced (https://liteapp.weixin.qq.com/q/7GiQu1?qrcode=2e87c72120493f33fdfe9273c6cc8e7a&b...). Increase WECHAT_PAIRING_TIMEOUT_MS and scan with a real phone to advance to \"passed\".",
+  "ranAtMs": 1781075242386
+}
