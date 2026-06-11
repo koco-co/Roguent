@@ -1,6 +1,7 @@
 import type React from "react";
 import { useMemo, useState } from "react";
 import type { SessionStatus } from "../../shared/domain";
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { HeroPortrait } from "./HeroPortrait";
@@ -34,6 +35,7 @@ const STATUS_META: Record<SessionStatus, [string, string]> = {
 };
 
 export function SessionGrid() {
+  const t = useT();
   const active = useUiStore((s) => s.activePanel === "sessiongrid");
   const closePanel = useUiStore((s) => s.closePanel);
   const openPanel = useUiStore((s) => s.openPanel);
@@ -73,7 +75,7 @@ export function SessionGrid() {
             className={`tab${mode === "all" ? " on" : ""}`}
             onClick={() => setMode("all")}
           >
-            全部
+            {t("全部")}
           </button>
           <button
             type="button"
@@ -104,7 +106,7 @@ export function SessionGrid() {
           <>
             {list.length === 0 && (
               <div className="sg-empty faint">
-                还没有会话——按「＋ 新会话」或到聊天抽屉新建第一个
+                {t("还没有会话——按「＋ 新会话」或到聊天抽屉新建第一个")}
               </div>
             )}
 
@@ -116,9 +118,9 @@ export function SessionGrid() {
                 onClick={() => openPanel("import")}
               >
                 <Icon name="import" size={40} glow="#f2c84b" />
-                <div className="sg-import-t">导入历史会话</div>
+                <div className="sg-import-t">{t("导入历史会话")}</div>
                 <div className="faint" style={{ fontSize: 11 }}>
-                  + 从本地扫描
+                  {t("+ 从本地扫描")}
                 </div>
               </div>
 
@@ -154,7 +156,7 @@ export function SessionGrid() {
                           className="sg-dot"
                           style={{ background: stColor }}
                         />
-                        {stLabel}
+                        {t(stLabel)}
                       </span>
                       <span
                         className="chip px tag-claude"

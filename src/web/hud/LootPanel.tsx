@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Loot } from "../../shared/domain";
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { Modal } from "./Modal";
@@ -42,6 +43,7 @@ const EMPTY_LOOT: readonly Loot[] = [];
 
 /** The backpack: loot artifacts + economy inventory items. */
 export function LootPanel() {
+  const t = useT();
   const active = useUiStore((s) => s.activePanel === "backpack");
   const closePanel = useUiStore((s) => s.closePanel);
   // 真 loot:选中会话的产出。selector 只返回稳定引用(loot 数组或 EMPTY_LOOT)。
@@ -84,9 +86,11 @@ export function LootPanel() {
         className="faint"
         style={{ fontSize: 11, marginBottom: 8, letterSpacing: 1 }}
       >
-        会话工件
+        {t("会话工件")}
       </div>
-      {ordered.length === 0 ? <div className="faint">暂无掉落</div> : null}
+      {ordered.length === 0 ? (
+        <div className="faint">{t("暂无掉落")}</div>
+      ) : null}
       <div className="loot-grid">
         {/* 真 loot 格:每格 = 一件真实产出的工件。 */}
         {ordered.map((l) => (
@@ -117,10 +121,10 @@ export function LootPanel() {
         className="faint"
         style={{ fontSize: 11, margin: "16px 0 8px", letterSpacing: 1 }}
       >
-        经济背包 ({inventoryItems.length})
+        {t("经济背包")} ({inventoryItems.length})
       </div>
       {inventoryItems.length === 0 ? (
-        <div className="faint">暂无物品 · 通过扭蛋或成就获得</div>
+        <div className="faint">{t("暂无物品 · 通过扭蛋或成就获得")}</div>
       ) : (
         <div className="loot-grid">
           {inventoryItems.map((item) => (

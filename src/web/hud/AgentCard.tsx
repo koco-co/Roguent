@@ -1,5 +1,6 @@
 import type { AgentStatus } from "../../shared/domain";
 import { toolNameToIcon } from "../../shared/mapping";
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { Icon, type IconName } from "./icons";
@@ -15,6 +16,7 @@ const STATUS_LABEL: Record<AgentStatus, string> = {
 
 /** Detail card for the character the user clicked in the room. */
 export function AgentCard() {
+  const t = useT();
   const id = useUiStore((s) => s.selectedAgentId);
   const select = useUiStore((s) => s.select);
   const agent = useRoomStore((s) => {
@@ -40,7 +42,7 @@ export function AgentCard() {
     >
       <button
         type="button"
-        title="关闭"
+        title={t("关闭")}
         className="px-btn"
         style={{
           position: "absolute",
@@ -66,10 +68,13 @@ export function AgentCard() {
         {isLead ? "★ " : ""}
         {agent.role}
       </div>
-      <StatRow k="类型" v={isLead ? "指挥官" : "子智能体"} />
-      <StatRow k="状态" v={STATUS_LABEL[agent.status] ?? agent.status} />
+      <StatRow k={t("类型")} v={isLead ? t("指挥官") : t("子智能体")} />
       <StatRow
-        k="工具"
+        k={t("状态")}
+        v={t(STATUS_LABEL[agent.status] ?? agent.status)}
+      />
+      <StatRow
+        k={t("工具")}
         v={
           agent.currentTool ? (
             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -84,7 +89,7 @@ export function AgentCard() {
           )
         }
       />
-      {agent.parentId ? <StatRow k="上级" v={agent.parentId} /> : null}
+      {agent.parentId ? <StatRow k={t("上级")} v={agent.parentId} /> : null}
     </div>
   );
 }

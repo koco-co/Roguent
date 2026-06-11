@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { PairingBinding } from "../../../shared/events";
+import { useT } from "../../i18n";
 import { useRoomStore } from "../../store";
 import { useUiStore } from "../../ui-store";
 import { sendCommand } from "../../ws-client";
@@ -30,6 +31,7 @@ export function PairingPanel({
   sessionId: string;
   onClose: () => void;
 }) {
+  const t = useT();
   const [channel, setChannel] = useState<PairableChannel>("wechat");
   const session = useRoomStore((s) => s.sessions[sessionId]);
   const pairings = useRoomStore((s) => s.pairings);
@@ -75,11 +77,11 @@ export function PairingPanel({
           <PairingQr channel={channel} qr={qr} onCreate={createPairing} />
           <div className="pair-side">
             <div className="pair-session-card">
-              <div className="px pair-card-title">当前会话</div>
+              <div className="px pair-card-title">{t("当前会话")}</div>
               <div className="pair-session-title">
                 {session?.title ?? sessionId}
               </div>
-              <div className="faint">{session?.cwd ?? "未设置工作目录"}</div>
+              <div className="faint">{session?.cwd ?? t("未设置工作目录")}</div>
             </div>
             <BindingList channel={channel} bindings={bindings} />
           </div>

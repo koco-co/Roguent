@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { SessionStatus } from "../../shared/domain";
+import { useT, useTL } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
@@ -38,6 +39,8 @@ const STATUS_COLOR: Record<SessionStatus, string> = {
  * 省略该横幅,不硬造假数据。
  */
 export function NpcCard() {
+  const t = useT();
+  const tl = useTL();
   const id = useUiStore((s) => s.selectedNpcId);
   const selectNpc = useUiStore((s) => s.selectNpc);
   const beginEnter = useUiStore((s) => s.beginEnter);
@@ -73,7 +76,7 @@ export function NpcCard() {
   }, {});
   const breakdown = Object.entries(STATUS_TALLY)
     .filter(([k]) => (tally[k] ?? 0) > 0)
-    .map(([k, label]) => `${tally[k] ?? 0} ${label}`)
+    .map(([k, label]) => `${tally[k] ?? 0} ${t(label)}`)
     .join(" · ");
 
   // 上下文充能条颜色:<20→绿 / ≤80→琥珀 / 否则红(对标原型 §6.8)。
@@ -128,7 +131,7 @@ export function NpcCard() {
                   boxShadow: `inset 0 0 0 1px ${statusColor}`,
                 }}
               >
-                {STATUS_LABEL[session.status] ?? session.status}
+                {t(STATUS_LABEL[session.status] ?? session.status)}
               </span>
               <span className="chip tag-claude">
                 <Icon name="claude" size={13} style={{ marginRight: 4 }} />
@@ -141,27 +144,29 @@ export function NpcCard() {
         {/* 真数据 stat 网格(两列)。自建 .statrow,不用 widgets 的 legacy StatRow。 */}
         <div className="statgrid">
           <div className="statrow">
-            <span className="sr-label">项目</span>
+            <span className="sr-label">{t("项目")}</span>
             <span className="sr-val">{session.project ?? "—"}</span>
           </div>
           <div className="statrow">
-            <span className="sr-label">模型</span>
+            <span className="sr-label">{t("模型")}</span>
             <span className="sr-val gold">{shortModel(session.model)}</span>
           </div>
           <div className="statrow">
-            <span className="sr-label">模式</span>
+            <span className="sr-label">{t("模式")}</span>
             <span className="sr-val">{session.permissionMode}</span>
           </div>
           <div className="statrow">
-            <span className="sr-label">状态</span>
+            <span className="sr-label">{t("状态")}</span>
             <span className="sr-val">
-              {STATUS_LABEL[session.status] ?? session.status}
+              {t(STATUS_LABEL[session.status] ?? session.status)}
             </span>
           </div>
           <div className="statrow">
-            <span className="sr-label">子智能体</span>
+            <span className="sr-label">{t("子智能体")}</span>
             <span className="sr-val">
-              {`${subagents.length} 个${breakdown ? ` · ${breakdown}` : ""}`}
+              {`${tl(`${subagents.length} 个`, `${subagents.length}`)}${
+                breakdown ? ` · ${breakdown}` : ""
+              }`}
             </span>
           </div>
           <div className="statrow">
@@ -171,7 +176,7 @@ export function NpcCard() {
             </span>
           </div>
           <div className="statrow">
-            <span className="sr-label">花费</span>
+            <span className="sr-label">{t("花费")}</span>
             <span className="sr-val">${session.usage.cost.toFixed(4)}</span>
           </div>
         </div>
@@ -179,7 +184,7 @@ export function NpcCard() {
         {/* 上下文充能条(仅当引擎已提供 context 时):填充=已用 util%,20% 处刻度线。 */}
         {session.context ? (
           <div className="npccard-ctx">
-            <span className="sr-label">上下文 {util}%</span>
+            <span className="sr-label">Context {util}%</span>
             <div className="util" style={{ height: 12 }}>
               <div
                 className="fill"
@@ -197,15 +202,16 @@ export function NpcCard() {
           <div className="comp-h">
             <Icon name="compact" size={18} />
             <span className="px" style={{ fontSize: 10 }}>
-              上下文压缩阈值
+              {t("上下文压缩阈值")}
             </span>
             {/* mock 防伪标注之二:可见「示例」角标 */}
-            <span className="mock-chip px">示例</span>
+            <span className="mock-chip px">{t("示例")}</span>
             <span className="qmark has-tip">
               ?
               <span className="tip cjk">
-                订阅模式下 Opus 默认 1M 上下文，不设阈值易烧爆额度；达到该 %
-                自动 /compact 并续跑，循环直到任务完成。
+                {t(
+                  "订阅模式下 Opus 默认 1M 上下文，不设阈值易烧爆额度；达到该 % 自动 /compact 并续跑，循环直到任务完成。",
+                )}
               </span>
             </span>
           </div>
@@ -215,14 +221,14 @@ export function NpcCard() {
               className={`seg-opt${compMode === "inherit" ? " on" : ""}`}
               onClick={() => setCompMode("inherit")}
             >
-              继承全局 (20%)
+              {t("继承全局 (20%)")}
             </button>
             <button
               type="button"
               className={`seg-opt${compMode === "override" ? " on" : ""}`}
               onClick={() => setCompMode("override")}
             >
-              局部覆盖
+              {t("局部覆盖")}
             </button>
           </div>
           {compMode === "override" ? (
@@ -242,25 +248,25 @@ export function NpcCard() {
           {/* mock 防伪标注之三:note 文案显式声明示例 · 引擎暂未接入 */}
           <div className="faint" style={{ fontSize: 11, marginTop: 10 }}>
             {compMode === "inherit"
-              ? "跟随全局默认（Opus 20%）。示例 · 引擎暂未接入"
-              : "此会话单独生效。示例 · 引擎暂未接入"}
+              ? t("跟随全局默认（Opus 20%）。示例 · 引擎暂未接入")
+              : t("此会话单独生效。示例 · 引擎暂未接入")}
           </div>
         </div>
 
         {/* 操作排:进入 / 聊天 / 归档 / 删除(两段式确认)。全为真实动作。 */}
         <div className="npccard-act">
           <button type="button" className="pxbtn cjk primary" onClick={enter}>
-            进入
+            {t("进入")}
           </button>
           <button type="button" className="pxbtn cjk" onClick={chat}>
-            聊天
+            {t("聊天")}
           </button>
           <button type="button" className="pxbtn cjk" onClick={archive}>
-            归档
+            {t("归档")}
           </button>
           {confirmDel ? (
             <button type="button" className="pxbtn cjk danger" onClick={del}>
-              确认删除？
+              {t("确认删除？")}
             </button>
           ) : (
             <button
@@ -268,7 +274,7 @@ export function NpcCard() {
               className="pxbtn cjk danger"
               onClick={() => setConfirmDel(true)}
             >
-              删除
+              {t("删除")}
             </button>
           )}
         </div>

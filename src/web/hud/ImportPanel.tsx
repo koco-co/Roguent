@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useT, useTL } from "../i18n";
 import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
 import { Modal } from "./Modal";
@@ -21,6 +22,8 @@ import { Icon } from "./icons";
 
 /** The import panel: list & import real local Claude Code sessions (real command). */
 export function ImportPanel() {
+  const t = useT();
+  const tl = useTL();
   const active = useUiStore((s) => s.activePanel === "import");
   const closePanel = useUiStore((s) => s.closePanel);
   // 真数据:扫描到的本地会话列表(稳定数组引用)+ 导入错误(单值)。
@@ -45,7 +48,7 @@ export function ImportPanel() {
     >
       <div className="import-wrap">
         <div className="dim" style={{ marginBottom: 12 }}>
-          扫描到的本地 Claude Code 项目:
+          {t("扫描到的本地 Claude Code 项目:")}
         </div>
         {/* 真错误:引擎扫描 / 导入失败时定向回传的 reason。 */}
         {error && (
@@ -63,7 +66,7 @@ export function ImportPanel() {
           </div>
         )}
         {items.length === 0 ? (
-          <div className="faint">没有本地会话</div>
+          <div className="faint">{t("没有本地会话")}</div>
         ) : (
           // 真会话行:每行 = 一段真实本地会话,整行点击即发 importSession 同步进来。
           // 行尾「{n} 行」chip 与「导入」chip 是纯视觉(非嵌套 button),保可达性。
@@ -83,8 +86,10 @@ export function ImportPanel() {
                   {m.firstMessage || m.sessionId}
                 </div>
               </div>
-              <span className="chip">{m.msgCount} 行</span>
-              <span className="pxbtn gold sm cjk">导入</span>
+              <span className="chip">
+                {tl(`${m.msgCount} 行`, `${m.msgCount} lines`)}
+              </span>
+              <span className="pxbtn gold sm cjk">{t("导入")}</span>
             </button>
           ))
         )}

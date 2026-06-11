@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { AchievementProgress } from "../../../shared/economy";
+import { useT } from "../../i18n";
 import { useRoomStore } from "../../store";
 import { useUiStore } from "../../ui-store";
 import { sendCommand } from "../../ws-client";
@@ -19,6 +20,7 @@ function progressLabel(achievement: AchievementProgress): string {
 }
 
 export function AchievementsPanel() {
+  const t = useT();
   const active = useUiStore((s) => s.activePanel === "achievements");
   const closePanel = useUiStore((s) => s.closePanel);
   const achievements = useRoomStore((s) => s.achievements);
@@ -44,7 +46,7 @@ export function AchievementsPanel() {
           <div className="empty-center">
             <div className="empty-title">No achievements yet</div>
             <div className="empty-sub">
-              创建 Codex 会话后，真实 runtime 事件会推进成就。
+              {t("创建 Codex 会话后，真实 runtime 事件会推进成就。")}
             </div>
           </div>
         ) : (

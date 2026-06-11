@@ -1,4 +1,5 @@
 import type React from "react";
+import { useT } from "../i18n";
 import { Icon, type IconName } from "./icons";
 
 /** 可复用的像素模态壳,忠实复刻设计原型 Modal(panels1.jsx)结构。
@@ -30,6 +31,7 @@ export function Modal({
   vibe?: string;
   children: React.ReactNode;
 }) {
+  const t = useT();
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: scrim 是模态遮罩,点击空白处关闭;键盘关闭由 App 的 Esc 集中处理
     <div className="scrim" onClick={onClose}>
@@ -49,7 +51,7 @@ export function Modal({
           <span className="title" style={{ color: accent }}>
             {title}
           </span>
-          {sub && <span className="sub cjk">{sub}</span>}
+          {sub && <span className="sub cjk">{t(sub)}</span>}
           <button type="button" className="closex px" onClick={onClose}>
             ✕
           </button>

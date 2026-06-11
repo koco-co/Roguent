@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ORCHESTRATOR_HERO, roleToHero } from "../../shared/mapping";
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { HeroPortrait } from "./HeroPortrait";
@@ -32,6 +33,7 @@ import { shortModel } from "./widgets";
 const MEDALS = ["#f2c84b", "#cfd6dd", "#cd7f32"] as const;
 
 export function Leaderboard() {
+  const t = useT();
   const active = useUiStore((s) => s.activePanel === "leaderboard");
   const closePanel = useUiStore((s) => s.closePanel);
   const sessions = useRoomStore((s) => s.sessions);
@@ -71,21 +73,21 @@ export function Leaderboard() {
             className={`tab${tab === "session" ? " on" : ""}`}
             onClick={() => setTab("session")}
           >
-            按会话
+            {t("按会话")}
           </button>
           <button
             type="button"
             className={`tab${tab === "model" ? " on" : ""}`}
             onClick={() => setTab("model")}
           >
-            按模型
+            {t("按模型")}
           </button>
           <button
             type="button"
             className={`tab${tab === "runtime" ? " on" : ""}`}
             onClick={() => setTab("runtime")}
           >
-            按 runtime
+            {t("按 runtime")}
           </button>
         </div>
 
@@ -124,7 +126,7 @@ export function Leaderboard() {
 
         {/* 排行行 */}
         {rows.length === 0 ? (
-          <div className="faint">暂无会话</div>
+          <div className="faint">{t("暂无会话")}</div>
         ) : (
           <div className="lb-rows">
             {rows.map((r, i) => {
@@ -186,7 +188,7 @@ export function Leaderboard() {
         {/* Codex 占位标注(仅 runtime 页签) */}
         {tab === "runtime" && (
           <div className="faint" style={{ fontSize: 11, marginTop: 12 }}>
-            Codex 为占位 · 引擎暂未接入(0)
+            {t("Codex 为占位 · 引擎暂未接入(0)")}
           </div>
         )}
       </div>

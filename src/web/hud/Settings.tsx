@@ -8,6 +8,7 @@ import type {
   SandboxMode,
 } from "../../shared/runtime";
 import { defaultRuntimeConfig } from "../../shared/runtime";
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
@@ -67,6 +68,7 @@ function renderCtrl(
   it: SettingField,
   val: SettingValue,
   set: (k: string, v: SettingValue) => void,
+  t: (s: string) => string,
 ) {
   if (it.type === "toggle") {
     const on = val === true;
@@ -132,7 +134,7 @@ function renderCtrl(
           </div>
         ))}
         {/* mock 视觉:「+ 添加」不绑真实新增逻辑。 */}
-        <div className="pxlist-add">+ 添加</div>
+        <div className="pxlist-add">{t("+ 添加")}</div>
       </div>
     );
   }
@@ -154,7 +156,7 @@ function renderCtrl(
           </div>
         ))}
         {/* mock 视觉:「+ 添加 Hook」不绑真实新增逻辑。 */}
-        <div className="pxlist-add">+ 添加 Hook</div>
+        <div className="pxlist-add">{t("+ 添加 Hook")}</div>
       </div>
     );
   }
@@ -516,13 +518,14 @@ function Field({
   val: SettingValue;
   set: (k: string, v: SettingValue) => void;
 }) {
+  const t = useT();
   return (
     <div className="field">
       <div className="field-label">
         <span>{it.label}</span>
         <QTip text={it.tip} />
       </div>
-      <div className="field-ctrl">{renderCtrl(it, val, set)}</div>
+      <div className="field-ctrl">{renderCtrl(it, val, set, t)}</div>
     </div>
   );
 }
@@ -542,6 +545,7 @@ function ThresholdRow({
   initPct: number;
   note: string;
 }) {
+  const t = useT();
   const [mode, setMode] = useState<"auto" | "pct">(initMode);
   const [pct, setPct] = useState(initPct);
   return (
@@ -566,7 +570,7 @@ function ThresholdRow({
             className={`seg-opt${mode === "pct" ? " on" : ""}`}
             onClick={() => setMode("pct")}
           >
-            阈值 %
+            {t("阈值 %")}
           </button>
         </div>
         {mode === "pct" && (
@@ -593,7 +597,7 @@ function ThresholdRow({
           </div>
         )}
       </div>
-      <div className="thresh-note faint">{note}</div>
+      <div className="thresh-note faint">{t(note)}</div>
     </div>
   );
 }
@@ -612,13 +616,15 @@ const FLOW_STEPS: Array<{
 
 // 上下文压缩组(§6.8):说明条 + 每模型一个 ThresholdRow + 自动编排循环卡。
 function CompactGroup() {
+  const t = useT();
   return (
     <div className="compact-group">
       <div className="comp-intro">
         <Icon name="compact" size={20} />
         <span>
-          为每个模型设“达到 X% 自动压缩续跑”的阈值。Auto = 不主动干预，走 SDK
-          原生压缩。
+          {t(
+            "为每个模型设“达到 X% 自动压缩续跑”的阈值。Auto = 不主动干预，走 SDK 原生压缩。",
+          )}
         </span>
       </div>
       {COMPACT_MODELS.map((m) => (
@@ -636,7 +642,7 @@ function CompactGroup() {
           className="px"
           style={{ fontSize: 10, color: "var(--gold)", marginBottom: 12 }}
         >
-          自动编排循环 (util ≥ 阈值)
+          {t("自动编排循环 (util ≥ 阈值)")}
         </div>
         <div className="flow-steps">
           {FLOW_STEPS.map((s, i) => (
@@ -647,7 +653,7 @@ function CompactGroup() {
               <div className="flow-step">
                 <div className="flow-num px">{s.n}</div>
                 <Icon name={s.ic} size={22} />
-                <span>{s.t}</span>
+                <span>{t(s.t)}</span>
               </div>
               {i < FLOW_STEPS.length - 1 && <div className="flow-arrow">→</div>}
             </div>
@@ -659,6 +665,7 @@ function CompactGroup() {
 }
 
 export function Settings() {
+  const t = useT();
   const active = useUiStore((s) => s.activePanel === "settings");
   const closePanel = useUiStore((s) => s.closePanel);
   const relayStatus = useRoomStore((s) => s.connectorStatus?.relay ?? null);
@@ -731,8 +738,9 @@ export function Settings() {
         {/* 真实保存 Roguent 设置;不直接改 Claude/Codex 原生配置文件。 */}
         <div className="task-mock-banner">
           <Icon name="error" size={14} glow="#f2c84b" />
-          保存会写入 Roguent 设置库；不会直接改 Claude settings.json / Codex
-          config.toml
+          {t(
+            "保存会写入 Roguent 设置库；不会直接改 Claude settings.json / Codex config.toml",
+          )}
         </div>
 
         <div className="settings-wrap">
@@ -797,7 +805,8 @@ export function Settings() {
                   />
                 ))}
                 <button type="button" className="set-add" onClick={addCustom}>
-                  <Icon name="task" size={16} />+ 添加自定义配置
+                  <Icon name="task" size={16} />
+                  {t("+ 添加自定义配置")}
                 </button>
               </>
             )}
@@ -808,11 +817,11 @@ export function Settings() {
         <div className="set-foot">
           {dirty ? (
             <span className="px" style={{ fontSize: 10, color: "var(--gold)" }}>
-              ● 未保存
+              ● {t("未保存")}
             </span>
           ) : (
             <span className="faint" style={{ fontSize: 11 }}>
-              已保存
+              {t("已保存")}
             </span>
           )}
           <div style={{ flex: 1 }} />
@@ -824,7 +833,7 @@ export function Settings() {
               setDirty(false);
             }}
           >
-            还原
+            {t("还原")}
           </button>
           <button
             type="button"
@@ -847,7 +856,7 @@ export function Settings() {
               setDirty(false);
             }}
           >
-            保存
+            {t("保存")}
           </button>
         </div>
       </>

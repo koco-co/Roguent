@@ -1,10 +1,12 @@
 import { useMemo } from "react";
+import { useT } from "../../i18n";
 import { selectMailboxBoardItemsFromMailbox, useRoomStore } from "../../store";
 import { useUiStore } from "../../ui-store";
 import { Modal } from "../Modal";
 import { InboxItemRow } from "./InboxItemRow";
 
 export function BoardPanel() {
+  const t = useT();
   const active = useUiStore((s) => s.activePanel === "board");
   const closePanel = useUiStore((s) => s.closePanel);
   const openPanel = useUiStore((s) => s.openPanel);
@@ -30,7 +32,9 @@ export function BoardPanel() {
         <div className="board-toolbar">
           <div>
             <div className="board-count px">{items.length} ITEMS</div>
-            <div className="faint">今日关键事件与未读告警会自动钉到这里。</div>
+            <div className="faint">
+              {t("今日关键事件与未读告警会自动钉到这里。")}
+            </div>
           </div>
           <button
             type="button"
@@ -44,7 +48,9 @@ export function BoardPanel() {
           {items.length === 0 ? (
             <div className="empty-center">
               <div className="empty-title">Board is clear</div>
-              <div className="empty-sub">暂无今日关键事件或未读告警。</div>
+              <div className="empty-sub">
+                {t("暂无今日关键事件或未读告警。")}
+              </div>
             </div>
           ) : (
             items.map((item) => (

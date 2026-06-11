@@ -121,7 +121,7 @@ export const DICT: Record<string, string> = {
   冲突: "Conflicts",
   相对: "vs",
   "stash 数量": "stashes",
-  "扫描到的本地 Claude Code 项目：": "Local Claude Code projects found:",
+  "扫描到的本地 Claude Code 项目:": "Local Claude Code projects found:",
   会话: "sessions",
   "选择一个角色 · 开始本地 vibe coding":
     "Pick a hero · start local vibe coding",
@@ -252,6 +252,131 @@ export const DICT: Record<string, string> = {
   "Codex 占位,暂未接入": "Codex placeholder — not connected yet",
   "暂无任务(agent 调 TodoWrite 后同步)":
     "No tasks yet (syncs after an agent calls TodoWrite)",
+  // ── panels (sweep B) ─────────────────────────────────────────
+  // modal subtitles
+  "本会话产出 loot · 扭蛋/经济背包":
+    "This session's loot · gacha / economy backpack",
+  "实时待办 · 当前会话 TodoWrite": "Live to-dos · current session TodoWrite",
+  "订阅 · 用量": "Plan · usage",
+  "真实里程碑 · event / ledger 驱动": "Real milestones · event / ledger driven",
+  "扭蛋抽卡 · 真实 gem 余额驱动": "Gacha pulls · real gem balance",
+  "真实 inbox · IM / GitHub / X / runtime":
+    "Real inbox · IM / GitHub / X / runtime",
+  "今日公告板 · 未读告警": "Today's board · unread alerts",
+  "扫码 · 微信 / 飞书消息互转": "Scan to pair · WeChat / Feishu relay",
+  // AgentCard
+  召唤中: "Spawning",
+  思考中: "Thinking",
+  类型: "Type",
+  工具: "Tool",
+  上级: "Parent",
+  指挥官: "Commander",
+  关闭: "Close",
+  // NpcCard
+  工作: "Working",
+  启动: "Spawning",
+  上下文压缩阈值: "Context compaction threshold",
+  "跟随全局默认（Opus 20%）。示例 · 引擎暂未接入":
+    "Follows the global default (Opus 20%). Demo · not connected yet",
+  "此会话单独生效。示例 · 引擎暂未接入":
+    "Applies to this session only. Demo · not connected yet",
+  "订阅模式下 Opus 默认 1M 上下文，不设阈值易烧爆额度；达到该 % 自动 /compact 并续跑，循环直到任务完成。":
+    "On subscription, Opus defaults to a 1M context; without a threshold you can burn through quota. At this %, it auto-/compacts and resumes, looping until the task is done.",
+  // Tasks
+  "当前会话暂无待办(agent 调 TodoWrite 后实时同步)":
+    "No to-dos in this session (syncs live after an agent calls TodoWrite)",
+  选择一个待办: "Select a to-do",
+  // Skills
+  "图标 / 稀有度 / 锁定为示例装饰;下方为当前会话":
+    "Icons / rarity / locks are demo decoration; below are this session's",
+  真实可用: "really available",
+  "的 slash 命令,点击即运行。": "slash commands — click to run.",
+  "当前会话无可用 slash 命令": "No slash commands available in this session",
+  "未解锁 · 示例(占位,非真实命令)":
+    "Locked · demo (placeholder, not a real command)",
+  // Skills decor descriptions (demo decoration)
+  压缩当前上下文并续跑: "Compact the current context and resume",
+  "对当前 diff 做代码审查": "Review the current diff",
+  运行测试套件并汇总失败: "Run the test suite and summarize failures",
+  生成多步任务计划: "Generate a multi-step task plan",
+  "召集 agent team 协作": "Summon an agent team to collaborate",
+  生成或更新文档: "Generate or update docs",
+  生成提交信息并提交: "Generate a commit message and commit",
+  "连接 MCP 工具服务器": "Connect an MCP tool server",
+  "内置 slash 命令": "Built-in slash command",
+  跨文件安全重构: "Safe cross-file refactor",
+  性能基准回归: "Performance benchmark regression",
+  "数据/schema 迁移向导": "Data / schema migration wizard",
+  调用更强模型做疑难推理: "Call a stronger model for hard reasoning",
+  // Leaderboard / SessionGrid
+  暂无会话: "No sessions yet",
+  活跃: "Active",
+  "Codex 为占位 · 引擎暂未接入(0)":
+    "Codex is a placeholder · not connected yet (0)",
+  // LootPanel
+  会话工件: "Session artifacts",
+  暂无掉落: "No drops yet",
+  经济背包: "Economy backpack",
+  "暂无物品 · 通过扭蛋或成就获得":
+    "No items yet · earn them via gacha or achievements",
+  // ModelPicker descriptions
+  "最强推理 · 1M 上下文": "Top reasoning · 1M context",
+  "均衡 · 默认队友": "Balanced · default teammate",
+  "快速 · 低成本": "Fast · low cost",
+  // Account
+  "5h 与周限额已映射为左上血条 / 魔法条":
+    "5h & weekly limits are mapped to the top-left HP / MP bars",
+  "登录态由本机 Claude Code 订阅管理(终端 /login)":
+    "Login is managed by the local Claude Code subscription (terminal /login)",
+  // ImportPanel
+  没有本地会话: "No local sessions",
+  // About
+  "本地 Claude Code agent 活动的游戏化实时可视化平台,把订阅模式驱动的真实 subagent 活动渲染成像素地牢。":
+    "A gamified real-time visualizer for local Claude Code agent activity — rendering subscription-driven subagent work as a pixel dungeon.",
+  "像素美术 0x72 DungeonTilesetII (CC0) · 像素字体 Fusion Pixel 12px (OFL-1.1, TakWolf) · Press Start 2P (OFL) · 致敬《元气骑士》":
+    "Pixel art 0x72 DungeonTilesetII (CC0) · pixel fonts Fusion Pixel 12px (OFL-1.1, TakWolf) · Press Start 2P (OFL) · homage to Soul Knight",
+  // SystemMenu
+  "PAUSED · 指挥台": "PAUSED · Command deck",
+  // Settings
+  "保存会写入 Roguent 设置库；不会直接改 Claude settings.json / Codex config.toml":
+    "Saving writes to the Roguent settings store; it won't directly modify Claude settings.json / Codex config.toml",
+  "+ 添加": "+ Add",
+  "+ 添加 Hook": "+ Add Hook",
+  "阈值 %": "Threshold %",
+  "为每个模型设“达到 X% 自动压缩续跑”的阈值。Auto = 不主动干预，走 SDK 原生压缩。":
+    'Set a per-model "auto-compact and resume at X%" threshold. Auto = no intervention, uses the SDK\'s native compaction.',
+  "自动编排循环 (util ≥ 阈值)": "Auto-orchestration loop (util ≥ threshold)",
+  终止本轮: "End this turn",
+  循环: "Loop",
+  '发送"继续"': 'Send "continue"',
+  "1M 上下文易烧额度，建议设阈值。":
+    "1M context burns quota fast; setting a threshold is recommended.",
+  "走 SDK 原生自动压缩。": "Uses the SDK's native auto-compaction.",
+  // BoardPanel
+  "今日关键事件与未读告警会自动钉到这里。":
+    "Today's key events and unread alerts get pinned here automatically.",
+  "暂无今日关键事件或未读告警。": "No key events or unread alerts today.",
+  // MailboxPanel
+  "外部平台未配置时只显示 configuration state，不填充样例消息。":
+    "When external platforms aren't configured, only the configuration state shows — no sample messages.",
+  // AchievementsPanel
+  "创建 Codex 会话后，真实 runtime 事件会推进成就。":
+    "Once you create a Codex session, real runtime events advance achievements.",
+  // GachaPanel
+  余额不足: "Insufficient balance",
+  奖池: "Pool",
+  "还没有物品 · 抽卡获得": "No items yet · pull to earn them",
+  // PairingPanel
+  当前会话: "Current session",
+  未设置工作目录: "No working directory set",
+  // ErrorOverlay
+  命令失败: "Command failed",
+  "runtime 离线": "runtime offline",
+  "无法连接到该项目的 Claude Code engine。":
+    "Couldn't connect to this project's Claude Code engine.",
+  "资源/连接失败时显示可见错误层,绝不静默黑屏。":
+    "A visible error layer shows on resource/connection failure — never a silent black screen.",
+  重试连接: "Retry connection",
 };
 
 export function translate(s: string, lang: Lang): string {
