@@ -9,7 +9,8 @@
       ".worktrees",
       "src-tauri",
       "test-results",
-      "tests/e2e/artifacts"
+      "tests/e2e/artifacts",
+      "Prototype"
     ]
   },
   "linter": {

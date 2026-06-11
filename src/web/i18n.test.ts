@@ -27,7 +27,9 @@ test("sweep B 关键串 en 翻译", () => {
   // AgentCard / NpcCard
   expect(translate("类型", "en")).toBe("Type");
   expect(translate("召唤中", "en")).toBe("Spawning");
-  expect(translate("上下文压缩阈值", "en")).toBe("Context compaction threshold");
+  expect(translate("上下文压缩阈值", "en")).toBe(
+    "Context compaction threshold",
+  );
   // Tasks / Leaderboard / LootPanel
   expect(translate("选择一个待办", "en")).toBe("Select a to-do");
   expect(translate("暂无会话", "en")).toBe("No sessions yet");
