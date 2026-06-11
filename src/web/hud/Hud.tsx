@@ -13,6 +13,7 @@ import { LangToggle } from "./LangToggle";
 import { Leaderboard } from "./Leaderboard";
 import { LimitBars } from "./LimitBars";
 import { LootPanel } from "./LootPanel";
+import { Market } from "./Market";
 import { Minimap } from "./Minimap";
 import { ModelPicker } from "./ModelPicker";
 import { RosterCard } from "./RosterCard";
@@ -26,6 +27,7 @@ import { TaskWindow } from "./TaskWindow";
 import { Tasks } from "./Tasks";
 import { ViewSwitch } from "./ViewSwitch";
 import { AchievementsPanel } from "./economy/AchievementsPanel";
+import { GachaPanel } from "./economy/GachaPanel";
 import { Icon, type IconName } from "./icons";
 import { BoardPanel } from "./mailbox/BoardPanel";
 import { MailboxPanel } from "./mailbox/MailboxPanel";
@@ -143,8 +145,12 @@ export function Hud() {
       <Tasks />
       {/* 设置(CONFIG)面板(整面板 mock 占位,自带 activePanel gate)*/}
       <Settings />
-      {/* 商店(SHOP)面板(整面板 mock 占位,自带 activePanel gate)*/}
+      {/* 装饰商店(SHOP)面板(gem 余额/已拥有为真,购买 mock;自带 activePanel gate)*/}
       <Shop />
+      {/* 插件市场(MARKET)面板(整面板 mock + banner,自带 activePanel gate)*/}
+      <Market />
+      {/* 扭蛋机(GACHA)面板(真实 gem ledger 驱动,自带 activePanel gate)*/}
+      <GachaPanel />
       {/* 系统 / 暂停菜单(全屏 scrim 覆盖层,自带 activePanel gate;menu→此组件)*/}
       <SystemMenu />
       {/* runtime 离线错误层(全屏 scrim,自带 activePanel gate;触发待 T4.3)*/}

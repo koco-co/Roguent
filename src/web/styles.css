@@ -2568,6 +2568,9 @@ img {
   flex: 1;
 }
 .shop-cat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
   padding: 9px 11px;
   cursor: pointer;
@@ -2580,6 +2583,23 @@ img {
   color: var(--gold);
   background: rgba(242, 200, 75, 0.08);
   box-shadow: inset 3px 0 0 var(--gold);
+}
+.shop-cat-n {
+  font-size: 8px;
+  color: var(--ink-faint);
+  margin-left: auto;
+  font-family: var(--font-px);
+}
+.shop-side-note {
+  font-size: 11px;
+  line-height: 1.7;
+  margin-top: 14px;
+  padding: 0 4px;
+}
+.shop-itemcats {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 .shop-grid {
   display: grid;

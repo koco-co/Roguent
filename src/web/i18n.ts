@@ -243,6 +243,17 @@ export const DICT: Record<string, string> = {
   "装饰商店 · 宝石消费 · 仅外观，不影响开发结果":
     "Decoration shop · gems · cosmetic only",
   去扭蛋机: "To Gacha",
+  已启用: "Enabled",
+  房间: "Room",
+  皮肤: "Skin",
+  宠物: "Pet",
+  UI: "UI",
+  "示例商品 · 购买逻辑未接入(宝石余额/已拥有为真)":
+    "Demo items · purchase not wired (gem balance / owned are real)",
+  "示例插件 · 安装逻辑未接入(引擎暂无插件市场)":
+    "Demo plugins · install not wired (no plugin market in engine)",
+  "评分 / 安装数为示例 · 真实能力以本机已配置的 MCP / Skills 为准":
+    "Ratings / installs are demo · real capabilities come from locally configured MCP / Skills",
   // ── HUD chrome (sweep A) ─────────────────────────────────────
   暂无在岗: "No one on duty",
   同步中: "syncing",

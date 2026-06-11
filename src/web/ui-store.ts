@@ -12,6 +12,7 @@ export type PanelId =
   | "settings"
   | "skills"
   | "shop"
+  | "market"
   | "gacha"
   | "achievements"
   | "leaderboard"
