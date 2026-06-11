@@ -3297,6 +3297,18 @@ img {
   font-family: var(--font-px);
   font-size: 9px;
 }
+/* 卡片上的项目名可点击 → 切换该项目过滤(对标 extra.css SESSION GRID v2) */
+.sg-proj {
+  cursor: pointer;
+  transition: color 0.1s, text-shadow 0.1s;
+}
+.sg-proj:hover {
+  color: #9fe9f7;
+  text-shadow: 0 0 6px rgba(54, 197, 224, 0.6);
+}
+.sg-proj.on {
+  color: var(--gold);
+}
 .sg-title {
   font-size: 14px;
   color: var(--text);
@@ -3456,6 +3468,128 @@ img {
   font-size: 13px;
   color: var(--gold);
   margin-top: 6px;
+}
+
+/* ---------------- SessionGrid v2 多级过滤(T8,搬 extra.css SESSION GRID v2 段) ---------------- */
+.sg-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: rgba(11, 10, 18, 0.32);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+}
+.sg-frow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 30px;
+}
+.sg-flab {
+  width: 72px;
+  flex-shrink: 0;
+  font-size: 8px;
+  color: var(--ink-faint);
+  letter-spacing: 1px;
+  font-family: var(--font-px);
+}
+.sg-fsp {
+  flex: 1;
+}
+.fchip {
+  --ac: #f2c84b;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  color: var(--ink-dim);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 0 1px var(--panel-hi);
+  transition: box-shadow 0.1s, color 0.1s, background 0.1s, transform 0.08s;
+  user-select: none;
+  white-space: nowrap;
+}
+.fchip:hover {
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ac) 60%, transparent);
+  transform: translateY(-1px);
+}
+.fchip.on {
+  color: color-mix(in srgb, var(--ac) 80%, #fff);
+  background: color-mix(in srgb, var(--ac) 14%, transparent);
+  box-shadow: inset 0 0 0 1px var(--ac);
+}
+.fchip .fc-n {
+  font-size: 8px;
+  color: var(--ink-faint);
+}
+.fchip.on .fc-n {
+  color: inherit;
+  opacity: 0.75;
+}
+.sg-clear {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  color: var(--ink-faint);
+  padding: 5px 10px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px var(--panel-edge);
+  background: rgba(0, 0, 0, 0.25);
+}
+.sg-clear:hover {
+  color: #ff8197;
+  box-shadow: inset 0 0 0 1px #ff4d6d;
+}
+/* 未激活(待命/完成)会话置灰,悬停时恢复方便查看 */
+.sg-card.inactive {
+  filter: grayscale(0.8) brightness(0.78);
+  opacity: 0.62;
+}
+.sg-card.inactive:hover {
+  filter: grayscale(0.15) brightness(1.05);
+  opacity: 1;
+}
+/* 卡片底部:tokens + 最后一条消息时间 */
+.sg-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+.sg-time {
+  font-size: 8px;
+  color: var(--ink-faint);
+}
+.sg-time.live {
+  color: #5fd35f;
+  text-shadow: 0 0 6px rgba(95, 211, 95, 0.5);
+}
+.sg-chips {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.sg-meta .sg-status {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.sg-meta .chip {
+  white-space: nowrap;
+}
+.sg-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  color: var(--ink-faint);
 }
 
 /* ---------------- CharacterSelect 角色选择(T4.2,对标原型 layout.css 424-429) ---------------- */

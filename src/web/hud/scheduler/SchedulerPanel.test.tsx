@@ -242,11 +242,12 @@ test("session grid runtime tabs filter Claude and Codex sessions", async () => {
   expect(screen.getByText("Claude work")).toBeTruthy();
   expect(screen.getByText("Codex work")).toBeTruthy();
 
-  await userEvent.click(screen.getByRole("button", { name: "Codex" }));
+  // v2: runtime 过滤改用 FChip(label + 计数),按名包含匹配。
+  await userEvent.click(screen.getByRole("button", { name: /^Codex/ }));
   expect(screen.queryByText("Claude work")).toBeNull();
   expect(screen.getByText("Codex work")).toBeTruthy();
 
-  await userEvent.click(screen.getByRole("button", { name: "Claude" }));
+  await userEvent.click(screen.getByRole("button", { name: /^Claude/ }));
   expect(screen.getByText("Claude work")).toBeTruthy();
   expect(screen.queryByText("Codex work")).toBeNull();
 });
