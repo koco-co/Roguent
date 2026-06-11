@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { reconnectRoom } from "../ws-client";
@@ -15,6 +16,7 @@ import { Icon } from "./icons";
 const GRACE_MS = 2500;
 
 export function ErrorOverlay() {
+  const t = useT();
   const connection = useRoomStore((s) => s.connection);
   const commandError = useUiStore((s) => s.commandError);
   const setCommandError = useUiStore((s) => s.setCommandError);
@@ -45,7 +47,7 @@ export function ErrorOverlay() {
             className="px"
             style={{ fontSize: 14, color: "#ff8197", margin: "18px 0 10px" }}
           >
-            命令失败
+            {t("命令失败")}
           </div>
           <div className="dim" style={{ marginBottom: 22 }}>
             {commandError}
@@ -55,7 +57,7 @@ export function ErrorOverlay() {
             className="pxbtn primary cjk"
             onClick={() => setCommandError(null)}
           >
-            关闭
+            {t("关闭")}
           </button>
         </div>
       </div>
@@ -76,13 +78,13 @@ export function ErrorOverlay() {
           className="px"
           style={{ fontSize: 14, color: "#ff8197", margin: "18px 0 10px" }}
         >
-          runtime 离线
+          {t("runtime 离线")}
         </div>
         <div className="dim" style={{ marginBottom: 8 }}>
-          无法连接到该项目的 Claude Code engine。
+          {t("无法连接到该项目的 Claude Code engine。")}
         </div>
         <div className="faint" style={{ fontSize: 12, marginBottom: 22 }}>
-          资源/连接失败时显示可见错误层,绝不静默黑屏。
+          {t("资源/连接失败时显示可见错误层,绝不静默黑屏。")}
         </div>
         <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
           <button
@@ -90,14 +92,14 @@ export function ErrorOverlay() {
             className="pxbtn primary cjk"
             onClick={() => reconnectRoom()}
           >
-            重试连接
+            {t("重试连接")}
           </button>
           <button
             type="button"
             className="pxbtn cjk"
             onClick={() => setDismissed(true)}
           >
-            返回
+            {t("返回")}
           </button>
         </div>
       </div>

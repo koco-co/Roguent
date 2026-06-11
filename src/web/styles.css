@@ -863,6 +863,10 @@ img {
   top: 64px;
   right: 12px;
 }
+/* design v2:系统类按钮(设置)前加一道视觉间隔,与通知/身份类分组。 */
+.iconbtn.dock-sys {
+  margin-top: 10px;
+}
 
 /* ── 底中操作坞(Hotbar,移植自原型 layout.css 的 .hotbar*)─────────────── */
 /* .panel.hotbar 复用 .panel 边框;.hotbar-anchor 自带绝对定位(底中),仅内景渲染 */
@@ -1032,10 +1036,10 @@ img {
 }
 
 /* ── 内景实时任务窗(TaskWindow,移植自原型 layout.css 的 .taskwin/.tw-*)── */
-/* 接左栈(ViewSwitch top:314 下方);自带绝对定位 */
+/* 接左栈(LangToggle 下方);自带绝对定位 */
 .taskwin {
   position: absolute;
-  top: 366px;
+  top: 458px;
   left: 12px;
   width: 312px;
   pointer-events: auto;
@@ -2568,6 +2572,9 @@ img {
   flex: 1;
 }
 .shop-cat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
   padding: 9px 11px;
   cursor: pointer;
@@ -2580,6 +2587,23 @@ img {
   color: var(--gold);
   background: rgba(242, 200, 75, 0.08);
   box-shadow: inset 3px 0 0 var(--gold);
+}
+.shop-cat-n {
+  font-size: 8px;
+  color: var(--ink-faint);
+  margin-left: auto;
+  font-family: var(--font-px);
+}
+.shop-side-note {
+  font-size: 11px;
+  line-height: 1.7;
+  margin-top: 14px;
+  padding: 0 4px;
+}
+.shop-itemcats {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 .shop-grid {
   display: grid;
@@ -3273,6 +3297,18 @@ img {
   font-family: var(--font-px);
   font-size: 9px;
 }
+/* 卡片上的项目名可点击 → 切换该项目过滤(对标 extra.css SESSION GRID v2) */
+.sg-proj {
+  cursor: pointer;
+  transition: color 0.1s, text-shadow 0.1s;
+}
+.sg-proj:hover {
+  color: #9fe9f7;
+  text-shadow: 0 0 6px rgba(54, 197, 224, 0.6);
+}
+.sg-proj.on {
+  color: var(--gold);
+}
 .sg-title {
   font-size: 14px;
   color: var(--text);
@@ -3432,6 +3468,128 @@ img {
   font-size: 13px;
   color: var(--gold);
   margin-top: 6px;
+}
+
+/* ---------------- SessionGrid v2 多级过滤(T8,搬 extra.css SESSION GRID v2 段) ---------------- */
+.sg-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: rgba(11, 10, 18, 0.32);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+}
+.sg-frow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 30px;
+}
+.sg-flab {
+  width: 72px;
+  flex-shrink: 0;
+  font-size: 8px;
+  color: var(--ink-faint);
+  letter-spacing: 1px;
+  font-family: var(--font-px);
+}
+.sg-fsp {
+  flex: 1;
+}
+.fchip {
+  --ac: #f2c84b;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  color: var(--ink-dim);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 0 1px var(--panel-hi);
+  transition: box-shadow 0.1s, color 0.1s, background 0.1s, transform 0.08s;
+  user-select: none;
+  white-space: nowrap;
+}
+.fchip:hover {
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ac) 60%, transparent);
+  transform: translateY(-1px);
+}
+.fchip.on {
+  color: color-mix(in srgb, var(--ac) 80%, #fff);
+  background: color-mix(in srgb, var(--ac) 14%, transparent);
+  box-shadow: inset 0 0 0 1px var(--ac);
+}
+.fchip .fc-n {
+  font-size: 8px;
+  color: var(--ink-faint);
+}
+.fchip.on .fc-n {
+  color: inherit;
+  opacity: 0.75;
+}
+.sg-clear {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  color: var(--ink-faint);
+  padding: 5px 10px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px var(--panel-edge);
+  background: rgba(0, 0, 0, 0.25);
+}
+.sg-clear:hover {
+  color: #ff8197;
+  box-shadow: inset 0 0 0 1px #ff4d6d;
+}
+/* 未激活(待命/完成)会话置灰,悬停时恢复方便查看 */
+.sg-card.inactive {
+  filter: grayscale(0.8) brightness(0.78);
+  opacity: 0.62;
+}
+.sg-card.inactive:hover {
+  filter: grayscale(0.15) brightness(1.05);
+  opacity: 1;
+}
+/* 卡片底部:tokens + 最后一条消息时间 */
+.sg-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+.sg-time {
+  font-size: 8px;
+  color: var(--ink-faint);
+}
+.sg-time.live {
+  color: #5fd35f;
+  text-shadow: 0 0 6px rgba(95, 211, 95, 0.5);
+}
+.sg-chips {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.sg-meta .sg-status {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.sg-meta .chip {
+  white-space: nowrap;
+}
+.sg-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  color: var(--ink-faint);
 }
 
 /* ---------------- CharacterSelect 角色选择(T4.2,对标原型 layout.css 424-429) ---------------- */
@@ -3691,6 +3849,7 @@ img {
   background: rgba(11, 10, 18, 0.7);
   padding: 5px 10px;
   box-shadow: 0 0 0 2px #000;
+  white-space: nowrap;
 }
 .struct-label > span:first-child {
   font-size: 13px;
@@ -3791,4 +3950,565 @@ img {
   transform: translate(-50%, -100%);
   z-index: 14;
   will-change: left, top;
+}
+
+/* ── 界面语言切换(LangToggle,对标原型 layout.css .lang-toggle)──
+   落左上控件栈:ViewSwitch 下方;再下方预留 SkinSwitch(T9)与 taskwin(top:458)。 */
+.lang-toggle {
+  position: absolute;
+  top: 362px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: auto;
+  cursor: pointer;
+  padding: 8px 11px;
+  border: 0;
+  background: linear-gradient(180deg, #2c2740, #1a1626);
+  box-shadow: inset 0 0 0 2px var(--panel-edge), 0 2px 0 rgba(0, 0, 0, 0.5);
+  color: var(--ink-dim);
+  transition: filter 0.12s ease, transform 0.12s ease;
+}
+.lang-toggle:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+.lang-toggle .lang-opt {
+  font-family: var(--font-cjk);
+  font-size: 13px;
+  line-height: 1;
+  color: var(--ink-dim);
+  opacity: 0.5;
+  letter-spacing: 0.5px;
+}
+.lang-toggle .lang-opt.px {
+  font-family: var(--font-px);
+  font-size: 10px;
+}
+.lang-toggle .lang-opt.on {
+  color: #f2c84b;
+  opacity: 1;
+  text-shadow: 0 0 6px rgba(242, 200, 75, 0.5);
+}
+
+/* ── 场景皮肤切换(SkinSwitch,对标原型 extra.css .skin-switch)──
+   落左上控件栈:LangToggle(top:362)下方、taskwin(top:458)上方,不重叠。 */
+.skin-switch {
+  position: absolute;
+  top: 410px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px;
+  background: rgba(8, 12, 20, 0.55);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  pointer-events: auto;
+  width: fit-content;
+}
+.skin-lab {
+  font-size: 8px;
+  color: var(--ink-faint);
+  letter-spacing: 1px;
+  padding: 0 6px 0 4px;
+}
+.skin-opt {
+  /* UA 重置:HUD 里的 <button> 默认浅灰底 + 错字体,先抹平再叠设计态。 */
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-dim);
+  padding: 5px 11px;
+  transition: color 0.12s, background 0.12s;
+  font-family: var(--font-px);
+}
+.skin-opt:hover {
+  color: var(--ink);
+}
+.skin-opt.on {
+  color: #fff;
+  background: rgba(54, 200, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(54, 200, 255, 0.5);
+}
+.skin-dot {
+  width: 9px;
+  height: 9px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+.skin-dot.dungeon {
+  background: linear-gradient(135deg, #b28654, #5a3a1e);
+}
+.skin-dot.holo {
+  background: linear-gradient(135deg, #5fe0ff, #2a6fdb);
+  box-shadow: 0 0 6px rgba(54, 200, 255, 0.8);
+}
+
+/* ============================================================
+   HOLO / BLUE-TECH SKIN — 全息蓝科技皮肤(可切换场景)
+   把暖木 HUD 推成青玻璃,叠加扫描线 / 网格 / 辉光 overlay。
+   适配差异(对标设计 extra.css 的 HOLO 段):
+   · 真实内景是单张 Pixi canvas(地板+小人同画布),给 canvas 整体加
+     CSS 滤镜会二次染色 holo 地板 graphics、且把小人也染成青色失可读。
+     故 Pixi 端不加 .room-canvas / .pxsprite 滤镜——holo 地板由
+     DungeonRoom 的 HoloFloor 直接用目标青色绘制,小人保留原皮可读。
+   · 设计的场景 overlay 挂 .world/.lobby;本仓库内景外层是 .room-host、
+     大厅是 .hub,故扫描线/网格/景深 overlay 分别挂到这两个真实节点。
+   · 大厅(纯 DOM)按设计照搬全套滤镜(hub-floor / hub 背景 / vignette)。
+   ============================================================ */
+
+/* HUD 木质面板变量 → 玻璃青边:重定义 token,所有面板/按钮/标题栏自动转青玻璃。 */
+.skin-holo {
+  --panel: #0f2c3e;
+  --panel-2: #0a2230;
+  --panel-edge: #04141f;
+  --panel-hi: #2d6f86;
+  --panel-deep: #07202c;
+  --titlebar: #0a2838;
+}
+.skin-holo .panel {
+  background: linear-gradient(
+      180deg,
+      rgba(120, 220, 255, 0.08),
+      rgba(0, 0, 0, 0.18)
+    ), #0f2c3e !important;
+}
+.skin-holo .panel.rivets::before,
+.skin-holo .panel.rivets::after {
+  background: #5fe0ff;
+  box-shadow: 0 0 0 1px #04141f, 0 0 5px rgba(54, 200, 255, 0.7);
+}
+.skin-holo .panel-titlebar {
+  background: linear-gradient(180deg, #123042, #0a2838);
+}
+.skin-holo .pxbtn {
+  background: linear-gradient(180deg, #1c4e60, #10303e);
+}
+.skin-holo .pxbtn.gold {
+  background: linear-gradient(180deg, #5fe0ff, #2a8fdb);
+  color: #04141f;
+}
+/* 图标按钮(底部快捷栏 + 右侧 dock)→ 青玻璃 */
+.skin-holo .iconbtn {
+  background: linear-gradient(180deg, #1c4e60, #10303e);
+}
+.skin-holo .iconbtn.active {
+  background: linear-gradient(180deg, #16596e, #0c2c3a);
+}
+/* 模态内木质 tab → 青 */
+.skin-holo .tab {
+  background: linear-gradient(180deg, #13384a, #0c2533);
+}
+.skin-holo .tab.on {
+  background: linear-gradient(180deg, #1c5e74, #103040);
+}
+
+/* ── 扫描线 + 网格 / 景深 overlay ─────────────────────────────
+   内景外层 .room-host 与大厅 .hub 都覆盖一层青色扫描线(::before)
+   + 顶部辉光/上下渐晕的景深(::after),z 高于场景、不挡交互。 */
+@keyframes holoScan {
+  from {
+    background-position-y: 0;
+  }
+  to {
+    background-position-y: 8px;
+  }
+}
+.skin-holo .room-host::before,
+.skin-holo .hub::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(54, 200, 255, 0.05),
+    rgba(54, 200, 255, 0.05) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+  mix-blend-mode: screen;
+  animation: holoScan 7s linear infinite;
+}
+.skin-holo .room-host::after,
+.skin-holo .hub::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: radial-gradient(
+      130% 100% at 50% 0%,
+      rgba(54, 160, 224, 0.12),
+      transparent 60%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(5, 11, 22, 0.2),
+      transparent 30%,
+      transparent 70%,
+      rgba(5, 11, 22, 0.5)
+    );
+}
+/* no-motion 守卫:skin-holo 与 no-motion 同挂根节点 .stage,故连写;
+   room-host / hub 是后代。 */
+.skin-holo.no-motion .room-host::before,
+.skin-holo.no-motion .hub::before {
+  animation: none;
+}
+
+/* ── 大厅(DOM)深蓝滤镜:照搬设计全套 ──────────────────────── */
+.skin-holo .hub {
+  background: #050b16;
+}
+.skin-holo .hub-floor {
+  filter: sepia(1) hue-rotate(150deg) saturate(2.1) brightness(1.06);
+}
+/* 暗角 → 深海军蓝(大厅 .vignette;内景暗角是 Pixi 精灵,不走 CSS) */
+.skin-holo .vignette {
+  background: radial-gradient(
+    125% 95% at 50% 40%,
+    transparent 36%,
+    rgba(6, 16, 30, 0.55) 70%,
+    rgba(4, 9, 20, 0.95) 100%
+  );
+}
+/* 大厅核心辉光本就吃 --core-glow,holo 已在 settingsRootStyle 把它强制成青
+   (rgba(54,200,255,.3)),无需再覆盖 .hub-bigglow。 */
+
+/* ============================================================
+   BIG COMMAND VIEWSCREEN — 内景大屏:指挥大屏 · 实时工具流
+   (搬自设计 Prototype extra.css BIG COMMAND VIEWSCREEN 段;数据换真 tool timeline,
+    线框页 / 扫描线 / CRT flicker / 光标纯装饰。z 低于模态 scrim。)
+   ============================================================ */
+.bigscreen {
+  position: absolute;
+  left: 50%;
+  top: 84px;
+  transform: translateX(-50%);
+  width: 540px;
+  z-index: 14;
+  pointer-events: auto;
+  perspective: 1100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: bsFloat 6s ease-in-out infinite;
+}
+@keyframes bsFloat {
+  50% {
+    transform: translateX(-50%) translateY(-7px);
+  }
+}
+/* ceiling mount arm */
+.bigscreen-arm {
+  width: 14px;
+  height: 34px;
+  background: linear-gradient(180deg, #1a2c33, #0d1a1f);
+  box-shadow: inset 0 0 0 2px #2c4a52, 0 0 0 2px #0b1418;
+  margin-bottom: -2px;
+}
+.bigscreen-frame {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(180deg, #0c1418, #070d10);
+  box-shadow: 0 0 0 4px #16323a, 0 0 0 7px #0a1a20, 0 0 30px
+    rgba(54, 197, 224, 0.32), 0 18px 30px rgba(0, 0, 0, 0.55);
+  transform: rotateX(7deg);
+  transform-origin: center top;
+  overflow: hidden;
+}
+/* browser chrome */
+.bs-chrome {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 11px;
+  background: linear-gradient(180deg, #15272e, #0d1a20);
+  border-bottom: 2px solid #0a1418;
+}
+.bs-dots {
+  display: flex;
+  gap: 5px;
+}
+.bs-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+.bs-tab {
+  font-size: 11px;
+  color: #bfeaf5;
+  background: rgba(54, 197, 224, 0.1);
+  padding: 3px 9px;
+  box-shadow: inset 0 0 0 1px rgba(54, 197, 224, 0.28);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bs-live {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8px;
+  color: #5fd35f;
+  letter-spacing: 0.5px;
+}
+.bs-live.busy {
+  color: #9fe9f7;
+}
+/* 空闲态(无 tool 活动):灰徽标,不声称在跑 */
+.bs-live.idle {
+  color: var(--ink-faint, #6c7b85);
+}
+.bs-livedot {
+  width: 7px;
+  height: 7px;
+  background: #5fd35f;
+  box-shadow: 0 0 7px #5fd35f;
+  animation: bsLive 1.3s ease-in-out infinite;
+}
+.bs-live.busy .bs-livedot {
+  background: #36c5e0;
+  box-shadow: 0 0 8px #36c5e0;
+}
+.bs-live.idle .bs-livedot {
+  background: var(--ink-faint, #6c7b85);
+  box-shadow: none;
+  animation: none;
+}
+@keyframes bsLive {
+  50% {
+    opacity: 0.35;
+  }
+}
+/* url bar */
+.bs-urlbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #0a1418;
+  border-bottom: 2px solid #0a1418;
+  position: relative;
+}
+.bs-url {
+  font-size: 10px;
+  color: #7fb8c4;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bs-load {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, #36c5e0, transparent);
+  animation: bsLoad 1s linear infinite;
+}
+@keyframes bsLoad {
+  from {
+    left: -30%;
+  }
+  to {
+    left: 100%;
+  }
+}
+/* viewport / rendered page(纯装饰线框) */
+.bs-viewport {
+  position: relative;
+  height: 166px;
+  background: radial-gradient(120% 100% at 50% 0%, #10242b, #0a161b 70%);
+  overflow: hidden;
+}
+.bs-page {
+  position: absolute;
+  inset: 0;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.bs-blk {
+  background: linear-gradient(
+    110deg,
+    rgba(54, 197, 224, 0.12),
+    rgba(54, 197, 224, 0.05)
+  );
+  box-shadow: inset 0 0 0 1px rgba(54, 197, 224, 0.16);
+}
+.bs-hero {
+  height: 38px;
+  background: linear-gradient(
+    110deg,
+    rgba(54, 197, 224, 0.22),
+    rgba(160, 108, 213, 0.12)
+  );
+  box-shadow: inset 0 0 0 1px rgba(54, 197, 224, 0.3);
+}
+.bs-row {
+  display: flex;
+  gap: 9px;
+}
+.bs-card {
+  flex: 1;
+  height: 46px;
+}
+.bs-line {
+  height: 9px;
+}
+.bs-line.w80 {
+  width: 80%;
+}
+.bs-line.w60 {
+  width: 60%;
+}
+.bs-line.w70 {
+  width: 70%;
+}
+/* scanline sweep + crt flicker for the 3D holo feel(纯装饰) */
+.bs-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(54, 197, 224, 0.16),
+    transparent
+  );
+  animation: bsScan 3.6s linear infinite;
+  z-index: 2;
+  pointer-events: none;
+}
+@keyframes bsScan {
+  from {
+    top: -40px;
+  }
+  to {
+    top: 200px;
+  }
+}
+.bs-flicker {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.18),
+    rgba(0, 0, 0, 0.18) 1px,
+    transparent 2px,
+    transparent 3px
+  );
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+  animation: bsFlick 5s steps(2) infinite;
+}
+@keyframes bsFlick {
+  48% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.32;
+  }
+  52% {
+    opacity: 0.5;
+  }
+}
+/* agent cursor(纯装饰;motion 关时组件不更新位置,保持静止) */
+.bs-cursor {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-2px, -2px);
+  transition: left 0.8s cubic-bezier(0.4, 0, 0.3, 1), top 0.8s
+    cubic-bezier(0.4, 0, 0.3, 1);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+}
+.bs-cursor.click::after {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: -7px;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #36c5e0;
+  border-radius: 50%;
+  animation: bsClick 0.7s ease-out;
+}
+@keyframes bsClick {
+  from {
+    transform: scale(0.2);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+/* caption(agent · tool;空闲走 i18n 提示) */
+.bs-caption {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 12px;
+  background: linear-gradient(180deg, #0d1a20, #0a1418);
+  border-top: 2px solid #16323a;
+}
+.bs-act {
+  font-size: 11px;
+  color: #cfe9f0;
+}
+.bigscreen-base {
+  width: 120px;
+  height: 12px;
+  margin-top: 8px;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(54, 197, 224, 0.3),
+    transparent 70%
+  );
+}
+.bigscreen-glow {
+  position: absolute;
+  inset: -8% -4% -20% -4%;
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgba(54, 197, 224, 0.16),
+    transparent 68%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+/* no-motion 守卫:no-motion 与根主题同挂根节点 .stage(同节点连写)。 */
+.stage.no-motion .bigscreen {
+  animation: none;
+}
+.stage.no-motion .bs-scan,
+.stage.no-motion .bs-flicker,
+.stage.no-motion .bs-load,
+.stage.no-motion .bs-livedot {
+  animation: none;
+}
+.room-forest .bigscreen-frame {
+  box-shadow: 0 0 0 4px #1c3a22, 0 0 0 7px #0a1a10, 0 0 30px
+    rgba(95, 211, 95, 0.3), 0 18px 30px rgba(0, 0, 0, 0.55);
+}
+.room-cyber .bigscreen-frame {
+  box-shadow: 0 0 0 4px #2c1f44, 0 0 0 7px #140e22, 0 0 30px
+    rgba(160, 108, 213, 0.32), 0 18px 30px rgba(0, 0, 0, 0.55);
+}
+.skin-holo .bigscreen-frame {
+  box-shadow: 0 0 0 4px #16465a, 0 0 0 7px #0a1a2a, 0 0 34px
+    rgba(54, 200, 255, 0.4), 0 18px 30px rgba(0, 0, 0, 0.55);
 }

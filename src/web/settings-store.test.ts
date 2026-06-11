@@ -192,3 +192,23 @@ test("parsePersisted: avatarHero=null 被保留", () => {
 const _typeCheck: <K extends keyof Settings>(k: K, v: Settings[K]) => void =
   useSettingsStore.getState().setSetting;
 void _typeCheck;
+
+test("parsePersisted 接受合法 uiLang,拒绝非法值", () => {
+  expect(parsePersisted(JSON.stringify({ uiLang: "en" })).uiLang).toBe("en");
+  expect(parsePersisted(JSON.stringify({ uiLang: "cn" })).uiLang).toBe("cn");
+  expect(
+    parsePersisted(JSON.stringify({ uiLang: "jp" })).uiLang,
+  ).toBeUndefined();
+});
+
+test("parsePersisted 接受 skin", () => {
+  expect(parsePersisted(JSON.stringify({ skin: "holo" })).skin).toBe("holo");
+  expect(parsePersisted(JSON.stringify({ skin: "x" })).skin).toBeUndefined();
+});
+
+test("holo 皮肤强制青色 accent 与 core-glow", () => {
+  const s = { ...DEFAULT_SETTINGS, skin: "holo" as const };
+  expect(settingsRootClass(s)).toContain("skin-holo");
+  expect(settingsRootStyle(s)["--accent"]).toBe("#36e0ff");
+  expect(settingsRootStyle(s)["--core-glow"]).toBe("rgba(54,200,255,.3)");
+});

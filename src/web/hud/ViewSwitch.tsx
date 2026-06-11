@@ -1,3 +1,4 @@
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 
@@ -12,6 +13,7 @@ import { useUiStore } from "../ui-store";
  * - 「大厅」:即时回大厅 exitOverworld()。.on = 当前是 overworld。
  */
 export function ViewSwitch() {
+  const t = useT();
   const view = useUiStore((s) => s.view);
   const enterInterior = useUiStore((s) => s.enterInterior);
   const exitOverworld = useUiStore((s) => s.exitOverworld);
@@ -37,14 +39,14 @@ export function ViewSwitch() {
         disabled={!currentSessionId}
         onClick={goInterior}
       >
-        内景
+        {t("内景")}
       </button>
       <button
         type="button"
         className={`vs-opt${inInterior ? "" : " on"}`}
         onClick={exitOverworld}
       >
-        大厅
+        {t("大厅")}
       </button>
     </div>
   );

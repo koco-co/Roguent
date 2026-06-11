@@ -3,15 +3,18 @@ import { useUiStore } from "../ui-store";
 import { About } from "./About";
 import { Account } from "./Account";
 import { AgentCard } from "./AgentCard";
+import { BrowserScreen } from "./BrowserScreen";
 import { ButtonDock } from "./ButtonDock";
 import { ChatDrawer } from "./ChatDrawer";
 import { Currency } from "./Currency";
 import { ErrorOverlay } from "./ErrorOverlay";
 import { Hotbar } from "./Hotbar";
 import { ImportPanel } from "./ImportPanel";
+import { LangToggle } from "./LangToggle";
 import { Leaderboard } from "./Leaderboard";
 import { LimitBars } from "./LimitBars";
 import { LootPanel } from "./LootPanel";
+import { Market } from "./Market";
 import { Minimap } from "./Minimap";
 import { ModelPicker } from "./ModelPicker";
 import { RosterCard } from "./RosterCard";
@@ -20,11 +23,13 @@ import { SessionGrid } from "./SessionGrid";
 import { Settings } from "./Settings";
 import { Shop } from "./Shop";
 import { Skills } from "./Skills";
+import { SkinSwitch } from "./SkinSwitch";
 import { SystemMenu } from "./SystemMenu";
 import { TaskWindow } from "./TaskWindow";
 import { Tasks } from "./Tasks";
 import { ViewSwitch } from "./ViewSwitch";
 import { AchievementsPanel } from "./economy/AchievementsPanel";
+import { GachaPanel } from "./economy/GachaPanel";
 import { Icon, type IconName } from "./icons";
 import { BoardPanel } from "./mailbox/BoardPanel";
 import { MailboxPanel } from "./mailbox/MailboxPanel";
@@ -100,8 +105,16 @@ export function Hud() {
       <RosterCard />
       {/* 视图切换段(两视图都显示,落左上栈)*/}
       <ViewSwitch />
+      {/* 界面语言切换(两视图都显示,落 ViewSwitch 下方)*/}
+      <LangToggle />
+      {/* 场景皮肤切换(两视图都显示,落 LangToggle 下方,top:410)*/}
+      <SkinSwitch />
       {/* 顶中会话横幅(仅内景显示,自带绝对定位)*/}
       <SessionBanner />
+
+      {/* 内景大屏 · 实时工具流(仅内景显示,自带 inInterior gate;tab/url/caption 取
+          会话 timeline 最近 tool,线框/扫描/光标纯装饰,无活动显 IDLE 不造数据)*/}
+      <BrowserScreen />
 
       {/* 顶右货币条(两视图都显示,自带绝对定位 top:12 right:12)*/}
       <Currency />
@@ -140,8 +153,12 @@ export function Hud() {
       <Tasks />
       {/* 设置(CONFIG)面板(整面板 mock 占位,自带 activePanel gate)*/}
       <Settings />
-      {/* 商店(SHOP)面板(整面板 mock 占位,自带 activePanel gate)*/}
+      {/* 装饰商店(SHOP)面板(gem 余额/已拥有为真,购买 mock;自带 activePanel gate)*/}
       <Shop />
+      {/* 插件市场(MARKET)面板(整面板 mock + banner,自带 activePanel gate)*/}
+      <Market />
+      {/* 扭蛋机(GACHA)面板(真实 gem ledger 驱动,自带 activePanel gate)*/}
+      <GachaPanel />
       {/* 系统 / 暂停菜单(全屏 scrim 覆盖层,自带 activePanel gate;menu→此组件)*/}
       <SystemMenu />
       {/* runtime 离线错误层(全屏 scrim,自带 activePanel gate;触发待 T4.3)*/}

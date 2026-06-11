@@ -1,3 +1,4 @@
+import { useT } from "../i18n";
 import { useUiStore } from "../ui-store";
 import { Icon, type IconName } from "./icons";
 
@@ -29,6 +30,7 @@ type SysItem = {
 };
 
 export function SystemMenu() {
+  const t = useT();
   const active = useUiStore((s) => s.activePanel === "menu");
   const closePanel = useUiStore((s) => s.closePanel);
   const openPanel = useUiStore((s) => s.openPanel);
@@ -73,7 +75,7 @@ export function SystemMenu() {
           className="faint"
           style={{ letterSpacing: ".2em", marginBottom: 30 }}
         >
-          PAUSED · 指挥台
+          {t("PAUSED · 指挥台")}
         </div>
         {items.map((it) => (
           <button
@@ -83,7 +85,7 @@ export function SystemMenu() {
             onClick={it.action}
           >
             <Icon name={it.icon} size={22} />
-            <span>{it.label}</span>
+            <span>{t(it.label)}</span>
           </button>
         ))}
       </div>

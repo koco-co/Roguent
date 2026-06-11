@@ -4,6 +4,7 @@ import type {
   MailboxItem,
   MailboxSource,
 } from "../../../shared/events";
+import { useT } from "../../i18n";
 import { useRoomStore } from "../../store";
 import { useUiStore } from "../../ui-store";
 import { Modal } from "../Modal";
@@ -51,6 +52,7 @@ function connectorStateLabel(status: IntegrationConnectorStatus | undefined) {
 }
 
 export function MailboxPanel() {
+  const t = useT();
   const active = useUiStore((s) => s.activePanel === "mailbox");
   const closePanel = useUiStore((s) => s.closePanel);
   const mailbox = useRoomStore((s) => s.mailbox);
@@ -118,7 +120,9 @@ export function MailboxPanel() {
               <div className="empty-center">
                 <div className="empty-title">No mailbox items</div>
                 <div className="empty-sub">
-                  外部平台未配置时只显示 configuration state，不填充样例消息。
+                  {t(
+                    "外部平台未配置时只显示 configuration state，不填充样例消息。",
+                  )}
                 </div>
               </div>
             ) : (

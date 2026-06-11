@@ -2,6 +2,7 @@ import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type RuntimeKind, defaultRuntimeConfig } from "../../shared/runtime";
 import { Icon } from "../hud/icons";
+import { useT, useTL } from "../i18n";
 import { useSettingsStore } from "../settings-store";
 import { useRoomStore } from "../store";
 import { type PanelId, useUiStore } from "../ui-store";
@@ -26,6 +27,7 @@ type PanelAction = Extract<
   | "sessiongrid"
   | "tasks"
   | "shop"
+  | "market"
   | "gacha"
   | "achievements"
   | "board"
@@ -47,7 +49,15 @@ interface Interactable {
   label: string;
   sub: string;
   action: InteractAction;
-  icon: "quest" | "shop" | "trophy" | "gear" | "vault" | "pouch" | "crystal";
+  icon:
+    | "quest"
+    | "shop"
+    | "trophy"
+    | "gear"
+    | "vault"
+    | "pouch"
+    | "crystal"
+    | "mcp";
   accent: string;
 }
 
@@ -68,11 +78,22 @@ const INTERACT: Interactable[] = [
     x: 1480,
     y: 380,
     r: 140,
-    label: "商店",
+    label: "装饰商店",
     sub: "SHOP",
     action: { kind: "panel", panel: "shop" },
     icon: "shop",
-    accent: "#f2c84b",
+    accent: "#a06cd5",
+  },
+  {
+    id: "market",
+    x: 660,
+    y: 452,
+    r: 132,
+    label: "插件市场",
+    sub: "MARKET",
+    action: { kind: "panel", panel: "market" },
+    icon: "mcp",
+    accent: "#36c5e0",
   },
   {
     id: "gacha",
@@ -87,8 +108,8 @@ const INTERACT: Interactable[] = [
   },
   {
     id: "board",
-    x: 440,
-    y: 380,
+    x: 360,
+    y: 742,
     r: 140,
     label: "公告板",
     sub: "BOARD",
@@ -98,8 +119,8 @@ const INTERACT: Interactable[] = [
   },
   {
     id: "mailbox",
-    x: 285,
-    y: 555,
+    x: 1272,
+    y: 248,
     r: 120,
     label: "信箱",
     sub: "MAIL",
@@ -110,7 +131,7 @@ const INTERACT: Interactable[] = [
   {
     id: "altar",
     x: 960,
-    y: 215,
+    y: 236,
     r: 130,
     label: "设置祭坛",
     sub: "CONFIG",
@@ -120,8 +141,8 @@ const INTERACT: Interactable[] = [
   },
   {
     id: "achievements",
-    x: 650,
-    y: 235,
+    x: 652,
+    y: 248,
     r: 120,
     label: "成就陈列",
     sub: "LOOT",
@@ -131,8 +152,8 @@ const INTERACT: Interactable[] = [
   },
   {
     id: "leaderboard",
-    x: 1270,
-    y: 235,
+    x: 362,
+    y: 452,
     r: 120,
     label: "排行榜",
     sub: "RANK",
@@ -167,8 +188,8 @@ const INTERACT: Interactable[] = [
 // 漫步装饰小人(纯氛围,不可交互):[hero, x, y] 虚拟坐标。
 const DECOR: [string, number, number][] = [
   ["knight_f", 150, 300],
-  ["dwarf_m", 1760, 330],
-  ["wizzard_f", 1780, 520],
+  ["dwarf_m", 1700, 392],
+  ["wizzard_f", 1668, 586],
   ["goblin", 120, 560],
 ];
 
@@ -203,6 +224,9 @@ function Structure({
   onClick: (e: React.MouseEvent) => void;
   tick: number;
 }) {
+  const t = useT();
+  // en 模式隐藏 struct-sub(英文代号在英文 UI 里冗余,对标设计原型)。基元 selector。
+  const lang = useSettingsStore((s) => s.uiLang);
   const float = Math.sin(tick / 3) * 4;
   let body: React.ReactNode;
   if (it.id === "tower") {
@@ -268,14 +292,16 @@ function Structure({
     <button
       type="button"
       className={`structure${near ? " near" : ""}`}
-      aria-label={`${it.label}${it.sub ? ` ${it.sub}` : ""}`}
+      aria-label={`${t(it.label)}${it.sub ? ` ${it.sub}` : ""}`}
       style={{ left: pct(it.x, VW), top: pct(it.y, VH) }}
       onClick={onClick}
     >
       {body}
       <div className="struct-label">
-        <span>{it.label}</span>
-        {it.sub ? <span className="struct-sub px">{it.sub}</span> : null}
+        <span>{t(it.label)}</span>
+        {lang !== "en" && it.sub ? (
+          <span className="struct-sub px">{it.sub}</span>
+        ) : null}
       </div>
     </button>
   );
@@ -295,6 +321,8 @@ export interface HubPlazaProps {
 }
 
 export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
+  const t = useT();
+  const tl = useTL();
   const openPanel = useUiStore((s) => s.openPanel);
   const avatarHero = useSettingsStore((s) => s.avatarHero) ?? "knight_m";
   const hubRef = useRef<HTMLDivElement>(null);
@@ -527,7 +555,7 @@ export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
       >
         {near ? (
           <div className="hub-prompt">
-            <span className="px">E</span> 进入 {near.label}
+            <span className="px">E</span> {t("进入")} {t(near.label)}
           </div>
         ) : null}
         <div className="hub-avatar-ring" />
@@ -538,7 +566,9 @@ export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
           flip={facing < 0}
         />
       </div>
-      <div className="hub-controls px">WASD / 点击移动 · E 交互</div>
+      <div className="hub-controls px">
+        {tl("WASD / 点击移动 · E 交互", "WASD / click to move · E interact")}
+      </div>
     </div>
   );
 }

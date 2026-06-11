@@ -1,5 +1,6 @@
 import type { Agent, AgentStatus } from "../../shared/domain";
 import { ORCHESTRATOR_HERO, roleToHero } from "../../shared/mapping";
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { HeroPortrait } from "./HeroPortrait";
@@ -72,6 +73,7 @@ function RosterAvatar({
  * 数据源 = 当前会话 s.sessions[currentSessionId].agents;选中态走 useUiStore。
  */
 export function RosterCard() {
+  const t = useT();
   // 仅内景 HUD 显示;总览大厅没有「在岗」概念。
   const inInterior = useUiStore((s) => s.view !== "overworld");
   const select = useUiStore((s) => s.select);
@@ -91,11 +93,13 @@ export function RosterCard() {
     <div className="panel roster">
       <div className="roster-body">
         <div className="roster-h px">
-          <span>在岗</span>
-          <span className="gold">{agents.length} 在岗</span>
+          <span>{t("在岗")}</span>
+          <span className="gold">
+            {agents.length} {t("在岗")}
+          </span>
         </div>
         {agents.length === 0 ? (
-          <div className="roster-empty px">暂无在岗</div>
+          <div className="roster-empty px">{t("暂无在岗")}</div>
         ) : (
           <div className="roster-row">
             {agents.map((a) => (

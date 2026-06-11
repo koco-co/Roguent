@@ -1,6 +1,7 @@
 import type React from "react";
 import { useMemo } from "react";
 import { GACHA_POOL, GACHA_PULL_COST } from "../../../engine/economy/gacha";
+import { useT, useTL } from "../../i18n";
 import { useRoomStore } from "../../store";
 import { useUiStore } from "../../ui-store";
 import { sendCommand } from "../../ws-client";
@@ -22,6 +23,8 @@ import { Icon } from "../icons";
  * activePanel gate 必须在所有 hooks 之后(React hooks 规则)。
  */
 export function GachaPanel() {
+  const t = useT();
+  const tl = useTL();
   const active = useUiStore((s) => s.activePanel === "gacha");
   const closePanel = useUiStore((s) => s.closePanel);
 
@@ -72,14 +75,17 @@ export function GachaPanel() {
             {gemBalance.toLocaleString()}
           </span>
           <span className="faint" style={{ fontSize: 11 }}>
-            宝石 · 抽一次 {GACHA_PULL_COST} 💎{" "}
+            {tl(
+              `宝石 · 抽一次 ${GACHA_PULL_COST} 💎 `,
+              `Gems · ${GACHA_PULL_COST} 💎 per pull `,
+            )}
           </span>
           {!canPull && (
             <span
               style={{ fontSize: 11, color: "#ff4d6d", marginLeft: 8 }}
               data-testid="gacha-insufficient"
             >
-              余额不足
+              {t("余额不足")}
             </span>
           )}
         </div>
@@ -94,7 +100,10 @@ export function GachaPanel() {
             onClick={handlePull}
           >
             <Icon name="gemcur" size={14} style={{ marginRight: 6 }} />
-            抽一次 ({GACHA_PULL_COST} 💎)
+            {tl(
+              `抽一次 (${GACHA_PULL_COST} 💎)`,
+              `Pull (${GACHA_PULL_COST} 💎)`,
+            )}
           </button>
         </div>
 
@@ -104,7 +113,7 @@ export function GachaPanel() {
             className="faint"
             style={{ fontSize: 11, marginBottom: 8, letterSpacing: 1 }}
           >
-            奖池
+            {t("奖池")}
           </div>
           <div className="item-grid scroll">
             {GACHA_POOL.map((item) => {
@@ -138,7 +147,7 @@ export function GachaPanel() {
                   </div>
                   {owned && (
                     <span className="chip greenc" style={{ marginTop: 4 }}>
-                      已拥有
+                      {t("已拥有")}
                     </span>
                   )}
                 </div>
@@ -153,14 +162,14 @@ export function GachaPanel() {
             className="faint"
             style={{ fontSize: 11, marginBottom: 8, letterSpacing: 1 }}
           >
-            背包 ({ownedItems.length})
+            {t("背包")} ({ownedItems.length})
           </div>
           {ownedItems.length === 0 ? (
             <div
               className="empty-center faint"
               data-testid="gacha-inventory-empty"
             >
-              还没有物品 · 抽卡获得
+              {t("还没有物品 · 抽卡获得")}
             </div>
           ) : (
             <div className="loot-grid">

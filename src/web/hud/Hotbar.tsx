@@ -1,3 +1,4 @@
+import { useT } from "../i18n";
 import { useUiStore } from "../ui-store";
 import { Icon, type IconName } from "./icons";
 
@@ -8,18 +9,19 @@ import { Icon, type IconName } from "./icons";
 // badge 角标:暂无真实徽标数据 → 不渲染(不造假);保留 .badge 渲染能力(badge?: number)
 // 以便引擎补齐后接入。
 
-// 走单一路由 openPanel 的面板。
+// 走单一路由 openPanel 的面板(hotbar 自己用到的子集;mailbox/pairing 仍是合法
+// PanelId,但 design v2 把它们移到 ButtonDock,不再从 hotbar 路由)。
 type RoutePanel =
   | "tasks"
-  | "shop"
-  | "skills"
-  | "leaderboard"
-  | "backpack"
   | "chat"
-  | "mailbox"
-  | "pairing"
+  | "skills"
+  | "market"
   | "model"
-  | "import";
+  | "import"
+  | "backpack"
+  | "shop"
+  | "leaderboard"
+  | "achievements";
 
 type Slot = {
   icon: IconName;
@@ -27,21 +29,22 @@ type Slot = {
   label: string;
 };
 
-// g1:技能 / 背包 / 聊天 / 模型 / 导入(对标原型 hotbar g1)。
+// 左组:工作流(任务/聊天/技能/插件市场/模型/导入)。对标设计稿 v2 hotbar g1。
 const GROUP1: Slot[] = [
-  { icon: "spellbook", panel: "skills", label: "技能" },
-  { icon: "pouch", panel: "backpack", label: "背包" },
+  { icon: "quest", panel: "tasks", label: "任务" },
   { icon: "chat", panel: "chat", label: "聊天" },
-  { icon: "vault", panel: "mailbox", label: "信箱" },
-  { icon: "mcp", panel: "pairing", label: "配对" },
+  { icon: "spellbook", panel: "skills", label: "技能" },
+  { icon: "mcp", panel: "market", label: "插件市场" },
   { icon: "crystal", panel: "model", label: "模型" },
   { icon: "import", panel: "import", label: "导入" },
 ];
-// g2:任务 / 商店 / 排行榜(对标原型 hotbar g2)。
+// 右组:成长与资产(背包/装饰商店/排行/成就)。对标设计稿 v2 hotbar g2。
+// 成就格:设计稿用「奖牌」图标,icons.tsx 无 medal → 用 laurel(桂冠,成就语义最近)。
 const GROUP2: Slot[] = [
-  { icon: "quest", panel: "tasks", label: "任务" },
-  { icon: "shop", panel: "shop", label: "商店" },
+  { icon: "pouch", panel: "backpack", label: "背包" },
+  { icon: "shop", panel: "shop", label: "装饰商店" },
   { icon: "trophy", panel: "leaderboard", label: "排行榜" },
+  { icon: "laurel", panel: "achievements", label: "成就" },
 ];
 
 /** 单个 hotbar 槽。lit/onClick 由父注入。badge 暂传空(无真实数据)。 */
@@ -54,6 +57,7 @@ function HotbarSlot({
   lit: boolean;
   onClick: () => void;
 }) {
+  const t = useT();
   // 角标暂无真实数据源 → 不渲染(保留 .badge 能力,引擎补齐后传 badge 即可)。
   const badge: number | null = null;
   return (
@@ -64,7 +68,7 @@ function HotbarSlot({
     >
       <Icon name={slot.icon} size={30} />
       {badge != null && <div className="badge count">{badge}</div>}
-      <div className="tip cjk">{slot.label}</div>
+      <div className="tip cjk">{t(slot.label)}</div>
     </button>
   );
 }

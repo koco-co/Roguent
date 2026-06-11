@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Shop } from "../hud/Shop";
+import { GachaPanel } from "../hud/economy/GachaPanel";
 import { DEFAULT_SETTINGS, useSettingsStore } from "../settings-store";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
@@ -64,6 +65,7 @@ test("lobby structures expose panel actions and keyboard activation", async () =
     <>
       <LobbyView />
       <Shop />
+      <GachaPanel />
     </>,
   );
 
@@ -85,7 +87,8 @@ test("lobby structures expose panel actions and keyboard activation", async () =
   act(() => useUiStore.setState({ activePanel: null }));
   await userEvent.click(screen.getByRole("button", { name: /扭蛋机/ }));
   expect(useUiStore.getState().activePanel).toBe("gacha");
-  expect(screen.getByText("扭蛋:随机皮肤")).toBeTruthy();
+  // gacha 路由由真实 GachaPanel 接管(Shop 已摘除 gacha 分支)。
+  expect(screen.getByTestId("gacha-balance")).toBeTruthy();
 });
 
 test("clicking Codex and Claude doors sends runtime-specific newSession commands", async () => {

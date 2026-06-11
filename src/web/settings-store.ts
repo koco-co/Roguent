@@ -28,6 +28,10 @@ export interface Settings {
   ambientParticles: boolean;
   /** App-level ambience sound preference; audio engine may consume later. */
   ambientSound: boolean;
+  /** 界面语言;"cn" 中文(默认)/ "en" English。产品术语两种语言下都保持英文。 */
+  uiLang: "cn" | "en";
+  /** 场景皮肤:dungeon 暖木地牢(默认)/ holo 全息蓝科技。驱动 skin-* class;holo 强制青色 accent。 */
+  skin: "dungeon" | "holo";
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -41,7 +45,12 @@ export const DEFAULT_SETTINGS: Settings = {
   ambientRain: true,
   ambientParticles: true,
   ambientSound: true,
+  uiLang: "cn",
+  skin: "dungeon",
 };
+
+// holo 皮肤强制的青色 accent(对标设计 app.jsx HOLO_RUNE)。
+const HOLO_ACCENT = "#36e0ff";
 
 // theme → 核心辉光色(对标原型 GLOW 映射)。
 const GLOW: Record<Settings["theme"], string> = {
@@ -66,6 +75,9 @@ const STORAGE_KEY = "roguent:settings";
 export function settingsRootClass(s: Settings): string {
   return [
     `room-${s.theme}`,
+    // dungeon 是默认皮肤(无需 class);仅 holo 落 skin-holo,与原型 body class 一致,
+    // 也避免给现有 room-* 精确断言加噪。
+    s.skin === "holo" ? "skin-holo" : "",
     s.motion ? "" : "no-motion",
     s.density === "compact" ? "hud-compact" : "",
     s.cjkPixel ? "" : "cjk-sys",
@@ -86,6 +98,11 @@ export function settingsRootClass(s: Settings): string {
 export function settingsRootStyle(
   s: Settings,
 ): Record<"--accent" | "--core-glow", string> {
+  // holo 皮肤强制青色 accent / core-glow(对标设计 app.jsx rootStyle 的 skin==='holo' 分支),
+  // 覆盖 theme/accent 偏好;dungeon 走原有逻辑。
+  if (s.skin === "holo") {
+    return { "--accent": HOLO_ACCENT, "--core-glow": "rgba(54,200,255,.3)" };
+  }
   return { "--accent": s.accent, "--core-glow": GLOW[s.theme] };
 }
 
@@ -128,6 +145,8 @@ export function parsePersisted(raw: string | null): Partial<Settings> {
   if (typeof obj.ambientSound === "boolean") {
     out.ambientSound = obj.ambientSound;
   }
+  if (obj.uiLang === "cn" || obj.uiLang === "en") out.uiLang = obj.uiLang;
+  if (obj.skin === "dungeon" || obj.skin === "holo") out.skin = obj.skin;
   return out;
 }
 
@@ -160,6 +179,8 @@ function savePersisted(s: Settings): void {
       ambientRain,
       ambientParticles,
       ambientSound,
+      uiLang,
+      skin,
     } = s;
     localStorage.setItem(
       STORAGE_KEY,
@@ -174,6 +195,8 @@ function savePersisted(s: Settings): void {
         ambientRain,
         ambientParticles,
         ambientSound,
+        uiLang,
+        skin,
       }),
     );
   } catch {

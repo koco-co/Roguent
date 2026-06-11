@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { Icon, type IconName } from "./icons";
 import { sessionTodos, todoCounts } from "./todos-view";
@@ -22,16 +23,17 @@ function CurCell({
   color: string;
   mock?: boolean;
 }) {
+  const t = useT();
   return (
     <div
       className="cur-cell"
-      title={mock ? "示例数据(引擎暂未提供)" : undefined}
+      title={mock ? t("示例数据(引擎暂未提供)") : undefined}
     >
       <Icon name={icon} size={22} />
       <span className="px" style={{ color }}>
         {value}
       </span>
-      {mock && <span className="cur-mock px">示例</span>}
+      {mock && <span className="cur-mock px">{t("示例")}</span>}
     </div>
   );
 }
@@ -45,6 +47,7 @@ function CurCell({
  * - runtime-filter:claude 可点(真;切 all↔claude),codex 禁用占位(置灰、不可点)。
  */
 export function Currency() {
+  const t = useT();
   // 引擎只有 claude → 筛选目前只在 all↔claude 间切换。状态自包含(暂无外部消费方),
   // 待真正多 runtime 时再上提到 ui-store。
   const [runtime, setRuntime] = useState<Runtime>("all");
@@ -89,7 +92,7 @@ export function Currency() {
             type="button"
             className="rt-chip codex dis"
             disabled
-            title="Codex 占位,暂未接入"
+            title={t("Codex 占位,暂未接入")}
           >
             <Icon name="codex" size={16} />
             Codex

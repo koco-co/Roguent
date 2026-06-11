@@ -1,3 +1,4 @@
+import { useT } from "../i18n";
 import { sendCommand } from "../ws-client";
 import { Icon } from "./icons";
 
@@ -7,6 +8,7 @@ import { Icon } from "./icons";
  * 时渲染。「召唤小队」发真实 newSession 命令(引擎据默认 cwd 派生房间)。
  */
 export function EmptyState() {
+  const t = useT();
   const summon = () => {
     // 空态 = 无会话,首个 id 用 s1;不带 cwd → 服务端默认。
     sendCommand({
@@ -24,11 +26,13 @@ export function EmptyState() {
           <Icon name="quest" size={72} glow="#36c5e0" />
         </div>
       </div>
-      <div className="empty-title px">空无一人</div>
-      <div className="empty-sub cjk">召唤你的第一个小队,开始 vibe coding</div>
+      <div className="empty-title px">{t("空无一人")}</div>
+      <div className="empty-sub cjk">
+        {t("召唤你的第一个小队,开始 vibe coding")}
+      </div>
       <button type="button" className="pxbtn gold cjk" onClick={summon}>
         <Icon name="task" size={18} />
-        <span style={{ marginLeft: 8 }}>召唤小队</span>
+        <span style={{ marginLeft: 8 }}>{t("召唤小队")}</span>
       </button>
     </div>
   );

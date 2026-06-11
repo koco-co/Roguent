@@ -1,4 +1,5 @@
 import type React from "react";
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
@@ -90,6 +91,7 @@ const MOCK_LOCKED: Array<{
 ];
 
 export function Skills() {
+  const t = useT();
   const active = useUiStore((s) => s.activePanel === "skills");
   const closePanel = useUiStore((s) => s.closePanel);
   const session = useRoomStore((s) =>
@@ -113,13 +115,14 @@ export function Skills() {
     >
       {/* mock 标注:图标 / 稀有度 / 锁定为示例装饰,下方为真实可用的 slash 命令。 */}
       <div className="skill-mock-note">
-        图标 / 稀有度 / 锁定为示例装饰;下方为当前会话<b>真实可用</b>的 slash
-        命令,点击即运行。
+        {t("图标 / 稀有度 / 锁定为示例装饰;下方为当前会话")}
+        <b>{t("真实可用")}</b>
+        {t("的 slash 命令,点击即运行。")}
       </div>
 
       {/* 真实技能格:每格 = 一条真 slash 命令,点击发命令。 */}
       {cmds.length === 0 ? (
-        <div className="faint">当前会话无可用 slash 命令</div>
+        <div className="faint">{t("当前会话无可用 slash 命令")}</div>
       ) : (
         <div className="skill-grid">
           {cmds.map((c) => {
@@ -146,7 +149,7 @@ export function Skills() {
                   <Icon name={decor.icon} size={34} glow={rarityColor} />
                 </div>
                 <div className="skill-name px">/{name}</div>
-                <div className="skill-desc">{decor.desc}</div>
+                <div className="skill-desc">{t(decor.desc)}</div>
                 <div className="skill-rar px" style={{ color: rarityColor }}>
                   {decor.rarity}
                 </div>
@@ -157,7 +160,7 @@ export function Skills() {
       )}
 
       {/* mock 锁定组:纯示例占位,非真实命令,不可点。 */}
-      <div className="skill-sub">未解锁 · 示例(占位,非真实命令)</div>
+      <div className="skill-sub">{t("未解锁 · 示例(占位,非真实命令)")}</div>
       <div className="skill-grid">
         {MOCK_LOCKED.map((s) => {
           const rarityColor = RARITY[s.rarity];
@@ -167,7 +170,7 @@ export function Skills() {
                 <Icon name={s.icon} size={34} />
               </div>
               <div className="skill-name px">{s.name}</div>
-              <div className="skill-desc">{s.desc}</div>
+              <div className="skill-desc">{t(s.desc)}</div>
               <div className="skill-rar px" style={{ color: rarityColor }}>
                 {s.rarity}
               </div>

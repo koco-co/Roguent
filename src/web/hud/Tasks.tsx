@@ -5,6 +5,7 @@ import {
   type TodoStatus,
 } from "../../shared/domain";
 import { ORCHESTRATOR_HERO, roleToHero } from "../../shared/mapping";
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { HeroPortrait } from "./HeroPortrait";
@@ -33,6 +34,7 @@ function ownerHero(agentId: string, session: Session | undefined): string {
  * 基元 / 稳定引用(zustand 铁律)。
  */
 export function Tasks() {
+  const t = useT();
   const active = useUiStore((s) => s.activePanel === "tasks");
   const closePanel = useUiStore((s) => s.closePanel);
   const session = useRoomStore((s) =>
@@ -67,7 +69,7 @@ export function Tasks() {
           <div className="tasks-list scroll">
             {rows.length === 0 ? (
               <div className="faint">
-                当前会话暂无待办(agent 调 TodoWrite 后实时同步)
+                {t("当前会话暂无待办(agent 调 TodoWrite 后实时同步)")}
               </div>
             ) : (
               GROUP_ORDER.map((st) => {
@@ -78,25 +80,25 @@ export function Tasks() {
                   <div key={st} className="task-group">
                     <div className="task-group-h px">
                       <span className="dot" style={{ background: color }} />
-                      {label} ({group.length})
+                      {t(label)} ({group.length})
                     </div>
-                    {group.map((t) => (
+                    {group.map((todo) => (
                       <button
-                        key={t.key}
+                        key={todo.key}
                         type="button"
-                        className={`task-item${selected?.key === t.key ? " sel" : ""}`}
-                        onClick={() => setSelKey(t.key)}
+                        className={`task-item${selected?.key === todo.key ? " sel" : ""}`}
+                        onClick={() => setSelKey(todo.key)}
                       >
-                        <div className="task-title">{t.content}</div>
+                        <div className="task-title">{todo.content}</div>
                         <div className="task-sub">
                           <span className="task-owner">
                             <HeroPortrait
                               sessionId=""
-                              hero={ownerHero(t.agentId, session)}
+                              hero={ownerHero(todo.agentId, session)}
                               size={20}
                               className=""
                             />
-                            {ownerLabel(t.agentId, session)}
+                            {t(ownerLabel(todo.agentId, session))}
                           </span>
                         </div>
                       </button>
@@ -119,22 +121,22 @@ export function Tasks() {
                     boxShadow: `inset 0 0 0 1px ${TODO_META[selected.status][0]}`,
                   }}
                 >
-                  {TODO_META[selected.status][1]}
+                  {t(TODO_META[selected.status][1])}
                 </span>
                 {selected.activeForm ? (
                   <div className="task-d-desc">{selected.activeForm}</div>
                 ) : null}
                 <div className="task-d-meta">
                   <div className="statrow">
-                    <span className="sr-label">归属</span>
+                    <span className="sr-label">{t("归属")}</span>
                     <span className="sr-val">
-                      {ownerLabel(selected.agentId, session)}
+                      {t(ownerLabel(selected.agentId, session))}
                     </span>
                   </div>
                 </div>
               </>
             ) : (
-              <div className="faint">选择一个待办</div>
+              <div className="faint">{t("选择一个待办")}</div>
             )}
           </div>
         </div>

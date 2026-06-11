@@ -110,8 +110,9 @@ test("Feishu fake pairing", async ({ page }) => {
     // the lobby NPC card.
     await page.getByRole("button", { name: "内景" }).click();
 
-    // Open the pairing panel via the Hotbar "配对" button.
-    // The Hotbar is only visible in the interior view.
+    // Open the pairing panel via the ButtonDock "配对" button (mcp icon, label "配对").
+    // design v2 moved 配对 from the Hotbar to the ButtonDock; it's the only "配对"
+    // button on screen, so the unscoped role selector resolves uniquely.
     await page.getByRole("button", { name: "配对" }).click();
 
     // The PairingPanel renders a <dialog aria-label="Pairing">.
@@ -185,8 +186,9 @@ test("WeChat fake pairing", async ({ page }) => {
     // the lobby NPC card.
     await page.getByRole("button", { name: "内景" }).click();
 
-    // Open the pairing panel via the Hotbar "配对" button (mcp icon, label "配对").
-    // The Hotbar is only visible in the interior view.
+    // Open the pairing panel via the ButtonDock "配对" button (mcp icon, label "配对").
+    // design v2 moved 配对 from the Hotbar to the ButtonDock; it's the only "配对"
+    // button on screen, so the unscoped role selector resolves uniquely.
     await page.getByRole("button", { name: "配对" }).click();
 
     // The PairingPanel renders a <dialog aria-label="Pairing">.
@@ -309,9 +311,10 @@ test("GitHub and X subscription routing", async ({ page }) => {
     // "replay", which auto-focuses and shows the "内景" button in the lobby NPC card.
     await page.getByRole("button", { name: "内景" }).click();
 
-    // Open the Mailbox panel via the Hotbar "信箱" button (vault icon, label "信箱").
-    // Scope to .hotbar to avoid the identically-labelled lobby interactable button.
-    await page.locator(".hotbar").getByRole("button", { name: "信箱" }).click();
+    // Open the Mailbox panel via the ButtonDock "信箱" button (vault icon, label "信箱").
+    // design v2 moved 信箱 from the Hotbar to the ButtonDock (.dock); scope to .dock to
+    // avoid the identically-labelled lobby interactable button.
+    await page.locator(".dock").getByRole("button", { name: "信箱" }).click();
 
     // The MailboxPanel renders inside a Modal with class .mailbox-panel.
     const mailboxPanel = page.locator(".mailbox-panel");
@@ -531,46 +534,33 @@ test("prototype game panels render replayed economy, achievement, and settings s
     await page.keyboard.press("Escape");
     await expect(achievementsPanel).not.toBeVisible({ timeout: 5_000 });
 
-    // ── Shop / Gacha items tab (gem balance + inventory owned state) ─────────
-    // "扭蛋机 GACHA" lobby button → openPanel("gacha").
-    // The Shop component handles both "shop" and "gacha" activePanel values; when
-    // activePanel === "gacha" it renders with the items tab active (.shop-items).
-    // GachaPanel (economy/GachaPanel.tsx) is a separate component that is NOT
-    // mounted in Hud.tsx; it is used only in unit tests. The actual in-app gacha
-    // entry point is the Shop items tab.
+    // ── Gacha panel (gem balance + inventory owned state) ───────────────────
+    // "扭蛋机 GACHA" lobby button → openPanel("gacha"). The gacha route is now
+    // owned by the real GachaPanel (economy/GachaPanel.tsx), mounted in Hud.tsx;
+    // Shop no longer handles "gacha" (it was split into decoration Shop + Market).
     await page.getByRole("button", { name: "扭蛋机 GACHA" }).click();
 
-    // Shop renders when active (activePanel === "shop" || "gacha").
-    const shopWrap = page.locator(".shop-wrap");
-    await expect(shopWrap).toBeVisible({ timeout: 8_000 });
-
-    // Items tab must be visible (activePanel==="gacha" forces visibleTab="items").
-    const shopItems = shopWrap.locator(".shop-items");
-    await expect(shopItems).toBeVisible({ timeout: 5_000 });
+    // GachaPanel renders inside a Modal with class .gacha-panel.
+    const gachaPanel = page.locator(".gacha-panel");
+    await expect(gachaPanel).toBeVisible({ timeout: 8_000 });
 
     // The fixture emitted economy.ledger.appended events:
     // +250 gem (welcome bonus) then -100 gem (gacha pull) → final balance = 150.
-    // Shop items tab renders gem balance in .shop-bal > span.px.
-    const shopGemBalance = shopItems.locator(".shop-bal span.px");
-    await expect(shopGemBalance).toBeVisible({ timeout: 5_000 });
-    await expect(shopGemBalance).toHaveText("150");
+    // GachaPanel renders gem balance in [data-testid="gacha-balance"].
+    const gachaGemBalance = gachaPanel.getByTestId("gacha-balance");
+    await expect(gachaGemBalance).toBeVisible({ timeout: 5_000 });
+    await expect(gachaGemBalance).toHaveText("150");
 
     // The ledger entry added inventory item {id:"skin.ninja", label:"忍者皮肤"}.
-    // Shop.tsx checks: ownedInInventory = Object.values(inventory).some(
-    //   (inv) => inv.label === it.name || inv.sku === it.id
-    // )
-    // SHOP_ITEMS[4] is {id:"i5", name:"忍者皮肤"} → inv.label === "忍者皮肤" matches.
-    // So the "忍者皮肤" item card should show the "已拥有" chip (.chip.greenc).
-    const ninjaSkinCard = shopItems
-      .locator(".item-card")
-      .filter({ hasText: "忍者皮肤" });
-    await expect(ninjaSkinCard).toBeVisible({ timeout: 5_000 });
-    await expect(ninjaSkinCard.locator(".chip.greenc")).toBeVisible();
-    await expect(ninjaSkinCard.locator(".chip.greenc")).toHaveText("已拥有");
+    // GachaPanel lists owned inventory items in the bottom loot grid, each tagged
+    // with data-testid="inventory-item-<id>" and showing item.label.
+    const ninjaInvItem = gachaPanel.getByTestId("inventory-item-skin.ninja");
+    await expect(ninjaInvItem).toBeVisible({ timeout: 5_000 });
+    await expect(ninjaInvItem).toContainText("忍者皮肤");
 
-    // Close shop before opening settings.
+    // Close gacha panel before opening settings.
     await page.keyboard.press("Escape");
-    await expect(shopWrap).not.toBeVisible({ timeout: 5_000 });
+    await expect(gachaPanel).not.toBeVisible({ timeout: 5_000 });
 
     // ── Settings panel ────────────────────────────────────────────────────────
     // Trigger via the "设置祭坛 CONFIG" lobby structure button.

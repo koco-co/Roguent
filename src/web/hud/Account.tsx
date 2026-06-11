@@ -1,3 +1,4 @@
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { Modal } from "./Modal";
@@ -29,7 +30,7 @@ function UsageRow({
   resetsAt,
   now,
 }: {
-  label: string; // "5h 限额" | "周限额"
+  label: string; // "5h" | "Weekly"
   kind: "hp" | "mp"; // 5h → hp(血条)、周 → mp(魔法条),与左上血条 / 魔法条对应
   utilization: number | null; // 已用%(0-100);null=无数据 → 弱化
   resetsAt: number | null;
@@ -58,6 +59,7 @@ function UsageRow({
 
 /** The account panel: real subscription plan + usage; auth buttons are placeholders. */
 export function Account() {
+  const t = useT();
   const active = useUiStore((s) => s.activePanel === "account");
   const closePanel = useUiStore((s) => s.closePanel);
   // 真数据:订阅 plan + 5h/周用量(与 LimitBars 同源)。selector 只取单值,不构造新值。
@@ -80,25 +82,25 @@ export function Account() {
         <div className="acct-plan">
           <div className="px gold" style={{ fontSize: 24 }}>
             Claude {limits?.planName ?? "—"}
-            {limits?.stale ? " · 同步中" : ""}
-            {limits?.apiError ? " · 同步失败" : ""}
+            {limits?.stale ? ` · ${t("同步中")}` : ""}
+            {limits?.apiError ? ` · ${t("同步失败")}` : ""}
           </div>
           <div className="dim" style={{ marginTop: 8 }}>
-            5h 与周限额已映射为左上血条 / 魔法条
+            {t("5h 与周限额已映射为左上血条 / 魔法条")}
           </div>
         </div>
 
         {/* 用量(真):已用% bar + 重置倒计时,5h→hp、周→mp。 */}
         <div className="acct-usage">
           <UsageRow
-            label="5h 限额"
+            label="5h"
             kind="hp"
             utilization={limits?.fiveHour.utilization ?? null}
             resetsAt={limits?.fiveHour.resetsAt ?? null}
             now={now}
           />
           <UsageRow
-            label="周限额"
+            label="Weekly"
             kind="mp"
             utilization={limits?.sevenDay.utilization ?? null}
             resetsAt={limits?.sevenDay.resetsAt ?? null}
@@ -117,11 +119,11 @@ export function Account() {
               className="pxbtn cjk"
               style={{ color: "#ff8197" }}
             >
-              登出
+              {t("登出")}
             </button>
           </div>
           <div className="faint" style={{ marginTop: 10, lineHeight: 1.6 }}>
-            登录态由本机 Claude Code 订阅管理(终端 /login)
+            {t("登录态由本机 Claude Code 订阅管理(终端 /login)")}
           </div>
         </div>
       </div>

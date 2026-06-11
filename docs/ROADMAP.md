@@ -1,7 +1,7 @@
 ---
 title: Roguent 主线 ROADMAP · 现状与 backlog
-date: 2026-06-07
-baseline_commit: e70f5db (本地 main;领先 origin/main;Roguent.html 落地 T0–T5 + 聊天窗口大改 + 真实数据/缩放 均已合入)
+date: 2026-06-12
+baseline_commit: 本地 main(领先 origin/main);full-prototype-integration(merge 53816d9,Tasks 0-67)+ 设计稿 v2 增量(§3.6,2026-06-12)均已合入;此前的 Roguent.html T0–T5 / 聊天窗口大改 / 真实数据·缩放 亦在内
 status: living-doc
 ---
 
@@ -26,7 +26,7 @@ status: living-doc
 
 ---
 
-## 1. 当前现状(已核实,baseline `main @ e70f5db` / 2026-06-07)
+## 1. 当前现状(已核实,baseline:`main` 经 full-prototype-integration(merge `53816d9`,Tasks 0-67)+ 设计稿 v2 增量(§3.6,2026-06-12)/ 2026-06-12)
 
 ### 1.1 已实现并合入 `main`
 - **核心主链路(MVP)**:Bun engine 用 Claude Agent SDK streaming-input 驱动**订阅模式**会话;hooks + SDK 消息经 `normalize.ts` 归一化成 `RoomEvent`,`Sequencer` 打 `(sessionId, seq)`,`WsGateway` broadcast;前端 `store.ts` reduce 成 `sessions`。(`src/engine/*`、`src/shared/*`、`src/web/store.ts`)
@@ -40,7 +40,7 @@ status: living-doc
 - **零散修复(2026-06-06~07)**:SessionBanner 可点开 SessionGrid(`db0076d`);Bug #B/A/G/D — ESC 链 / 空态 / 模型继承 / loot 守卫(`c94b37e`);setModel 后广播 model 变更事件(`fbb62dc`)。
 
 ### 1.2 测试现状
-- **247 单测全绿(39 文件)、biome 干净(291 文件)、`bunx tsc --noEmit` 干净**(2026-06-07 核实 @ `e70f5db`;`bun run check`/build 不做类型检查,tsc 须单独跑)。
+- **723 单测全绿(106 文件)、`bun run check` 干净(318 文件;`Prototype/` 已入 biome ignore)、`bunx tsc --noEmit` 干净、`typecheck:e2e` 干净、`bun run build` 通过**(2026-06-12 核实,设计稿 v2 增量合入后;`bun run check`/build 不做类型检查,tsc 须单独跑)。
 - e2e:回放驱动(`replay.e2e.test.ts` 扩展)+ store/reducer 级断言;聚合 / 映射 / 格式化 / 图标 / 阈值等可测逻辑全部下沉纯函数单测。UI 组件按约定走 `tsc + check + 回放/preview 冒烟`。
 
 ### 1.3 已知损坏 / 未验证(Phase 1 要解决)
@@ -64,8 +64,9 @@ status: living-doc
 | [superpowers/plans/…overworld-hub-fixes.md](superpowers/plans/2026-06-04-overworld-hub-fixes.md) | 历史记录 | 总览世界审查修复 | ✅已实现合入(同上) |
 | [superpowers/plans/…tauri-sidecar-migration.md](superpowers/plans/2026-06-04-tauri-sidecar-migration.md) | 历史记录 | 桌面打包实现计划 | ✅已实现合入(2070a0d,同上) |
 | [superpowers/specs/…chat-window-overhaul-design.md](superpowers/specs/2026-06-07-chat-window-overhaul-design.md) | 设计参考 | 聊天窗口大改(timeline / 交互式权限 / thinking·tool·prompt 卡) | ✅已实现合入(`e427f0d`) |
-| [superpowers/specs/…full-prototype-integration-design.md](superpowers/specs/2026-06-07-roguent-full-prototype-integration-design.md) | 设计参考 | 全原型落地:Claude/Codex 双 runtime + IM/订阅/定时/经济 | 📋 待实现(下一大主线) |
-| [superpowers/plans/…full-prototype-integration.md](superpowers/plans/2026-06-07-roguent-full-prototype-integration.md) | 实现计划 | 上者的 67-task 落地计划(已审查修订) | 📋 待实现(**当前 backlog**;先做 Task 0) |
+| [superpowers/specs/…full-prototype-integration-design.md](superpowers/specs/2026-06-07-roguent-full-prototype-integration-design.md) | 设计参考 | 全原型落地:Claude/Codex 双 runtime + IM/订阅/定时/经济 | ✅已实现合入(merge `53816d9`,Tasks 0-67) |
+| [superpowers/plans/…full-prototype-integration.md](superpowers/plans/2026-06-07-roguent-full-prototype-integration.md) | 历史记录 | 上者的 67-task 落地计划(已审查修订) | ✅已实现合入(merge `53816d9`,checkbox 未勾,**勿当 backlog**) |
+| [superpowers/plans/…design-delta-v2.md](superpowers/plans/2026-06-11-design-delta-v2.md) | 历史记录 | 设计稿 v2 增量(`Roguent.html` 2026-06-11 修订 vs 06-07)13-task 落地 | ✅已实现合入(见 §3.6) |
 
 > 读 specs 了解「应该是什么样」;读 plans 了解「当时怎么一步步做的」。**新工作以本 ROADMAP 的 backlog 为准。**
 > 注:`specs/`、`plans/` 下另有 06-05/06-06 的若干文档(web-lobby-overhaul / usage-and-limits / import-local-sessions / real-data-and-stage-scaling / product-prds / chat-right-drawer),均已实现合入;未逐条列入上表,需要时按文件名查。
@@ -191,6 +192,28 @@ status: living-doc
 
 ---
 
+## 3.6 设计稿 v2 增量落地(`Roguent.html` 2026-06-11 修订,2026-06-12)
+
+> 用户用 Claude Design 更新了 handoff(2026-06-11 版),相对已合入的 06-07 版有一批 UI 增量。本轮按 plan [design-delta-v2](superpowers/plans/2026-06-11-design-delta-v2.md)(13 task,T0–T12)落地;走 subagent-driven-development(每 task:实现子代理 → 规格复核 → 质量复核 → 提交),非 Workflow 批量。**真/假分明铁律**同 §3.5:有引擎数据源的接真,无源的显著标注 mock,绝不造数据。
+
+| 增量块 | 内容 | 真 / 假边界 |
+| --- | --- | --- |
+| **全局 i18n** | 中→英字典翻译器(`src/web/i18n.ts`:`DICT`/`translate`/`useT`/`useTL`)+ `settings.uiLang`(持久化)+ HUD「中\|EN」`LangToggle`(真实入口,Settings 是 mock 面板故不在其内造 radio);HUD chrome + 面板组全量接 `useT()` | **真**(界面文案双语切换)。产品/游戏术语(Claude/Codex/askuser/compact/Token/Context/Usage/Weekly/模型名/slash/runtime/MCP/diff/PR/CI)刻意**不入典**,两语保持英文 |
+| **场景皮肤 holo** | `settings.skin`(dungeon 默认 / holo)+ `SkinSwitch` 控件 + holo 全套视觉:PixiJS 全息蓝甲板地板(`room/holo.ts` 确定性 hash + 节点)、青玻璃面板 / 扫描线 overlay / 大厅深蓝滤镜(`.skin-holo` CSS 段);holo 强制青 accent | **真**(设置驱动,持久化)。取舍:单张 canvas 不加 CSS 滤镜(避免二次染色),小人不染色保可读性 |
+| **内景指挥大屏** | `BrowserScreen`(`browser-screen-view.ts` 纯函数从 `Session.timeline` 取最近 tool 条目):tab=会话标题 / url=tool inputSummary 截断 / caption=agent role · toolName / LIVE·IDLE=最近 tool running 与否 | **真**(接真 tool 活动流)。设计稿的「假浏览器轮播」无引擎数据源 → 改为真实工具流;线框页/扫描线/光标为纯装饰(不声称数据),无 tool 时显 IDLE 不造数据 |
+| **Shop 拆分** | 旧混合 Shop → `Market`(插件市场,独立面板)+ `Shop`(纯装饰商店)+ 挂载**真实** `GachaPanel`(此前从未挂载),`gacha` 路由由 Shop 摘除交 GachaPanel 接管 | **Market 整面板 mock + banner**(引擎无插件市场);Shop gem 余额 / 已拥有**接真**(沿用现状),购买按钮仍 mock;**GachaPanel 真**(真 WS command) |
+| **SessionGrid v2** | 多级过滤(runtime / 项目多选 / 模型多选 / 仅活跃,带计数 FChip + 清除筛选)、状态优先排序、inactive 置灰、`xm ago` 相对时间、空匹配态、导入卡条件显示;纯函数下沉 `session-grid-view.ts`(`agoLabel`/`sortSessions`/`applySessionFilters`/`hasAnyFilter`)单测钉死 | **全接真**(sessions/lastActiveAt/runtime/model)。**修掉现存 bug**:卡片 runtime chip 硬编码「Claude」→ 按 `s.runtime` 渲染。无 askuser 状态(本仓库 busy\|idle\|done\|error),「活跃」=busy\|error |
+| **Hotbar / Dock 重排** | Hotbar 左组工作流(任务/聊天/技能/插件市场/模型/导入)右组资产(背包/装饰商店/排行/成就);ButtonDock 通知→身份→系统(设置带 `dock-sys` 分隔),删 pause 槽(纯 menu 别名,无真实逻辑);大厅新增 market 摊位(→Market 面板)+ 结构物/装饰小人坐标对齐设计 `lobby.jsx` | **真**(路由 / 交互);坐标以设计源 `lobby.jsx` 为权威(plan 的 delta 列表不全处据设计源补全:leaderboard→(362,452)、board→(360,742)) |
+| **固定文案改名** | LimitBars `CTX→Context`、`WEEK→Weekly`;NpcCard `上下文→Context`;Account `5h 限额→5h`、`周限额→Weekly`(与语言无关,直接改字面量) | 真 |
+
+**门禁**:723 单测 + `tsc` + `bun run check` + `typecheck:e2e` + `bun run build` 全绿(`check` 此前因设计稿 `Prototype/` bundle 被 biome lint 恒红,本轮把 `Prototype` 加入 `biome.json` 的 `files.ignore` 修正,使门禁如实反映真实 `src`)。
+
+**明确不做(无数据源 / 范围控制)**:events 登录活动弹窗 / dailyRewards(引擎无源,dock「活动」槽用真实公告板 board 占位,不造签到)· git 状态横幅(无 git 状态事件,SessionBanner 维持现状只接 i18n)· PlayerCard(LimitBars+RosterCard 已承载同信息)· Codex 真接入(维持视觉占位)· 设计 Settings 面板的 uiLanguage/uiFont radio(LangToggle 是真实入口,不在 mock 面板造真控件)。
+
+**已知小取舍 / backlog**:`src/web/hud/settings-schema.ts` 的 ~85 条字段 label/tip 是 Settings(mock 面板)的纯数据文案,本轮未接 `useT()`(包而不译会泄漏,逐条翻译超范围)——**无回归**(两语均显中文),待后续专门一轮 schema 数据翻译。大厅若干结构物(tower/shop x/gacha/doors)相对设计 `lobby.jsx` 的坐标偏差为**早于本轮的既存**,不在本轮 delta 范围,未动。
+
+---
+
 ## 4. Phase 2 —— 原愿景未实现功能(后续,先不展开)
 
 > Phase 1 收口后再排。多数有独立 spec 设想(见 `overworld-hub-design.md` §"明确不在本 spec")。
@@ -216,3 +239,4 @@ status: living-doc
 - 2026-06-06:**真实数据接入 + 屏幕自适应缩放**。① 新增 `todos.updated` 事件管线(events/normalize/store),捕获各 agent 真实 TodoWrite → Session.todos;TaskWindow / Tasks 面板由 mock 改接真,Currency「完成数」接真(已完成 todo 计数);信箱按无源决策保留为局部标注 mock;gems/Shop/Settings CONFIG 仍标注 mock。② 全 UI 包进固定 1920×1080 逻辑舞台(`#viewport/#stage` + `stageScale=min(W/1920,H/1080)`,对齐设计原型 useStageScale),房间/人物/HUD/模态等比缩放 letterbox 居中,修复小屏人物/HUD 过大。纯函数(stage-scale / todos-view / parseTodos)+ reduce 级 e2e 钉死;tsc + biome + bun test 全绿。
 - 2026-06-07:**聊天窗口大改合入**(merge `e427f0d`)。聊天升级为统一 timeline(`TimelineItem` 判别联合 + store 从 `messages` 迁 `timeline`);新增 `thinking.*`/`prompt.*` 事件;交互式权限/AskUserQuestion 双向打通(`canUseTool` + `respondPermission`/`respondQuestion`/`setPermissionMode`);前端 ThinkingBlock/ToolCard/PromptCard/SlashMenu/MessageBubble(copy+时间戳)+ stop/换行/slash 补全。Codex 仍占位。详见 §1.1。
 - 2026-06-07:**ROADMAP 对齐 HEAD `e70f5db`**:修正自相矛盾的 baseline(frontmatter `6698293` / 正文 `2070a0d`)→ 统一 `e70f5db`;补记聊天窗口大改与零散修复;测试现状刷新为 **247 单测 / 39 文件 / biome 291 文件 / tsc 全绿**(2026-06-07 核实);文档地图补 chat-window-overhaul 与 full-prototype-integration 行。**新主线 = [full-prototype-integration plan](superpowers/plans/2026-06-07-roguent-full-prototype-integration.md)**(67 task,已审查修订,先做 Task 0:测试基建 + 文件盘点 + 命名锁定)。
+- 2026-06-12:**设计稿 v2 增量落地**(`Roguent.html` 2026-06-11 修订 vs 已合入的 06-07 版,merge 见 git log 顶部)。13-task(走 subagent-driven-development:逐 task 实现 + 规格/质量双复核 + 提交):① 全局 i18n(中→英字典 + `useT/useTL` + `uiLang` 持久化 + HUD `LangToggle`,产品术语不入典)② 场景皮肤 holo(`settings.skin` + `SkinSwitch` + PixiJS 全息地板 + 青玻璃/扫描线/大厅深蓝滤镜)③ 内景指挥大屏 `BrowserScreen`(接真 `Session.timeline` 最近 tool 流,无源不造数据)④ Shop 拆 Market(mock)+ 装饰 Shop(余额/已拥有真)+ 挂载真实 GachaPanel ⑤ SessionGrid v2(多级过滤/排序/置灰/相对时间,**修硬编码 Claude chip bug**)⑥ Hotbar/Dock 重排 + 大厅 market 摊位 ⑦ 固定文案改名(Context/Weekly 等)。门禁 723 单测 + tsc + check + typecheck:e2e + build 全绿;附带把设计稿 `Prototype/` 加入 biome ignore(此前恒红的 `bun run check` 转为如实校验真实 src)。详见 §3.6。无源功能(events 弹窗 / git banner / Codex 真接入)按真假分明明确不做;`settings-schema.ts` ~85 条 mock 面板字段文案留待后续 schema 翻译轮。

@@ -1,4 +1,5 @@
 import type React from "react";
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
@@ -48,6 +49,7 @@ const MODELS: Array<{
 
 /** The model picker: switch the current session's running model (real command). */
 export function ModelPicker() {
+  const t = useT();
   const active = useUiStore((s) => s.activePanel === "model");
   const closePanel = useUiStore((s) => s.closePanel);
   // 真数据:当前会话 id + 其运行模型。selector 只取基元 / 单值,不构造新值。
@@ -94,9 +96,9 @@ export function ModelPicker() {
                 <div className="px" style={{ color: m.accent }}>
                   {m.name}
                 </div>
-                <div className="dim">{m.desc}</div>
+                <div className="dim">{t(m.desc)}</div>
               </div>
-              {selected && <div className="chip greenc">当前</div>}
+              {selected && <div className="chip greenc">{t("当前")}</div>}
             </button>
           );
         })}
