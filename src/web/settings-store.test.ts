@@ -192,3 +192,11 @@ test("parsePersisted: avatarHero=null 被保留", () => {
 const _typeCheck: <K extends keyof Settings>(k: K, v: Settings[K]) => void =
   useSettingsStore.getState().setSetting;
 void _typeCheck;
+
+test("parsePersisted 接受合法 uiLang,拒绝非法值", () => {
+  expect(parsePersisted(JSON.stringify({ uiLang: "en" })).uiLang).toBe("en");
+  expect(parsePersisted(JSON.stringify({ uiLang: "cn" })).uiLang).toBe("cn");
+  expect(
+    parsePersisted(JSON.stringify({ uiLang: "jp" })).uiLang,
+  ).toBeUndefined();
+});

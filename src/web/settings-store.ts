@@ -28,6 +28,8 @@ export interface Settings {
   ambientParticles: boolean;
   /** App-level ambience sound preference; audio engine may consume later. */
   ambientSound: boolean;
+  /** 界面语言;"cn" 中文(默认)/ "en" English。产品术语两种语言下都保持英文。 */
+  uiLang: "cn" | "en";
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -41,6 +43,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ambientRain: true,
   ambientParticles: true,
   ambientSound: true,
+  uiLang: "cn",
 };
 
 // theme → 核心辉光色(对标原型 GLOW 映射)。
@@ -128,6 +131,7 @@ export function parsePersisted(raw: string | null): Partial<Settings> {
   if (typeof obj.ambientSound === "boolean") {
     out.ambientSound = obj.ambientSound;
   }
+  if (obj.uiLang === "cn" || obj.uiLang === "en") out.uiLang = obj.uiLang;
   return out;
 }
 
@@ -160,6 +164,7 @@ function savePersisted(s: Settings): void {
       ambientRain,
       ambientParticles,
       ambientSound,
+      uiLang,
     } = s;
     localStorage.setItem(
       STORAGE_KEY,
@@ -174,6 +179,7 @@ function savePersisted(s: Settings): void {
         ambientRain,
         ambientParticles,
         ambientSound,
+        uiLang,
       }),
     );
   } catch {
