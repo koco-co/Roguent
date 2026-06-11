@@ -9,6 +9,7 @@ import { Currency } from "./Currency";
 import { ErrorOverlay } from "./ErrorOverlay";
 import { Hotbar } from "./Hotbar";
 import { ImportPanel } from "./ImportPanel";
+import { LangToggle } from "./LangToggle";
 import { Leaderboard } from "./Leaderboard";
 import { LimitBars } from "./LimitBars";
 import { LootPanel } from "./LootPanel";
@@ -100,6 +101,8 @@ export function Hud() {
       <RosterCard />
       {/* 视图切换段(两视图都显示,落左上栈)*/}
       <ViewSwitch />
+      {/* 界面语言切换(两视图都显示,落 ViewSwitch 下方)*/}
+      <LangToggle />
       {/* 顶中会话横幅(仅内景显示,自带绝对定位)*/}
       <SessionBanner />
 

@@ -1032,10 +1032,10 @@ img {
 }
 
 /* ── 内景实时任务窗(TaskWindow,移植自原型 layout.css 的 .taskwin/.tw-*)── */
-/* 接左栈(ViewSwitch top:314 下方);自带绝对定位 */
+/* 接左栈(LangToggle 下方);自带绝对定位 */
 .taskwin {
   position: absolute;
-  top: 366px;
+  top: 458px;
   left: 12px;
   width: 312px;
   pointer-events: auto;
@@ -3791,4 +3791,44 @@ img {
   transform: translate(-50%, -100%);
   z-index: 14;
   will-change: left, top;
+}
+
+/* ── 界面语言切换(LangToggle,对标原型 layout.css .lang-toggle)──
+   落左上控件栈:ViewSwitch 下方;再下方预留 SkinSwitch(T9)与 taskwin(top:458)。 */
+.lang-toggle {
+  position: absolute;
+  top: 362px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: auto;
+  cursor: pointer;
+  padding: 8px 11px;
+  border: 0;
+  background: linear-gradient(180deg, #2c2740, #1a1626);
+  box-shadow: inset 0 0 0 2px var(--panel-edge), 0 2px 0 rgba(0, 0, 0, 0.5);
+  color: var(--ink-dim);
+  transition: filter 0.12s ease, transform 0.12s ease;
+}
+.lang-toggle:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+.lang-toggle .lang-opt {
+  font-family: var(--font-cjk);
+  font-size: 13px;
+  line-height: 1;
+  color: var(--ink-dim);
+  opacity: 0.5;
+  letter-spacing: 0.5px;
+}
+.lang-toggle .lang-opt.px {
+  font-family: var(--font-px);
+  font-size: 10px;
+}
+.lang-toggle .lang-opt.on {
+  color: #f2c84b;
+  opacity: 1;
+  text-shadow: 0 0 6px rgba(242, 200, 75, 0.5);
 }
