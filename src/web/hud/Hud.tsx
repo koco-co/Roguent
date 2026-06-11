@@ -22,6 +22,7 @@ import { SessionGrid } from "./SessionGrid";
 import { Settings } from "./Settings";
 import { Shop } from "./Shop";
 import { Skills } from "./Skills";
+import { SkinSwitch } from "./SkinSwitch";
 import { SystemMenu } from "./SystemMenu";
 import { TaskWindow } from "./TaskWindow";
 import { Tasks } from "./Tasks";
@@ -105,6 +106,8 @@ export function Hud() {
       <ViewSwitch />
       {/* 界面语言切换(两视图都显示,落 ViewSwitch 下方)*/}
       <LangToggle />
+      {/* 场景皮肤切换(两视图都显示,落 LangToggle 下方,top:410)*/}
+      <SkinSwitch />
       {/* 顶中会话横幅(仅内景显示,自带绝对定位)*/}
       <SessionBanner />
 
