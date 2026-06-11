@@ -3,6 +3,7 @@
 (function(){
   const {useState}=React;
   const h=React.createElement;
+  const T=window.T;
   const Modal=window.Modal;
 
   function QTip({text}){return h('span',{className:'qmark has-tip'},['?',h('div',{key:'t',className:'tip cjk',style:{width:230,whiteSpace:'normal',bottom:'auto',top:'calc(100% + 6px)',left:0,transform:'none'}},text)]);}
@@ -37,15 +38,15 @@
           grp==='ambiance'?h(AmbianceGroup,{rune:ambRune,onRune:onAmbRune,fx:ambFx,onFx:onAmbFx,den:ambDen,onDen:onAmbDen,day:ambDay,onDay:onAmbDay,link:ambLink,onLink:onAmbLink,presets,onPreset,onCheckUpdate}):
           [grp==='general'&&rt==='claude'&&h(MainRolePicker,{key:'role',mainHero,onPickHero}),
            ...g.items.map(it=>h(Field,{key:it.k,it,val:vals[it.k]!==undefined?vals[it.k]:it.val,set})),
-           h('div',{key:'add',className:'set-add',onClick:()=>set('custom_'+Date.now(),'')},[h(Icon,{key:'i',name:'task',size:16}),'+ 添加自定义配置']),
+           h('div',{key:'add',className:'set-add',onClick:()=>set('custom_'+Date.now(),'')},[h(Icon,{key:'i',name:'task',size:16}),T('+ 添加自定义配置')]),
           ]
         ),
       ]),
       h('div',{className:'set-foot'},[
-        dirty?h('span',{key:'d',className:'px',style:{fontSize:10,color:'#f2c84b'}},'● 未保存'):h('span',{key:'d',className:'faint',style:{fontSize:11}},'已保存'),
+        dirty?h('span',{key:'d',className:'px',style:{fontSize:10,color:'#f2c84b'}},T('● 未保存')):h('span',{key:'d',className:'faint',style:{fontSize:11}},T('已保存')),
         h('div',{key:'sp',style:{flex:1}}),
-        h('button',{key:'r',className:'pxbtn sm cjk',onClick:()=>{setVals({uiLang,uiFont});setDirty(false);}},'还原'),
-        h('button',{key:'s',className:'pxbtn primary sm cjk',onClick:()=>setDirty(false)},'保存'),
+        h('button',{key:'r',className:'pxbtn sm cjk',onClick:()=>{setVals({uiLang,uiFont});setDirty(false);}},T('还原')),
+        h('button',{key:'s',className:'pxbtn primary sm cjk',onClick:()=>setDirty(false)},T('保存')),
       ])
     );
   }
@@ -170,9 +171,8 @@
   }
   window.Settings=Settings;
 
-  // ---------------- SHOP (§6.14) ----------------
-  function Shop({onClose}){
-    const [tab,setTab]=useState('market');
+  // ---------------- PLUGIN MARKET (插件市场，真实 MCP / Skills / 插件) ----------------
+  function Market({onClose}){
     const [cat,setCat]=useState('全部');
     const [q,setQ]=useState('');
     const cats=['全部','已安装','Skills','MCP','插件'];
@@ -181,38 +181,57 @@
       if(cat!=='全部') return p.cat===cat;
       return true;
     }).filter(p=>!q||p.name.includes(q)||p.desc.includes(q));
-    return h(Modal,{title:'SHOP',sub:'插件市场 + 道具店',icon:'shop',onClose,width:1180},
+    const owned=DATA.plugins.filter(p=>p.owned).length;
+    return h(Modal,{title:'MARKET',sub:'插件市场 · MCP / Skills / 插件 · 接入真实能力',icon:'mcp',accent:'#36c5e0',onClose,width:1180},
       h('div',{className:'shop-wrap'},[
-        h('div',{key:'tabs',className:'tabs'},[['market','插件市场'],['items','道具店']].map(([k,l])=>
-          h('div',{key:k,className:'tab'+(tab===k?' on':''),onClick:()=>setTab(k)},l))),
-        tab==='market'?h('div',{key:'m',className:'shop-market'},[
+        h('div',{key:'m',className:'shop-market'},[
           h('div',{key:'side',className:'shop-side'},[
-            h('div',{key:'search',className:'shop-search'},[h(Icon,{key:'i',name:'search',size:16}),h('input',{key:'in',className:'pxinput',placeholder:'搜索…',value:q,onChange:e=>setQ(e.target.value)})]),
-            ...cats.map(c=>h('div',{key:c,className:'shop-cat'+(cat===c?' on':''),onClick:()=>setCat(c)},c)),
+            h('div',{key:'search',className:'shop-search'},[h(Icon,{key:'i',name:'search',size:16}),h('input',{key:'in',className:'pxinput',placeholder:T('搜索…'),value:q,onChange:e=>setQ(e.target.value)})]),
+            ...cats.map(c=>h('div',{key:c,className:'shop-cat'+(cat===c?' on':''),onClick:()=>setCat(c)},[h('span',{key:'l'},T(c)),c==='已安装'&&h('span',{key:'n',className:'shop-cat-n px'},owned)])),
+            h('div',{key:'note',className:'shop-side-note faint'},'通过 settings.json / config.toml 启用，作用于 Claude 与 Codex。'),
           ]),
           h('div',{key:'grid',className:'shop-grid scroll'},plugins.map(p=>h('div',{key:p.id,className:'plugin-card'},[
             h('div',{key:'top',className:'plugin-top'},[
               h('div',{key:'ic',className:'plugin-ic'},h(Icon,{name:p.icon,size:30,glow:'#36c5e0'})),
               h('div',{key:'meta',className:'plugin-meta'},[h('div',{key:'n',className:'plugin-name'},p.name),h('div',{key:'a',className:'faint',style:{fontSize:11}},'by '+p.author)]),
+              h('span',{key:'c',className:'chip px',style:{fontSize:8}},p.cat),
             ]),
             h('div',{key:'d',className:'plugin-desc'},p.desc),
             h('div',{key:'b',className:'plugin-bottom'},[
               h('span',{key:'s',className:'px',style:{fontSize:9,color:'#f2c84b'}},'★ '+p.stars),
-              h('span',{key:'i',className:'faint',style:{fontSize:11}},p.installs+' 安装'),
-              h('span',{key:'rt',className:'chip px',style:{fontSize:8}},p.runtime==='both'?'通用':'Claude'),
+              h('span',{key:'i',className:'faint',style:{fontSize:11}},p.installs+' '+window.TL('安装','installs')),
+              h('span',{key:'rt',className:'chip px',style:{fontSize:8}},p.runtime==='both'?T('通用'):'Claude'),
               h('div',{key:'sp',style:{flex:1}}),
-              p.owned?h('span',{key:'o',className:'chip greenc'},'已拥有'):h('button',{key:'in',className:'pxbtn gold sm cjk'},'安装'),
+              p.owned?h('span',{key:'o',className:'chip greenc'},T('已启用')):h('button',{key:'in',className:'pxbtn gold sm cjk'},T('安装')),
             ]),
           ]))),
-        ]):h('div',{key:'i',className:'shop-items'},[
-          h('div',{key:'bal',className:'shop-bal'},[h(Icon,{key:'i',name:'gemcur',size:22}),h('span',{key:'v',className:'px',style:{color:'#a06cd5'}},DATA.currency.gems.toLocaleString()),h('span',{key:'l',className:'faint',style:{fontSize:11}},'宝石 · 完成会话/任务赚取，仅外观，不影响开发结果')]),
-          h('div',{key:'grid',className:'item-grid scroll'},DATA.items.map(it=>h('div',{key:it.id,className:'item-card'+(it.gacha?' gacha':''),style:{'--ac':it.accent}},[
-            h('div',{key:'base',className:'item-base'},h(Icon,{name:it.icon,size:40,glow:it.accent})),
-            h('div',{key:'n',className:'item-name'},it.name),
-            h('div',{key:'c',className:'chip px',style:{fontSize:8}},it.cat),
-            it.owned?h('span',{key:'o',className:'chip greenc',style:{marginTop:8}},'已拥有'):h('button',{key:'b',className:'pxbtn sm cjk',style:{marginTop:8}},[h(Icon,{key:'i',name:'gemcur',size:14,style:{marginRight:5}}),it.price]),
-          ]))),
         ]),
+      ])
+    );
+  }
+  window.Market=Market;
+
+  // ---------------- DECORATION SHOP (装饰商店，宝石消费 · 纯外观) ----------------
+  function Shop({onClose,onOpen}){
+    const cats=['全部','房间','皮肤','宠物','UI'];
+    const [cat,setCat]=useState('全部');
+    const items=DATA.items.filter(it=>!it.gacha).filter(it=>cat==='全部'||it.cat===cat);
+    return h(Modal,{title:'SHOP',sub:'装饰商店 · 宝石消费 · 仅外观，不影响开发结果',icon:'shop',accent:'#a06cd5',onClose,width:1180},
+      h('div',{className:'shop-items'},[
+        h('div',{key:'bal',className:'shop-bal'},[
+          h(Icon,{key:'i',name:'gemcur',size:22}),
+          h('span',{key:'v',className:'px',style:{color:'#a06cd5'}},DATA.currency.gems.toLocaleString()),
+          h('span',{key:'l',className:'faint',style:{fontSize:11,flex:1}},'宝石 · 完成会话 / 任务赚取'),
+          h('button',{key:'g',className:'pxbtn sm cjk',onClick:()=>onOpen&&onOpen('gacha')},[h(Icon,{key:'i',name:'gemcur',size:14,style:{marginRight:6}}),'去扭蛋机']),
+        ]),
+        h('div',{key:'cats',className:'shop-itemcats'},cats.map(c=>
+          h('div',{key:c,className:'shop-cat'+(cat===c?' on':''),onClick:()=>setCat(c)},c))),
+        h('div',{key:'grid',className:'item-grid scroll'},items.map(it=>h('div',{key:it.id,className:'item-card',style:{'--ac':it.accent}},[
+          h('div',{key:'base',className:'item-base'},h(Icon,{name:it.icon,size:40,glow:it.accent})),
+          h('div',{key:'n',className:'item-name'},it.name),
+          h('div',{key:'c',className:'chip px',style:{fontSize:8}},it.cat),
+          it.owned?h('span',{key:'o',className:'chip greenc',style:{marginTop:8}},T('已拥有')):h('button',{key:'b',className:'pxbtn sm cjk',style:{marginTop:8}},[h(Icon,{key:'i',name:'gemcur',size:14,style:{marginRight:5}}),it.price]),
+        ]))),
       ])
     );
   }
@@ -220,11 +239,11 @@
 
   // ---------------- SYSTEM / PAUSE MENU (§6.11) ----------------
   function SystemMenu({onClose,onOpen}){
-    const items=[['继续游戏','done',onClose],['账号 · 订阅','account',()=>onOpen('account')],['runtime 管理','claude',()=>onOpen('account')],['保存 / 导出会话','save',null],['导入会话','import',()=>onOpen('import')],['外观 / 主题','gear',()=>onOpen('settings')],['关于 Roguent','spellbook',()=>onOpen('about')],['退出','error',null]];
+    const items=[[T('继续游戏'),'done',onClose],[T('账号 · 订阅'),'account',()=>onOpen('account')],[T('runtime 管理'),'claude',()=>onOpen('account')],[T('保存 / 导出会话'),'save',null],[T('导入会话'),'import',()=>onOpen('import')],[T('外观 / 主题'),'gear',()=>onOpen('settings')],[T('关于 Roguent'),'spellbook',()=>onOpen('about')],[T('退出'),'error',null]];
     return h('div',{className:'scrim sysmenu',onClick:onClose},
       h('div',{className:'sysmenu-inner',onClick:e=>e.stopPropagation()},[
         h('div',{key:'logo',className:'sys-logo px'},'ROGUENT'),
-        h('div',{key:'sub',className:'faint',style:{marginBottom:30,letterSpacing:'.2em'}},'PAUSED · 指挥台'),
+        h('div',{key:'sub',className:'faint',style:{marginBottom:30,letterSpacing:'.2em'}},'PAUSED · '+T('指挥台')),
         ...items.map(([label,icon,fn],i)=>h('button',{key:i,className:'sys-btn',onClick:fn||onClose},[h(Icon,{key:'i',name:icon,size:22}),h('span',{key:'t'},label)])),
       ])
     );
@@ -243,7 +262,7 @@
       ]),
       h('div',{key:'bot',className:'vortex-bot cjk'},bottom),
       h('div',{key:'save',className:'vortex-save'},h(Icon,{name:'save',size:30})),
-      h('div',{key:'hint',className:'vortex-hint faint'},'点击任意处继续'),
+      h('div',{key:'hint',className:'vortex-hint faint'},T('点击任意处继续')),
     ]);
   }
   window.Transition=Transition;
@@ -256,9 +275,9 @@
     const gachaItems=Object.values(gcounts);
     return h(Modal,{title:'BACKPACK',sub:'本会话产出 loot',icon:'pouch',onClose,width:760},
       h('div',{className:'bp-wrap'},[
-        h('div',{key:'s1',className:'bp-sec px'},'会话产出'),
+        h('div',{key:'s1',className:'bp-sec px'},T('会话产出')),
         h('div',{key:'g1',className:'loot-grid'},[...loot.map((l,i)=>h('div',{key:i,className:'loot-cell'},[h('div',{key:'ic',className:'loot-ic'},h(Icon,{name:l.i,size:30,glow:l.c})),h('div',{key:'n',className:'loot-name'},l.n)])),...Array(2).fill(0).map((_,i)=>h('div',{key:'e'+i,className:'loot-cell empty'}))]),
-        h('div',{key:'s2',className:'bp-sec px'},[h(Icon,{key:'i',name:'gemcur',size:13,style:{marginRight:6,verticalAlign:'-2px'}}),'扭蛋战利品 · 外观']),
+        h('div',{key:'s2',className:'bp-sec px'},[h(Icon,{key:'i',name:'gemcur',size:13,style:{marginRight:6,verticalAlign:'-2px'}}),T('扭蛋战利品 · 外观')]),
         gachaItems.length
           ? h('div',{key:'g2',className:'loot-grid'},gachaItems.map((c,i)=>h('div',{key:i,className:'loot-cell',style:{boxShadow:'inset 0 0 0 2px '+c.p.accent}},[
               h('div',{key:'ic',className:'loot-ic'},h(Icon,{name:c.p.icon,size:30,glow:c.p.accent})),
@@ -635,12 +654,12 @@
         // askuser banner — links this chat back to the stopped session
         isAsk&&h('div',{key:'askb',className:'cdrawer-askbar'},[
           h(Icon,{key:'i',name:'ask',size:16,glow:'#f2c84b'}),
-          h('span',{key:'t',className:'cjk'},'该会话因 askuser 停下，等待你的回应'),
-          onEnterSession&&session&&session.id&&h('button',{key:'b',className:'pxbtn sm cjk',onClick:()=>{onClose();onEnterSession(session);}},'进入房间'),
+          h('span',{key:'t',className:'cjk'},window.TL('该会话因 askuser 停下，等待你的回应','Paused on askuser — waiting for your reply')),
+          onEnterSession&&session&&session.id&&h('button',{key:'b',className:'pxbtn sm cjk',onClick:()=>{onClose();onEnterSession(session);}},T('进入房间')),
         ]),
         // team presence strip
         h('div',{key:'team',className:'cdrawer-team'},[
-          h('span',{key:'l',className:'cdrawer-team-l px'},'小队'),
+          h('span',{key:'l',className:'cdrawer-team-l px'},T('小队')),
           ...[orch,...team].map((n,i)=>h('div',{key:n.id||i,className:'cdrawer-team-av'+(n.status==='done'?' ended':''),title:n.name+' · '+n.role},[
             h(PixelSprite,{key:'s',base:n.hero,anim:'idle',scale:1.6,filter:n.orchestrator?GOLD_TINT:(n.status==='done'?'grayscale(.85) brightness(.6)':undefined)}),
             h('span',{key:'d',className:'cdrawer-team-dot st-'+n.status}),
@@ -668,7 +687,7 @@
           typing&&h('div',{key:'typing',className:'cmsg agent'},[
             h('div',{key:'av',className:'cmsg-av'},h(PixelSprite,{base:orch.hero,anim:'idle',scale:1.8,filter:GOLD_TINT})),
             h('div',{key:'c',className:'cmsg-c'},[
-              h('div',{key:'a',className:'cmsg-author'},[h('span',{key:'n'},orch.name),h('span',{key:'r',className:'cmsg-role px'},'正在思考')]),
+              h('div',{key:'a',className:'cmsg-author'},[h('span',{key:'n'},orch.name),h('span',{key:'r',className:'cmsg-role px'},T('正在思考'))]),
               h('div',{key:'b',className:'cmsg-bubble typing'},[h('span',{key:1,className:'tdot'}),h('span',{key:2,className:'tdot'}),h('span',{key:3,className:'tdot'})]),
             ]),
           ]),
@@ -678,9 +697,9 @@
           h('button',{key:i,className:'cquick cjk',disabled:busy,onClick:()=>sendText(q)},q)),
         ),
         h('div',{key:'in',className:'cdrawer-input'},[
-          h('input',{key:'i',className:'pxinput',placeholder:busy?'生成中…':'输入消息…',value:draft,disabled:busy,
+          h('input',{key:'i',className:'pxinput',placeholder:busy?window.TL('生成中…','Generating…'):window.TL('输入消息…','Type a message…'),value:draft,disabled:busy,
             onChange:e=>setDraft(e.target.value),onKeyDown:e=>{if(e.key==='Enter')sendText(draft);}}),
-          h('button',{key:'s',className:'pxbtn primary sm cjk',onClick:()=>sendText(draft),disabled:busy},busy?'…':'发送'),
+          h('button',{key:'s',className:'pxbtn primary sm cjk',onClick:()=>sendText(draft),disabled:busy},busy?'…':T('发送')),
         ]),
       ])
     );
@@ -693,18 +712,18 @@
       h('div',{className:'model-list'},models.map(([n,d,c,sel],i)=>h('div',{key:i,className:'model-card'+(sel?' sel':''),style:{'--ac':c}},[
         h('div',{key:'ic',className:'model-ic'},h(Icon,{name:'crystal',size:32,glow:c})),
         h('div',{key:'m',className:'model-meta'},[h('div',{key:'n',className:'px',style:{fontSize:11,color:c}},n),h('div',{key:'d',className:'dim',style:{fontSize:12,marginTop:4}},d)]),
-        sel&&h('div',{key:'s',className:'chip greenc'},'当前'),
+        sel&&h('div',{key:'s',className:'chip greenc'},T('当前')),
       ])))
     );
   }
   window.ModelPanel=ModelPanel;
 
   function ImportPanel({onClose}){
-    const sessions=[['~/code/roguent','6 会话','#36c5e0'],['~/code/api-gateway','3 会话','#a06cd5'],['~/code/mobile','2 会话','#5fd35f']];
+    const sessions=[['~/code/roguent','6 '+T('会话'),'#36c5e0'],['~/code/api-gateway','3 '+T('会话'),'#a06cd5'],['~/code/mobile','2 '+T('会话'),'#5fd35f']];
     return h(Modal,{title:'IMPORT',sub:'导入本地会话',icon:'import',accent:'#f2c84b',onClose,width:760},
       h('div',{className:'import-wrap'},[
-        h('div',{key:'h',className:'dim',style:{marginBottom:14}},'扫描到的本地 Claude Code 项目：'),
-        ...sessions.map(([p,c,col],i)=>h('div',{key:i,className:'import-row'},[h(Icon,{key:'i',name:'import',size:22,glow:col}),h('code',{key:'p',className:'import-path'},p),h('span',{key:'c',className:'chip px',style:{fontSize:9}},c),h('button',{key:'b',className:'pxbtn gold sm cjk'},'导入')])),
+        h('div',{key:'h',className:'dim',style:{marginBottom:14}},T('扫描到的本地 Claude Code 项目：')),
+        ...sessions.map(([p,c,col],i)=>h('div',{key:i,className:'import-row'},[h(Icon,{key:'i',name:'import',size:22,glow:col}),h('code',{key:'p',className:'import-path'},p),h('span',{key:'c',className:'chip px',style:{fontSize:9}},c),h('button',{key:'b',className:'pxbtn gold sm cjk'},T('导入'))])),
       ])
     );
   }
@@ -716,8 +735,8 @@
     const ctx=a.selectedCtx;
     const ctxColor=ctx<60?'#5fd35f':ctx<=85?'#f2c84b':'#ff4d6d';
     const usage=[
-      {label:'5h 限额',used:a.fiveH.used,reset:a.fiveH.resetIn,color:'#ff4d6d',icon:'heart',note:'滚动 5 小时窗口'},
-      {label:'周限额',used:a.week.used,reset:a.week.resetIn,color:'#36c5e0',icon:'gemcur',note:'每周一 00:00 重置'},
+      {label:'5h',used:a.fiveH.used,reset:a.fiveH.resetIn,color:'#ff4d6d',icon:'heart',note:'滚动 5 小时窗口'},
+      {label:'Weekly',used:a.week.used,reset:a.week.resetIn,color:'#36c5e0',icon:'gemcur',note:'每周一 00:00 重置'},
     ];
     return h(Modal,{title:'PROFILE',sub:'个人详情 · 订阅与用量',icon:'account',onClose,width:560},
       h('div',{className:'acct2'},[
@@ -731,12 +750,12 @@
           ]),
           h('div',{key:'id',className:'acct2-id'},[
             h('div',{key:'n',className:'acct2-name px'},a.name||'指挥官'),
-            h('div',{key:'pl',className:'acct2-plan px'},[h('span',{key:'g',className:'gold'},'Claude'),h('span',{key:'d'},' · '+a.plan+' 计划')]),
+            h('div',{key:'pl',className:'acct2-plan px'},[h('span',{key:'g',className:'gold'},'Claude'),h('span',{key:'d'},' · '+a.plan+' '+T('计划'))]),
             h('div',{key:'h',className:'acct2-handle px'},a.handle||'orc@roguent'),
             // context-window XP echo
             h('div',{key:'xp',className:'acct2-xprow'},[
               h(Icon,{key:'i',name:'gem',size:16}),
-              h('span',{key:'l',className:'acct2-xplab px'},'CTX'),
+              h('span',{key:'l',className:'acct2-xplab px'},'Context'),
               h('div',{key:'b',className:'acct2-xpbar'},h('div',{className:'acct2-xpfill',style:{width:ctx+'%',background:'linear-gradient(180deg,#ffe79a,'+ctxColor+' 55%,rgba(0,0,0,.25))'}})),
               h('span',{key:'v',className:'px',style:{fontSize:9,color:ctxColor,minWidth:30,textAlign:'right'}},ctx+'%'),
             ]),
@@ -744,23 +763,23 @@
         ]),
         // ---- usage limits (5h / week) ----
         h('div',{key:'us',className:'acct2-usage'},[
-          h('div',{key:'h',className:'acct2-sec px'},'用量限额 USAGE'),
+          h('div',{key:'h',className:'acct2-sec px'},'Usage'),
           ...usage.map((u,i)=>h('div',{key:i,className:'acct2-urow'},[
             h('div',{key:'ic',className:'acct2-uicon'},h(Icon,{name:u.icon,size:18})),
             h('div',{key:'c',className:'acct2-ucol'},[
               h('div',{key:'t',className:'acct2-utop'},[
-                h('span',{key:'l',className:'cjk'},u.label),
-                h('span',{key:'v',className:'px',style:{color:u.color}},u.used+'% 已用'),
+                h('span',{key:'l',className:'px'},u.label),
+                h('span',{key:'v',className:'px',style:{color:u.color}},u.used+'% '+T('已用')),
               ]),
               h('div',{key:'b',className:'acct2-ubar'},h('div',{className:'acct2-ufill',style:{width:u.used+'%',background:u.color}})),
               h('div',{key:'r',className:'acct2-ureset px'},[
-                h('span',{key:'a'},'重置 '+u.reset),
-                h('span',{key:'b',className:'faint'},u.note+' · 剩余 '+(100-u.used)+'%'),
+                h('span',{key:'a'},'Resets in '+u.reset),
+                h('span',{key:'b',className:'faint cjk'},T(u.note)+' · '+T('剩余')+' '+(100-u.used)+'%'),
               ]),
             ]),
           ])),
         ]),
-        h('div',{key:'act',className:'npccard-act'},[h('button',{key:'l',className:'pxbtn cjk'},'/login'),h('button',{key:'o',className:'pxbtn cjk',style:{color:'#ff8197'}},'登出')]),
+        h('div',{key:'act',className:'npccard-act'},[h('button',{key:'l',className:'pxbtn cjk'},'/login'),h('button',{key:'o',className:'pxbtn cjk',style:{color:'#ff8197'}},T('登出'))]),
       ])
     );
   }
@@ -779,7 +798,7 @@
       {v:'v0.9',accent:'#36c5e0',notes:['大厅 / 内景像素美术升级','召唤法阵 · 昼夜光照 · 氛围预设','聊天气泡像素化 · 实时可调氛围']},
       {v:'v0.8',accent:'#8a8170',notes:['本地双 runtime 调度台','扭蛋 / 成就 / 排行榜 / 邮箱面板']},
     ];
-    const subline=status==='found'?'发现新版本 v1.0 可用':status==='installing'?'正在升级 runtime…':status==='done'?'已更新到 v1.0 · 已是最新':'当前版本 · prototype';
+    const subline=status==='found'?window.TL('发现新版本 v1.0 可用','New version v1.0 available'):status==='installing'?window.TL('正在升级 runtime…','Upgrading runtime…'):status==='done'?window.TL('已更新到 v1.0 · 已是最新','Updated to v1.0 · up to date'):window.TL('当前版本 · prototype','Current · prototype');
     return h(Modal,{title:'UPDATE',sub:'版本与更新日志',icon:'spellbook',accent:'#a06cd5',onClose,width:600},
       h('div',{className:'upd-wrap'},[
         h('div',{key:'cur',className:'upd-cur'},[
@@ -790,18 +809,18 @@
               h('div',{key:'2',className:'faint',style:{fontSize:11,marginTop:4}},subline),
             ]),
           ]),
-          status==='found'?h('button',{key:'b',className:'pxbtn primary sm cjk',onClick:install},'立即更新 v1.0')
-          :status==='done'?h('div',{key:'b',className:'upd-done px'},[h(Icon,{key:'i',name:'task',size:14,glow:'#5fd35f',style:{marginRight:6}}),'已是最新'])
+          status==='found'?h('button',{key:'b',className:'pxbtn primary sm cjk',onClick:install},T('立即更新 v1.0'))
+          :status==='done'?h('div',{key:'b',className:'upd-done px'},[h(Icon,{key:'i',name:'task',size:14,glow:'#5fd35f',style:{marginRight:6}}),T('已是最新')])
           :h('button',{key:'b',className:'pxbtn gold sm cjk',onClick:check,disabled:status==='checking'||status==='installing'},
-              (status==='checking'||status==='installing')?[h('span',{key:'s',className:'upd-spin'}),status==='installing'?'升级中…':'检查中…']:[h(Icon,{key:'i',name:'import',size:14,style:{marginRight:6}}),'检查更新']),
+              (status==='checking'||status==='installing')?[h('span',{key:'s',className:'upd-spin'}),status==='installing'?window.TL('升级中…','Upgrading…'):window.TL('检查中…','Checking…')]:[h(Icon,{key:'i',name:'import',size:14,style:{marginRight:6}}),T('检查更新')]),
         ]),
         status==='found'&&h('div',{key:'banner',className:'upd-banner'},[h(Icon,{key:'i',name:'crystal',size:16,glow:'#5fd35f'}),h('span',{key:'t',className:'cjk'},'v1.0 已就绪 · 订阅者可一键升级 runtime，会话进度不丢失')]),
         h('div',{key:'log',className:'upd-log scroll'},CHANGELOG.map((c,i)=>
           h('div',{key:i,className:'upd-entry'},[
             h('div',{key:'h',className:'upd-entry-h'},[
               h('span',{key:'v',className:'upd-ver px',style:{'--ac':c.accent}},c.v),
-              c.tag&&h('span',{key:'t',className:'upd-tag px'},status==='done'&&i===0?'已安装':c.tag),
-              i===(status==='found'||status==='done'?-1:0)&&h('span',{key:'cur',className:'faint',style:{fontSize:10,marginLeft:'auto'}},'当前'),
+              c.tag&&h('span',{key:'t',className:'upd-tag px'},status==='done'&&i===0?T('已安装'):c.tag),
+              i===(status==='found'||status==='done'?-1:0)&&h('span',{key:'cur',className:'faint',style:{fontSize:10,marginLeft:'auto'}},T('当前')),
             ]),
             h('ul',{key:'n',className:'upd-notes'},c.notes.map((n,j)=>h('li',{key:j},n))),
           ]))),
@@ -818,7 +837,7 @@
         h('div',{key:'v',className:'faint px about-ver',style:{fontSize:9,marginBottom:20,cursor:'pointer'},onClick:onCheckUpdate,title:'点击查看更新日志'},'v0.9 · prototype'),
         h('div',{key:'d',className:'dim',style:{lineHeight:1.8}},'本地 Claude Code 双 runtime 的中央调度平台。把 vibe coding 渲染成一屋子像素小人在地牢里干活。'),
         h('div',{key:'c',className:'faint',style:{marginTop:20,fontSize:12}},'像素美术：0x72 DungeonTilesetII (CC0) · 致敬《元气骑士》'),
-        onCheckUpdate&&h('button',{key:'u',className:'pxbtn sm cjk',style:{marginTop:22},onClick:onCheckUpdate},[h(Icon,{key:'i',name:'import',size:14,style:{marginRight:6}}),'检查更新']),
+        onCheckUpdate&&h('button',{key:'u',className:'pxbtn sm cjk',style:{marginTop:22},onClick:onCheckUpdate},[h(Icon,{key:'i',name:'import',size:14,style:{marginRight:6}}),T('检查更新')]),
       ])
     );
   }

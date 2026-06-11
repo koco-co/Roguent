@@ -601,3 +601,168 @@
 /* accent linkage → chat follows rune (--cyan overridden on root) */
 .link-accent .cmsg.me .cmsg-bubble{box-shadow:0 0 0 2px #0a1014,inset 0 0 0 2px var(--cyan),inset 0 3px 0 rgba(255,255,255,.16),inset 0 -4px 0 rgba(0,0,0,.3),3px 4px 0 rgba(0,0,0,.3);}
 .link-accent .cquick{background:linear-gradient(180deg,color-mix(in srgb,var(--cyan) 55%,#10303a),color-mix(in srgb,var(--cyan) 28%,#0a2028));box-shadow:0 0 0 2px #0a2228,inset 0 2px 0 rgba(255,255,255,.2),inset 0 -3px 0 rgba(0,0,0,.36);}
+
+/* ============================================================
+   SESSION GRID v2 — 多级过滤标签（runtime / 项目 / 模型 同级）
+   ============================================================ */
+.sg-filters{display:flex;flex-direction:column;gap:9px;margin-bottom:16px;padding:12px 14px;background:rgba(11,10,18,.32);box-shadow:inset 0 0 0 2px var(--panel-edge);}
+.sg-frow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:30px;}
+.sg-flab{width:72px;flex-shrink:0;font-size:8px;color:var(--ink-faint);letter-spacing:1px;font-family:var(--font-px);}
+.sg-fsp{flex:1;}
+.fchip{--ac:#f2c84b;display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 12px;cursor:pointer;color:var(--ink-dim);background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px var(--panel-hi);transition:box-shadow .1s,color .1s,background .1s,transform .08s;user-select:none;white-space:nowrap;}
+.fchip:hover{color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ac) 60%,transparent);transform:translateY(-1px);}
+.fchip.on{color:color-mix(in srgb,var(--ac) 80%,#fff);background:color-mix(in srgb,var(--ac) 14%,transparent);box-shadow:inset 0 0 0 1px var(--ac);}
+.fchip .fc-n{font-size:8px;color:var(--ink-faint);}
+.fchip.on .fc-n{color:inherit;opacity:.75;}
+.sg-clear{display:inline-flex;align-items:center;font-size:9px;color:var(--ink-faint);padding:5px 10px;cursor:pointer;box-shadow:inset 0 0 0 1px var(--panel-edge);background:rgba(0,0,0,.25);}
+.sg-clear:hover{color:#ff8197;box-shadow:inset 0 0 0 1px #ff4d6d;}
+/* 未激活（待命/完成）会话置灰，悬停时恢复方便查看 */
+.sg-card.inactive{filter:grayscale(.8) brightness(.78);opacity:.62;}
+.sg-card.inactive:hover{filter:grayscale(.15) brightness(1.05);opacity:1;}
+/* 卡片底部：tokens + 最后一条消息时间 */
+.sg-foot{display:flex;justify-content:space-between;align-items:center;gap:6px;}
+.sg-time{font-size:8px;color:var(--ink-faint);}
+.sg-time.live{color:#5fd35f;text-shadow:0 0 6px rgba(95,211,95,.5);}
+.sg-chips{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}
+.sg-meta .sg-status{white-space:nowrap;flex-shrink:0;}
+.sg-meta .chip{white-space:nowrap;}
+/* 卡片上的项目名可点击 → 切换该项目过滤 */
+.sg-proj{cursor:pointer;transition:color .1s,text-shadow .1s;}
+.sg-proj:hover{color:#9fe9f7;text-shadow:0 0 6px rgba(54,197,224,.6);}
+.sg-proj.on{color:var(--gold);}
+.sg-empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0;color:var(--ink-faint);}
+
+/* 大厅建筑标签不换行（Claude 项目 / Codex 项目 曾被折行） */
+.struct-label{white-space:nowrap;}
+
+/* ============================================================
+   SCENE SWITCH (HUD) — 地牢 / 全息 场景切换
+   ============================================================ */
+.skin-switch{display:flex;align-items:center;gap:5px;margin-top:8px;padding:4px;background:rgba(8,12,20,.55);box-shadow:inset 0 0 0 2px var(--panel-edge);pointer-events:auto;width:fit-content;}
+.skin-lab{font-size:8px;color:var(--ink-faint);letter-spacing:1px;padding:0 6px 0 4px;}
+.skin-opt{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-dim);padding:5px 11px;cursor:pointer;transition:color .12s,background .12s;font-family:var(--font-px);}
+.skin-opt:hover{color:var(--ink);}
+.skin-opt.on{color:#fff;background:rgba(54,200,255,.16);box-shadow:inset 0 0 0 1px rgba(54,200,255,.5);}
+.skin-dot{width:9px;height:9px;box-shadow:0 0 0 1px rgba(0,0,0,.5);}
+.skin-dot.dungeon{background:linear-gradient(135deg,#b28654,#5a3a1e);}
+.skin-dot.holo{background:linear-gradient(135deg,#5fe0ff,#2a6fdb);box-shadow:0 0 6px rgba(54,200,255,.8);}
+
+/* ============================================================
+   HOLO / BLUE-TECH SKIN — 全息蓝科技皮肤（可切换场景）
+   把暖色像素统一推成青色全息调，叠加扫描线 / 网格 / 辉光
+   ============================================================ */
+/* canvas: 所有手绘像素道具 → 单色青全息 */
+.skin-holo .room-canvas,.skin-holo .hub-canvas{filter:sepia(1) hue-rotate(150deg) saturate(2.1) brightness(1.06) contrast(1.04);}
+/* 所有精灵 → 全息蓝 + 外发光（!important 覆盖内联金色 tint，统一队伍观感） */
+.skin-holo .pxsprite{filter:sepia(1) hue-rotate(150deg) saturate(1.9) brightness(1.12) drop-shadow(0 0 5px rgba(54,224,255,.75)) !important;opacity:.95;}
+.skin-holo .world,.skin-holo .lobby{background:#050b16;}
+/* 全局扫描线 + 网格 overlay（覆盖在场景上方，不挡交互） */
+.skin-holo .world::before,.skin-holo .lobby::before{content:"";position:absolute;inset:0;z-index:6;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(54,200,255,.05),rgba(54,200,255,.05) 1px,transparent 2px,transparent 4px);
+  mix-blend-mode:screen;animation:holoScan 7s linear infinite;}
+@keyframes holoScan{from{background-position-y:0;}to{background-position-y:8px;}}
+.skin-holo .world::after,.skin-holo .lobby::after{content:"";position:absolute;inset:0;z-index:6;pointer-events:none;
+  background:radial-gradient(130% 100% at 50% 0%,rgba(54,160,224,.12),transparent 60%),linear-gradient(180deg,rgba(5,11,22,.2),transparent 30%,transparent 70%,rgba(5,11,22,.5));}
+.no-motion .skin-holo .world::before,.no-motion .skin-holo .lobby::before{animation:none;}
+/* 火把 → 能量柱（青色等离子） */
+.skin-holo .torch-bracket{background:linear-gradient(#16323a,#0a1820);box-shadow:0 0 0 2px #0a1820,0 0 6px rgba(54,200,255,.4);}
+.skin-holo .torch-flame{background:linear-gradient(180deg,#dffaff,#5fe0ff 40%,#2a8fdb);filter:drop-shadow(0 0 9px #36c5e0);clip-path:polygon(50% 0,66% 30%,58% 64%,50% 100%,42% 64%,34% 30%);}
+.skin-holo .torch-glow{background:radial-gradient(circle,rgba(54,200,255,.4),transparent 64%);}
+.skin-holo .torch-spark{background:#9fe9f7 !important;box-shadow:0 0 5px #5fe0ff !important;}
+/* 命令法阵 → 全息环（青色，金色环也转青） */
+.skin-holo .room-rune-ring.rev{border-color:rgba(95,224,255,.4);box-shadow:0 0 12px rgba(54,200,255,.25);}
+/* 暗角 → 深海军蓝 */
+.skin-holo .vignette{background:radial-gradient(125% 95% at 50% 40%,transparent 36%,rgba(6,16,30,.55) 70%,rgba(4,9,20,.95) 100%);}
+/* 大屏边框在全息场景里更冷 */
+.skin-holo .bigscreen-frame{box-shadow:0 0 0 4px #16465a,0 0 0 7px #0a1a2a,0 0 34px rgba(54,200,255,.4),0 18px 30px rgba(0,0,0,.55);}
+/* HUD 木质面板 → 玻璃青边：重定义木纹变量，所有面板/按钮/标题栏自动转青玻璃 */
+.skin-holo{
+  --panel:#0f2c3e; --panel-2:#0a2230; --panel-edge:#04141f;
+  --panel-hi:#2d6f86; --panel-deep:#07202c; --titlebar:#0a2838;
+}
+.skin-holo .panel{background:linear-gradient(180deg,rgba(120,220,255,.08),rgba(0,0,0,.18)),#0f2c3e !important;}
+.skin-holo .panel.rivets::before,.skin-holo .panel.rivets::after{background:#5fe0ff;box-shadow:0 0 0 1px #04141f,0 0 5px rgba(54,200,255,.7);}
+.skin-holo .panel-titlebar{background:linear-gradient(180deg,#123042,#0a2838);}
+.skin-holo .pxbtn{background:linear-gradient(180deg,#1c4e60,#10303e);}
+.skin-holo .pxbtn.gold{background:linear-gradient(180deg,#5fe0ff,#2a8fdb);color:#04141f;}
+.skin-holo .gb-sep{background:rgba(54,200,255,.3);}
+/* 图标按钮（底部快捷栏 + 右侧 dock）→ 青玻璃 */
+.skin-holo .iconbtn{background:linear-gradient(180deg,#1c4e60,#10303e);}
+.skin-holo .iconbtn.active{background:linear-gradient(180deg,#16596e,#0c2c3a);}
+/* 模态内木质 tab → 青 */
+.skin-holo .tab{background:linear-gradient(180deg,#13384a,#0c2533);}
+.skin-holo .tab.on{background:linear-gradient(180deg,#1c5e74,#103040);}
+.skin-holo .room-core-glow{background:radial-gradient(circle at 50% 42%,rgba(54,200,255,.28),transparent 60%) !important;}
+
+/* ============================================================
+   BIG COMMAND VIEWSCREEN — 内景大屏：智能体正在操作的浏览器画面
+   ============================================================ */
+.bigscreen{position:absolute;left:50%;top:84px;transform:translateX(-50%);width:540px;z-index:14;pointer-events:auto;
+  perspective:1100px;display:flex;flex-direction:column;align-items:center;animation:bsFloat 6s ease-in-out infinite;}
+@keyframes bsFloat{50%{transform:translateX(-50%) translateY(-7px);}}
+/* ceiling mount arm */
+.bigscreen-arm{width:14px;height:34px;background:linear-gradient(180deg,#1a2c33,#0d1a1f);box-shadow:inset 0 0 0 2px #2c4a52,0 0 0 2px #0b1418;margin-bottom:-2px;}
+.bigscreen-frame{position:relative;width:100%;
+  background:linear-gradient(180deg,#0c1418,#070d10);
+  box-shadow:0 0 0 4px #16323a,0 0 0 7px #0a1a20,0 0 30px rgba(54,197,224,.32),0 18px 30px rgba(0,0,0,.55);
+  transform:rotateX(7deg);transform-origin:center top;overflow:hidden;}
+/* browser chrome */
+.bs-chrome{display:flex;align-items:center;gap:10px;padding:7px 11px;background:linear-gradient(180deg,#15272e,#0d1a20);border-bottom:2px solid #0a1418;}
+.bs-dots{display:flex;gap:5px;}
+.bs-dot{width:9px;height:9px;border-radius:0;box-shadow:0 0 0 1px rgba(0,0,0,.5);}
+.bs-tab{font-size:11px;color:#bfeaf5;background:rgba(54,197,224,.1);padding:3px 9px;box-shadow:inset 0 0 0 1px rgba(54,197,224,.28);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bs-live{display:flex;align-items:center;gap:5px;font-size:8px;color:#5fd35f;letter-spacing:.5px;}
+.bs-live.busy{color:#9fe9f7;}
+.bs-livedot{width:7px;height:7px;background:#5fd35f;box-shadow:0 0 7px #5fd35f;animation:bsLive 1.3s ease-in-out infinite;}
+.bs-live.busy .bs-livedot{background:#36c5e0;box-shadow:0 0 8px #36c5e0;}
+@keyframes bsLive{50%{opacity:.35;}}
+/* url bar */
+.bs-urlbar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#0a1418;border-bottom:2px solid #0a1418;position:relative;}
+.bs-url{font-size:10px;color:#7fb8c4;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bs-load{position:absolute;left:0;bottom:0;height:2px;width:30%;background:linear-gradient(90deg,transparent,#36c5e0,transparent);animation:bsLoad 1s linear infinite;}
+@keyframes bsLoad{from{left:-30%;}to{left:100%;}}
+/* viewport / rendered page */
+.bs-viewport{position:relative;height:166px;background:radial-gradient(120% 100% at 50% 0%,#10242b,#0a161b 70%);overflow:hidden;}
+.bs-page{position:absolute;inset:0;padding:14px 16px;display:flex;flex-direction:column;gap:9px;}
+.bs-blk{background:linear-gradient(110deg,rgba(54,197,224,.12),rgba(54,197,224,.05));box-shadow:inset 0 0 0 1px rgba(54,197,224,.16);}
+.bs-hero{height:38px;background:linear-gradient(110deg,rgba(54,197,224,.22),rgba(160,108,213,.12));box-shadow:inset 0 0 0 1px rgba(54,197,224,.3);}
+.bs-row{display:flex;gap:9px;}
+.bs-card{flex:1;height:46px;}
+.bs-line{height:9px;}
+.bs-line.w80{width:80%;}.bs-line.w60{width:60%;}.bs-line.w70{width:70%;}
+/* scanline sweep + crt flicker for the 3D holo feel */
+.bs-scan{position:absolute;left:0;right:0;height:40px;background:linear-gradient(180deg,transparent,rgba(54,197,224,.16),transparent);animation:bsScan 3.6s linear infinite;z-index:2;pointer-events:none;}
+@keyframes bsScan{from{top:-40px;}to{top:200px;}}
+.bs-flicker{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18),rgba(0,0,0,.18) 1px,transparent 2px,transparent 3px);pointer-events:none;mix-blend-mode:multiply;opacity:.5;animation:bsFlick 5s steps(2) infinite;}
+@keyframes bsFlick{48%{opacity:.5;}50%{opacity:.32;}52%{opacity:.5;}}
+/* agent cursor */
+.bs-cursor{position:absolute;z-index:3;transform:translate(-2px,-2px);transition:left .8s cubic-bezier(.4,0,.3,1),top .8s cubic-bezier(.4,0,.3,1);filter:drop-shadow(0 1px 1px rgba(0,0,0,.6));}
+.bs-cursor.click::after{content:"";position:absolute;left:-7px;top:-7px;width:20px;height:20px;border:2px solid #36c5e0;border-radius:50%;animation:bsClick .7s ease-out;}
+@keyframes bsClick{from{transform:scale(.2);opacity:.9;}to{transform:scale(1.4);opacity:0;}}
+/* caption */
+.bs-caption{display:flex;align-items:center;gap:9px;padding:7px 12px;background:linear-gradient(180deg,#0d1a20,#0a1418);border-top:2px solid #16323a;}
+.bs-act{font-size:11px;color:#cfe9f0;}
+.bigscreen-base{width:120px;height:12px;margin-top:8px;background:radial-gradient(ellipse at 50% 0%,rgba(54,197,224,.3),transparent 70%);}
+.bigscreen-glow{position:absolute;inset:-8% -4% -20% -4%;background:radial-gradient(ellipse at 50% 40%,rgba(54,197,224,.16),transparent 68%);pointer-events:none;z-index:-1;}
+.no-motion .bigscreen{animation:none;}
+.no-motion .bs-scan,.no-motion .bs-flicker,.no-motion .bs-load,.no-motion .bs-livedot{animation:none;}
+.room-forest .bigscreen-frame{box-shadow:0 0 0 4px #1c3a22,0 0 0 7px #0a1a10,0 0 30px rgba(95,211,95,.3),0 18px 30px rgba(0,0,0,.55);}
+.room-cyber .bigscreen-frame{box-shadow:0 0 0 4px #2c1f44,0 0 0 7px #140e22,0 0 30px rgba(160,108,213,.32),0 18px 30px rgba(0,0,0,.55);}
+
+/* ============================================================
+   SHOP SPLIT — 插件市场 / 装饰商店
+   ============================================================ */
+.shop-cat-n{margin-left:auto;font-size:8px;color:var(--ink-faint);background:rgba(0,0,0,.3);padding:1px 6px;box-shadow:inset 0 0 0 1px var(--panel-edge);}
+.shop-cat.on .shop-cat-n{color:var(--gold);}
+.shop-side-note{font-size:10px;line-height:1.5;color:var(--ink-faint);margin-top:14px;padding:10px;background:rgba(0,0,0,.22);box-shadow:inset 0 0 0 1px var(--panel-edge);text-wrap:pretty;}
+.shop-itemcats{display:flex;gap:8px;margin:4px 0 16px;flex-wrap:wrap;}
+.shop-itemcats .shop-cat{padding:6px 14px;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px var(--panel-hi);}
+.shop-itemcats .shop-cat.on{color:var(--gold);background:rgba(242,200,75,.1);box-shadow:inset 0 0 0 1px var(--gold);}
+.plugin-top{position:relative;}
+.plugin-top .chip{position:absolute;top:0;right:0;}
+.plugin-meta{flex:1;min-width:0;padding-right:46px;}
+.plugin-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* 右侧 dock：系统类按钮（设置/菜单）与通知类之间加分隔 */
+.iconbtn.dock-sys{margin-top:16px;position:relative;}
+.iconbtn.dock-sys::before{content:"";position:absolute;top:-10px;left:18%;right:18%;height:2px;background:var(--panel-edge);}

@@ -13,6 +13,23 @@
     const ctx=canvas.getContext('2d');
     ctx.imageSmoothingEnabled=false;
     ctx.clearRect(0,0,canvas.width,canvas.height);
+    const holo=theme&&theme.skin==='holo';
+    if(holo){
+      // ===== HOLO / BLUE-TECH floor: navy deck + glowing grid + nodes =====
+      const gA=ctx.createRadialGradient(canvas.width/2,5.6*T,80,canvas.width/2,5.6*T,1100);
+      gA.addColorStop(0,'#0e2238'); gA.addColorStop(.55,'#091628'); gA.addColorStop(1,'#050b16');
+      ctx.fillStyle=gA; ctx.fillRect(0,0,canvas.width,canvas.height);
+      // grid (perspective-ish: rows fade toward back)
+      ctx.lineWidth=1;
+      for(let gx=0;gx<=COLS;gx++){ const a=0.05+0.05*Math.sin(gx*0.7); ctx.strokeStyle='rgba(54,197,224,'+(0.10+a).toFixed(3)+')'; ctx.beginPath(); ctx.moveTo(gx*T,2*T); ctx.lineTo(gx*T,ROWS*T); ctx.stroke(); }
+      for(let gy=2;gy<=ROWS;gy++){ const dep=(gy-2)/(ROWS-2); ctx.strokeStyle='rgba(54,197,224,'+(0.06+dep*0.16).toFixed(3)+')'; ctx.beginPath(); ctx.moveTo(0,gy*T); ctx.lineTo(canvas.width,gy*T); ctx.stroke(); }
+      // glowing intersection nodes (sparse)
+      for(let gy=3;gy<ROWS;gy+=2){ for(let gx=2;gx<COLS;gx+=3){ const hh=hash(gx*9+1,gy*5+3); if(hh<0.5){ ctx.fillStyle='rgba(95,224,255,'+(0.18+hh*0.5).toFixed(3)+')'; ctx.fillRect(gx*T-2,gy*T-2,4,4); } } }
+      // top energy wall band
+      ctx.fillStyle='rgba(10,28,46,.9)'; ctx.fillRect(0,0,canvas.width,2*T);
+      ctx.fillStyle='rgba(54,197,224,.5)'; ctx.fillRect(0,2*T-3,canvas.width,3);
+      ctx.fillStyle='rgba(54,197,224,.14)'; ctx.fillRect(0,2*T,canvas.width,16);
+    } else {
     // base fill
     ctx.fillStyle=theme&&theme.floor||'#243a40';
     ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -37,6 +54,7 @@
     // banners on the wall (runtime flavor)
     window.drawFrame(ctx,'wall_banner_blue',4*T,T*0.55,S);
     window.drawFrame(ctx,'wall_banner_blue',19*T,T*0.55,S);
+    }
 
     // ---- carpet runner from the south door up to the command dais ----
     const rugX=10.6*T, rugW=2.8*T;

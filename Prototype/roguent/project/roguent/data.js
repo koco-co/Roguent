@@ -54,7 +54,7 @@
   // ---- account usage (left bars) ----
   const account = {
     name:'指挥官 Orc', handle:'orc@roguent', level:47, hero:'knight_m',
-    plan:'Max', fiveH:{used:58, resetIn:'2h13m'}, week:{used:73, resetIn:'4d 6h'},
+    plan:'Max', fiveH:{used:58, resetIn:'2h 13m'}, week:{used:73, resetIn:'4d 6h'},
     selectedCtx:88, // active context-window fill → 头像经验条
   };
 
@@ -208,24 +208,25 @@
 
   // ---- all sessions (for hub Session Grid; status drives card accent) ----
   // status: active | idle | askuser | done | error
+  // lastActive: 距最后一条消息的分钟数（驱动 "x hours ago" 与置灰排序）
   const sessions = [
-    {id:'s1', project:'roguent', title:'大厅重构', hero:'knight_m', model:'Opus 4.8', runtime:'claude', status:'active', tokens:1284900, agents:6},
-    {id:'s2', project:'roguent', title:'HUD 状态槽', hero:'elf_f', model:'Sonnet 4.6', runtime:'claude', status:'askuser', tokens:51900, agents:2},
-    {id:'s3', project:'api-gateway', title:'限流重写', hero:'wizzard_m', model:'Opus 4.8', runtime:'claude', status:'active', tokens:902300, agents:3},
-    {id:'s4', project:'mobile', title:'离线缓存', hero:'elf_m', model:'Sonnet 4.6', runtime:'claude', status:'idle', tokens:651200, agents:2},
-    {id:'s5', project:'infra', title:'k8s 迁移', hero:'lizard_m', model:'Sonnet 4.6', runtime:'claude', status:'askuser', tokens:498700, agents:4},
-    {id:'s6', project:'docs', title:'国际化', hero:'dwarf_f', model:'Haiku 4.5', runtime:'claude', status:'done', tokens:312000, agents:1},
-    {id:'s7', project:'data', title:'ETL 重构', hero:'knight_f', model:'Opus 4.8', runtime:'claude', status:'error', tokens:208400, agents:2},
-    {id:'s8', project:'payments', title:'对账脚本', hero:'lizard_f', model:'gpt-5-codex', runtime:'codex', status:'active', tokens:543800, agents:3},
-    {id:'s9', project:'cli-tools', title:'参数解析重构', hero:'goblin', model:'gpt-5', runtime:'codex', status:'idle', tokens:271500, agents:2},
-    {id:'s10', project:'payments', title:'风控规则', hero:'dwarf_f', model:'gpt-5-codex', runtime:'codex', status:'askuser', tokens:184200, agents:1},
-    {id:'s11', project:'web', title:'落地页 A/B', hero:'wizzard_f', model:'Sonnet 4.6', runtime:'claude', status:'active', tokens:421000, agents:2},
-    {id:'s12', project:'auth', title:'OAuth 迁移', hero:'knight_m', model:'Opus 4.8', runtime:'claude', status:'done', tokens:356700, agents:3},
-    {id:'s13', project:'search', title:'向量索引', hero:'wizzard_m', model:'Sonnet 4.6', runtime:'claude', status:'idle', tokens:289400, agents:2},
-    {id:'s14', project:'cli-tools', title:'补全脚本', hero:'elf_m', model:'gpt-5', runtime:'codex', status:'done', tokens:97600, agents:1},
-    {id:'s15', project:'infra', title:'日志聚合', hero:'lizard_m', model:'Haiku 4.5', runtime:'claude', status:'active', tokens:142300, agents:2},
-    {id:'s16', project:'mobile', title:'推送通道', hero:'elf_f', model:'Sonnet 4.6', runtime:'claude', status:'idle', tokens:78900, agents:1},
-    {id:'s17', project:'billing', title:'发票生成', hero:'dwarf_m', model:'gpt-5-codex', runtime:'codex', status:'active', tokens:233100, agents:2},
+    {id:'s1', project:'roguent', title:'大厅重构', hero:'knight_m', model:'Opus 4.8', runtime:'claude', status:'active', tokens:1284900, agents:6, lastActive:2},
+    {id:'s2', project:'roguent', title:'HUD 状态槽', hero:'elf_f', model:'Sonnet 4.6', runtime:'claude', status:'askuser', tokens:51900, agents:2, lastActive:38},
+    {id:'s3', project:'api-gateway', title:'限流重写', hero:'wizzard_m', model:'Opus 4.8', runtime:'claude', status:'active', tokens:902300, agents:3, lastActive:5},
+    {id:'s4', project:'mobile', title:'离线缓存', hero:'elf_m', model:'Sonnet 4.6', runtime:'claude', status:'idle', tokens:651200, agents:2, lastActive:190},
+    {id:'s5', project:'infra', title:'k8s 迁移', hero:'lizard_m', model:'Sonnet 4.6', runtime:'claude', status:'askuser', tokens:498700, agents:4, lastActive:75},
+    {id:'s6', project:'docs', title:'国际化', hero:'dwarf_f', model:'Haiku 4.5', runtime:'claude', status:'done', tokens:312000, agents:1, lastActive:1560},
+    {id:'s7', project:'data', title:'ETL 重构', hero:'knight_f', model:'Opus 4.8', runtime:'claude', status:'error', tokens:208400, agents:2, lastActive:12},
+    {id:'s8', project:'payments', title:'对账脚本', hero:'lizard_f', model:'gpt-5-codex', runtime:'codex', status:'active', tokens:543800, agents:3, lastActive:1},
+    {id:'s9', project:'cli-tools', title:'参数解析重构', hero:'goblin', model:'gpt-5', runtime:'codex', status:'idle', tokens:271500, agents:2, lastActive:420},
+    {id:'s10', project:'payments', title:'风控规则', hero:'dwarf_f', model:'gpt-5-codex', runtime:'codex', status:'askuser', tokens:184200, agents:1, lastActive:55},
+    {id:'s11', project:'web', title:'落地页 A/B', hero:'wizzard_f', model:'Sonnet 4.6', runtime:'claude', status:'active', tokens:421000, agents:2, lastActive:9},
+    {id:'s12', project:'auth', title:'OAuth 迁移', hero:'knight_m', model:'Opus 4.8', runtime:'claude', status:'done', tokens:356700, agents:3, lastActive:2980},
+    {id:'s13', project:'search', title:'向量索引', hero:'wizzard_m', model:'Sonnet 4.6', runtime:'claude', status:'idle', tokens:289400, agents:2, lastActive:600},
+    {id:'s14', project:'cli-tools', title:'补全脚本', hero:'elf_m', model:'gpt-5', runtime:'codex', status:'done', tokens:97600, agents:1, lastActive:4500},
+    {id:'s15', project:'infra', title:'日志聚合', hero:'lizard_m', model:'Haiku 4.5', runtime:'claude', status:'active', tokens:142300, agents:2, lastActive:3},
+    {id:'s16', project:'mobile', title:'推送通道', hero:'elf_f', model:'Sonnet 4.6', runtime:'claude', status:'idle', tokens:78900, agents:1, lastActive:130},
+    {id:'s17', project:'billing', title:'发票生成', hero:'dwarf_m', model:'gpt-5-codex', runtime:'codex', status:'active', tokens:233100, agents:2, lastActive:6},
   ];
 
   // ---- projects (rooms) available for scheduling / new sessions ----

@@ -3,6 +3,7 @@
 (function(){
   const {useState,useRef,useEffect}=React;
   const h=React.createElement;
+  const T=window.T;
   const Modal=window.Modal;
   const RAR={common:'#8a8170',rare:'#36c5e0',epic:'#a06cd5',legendary:'#f2c84b'};
   const RARNAME={common:'普通',rare:'稀有',epic:'史诗',legendary:'传说'};
@@ -25,7 +26,7 @@
             h(Icon,{key:'i',name:'trophy',size:38,glow:'#f2c84b'}),
             h('div',{key:'t'},[
               h('div',{key:'1',className:'px ach-sum-big'},done.length+' / '+all.length),
-              h('div',{key:'2',className:'faint',style:{fontSize:12,marginTop:4}},'已解锁成就'),
+              h('div',{key:'2',className:'faint',style:{fontSize:12,marginTop:4}},T('已解锁成就')),
             ]),
           ]),
           h('div',{key:'bar',className:'ach-sum-bar'},[
@@ -33,7 +34,7 @@
             h('span',{key:'v',className:'px ach-sum-pct'},pct+'%'),
           ]),
         ]),
-        h('div',{key:'tabs',className:'tabs'},[['all','全部'],['unlocked','已解锁'],['progress','进行中']].map(([k,l])=>
+        h('div',{key:'tabs',className:'tabs'},[['all',T('全部')],['unlocked',T('已解锁')],['progress',T('进行中')]].map(([k,l])=>
           h('div',{key:k,className:'tab'+(tab===k?' on':''),onClick:()=>setTab(k)},l))),
         h('div',{key:'grid',className:'ach-grid scroll'},list.map(a=>h('div',{key:a.id,className:'ach-card'+(a.unlocked?' got':' lock'),style:{'--rar':RAR[a.rarity]}},[
           h('div',{key:'ic',className:'ach-ic'},[
@@ -48,7 +49,7 @@
               h('span',{key:'t',className:'px ach-prog-t'},a.prog+'/'+a.total),
             ]),
             h('div',{key:'r',className:'ach-foot'},[
-              h('span',{key:'rar',className:'ach-rar px',style:{color:RAR[a.rarity]}},RARNAME[a.rarity]),
+              h('span',{key:'rar',className:'ach-rar px',style:{color:RAR[a.rarity]}},T(RARNAME[a.rarity])),
               h('span',{key:'rw',className:'ach-reward'},[h(Icon,{key:'i',name:'gemcur',size:13,style:{marginRight:4}}),a.reward]),
               a.unlocked&&h('span',{key:'at',className:'faint',style:{fontSize:10,marginLeft:'auto'}},'✓ '+a.at),
             ]),
@@ -62,7 +63,7 @@
   // ============================================================
   //  MAILBOX (邮箱) — X feeds + GitHub monitors + askuser pings
   // ============================================================
-  const SRC_META={x:['X 动态','#36c5e0'],github:['GitHub','#a06cd5'],ask:['askuser','#36c5e0'],system:['系统','#f2c84b']};
+  const SRC_META={x:['X 动态','#36c5e0'],github:['GitHub','#a06cd5'],ask:['askuser','#36c5e0'],system:[T('系统'),'#f2c84b']};
   function Mailbox({onClose,onOpen}){
     const [folder,setFolder]=useState('all');
     const [openId,setOpenId]=useState('m1');
@@ -78,9 +79,9 @@
       h('div',{className:'mbx-wrap'},[
         // folders
         h('div',{key:'nav',className:'mbx-nav'},[
-          h('div',{key:'unread',className:'mbx-unread'},[h(Icon,{key:'i',name:'chat',size:18,glow:'#36c5e0'}),h('span',{key:'t',className:'px'},unread+' 未读')]),
+          h('div',{key:'unread',className:'mbx-unread'},[h(Icon,{key:'i',name:'chat',size:18,glow:'#36c5e0'}),h('span',{key:'t',className:'px'},unread+' '+T('未读'))]),
           ...folders.map(([k,l,ic])=>h('div',{key:k,className:'mbx-folder'+(folder===k?' on':''),onClick:()=>setFolder(k)},[
-            h(Icon,{key:'i',name:ic,size:16}),h('span',{key:'t'},l),
+            h(Icon,{key:'i',name:ic,size:16}),h('span',{key:'t'},T(l)),
             counts[k]!=null&&h('span',{key:'c',className:'mbx-count px'},counts[k]),
           ])),
         ]),
@@ -96,7 +97,7 @@
                 h('span',{key:'k',className:'chip px',style:{fontSize:8,color:s.kind==='x'?'#36c5e0':'#a06cd5'}},s.kind==='x'?'X':'GitHub'),
                 h('div',{key:'tg',className:'pxtoggle'+(s.on?' on':''),onClick:()=>toggleSub(s.id)},h('div',{className:'knob'})),
               ])),
-              h('div',{key:'add',className:'mbx-sub-add'},[h(Icon,{key:'i',name:'task',size:15}),'+ 添加 X 博主 / GitHub 仓库']),
+              h('div',{key:'add',className:'mbx-sub-add'},[h(Icon,{key:'i',name:'task',size:15}),T('+ 添加 X 博主 / GitHub 仓库')]),
             ])
           : h('div',{key:'list',className:'mbx-list scroll'},list.map(m=>{
               const sm=SRC_META[m.type];
@@ -132,11 +133,11 @@
           cur.meta&&h('code',{key:'mt',className:'mbx-read-code'},cur.meta),
           h('div',{key:'tags',className:'mbx-tags'},cur.tags.map((t,i)=>h('span',{key:i,className:'chip px',style:{fontSize:8}},t))),
           h('div',{key:'act',className:'mbx-read-act'},
-            cur.type==='ask'?[h('button',{key:'r',className:'pxbtn primary sm cjk',onClick:()=>onOpen&&onOpen('chat',cur)},'回应'),h('button',{key:'o',className:'pxbtn sm cjk',onClick:()=>onOpen&&onOpen('chat',cur)},'进入会话')]
-            :cur.type==='github'?[h('button',{key:'v',className:'pxbtn gold sm cjk'},'查看 diff'),h('button',{key:'p',className:'pxbtn sm cjk'},'拉取到本地')]
-            :[h('button',{key:'o',className:'pxbtn sm cjk'},'打开原文'),h('button',{key:'s',className:'pxbtn sm cjk'},'转发到配对 IM')]
+            cur.type==='ask'?[h('button',{key:'r',className:'pxbtn primary sm cjk',onClick:()=>onOpen&&onOpen('chat',cur)},T('回应')),h('button',{key:'o',className:'pxbtn sm cjk',onClick:()=>onOpen&&onOpen('chat',cur)},T('进入会话'))]
+            :cur.type==='github'?[h('button',{key:'v',className:'pxbtn gold sm cjk'},T('查看 diff')),h('button',{key:'p',className:'pxbtn sm cjk'},T('拉取到本地'))]
+            :[h('button',{key:'o',className:'pxbtn sm cjk'},T('打开原文')),h('button',{key:'s',className:'pxbtn sm cjk'},T('转发到配对 IM'))]
           ),
-        ]:h('div',{className:'faint',style:{padding:24}},'选择一封信件')),
+        ]:h('div',{className:'faint',style:{padding:24}},T('选择一封信件'))),
       ])
     );
   }
@@ -193,25 +194,25 @@
         ]),
         phase==='reveal'&&prize&&h('div',{key:'win',className:'gacha-win'},[
           prize.jackpot&&h('div',{key:'j',className:'gacha-jackpot px'},'★ JACKPOT ★'),
-          h('div',{key:'r',className:'px',style:{fontSize:9,color:RAR[prize.rar],marginBottom:6}},RARNAME[prize.rar]+' 掉落'),
+          h('div',{key:'r',className:'px',style:{fontSize:9,color:RAR[prize.rar],marginBottom:6}},T(RARNAME[prize.rar])+' '+T('掉落')),
           h('div',{key:'n',className:'gacha-win-name'},prize.name),
         ]),
-        lucky&&phase!=='reveal'&&h('div',{key:'luck',className:'gacha-luckhint px'},'★ 幸运已蓄力 · 下一发必出传说'),
+        lucky&&phase!=='reveal'&&h('div',{key:'luck',className:'gacha-luckhint px'},window.TL('★ 幸运已蓄力 · 下一发必出传说','★ Lucky charged · next pull is Legendary')),
         h('div',{key:'act',className:'gacha-act'},[
           h('div',{key:'bal',className:'gacha-bal'},[h(Icon,{key:'i',name:'gemcur',size:18}),h('span',{key:'v',className:'px',style:{color:'#a06cd5'}},DATA.currency.gems.toLocaleString())]),
           h('button',{key:'b',className:'pxbtn gold cjk',onClick:roll,disabled:phase==='spin'},
-            phase==='spin'?'扭动中…':phase==='reveal'?'再来一发 · 500':[h(Icon,{key:'i',name:'gemcur',size:15,style:{marginRight:6}}),'扭一发 · 500']),
+            phase==='spin'?window.TL('扭动中…','Rolling…'):phase==='reveal'?window.TL('再来一发 · 500','Roll again · 500'):[h(Icon,{key:'i',name:'gemcur',size:15,style:{marginRight:6}}),window.TL('扭一发 · 500','Roll · 500')]),
         ]),
         h('div',{key:'tip',className:'faint',style:{fontSize:11,textAlign:'center'}},'宝石由完成会话/任务赚取 · 扭蛋只影响外观，不改变开发结果'),
         h('div',{key:'loot',className:'gacha-loot'},[
-          h('div',{key:'h',className:'gacha-loot-h'},[h(Icon,{key:'i',name:'pouch',size:14}),h('span',{key:'t',className:'px'},'战利品 · 已收集 '+loot.length+' 件 · 同步至背包')]),
+          h('div',{key:'h',className:'gacha-loot-h'},[h(Icon,{key:'i',name:'pouch',size:14}),h('span',{key:'t',className:'px'},window.TL('战利品 · 已收集 '+loot.length+' 件 · 同步至背包','Loot · '+loot.length+' collected · synced to Backpack'))]),
           loot.length?h('div',{key:'r',className:'gacha-loot-row'},(()=>{
             const counts={};loot.forEach(p=>{counts[p.name]=counts[p.name]||{p,n:0};counts[p.name].n++;});
             return Object.values(counts).map((c,i)=>h('div',{key:i,className:'gacha-loot-cell',style:{'--ac':c.p.accent},title:c.p.name},[
               h(Icon,{key:'i',name:c.p.icon,size:24,glow:c.p.accent}),
               c.n>1&&h('span',{key:'x',className:'gacha-loot-x'},'×'+c.n),
             ]));
-          })()):h('div',{key:'e',className:'gacha-loot-empty'},'还没有战利品 · 扭一发试试'),
+          })()):h('div',{key:'e',className:'gacha-loot-empty'},window.TL('还没有战利品 · 扭一发试试','No loot yet · give it a roll')),
         ]),
       ])
     );
@@ -262,7 +263,7 @@
         ]),
         // right: paired devices
         h('div',{key:'dev',className:'pair-dev'},[
-          h('div',{key:'h',className:'px',style:{fontSize:10,color:'#f2c84b',marginBottom:4}},'已配对设备'),
+          h('div',{key:'h',className:'px',style:{fontSize:10,color:'#f2c84b',marginBottom:4}},T('已配对设备')),
           ...devices.map(d=>{const m=APP_META[d.app];
             return h('div',{key:d.id,className:'pair-row'+(d.on?'':' off'),style:{'--ac':m[1]}},[
               h('div',{key:'ic',className:'pair-row-ic'},h(Icon,{name:'mcp',size:22,glow:d.on?m[1]:undefined})),
@@ -271,7 +272,7 @@
                 h('div',{key:'s',className:'faint',style:{fontSize:11}},d.nick+' · 配对于 '+d.since+' · 已转发 '+d.forwarded+' 条'),
               ]),
               h('div',{key:'tg',className:'pair-toggle-wrap'},[
-                h('span',{key:'l',className:'px pair-state',style:{color:d.on?m[1]:'#8a8170'}},d.on?'转发开':'已暂停'),
+                h('span',{key:'l',className:'px pair-state',style:{color:d.on?m[1]:'#8a8170'}},d.on?T('转发开'):T('已暂停')),
                 h('div',{key:'t',className:'pxtoggle'+(d.on?' on':''),onClick:()=>toggle(d.id)},h('div',{className:'knob'})),
               ]),
             ]);
@@ -289,15 +290,15 @@
   // ============================================================
   //  ANNOUNCE BOARD (公告板) — today's aggregated pings
   // ============================================================
-  const AN_KIND={x:['X 动态','#36c5e0'],github:['GitHub','#a06cd5'],ask:['askuser','#36c5e0'],ci:['CI','#5fd35f'],usage:['用量','#f2c84b']};
+  const AN_KIND={x:['X 动态','#36c5e0'],github:['GitHub','#a06cd5'],ask:['askuser','#36c5e0'],ci:['CI','#5fd35f'],usage:['Usage','#f2c84b']};
   function Announce({onClose,onOpen}){
     const list=DATA.announcements;
     return h(Modal,{title:'BOARD',sub:'大厅公告板 · 今日动态',icon:'quest',accent:'#f2c84b',onClose,width:840},
       h('div',{className:'anb-wrap'},[
         h('div',{key:'hd',className:'anb-hd'},[
           h(Icon,{key:'i',name:'quest',size:22,glow:'#f2c84b'}),
-          h('span',{key:'t',className:'cjk',style:{fontSize:14,color:'#f4ead7'}},'今天收到 '+list.length+' 条动态'),
-          h('span',{key:'s',className:'faint',style:{fontSize:11,marginLeft:'auto'}},'来自订阅源 · askuser · CI · 用量'),
+          h('span',{key:'t',className:'cjk',style:{fontSize:14,color:'#f4ead7'}},window.TL('今天收到 '+list.length+' 条动态','Today: '+list.length+' updates')),
+          h('span',{key:'s',className:'faint',style:{fontSize:11,marginLeft:'auto'}},T('来自订阅源 · askuser · CI · 用量')),
         ]),
         h('div',{key:'list',className:'anb-list'},list.map(a=>{const km=AN_KIND[a.kind]||['',a.accent];
           const dest={x:'mailbox',github:'mailbox',usage:'account',ask:'tasks',ci:'sessiongrid'}[a.kind]||'mailbox';
@@ -315,8 +316,8 @@
           ]);
         })),
         h('div',{key:'foot',className:'anb-foot'},[
-          h('button',{key:'m',className:'pxbtn sm cjk',onClick:()=>onOpen&&onOpen('mailbox')},[h(Icon,{key:'i',name:'mail',size:14,style:{marginRight:6}}),'打开邮箱']),
-          h('button',{key:'t',className:'pxbtn sm cjk',onClick:()=>onOpen&&onOpen('tasks')},'查看 askuser'),
+          h('button',{key:'m',className:'pxbtn sm cjk',onClick:()=>onOpen&&onOpen('mailbox')},[h(Icon,{key:'i',name:'mail',size:14,style:{marginRight:6}}),T('打开邮箱')]),
+          h('button',{key:'t',className:'pxbtn sm cjk',onClick:()=>onOpen&&onOpen('tasks')},T('查看 askuser')),
         ]),
       ])
     );
@@ -331,11 +332,11 @@
       const days=DATA.dailyRewards;
       return h('div',{className:'ev-signin'},days.map(d=>
         h('div',{key:d.day,className:'ev-day'+(d.got?' got':'')+(d.today?' today':'')+(d.big?' big':'')},[
-          h('div',{key:'l',className:'ev-day-n px'},'第'+d.day+'天'),
+          h('div',{key:'l',className:'ev-day-n px'},window.TL('第'+d.day+'天','Day '+d.day)),
           h('div',{key:'i',className:'ev-day-ic'},h(Icon,{name:d.icon,size:d.big?32:26,glow:d.today||d.big?accent:undefined})),
           h('div',{key:'v',className:'ev-day-v'},d.label),
           d.got&&h('div',{key:'c',className:'ev-day-check'},'✓'),
-          d.today&&h('div',{key:'t',className:'ev-day-badge px'},'今日'),
+          d.today&&h('div',{key:'t',className:'ev-day-badge px'},T('今日')),
         ])));
     }
     if(kind==='board'){
@@ -372,7 +373,7 @@
       h('div',{className:'ev-pop',style:{'--ac':ev.accent},onClick:e=>e.stopPropagation()},[
         // banner ribbon
         h('div',{key:'rib',className:'ev-ribbon'},[
-          h('span',{key:'k',className:'ev-ribbon-k px'},ev.kind),
+          h('span',{key:'k',className:'ev-ribbon-k px'},T(ev.kind)),
           h('span',{key:'t',className:'ev-ribbon-t cjk'},ev.title),
           ev.tag&&h('span',{key:'g',className:'ev-ribbon-tag px'},ev.tag),
         ]),
@@ -389,15 +390,15 @@
         h('div',{key:'act',className:'ev-act'},
           ev.art==='signin'
             ? [h('button',{key:'c',className:'pxbtn gold cjk'+(claimed?' is-done':''),disabled:claimed,onClick:()=>setClaimed(true)},
-                claimed?'✓ 已领取 · 1天 Max':[h(Icon,{key:'i',name:'gemcur',size:16,style:{marginRight:8}}),'领取今日奖励'])]
-            : [h('button',{key:'g',className:'pxbtn gold cjk',onClick:()=>go(ev.goto)},ev.cta||'查看'),
-               h('button',{key:'l',className:'pxbtn sm cjk',onClick:close},'稍后')]
+                claimed?window.TL('✓ 已领取 · 1天 Max','✓ Claimed · 1-day Max'):[h(Icon,{key:'i',name:'gemcur',size:16,style:{marginRight:8}}),T('领取今日奖励')])]
+            : [h('button',{key:'g',className:'pxbtn gold cjk',onClick:()=>go(ev.goto)},T(ev.cta||'查看')),
+               h('button',{key:'l',className:'pxbtn sm cjk',onClick:close},T('稍后'))]
         ),
         // dots + dontshow
         h('div',{key:'foot',className:'ev-foot'},[
           h('label',{key:'ds',className:'ev-dontshow'},[
             h('span',{key:'b',className:'ev-check'+(dontShow?' on':''),onClick:()=>setDontShow(v=>!v)},dontShow?'✓':''),
-            h('span',{key:'t'},'今日不再提示'),
+            h('span',{key:'t'},T('今日不再提示')),
           ]),
           h('div',{key:'dots',className:'ev-dots'},list.map((_,i)=>
             h('span',{key:i,className:'ev-dot'+(idx===i?' on':''),onClick:()=>{setIdx(i);}}))),

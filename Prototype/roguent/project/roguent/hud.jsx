@@ -1,6 +1,7 @@
 /* ROGUENT HUD + world. Globals: React, Icon, PixelSprite, Room, DATA. */
 (function(){
   const {useState}=React;
+  const T=window.T;
   const GOLD_TINT='sepia(1) saturate(3.2) hue-rotate(-18deg) brightness(1.08) contrast(1.05)';
 
   // ---------- custom pixel cat pet (no cat in atlas) ----------
@@ -151,7 +152,7 @@
           React.createElement('div',{key:'tk',className:'tick',style:{left:'20%'}}),
         ]),
         React.createElement('div',{key:'slot',className:'npc-slot'+(pulse?' askpulse':'')},[
-          showCompact&&React.createElement('div',{key:'c',className:'compact-chip px'},[React.createElement(Icon,{key:'i',name:'compact',size:14}),'压缩中']),
+          showCompact&&React.createElement('div',{key:'c',className:'compact-chip px'},[React.createElement(Icon,{key:'i',name:'compact',size:14}),T('压缩中')]),
           showDots&&React.createElement('div',{key:'d',className:'think-dots'},['●','●','●'].map((d,i)=>React.createElement('span',{key:i,style:{animationDelay:(i*0.18)+'s'}},d))),
           statusIcon&&React.createElement('div',{key:'si',className:'slot-bubble'},React.createElement(Icon,{name:statusIcon,size:22,glow})),
         ]),
@@ -174,6 +175,79 @@
     ]);
   }
 
+  // ---------- big command viewscreen: the browser the agent is driving ----------
+  // 大屏 3D 物体：展示智能体正在操作的浏览器画面（拟真 + 动效）
+  function BrowserScreen(){
+    const {useState,useEffect,useRef}=React;
+    const t=window.useSpriteTick();
+    // rotating "what the agent is doing" captions + url
+    const STEPS=[
+      {url:'localhost:5173/lobby', act:'点击「任务台」', tab:'Roguent · Dev'},
+      {url:'localhost:5173/lobby', act:'滚动到会话网格', tab:'Roguent · Dev'},
+      {url:'github.com/anthropics/claude-code', act:'读取 PR #128 diff', tab:'PR #128 · GitHub'},
+      {url:'localhost:5173/interior', act:'校验 HUD 状态槽', tab:'Roguent · Dev'},
+      {url:'docs.anthropic.com/agent-teams', act:'查阅 agent teams', tab:'Docs · Anthropic'},
+    ];
+    const [si,setSi]=useState(0);
+    const [busy,setBusy]=useState(true);
+    useEffect(()=>{
+      let a=true; const adv=()=>{ if(!a)return; setBusy(true); setTimeout(()=>a&&setBusy(false),900); setSi(i=>(i+1)%STEPS.length); };
+      const id=setInterval(adv,3400); return ()=>{a=false;clearInterval(id);};
+    },[]);
+    const step=STEPS[si];
+    // cursor drifts around the viewport (deterministic-ish from tick)
+    const cx=50+Math.sin(t/7)*30, cy=52+Math.cos(t/5)*26;
+    return React.createElement('div',{className:'bigscreen',onClick:e=>e.stopPropagation()},[
+      React.createElement('div',{key:'arm',className:'bigscreen-arm'}),
+      React.createElement('div',{key:'frame',className:'bigscreen-frame'},[
+        // chrome: traffic dots + tab + url + live badge
+        React.createElement('div',{key:'chr',className:'bs-chrome'},[
+          React.createElement('div',{key:'dots',className:'bs-dots'},['#ff5f57','#febc2e','#28c840'].map((c,i)=>
+            React.createElement('span',{key:i,className:'bs-dot',style:{background:c}}))),
+          React.createElement('div',{key:'tab',className:'bs-tab cjk'},step.tab),
+          React.createElement('div',{key:'sp',style:{flex:1}}),
+          React.createElement('div',{key:'live',className:'bs-live px'+(busy?' busy':'')},[
+            React.createElement('span',{key:'d',className:'bs-livedot'}),busy?'DRIVING':'LIVE',
+          ]),
+        ]),
+        React.createElement('div',{key:'url',className:'bs-urlbar'},[
+          React.createElement(Icon,{key:'i',name:busy?'compact':'search',size:12,glow:busy?'#36c5e0':undefined}),
+          React.createElement('span',{key:'u',className:'bs-url px'},step.url),
+          busy&&React.createElement('span',{key:'load',className:'bs-load'}),
+        ]),
+        // rendered "page": animated wireframe blocks
+        React.createElement('div',{key:'vp',className:'bs-viewport'},[
+          React.createElement('div',{key:'scan',className:'bs-scan'}),
+          React.createElement('div',{key:'page',className:'bs-page'},[
+            React.createElement('div',{key:'h',className:'bs-blk bs-hero'}),
+            React.createElement('div',{key:'r1',className:'bs-row'},[
+              React.createElement('div',{key:'a',className:'bs-blk bs-card'}),
+              React.createElement('div',{key:'b',className:'bs-blk bs-card'}),
+              React.createElement('div',{key:'c',className:'bs-blk bs-card'}),
+            ]),
+            React.createElement('div',{key:'l1',className:'bs-blk bs-line w80'}),
+            React.createElement('div',{key:'l2',className:'bs-blk bs-line w60'}),
+            React.createElement('div',{key:'l3',className:'bs-blk bs-line w70'}),
+          ]),
+          // agent cursor
+          React.createElement('div',{key:'cur',className:'bs-cursor'+(busy?' click':''),style:{left:cx+'%',top:cy+'%'}},
+            React.createElement('svg',{width:18,height:18,viewBox:'0 0 12 12',style:{shapeRendering:'crispEdges'}},[
+              React.createElement('path',{key:'p',d:'M1 1 L1 9 L3 7 L5 11 L6 10 L4 6 L7 6 Z',fill:'#fff',stroke:'#0b0a12',strokeWidth:0.6}),
+            ])),
+          React.createElement('div',{key:'flick',className:'bs-flicker'}),
+        ]),
+        // caption: what the agent is doing
+        React.createElement('div',{key:'cap',className:'bs-caption'},[
+          React.createElement('span',{key:'rt',className:'chip px tag-claude',style:{fontSize:8}},'Surveyor'),
+          React.createElement('span',{key:'a',className:'bs-act cjk'},step.act),
+        ]),
+      ]),
+      React.createElement('div',{key:'base',className:'bigscreen-base'}),
+      React.createElement('div',{key:'glow',className:'bigscreen-glow'}),
+    ]);
+  }
+  window.BrowserScreen=BrowserScreen;
+
   // ---------- World stage ----------
   function World({theme, npcs, selected, onSelect, onBg, density=1}){
     const torches=[[150,150],[560,150],[1360,150],[1770,150]];
@@ -182,8 +256,10 @@
       React.createElement(Room,{key:'room',theme}),
       React.createElement('div',{key:'glow',className:'room-core-glow'}),
       React.createElement('div',{key:'tod',className:'tod-tint'}),
+      // big command viewscreen — the browser the agent is driving (大屏)
+      React.createElement(BrowserScreen,{key:'screen'}),
       // wishing fountain (click to toss a coin)
-      React.createElement(WishingSpot,{key:'wish',style:{left:'48%',top:'11%'}}),
+      React.createElement(WishingSpot,{key:'wish',style:{left:'15%',top:'14%'}}),
       // animated command-dais rune ring (over the painted dais ~50%,42%)
       React.createElement('div',{key:'rune',className:'room-rune'},[
         React.createElement('div',{key:'r1',className:'room-rune-ring'}),
@@ -205,7 +281,7 @@
         style:{left:(5+i*5.8)+'%',top:(20+(i*37)%70)+'%',animationDelay:(i*0.7)+'s',animationDuration:(7+i%6)+'s'}})),
       React.createElement('div',{key:'vig',className:'vignette'}),
       // loot glow
-      React.createElement('div',{key:'loot',className:'loot-glow',style:{left:'58%',top:'40%'}},React.createElement(PixelSprite,{name:'chest_full_open_anim_f1',scale:5})),
+      React.createElement('div',{key:'loot',className:'loot-glow',style:{left:'84%',top:'34%'}},React.createElement(PixelSprite,{name:'chest_full_open_anim_f1',scale:5})),
       // pet (pettable — click for hearts)
       React.createElement('div',{key:'pet',className:'pet',style:{left:DATA.room.pet.x+'%',top:DATA.room.pet.y+'%'}},React.createElement(PetActor,{scale:4})),
       // npcs
@@ -237,7 +313,7 @@
     const ctx=account.selectedCtx; // 上下文窗口占比 → 经验条
     const ctxColor=ctx<60?'#5fd35f':ctx<=85?'#f2c84b':'#ff4d6d';
     const open=()=>onOpen&&onOpen('account');
-    return React.createElement('div',{className:'panel rivets playercard',onClick:open,title:'查看个人详情 · 5h / 周限额'},
+    return React.createElement('div',{className:'panel rivets playercard',onClick:open,title:T('查看个人详情 · 5h / Weekly 用量')},
       React.createElement('div',{className:'pc-body'},[
         // ---- ornate avatar frame ----
         React.createElement('div',{key:'fr',className:'pc-frame'},[
@@ -256,13 +332,13 @@
           ]),
           React.createElement('div',{key:'xp',className:'pc-xp'},[
             React.createElement('div',{key:'l',className:'pc-xp-lab px'},[
-              React.createElement('span',{key:'a'},'CTX 上下文窗口'),
+              React.createElement('span',{key:'a'},'Context'),
               React.createElement('span',{key:'b',style:{color:ctxColor}},ctx+'%'),
             ]),
             React.createElement('div',{key:'b',className:'pc-xp-bar'},
               React.createElement('div',{key:'f',className:'pc-xp-fill',style:{width:ctx+'%',background:'linear-gradient(180deg,#ffe79a,'+ctxColor+' 55%,rgba(0,0,0,.25))'}})),
           ]),
-          React.createElement('div',{key:'hint',className:'pc-hint px'},'▸ 点击查看 5h / 周限额'),
+          React.createElement('div',{key:'hint',className:'pc-hint px'},window.TL('▸ 查看 5h / Weekly 用量','▸ View 5h / Weekly usage')),
         ]),
       ])
     );
@@ -272,7 +348,7 @@
     return React.createElement('div',{className:'panel roster'},
       React.createElement('div',{className:'roster-body'},[
         React.createElement('div',{key:'h',className:'roster-h px'},[
-          React.createElement('span',{key:1},'在岗'),React.createElement('span',{key:2,className:'gold'},npcs.length+' 在岗'),
+          React.createElement('span',{key:1},T('在岗')),React.createElement('span',{key:2,className:'gold'},npcs.length+' '+T('在岗')),
         ]),
         React.createElement('div',{key:'r',className:'roster-row'},npcs.map(n=>{
           const alert=n.status==='askuser'?'ask':n.status==='error'?'error':n.status==='todo'?'todo':n.status==='done'?'done':null;
@@ -289,10 +365,10 @@
   function SessionBanner({room}){
     const g=room.git||{};
     const stat=[
-      ['staged',g.staged,'#5fd35f','已暂存'],
-      ['unstaged',g.unstaged,'#f2c84b','已修改'],
-      ['untracked',g.untracked,'#36c5e0','未跟踪'],
-      ['conflicts',g.conflicts,'#ff4d6d','冲突'],
+      ['staged',g.staged,'#5fd35f',T('已暂存')],
+      ['unstaged',g.unstaged,'#f2c84b',T('已修改')],
+      ['untracked',g.untracked,'#36c5e0',T('未跟踪')],
+      ['conflicts',g.conflicts,'#ff4d6d',T('冲突')],
     ];
     return React.createElement('div',{className:'panel session-banner gitbanner'},
       React.createElement('div',{className:'sb-body'},[
@@ -349,11 +425,12 @@
 
   function ButtonDock({onOpen,L}){
     const lb=L||{};
-    const btns=[['task','events','活动'],['gear','settings',lb.settings||'设置'],['mail','mailbox',lb.mailbox||'邮箱'],['link','pairing',lb.pairing||'配对'],['account','account',lb.account||'账号'],['menu','menu',lb.menu||'菜单'],['pause','transition',lb.pause||'暂停']];
+    // 顺序：通知类（邮箱/活动）→ 身份类（账号/配对）→ 系统类（设置/菜单）
+    const btns=[['mail','mailbox',lb.mailbox||'邮箱'],['task','events',T('活动')],['account','account',lb.account||'账号'],['link','pairing',lb.pairing||'配对'],['gear','settings',lb.settings||'设置'],['menu','menu',lb.menu||'菜单']];
     const unread=DATA.inbox.filter(m=>m.unread).length;
     const evCount=(DATA.events||[]).length;
-    return React.createElement('div',{className:'dock'},btns.map(([icon,panel,label])=>
-      React.createElement('div',{key:panel,className:'iconbtn'+(panel==='events'?' ev-dock':''),onClick:()=>onOpen(panel)},[
+    return React.createElement('div',{className:'dock'},btns.map(([icon,panel,label],i)=>
+      React.createElement('div',{key:panel,className:'iconbtn'+(panel==='events'?' ev-dock':'')+(panel==='settings'?' dock-sys':''),onClick:()=>onOpen(panel)},[
         React.createElement(Icon,{key:'i',name:icon,size:28}),
         panel==='mailbox'&&unread>0&&React.createElement('div',{key:'b',className:'badge count'},unread),
         panel==='events'&&evCount>0&&React.createElement('div',{key:'b',className:'badge count ev-badge'},evCount),
@@ -364,8 +441,9 @@
 
   function Hotbar({onOpen, badges, L}){
     const lb=L||{};
-    const g1=[['spellbook','skills',lb.skills||'技能','技'],['pouch','backpack',lb.backpack||'背包','物'],['chat','chat',lb.chat||'聊天','话'],['crystal','model',lb.model||'模型','智'],['import','import',lb.import||'导入','入']];
-    const g2=[['quest','tasks',lb.tasks||'任务','务'],['shop','shop',lb.shop||'商店','市'],['trophy','leaderboard',lb.leaderboard||'排行榜','榜'],['medal','achievements',lb.achievements||'成就','成']];
+    // 左组：工作流（任务/聊天/技能/插件市场/模型/导入）；右组：成长与资产（背包/装饰商店/排行/成就）
+    const g1=[['quest','tasks',lb.tasks||'任务','务'],['chat','chat',lb.chat||'聊天','话'],['spellbook','skills',lb.skills||'技能','技'],['mcp','market','插件市场','插'],['crystal','model',lb.model||'模型','智'],['import','import',lb.import||'导入','入']];
+    const g2=[['pouch','backpack',lb.backpack||'背包','物'],['shop','shop','装饰商店','市'],['trophy','leaderboard',lb.leaderboard||'排行榜','榜'],['medal','achievements',lb.achievements||'成就','成']];
     const slot=([icon,panel,label],i)=>React.createElement('div',{key:panel,className:'iconbtn',style:{'--accent':'#36c5e0'},onClick:()=>onOpen(panel)},[
       React.createElement(Icon,{key:'i',name:icon,size:30}),
       badges&&badges[panel]&&React.createElement('div',{key:'b',className:'badge'+(typeof badges[panel]==='number'?' count':''),style:{}},typeof badges[panel]==='number'?badges[panel]:null),
@@ -379,6 +457,17 @@
       ])
     );
   }
+
+  // ---------- language toggle (segmented 中 | EN) ----------
+  function LangToggle({uiLang,onToggle}){
+    const en=uiLang==='English';
+    return React.createElement('div',{className:'lang-toggle',onClick:onToggle,title:en?'Switch to 中文':'切换到 English'},[
+      React.createElement(Icon,{key:'i',name:'spellbook',size:16}),
+      React.createElement('span',{key:'cn',className:'lang-opt'+(en?'':' on')},'中'),
+      React.createElement('span',{key:'en',className:'lang-opt px'+(en?' on':'')},'EN'),
+    ]);
+  }
+  window.LangToggle=LangToggle;
 
   // ---------- live task glass window (interior left) ----------
   function TaskWindow({onOpen}){
@@ -407,9 +496,9 @@
         ]);
       })),
       open&&React.createElement('div',{key:'f',className:'tw-foot'},[
-        React.createElement('span',{key:'1',className:'cyan'},counts.ip+' 进行中'),
-        React.createElement('span',{key:'2',className:'faint'},counts.pd+' 待领'),
-        React.createElement('span',{key:'3',className:'greenc'},counts.dn+' 完成'),
+        React.createElement('span',{key:'1',className:'cyan'},counts.ip+' '+T('进行中')),
+        React.createElement('span',{key:'2',className:'faint'},counts.pd+' '+T('待领')),
+        React.createElement('span',{key:'3',className:'greenc'},counts.dn+' '+T('完成')),
       ]),
     ]);
   }

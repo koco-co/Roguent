@@ -2,6 +2,7 @@
 (function(){
   const {useState,useEffect,useCallback}=React;
   const h=React.createElement;
+  const T=window.T;
   const {useTweaks,TweaksPanel,TweakSection,TweakColor,TweakRadio,TweakToggle}=window;
 
   function useStageScale(){
@@ -14,11 +15,11 @@
 
   const PANELS={
     npc:window.NpcCard, tasks:window.Tasks, settings:window.Settings, skills:window.Skills,
-    shop:window.Shop, leaderboard:window.Leaderboard, backpack:window.Backpack, chat:window.Chat,
+    shop:window.Shop, market:window.Market, leaderboard:window.Leaderboard, backpack:window.Backpack, chat:window.Chat,
     model:window.ModelPanel, import:window.ImportPanel, account:window.Account, about:window.About,
     achievements:window.Achievements, mailbox:window.Mailbox, gacha:window.Gacha, pairing:window.Pairing, announce:window.Announce,
   };
-  const PANEL_KEYS=['tasks','settings','skills','shop','leaderboard','menu','account','chat','model','import','backpack','npc','sessiongrid','achievements','mailbox','gacha','pairing','announce'];
+  const PANEL_KEYS=['tasks','settings','skills','shop','market','leaderboard','menu','account','chat','model','import','backpack','npc','sessiongrid','achievements','mailbox','gacha','pairing','announce'];
 
   const TWEAK_DEFAULTS={accent:'#36c5e0', theme:'深青', motion:true, density:'舒适', cjkPixel:true};
   const THEME={'深青':'teal','森林':'forest','赛博':'cyber'};
@@ -73,6 +74,8 @@
     const [ambDen,setAmbDenRaw]=useState(LS('roguent_den','标准'));
     const [ambDay,setAmbDayRaw]=useState(LS('roguent_day','自动'));
     const [ambLink,setAmbLinkRaw]=useState(LS('roguent_link','0')==='1');
+    const [skin,setSkinRaw]=useState(LS('roguent_skin','dungeon')); // dungeon | holo
+    const setSkin=(v)=>{setSkinRaw(v);try{localStorage.setItem('roguent_skin',v);}catch(e){}};
     const setAmbRune=(v)=>{setAmbRuneRaw(v);try{localStorage.setItem('roguent_rune',v);}catch(e){}};
     const setAmbFx=(v)=>{setAmbFxRaw(v);try{localStorage.setItem('roguent_fx',v);}catch(e){}};
     const setAmbDen=(v)=>{setAmbDenRaw(v);try{localStorage.setItem('roguent_den',v);}catch(e){}};
@@ -83,6 +86,9 @@
     const setUiLang=(v)=>{setUiLangRaw(v);try{localStorage.setItem('roguent_lang',v);}catch(e){}};
     const setUiFont=(v)=>{setUiFontRaw(v);try{localStorage.setItem('roguent_font',v);}catch(e){}};
     const L=DATA.i18n[uiLang==='English'?'en':'cn'];
+    // expose current language to the global string translator window.T()
+    window.__LANG = uiLang==='English' ? 'en' : 'cn';
+    const toggleLang=()=>setUiLang(uiLang==='English'?'中文':'English');
     // ---- login activity popup (登录活动弹窗) ----
     const seenToday=LS('roguent_events_seen','')===new Date().toDateString();
     const [showEvents,setShowEvents]=useState(false);
@@ -93,7 +99,7 @@
     const room=DATA.room;
     const selNpc=room.npcs.find(n=>n.id===selected)||room.npcs[0];
     const open=useCallback((k,arg)=>{
-      if(k==='transition'){setTransition({top:'聚焦中…',bottom:'暂停 · 点击继续'});}
+      if(k==='transition'){setTransition({top:T('聚焦中…'),bottom:T('暂停 · 点击继续')});}
       else if(k==='sessiongrid'){setSgRt(arg||'all');setPanel('sessiongrid');}
       else if(k==='chat'){setChatCtx(arg||null);setPanel('chat');}
       else if(k==='events'){setShowEvents(true);}
@@ -109,22 +115,24 @@
       else if(kind==='lobby'){setView('lobby');}
       else if(kind==='empty'){setView('empty');}
       else if(kind==='error'){setView('interior');setPanel('error');}
-      else if(kind==='transition'){setTransition({top:'正在召集小队…',bottom:'普通模式下有一定概率遇到精英首领'});}
+      else if(kind==='transition'){setTransition({top:T('正在召集小队…'),bottom:T('普通模式下有一定概率遇到精英首领')});}
       else if(kind==='panel'){ if(arg==='sessiongrid'){setView('lobby');} else if(view!=='interior')setView('interior');
         if(arg==='npc'){setSelected('elf');setPanel('npc');} else if(arg==='menu'){setPanel('menu');} else setPanel(arg); }
       setGuideOpen(false);
     };
 
     const enterSession=(s)=>{ setPanel(null);
-      setTransition({top:'进入 '+s.project+' · '+s.title,bottom:s.agents+'P · '+s.model});
+      setTransition({top:T('进入 '+s.project+' · '+s.title),bottom:s.agents+'P · '+s.model});
       setTimeout(()=>{setView('interior');setTransition(null);},1500); };
 
     const badges={tasks:DATA.room.npcs.filter(n=>n.status==='askuser'||n.status==='todo').length, backpack:5, shop:true};
 
     const todClass=ambDay==='自动'?autoTod():(TODCLS[ambDay]||'');
-    const rootClass=['stage-root','room-'+(THEME[t.theme]||'teal'),t.motion?'':'no-motion',t.density==='紧凑'?'hud-compact':'',t.cjkPixel?'':'cjk-sys',FONTCLS[uiFont]||'',FXCLS[ambFx]||'',todClass,ambLink?'link-accent':''].filter(Boolean).join(' ');
-    const rootStyle={'--accent':ambLink?ambRune:t.accent,'--core-glow':GLOW[THEME[t.theme]||'teal'],'--rune':ambRune};
-    if(ambLink){ rootStyle['--cyan']=ambRune; }
+    const rootClass=['stage-root','room-'+(THEME[t.theme]||'teal'),'skin-'+skin,t.motion?'':'no-motion',t.density==='紧凑'?'hud-compact':'',t.cjkPixel?'':'cjk-sys',FONTCLS[uiFont]||'',FXCLS[ambFx]||'',todClass,ambLink?'link-accent':''].filter(Boolean).join(' ');
+    const HOLO_RUNE='#36e0ff';
+    const effRune=skin==='holo'?HOLO_RUNE:ambRune;
+    const rootStyle={'--accent':skin==='holo'?HOLO_RUNE:(ambLink?ambRune:t.accent),'--core-glow':skin==='holo'?'rgba(54,200,255,.3)':GLOW[THEME[t.theme]||'teal'],'--rune':effRune};
+    if(ambLink||skin==='holo'){ rootStyle['--cyan']=effRune; }
     const denFactor=DENF[ambDen]!=null?DENF[ambDen]:1;
 
     // ---- login gate (§12) ----
@@ -136,9 +144,9 @@
 
     return h('div',{id:'stage-root',className:rootClass,style:rootStyle},[
       // ---- world / view ----
-      view==='interior'&&h(window.World,{key:'world',theme:{floor:'#243a40',rune:ambRune},density:denFactor,npcs:room.npcs,selected,onSelect:(id)=>{setSelected(id);setPanel('npc');},onBg:()=>setSelected(null)}),
-      view==='lobby'&&h(window.Lobby,{key:'lobby',onOpen:open,onEnterSession:enterSession,runtime,mainHero,onPickHero:setMainHero,density:denFactor,L}),
-      view==='empty'&&h(window.EmptyState,{key:'empty',onSummon:()=>{setTransition({top:'正在召集小队…',bottom:'普通模式下有一定概率遇到精英首领'});setTimeout(()=>{setTransition(null);setView('interior');},1600);}}),
+      view==='interior'&&h(window.World,{key:'world',theme:{floor:'#243a40',rune:effRune,skin},density:denFactor,npcs:room.npcs,selected,onSelect:(id)=>{setSelected(id);setPanel('npc');},onBg:()=>setSelected(null)}),
+      view==='lobby'&&h(window.Lobby,{key:'lobby',onOpen:open,onEnterSession:enterSession,runtime,mainHero,onPickHero:setMainHero,density:denFactor,L,skin}),
+      view==='empty'&&h(window.EmptyState,{key:'empty',onSummon:()=>{setTransition({top:T('正在召集小队…'),bottom:T('普通模式下有一定概率遇到精英首领')});setTimeout(()=>{setTransition(null);setView('interior');},1600);}}),
 
       // ---- HUD ----
       (view==='interior'||view==='lobby')&&h('div',{key:'hud',className:'hud'},[
@@ -148,6 +156,11 @@
           h('div',{key:'view',className:'view-switch'},[
             h('div',{key:'i',className:'vs-opt'+(view==='interior'?' on':''),onClick:()=>setView('interior')},L.interior),
             h('div',{key:'l',className:'vs-opt'+(view==='lobby'?' on':''),onClick:()=>setView('lobby')},L.lobby),
+          ]),
+          h('div',{key:'skin',className:'skin-switch'},[
+            h('div',{key:'lab',className:'skin-lab px'},window.TL('场景','SCENE')),
+            h('div',{key:'d',className:'skin-opt'+(skin==='dungeon'?' on':''),onClick:()=>setSkin('dungeon')},[h('span',{key:'dot',className:'skin-dot dungeon'}),window.TL('地牢','Dungeon')]),
+            h('div',{key:'h',className:'skin-opt'+(skin==='holo'?' on':''),onClick:()=>setSkin('holo')},[h('span',{key:'dot',className:'skin-dot holo'}),window.TL('全息','Holo')]),
           ]),
           view==='interior'&&h(window.TaskWindow,{key:'tw',onOpen:open}),
         ]),
@@ -196,6 +209,7 @@
       // ---- tweaks ----
       h(TweaksPanel,{key:'tweaks'},[
         h(TweakSection,{key:'s1',label:'外观 Appearance'}),
+        h(TweakRadio,{key:'skin',label:'场景皮肤 Scene',value:skin==='holo'?'全息':'地牢',options:['地牢','全息'],onChange:v=>setSkin(v==='全息'?'holo':'dungeon')}),
         h(TweakColor,{key:'accent',label:'强调色 Accent',value:t.accent,options:['#36c5e0','#f2c84b','#ff4d6d','#a06cd5','#5fd35f'],onChange:v=>setTweak('accent',v)}),
         h(TweakRadio,{key:'theme',label:'房间主题',value:t.theme,options:['深青','森林','赛博'],onChange:v=>setTweak('theme',v)}),
         h(TweakSection,{key:'s2',label:'界面 Interface'}),

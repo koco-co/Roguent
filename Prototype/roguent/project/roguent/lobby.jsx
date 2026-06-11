@@ -5,6 +5,7 @@
 (function(){
   const {useState,useRef,useEffect}=React;
   const h=React.createElement;
+  const T=window.T;
 
   // ================= LOGIN (§12) =================
   function LoginScreen({onStart,mainHero,L}){
@@ -22,7 +23,7 @@
       h('div',{key:'logo',className:'login-logo'},[
         h('div',{key:'sword',className:'login-crest'},h(PixelSprite,{name:'weapon_golden_sword',scale:6})),
         h('div',{key:'t',className:'login-title px'},'ROGUENT'),
-        h('div',{key:'s',className:'login-sub cjk'},'像素指挥台 · 本地 Claude Code 双 runtime 调度'),
+        h('div',{key:'s',className:'login-sub cjk'},T('像素指挥台 · 本地 Claude Code 双 runtime 调度')),
       ]),
       // single character frame — click arrows to switch, then enter
       h('div',{key:'pick',className:'login-pick'},[
@@ -36,7 +37,7 @@
               h(PixelSprite,{base:hero.hero,anim:'idle',scale:7})),
           ]),
           h('div',{key:'name',className:'login-charframe-name'},[
-            h('span',{key:'n',className:'cjk'},hero.name),
+            h('span',{key:'n',className:'cjk'},T(hero.name)),
             h('span',{key:'i',className:'px'},(idx+1)+' / '+pool.length),
           ]),
         ]),
@@ -47,8 +48,8 @@
         h('span',{key:i,className:'login-dot'+(idx===i?' on':''),style:{'--ac':p.accent},onClick:()=>setIdx(i)}))),
       h('div',{key:'cta',className:'login-cta'},[
         h('button',{key:'b',className:'pxbtn gold login-btn cjk',onClick:()=>onStart(hero.hero)},[
-          h(Icon,{key:'i',name:'task',size:22,style:{marginRight:10}}),'选 '+hero.name+' · 开始 Vibe Coding']),
-        h('div',{key:'h',className:'login-hint cjk'},'‹ › 切换角色 · 点击角色框直接进入 · 随时可在设置中切换主角色'),
+          h(Icon,{key:'i',name:'task',size:22,style:{marginRight:10}}),T('选 '+hero.name+' · 开始 Vibe Coding')]),
+        h('div',{key:'h',className:'login-hint cjk'},T('‹ › 切换角色 · 点击角色框直接进入 · 随时可在设置中切换主角色')),
       ]),
       h('div',{key:'ver',className:'login-ver px'},'v0.9 · prototype'),
     ]);
@@ -79,13 +80,14 @@
 
   // ================= HUB WORLD (playable) =================
   const INTERACT=[
-    {id:'altar', x:960, y:196, r:130, label:'设置祭坛', sub:'CONFIG', action:'settings'},
-    {id:'ach',   x:660, y:212, r:130, label:'成就殿', sub:'ACHIEVEMENTS', action:'achievements'},
-    {id:'mail',  x:1264,y:212, r:130, label:'邮箱', sub:'MAILBOX', action:'mailbox'},
+    {id:'altar', x:960, y:236, r:130, label:'设置祭坛', sub:'CONFIG', action:'settings'},
+    {id:'ach',   x:652, y:248, r:130, label:'成就殿', sub:'ACHIEVEMENTS', action:'achievements'},
+    {id:'mail',  x:1272,y:248, r:130, label:'邮箱', sub:'MAILBOX', action:'mailbox'},
     {id:'board', x:362, y:452, r:140, label:'排行榜', sub:'RANKING', action:'leaderboard'},
     {id:'announce', x:360, y:742, r:140, label:'公告板', sub:'BOARD', action:'announce'},
     {id:'tower', x:960, y:512, r:170, label:'任务台', sub:'QUEST CONSOLE', action:'sessiongrid'},
-    {id:'shop',  x:1556,y:452, r:140, label:'商店', sub:'SHOP', action:'shop'},
+    {id:'market',x:660, y:452, r:132, label:'插件市场', sub:'MARKET', action:'market'},
+    {id:'shop',  x:1556,y:452, r:140, label:'装饰商店', sub:'SHOP', action:'shop'},
     {id:'gacha', x:1576,y:738, r:130, label:'扭蛋机', sub:'GACHA', action:'gacha'},
     {id:'cdoor', x:214, y:946, r:120, label:'Claude 项目', sub:'', action:'sessiongrid', rt:'claude'},
     {id:'xdoor', x:1706,y:946, r:120, label:'Codex 项目', sub:'', action:'sessiongrid', rt:'codex'},
@@ -169,7 +171,7 @@
         ...[0,1,2].map(s=>h('div',{key:'s'+s,className:'torch-spark',style:{animationDelay:(s*0.5)+'s'}})),
       ])),
       // decorative wandering idle heroes
-      ...[['knight_f',150,360],['dwarf_m',1772,380],['wizzard_f',1786,560],['goblin',120,600]].map(([hr,x,y],i)=>
+      ...[['knight_f',150,360],['dwarf_m',1700,392],['wizzard_f',1668,586],['goblin',120,600]].map(([hr,x,y],i)=>
         h('div',{key:'dec'+i,className:'hub-decor',style:{left:x,top:y}},h(PixelSprite,{base:hr,anim:'idle',scale:3.4,flip:x>960}))),
       // stone hero statues flanking the central plaza (monuments)
       ...[['knight_m',724,548,false],['elf_f',1196,548,true]].map(([hr,x,y,fl],i)=>
@@ -185,11 +187,11 @@
       h('div',{key:'pet',ref:petRef,className:'hub-pet'},h(window.PetActor,{scale:3})),
       // avatar
       h('div',{key:'av',ref:avRef,className:'hub-avatar'},[
-        (near)&&h('div',{key:'prompt',className:'hub-prompt'},[h('span',{key:'k',className:'px'},'E'),' 进入 '+near.label]),
+        (near)&&h('div',{key:'prompt',className:'hub-prompt'},[h('span',{key:'k',className:'px'},'E'),' '+T('进入')+' '+T(near.label)]),
         h('div',{key:'ring',className:'hub-avatar-ring'}),
         h(PixelSprite,{key:'sp',base:picked.hero,anim:moving?'run':'idle',scale:4.4,flip:facing<0}),
       ]),
-      h('div',{key:'hint',className:'hub-controls px'},'WASD / 点击移动 · E 交互'),
+      h('div',{key:'hint',className:'hub-controls px'},window.TL('WASD / 点击移动 · E 交互','WASD / click to move · E interact')),,
     ]);
   }
 
@@ -241,8 +243,8 @@
         unread>0&&h('div',{key:'b',className:'mailbox-count px'},unread),
       ]);
     } else {
-      const ic={shop:'shop',board:'trophy',altar:'gear',ach:'medal'}[it.id];
-      const col={shop:'#f2c84b',board:'#f2c84b',altar:'#36c5e0',ach:'#f2c84b'}[it.id];
+      const ic={shop:'shop',board:'trophy',altar:'gear',ach:'medal',market:'mcp'}[it.id];
+      const col={shop:'#a06cd5',board:'#f2c84b',altar:'#36c5e0',ach:'#f2c84b',market:'#36c5e0'}[it.id];
       body=h('div',{className:'struct-stall stall-'+it.id,style:{'--ac':col}},[
         h('div',{key:'roof',className:'stall-roof'}),
         h('div',{key:'val',className:'stall-valance'}),
@@ -256,7 +258,7 @@
     }
     return h('div',{className:'structure'+(near?' near':''),style:{left:it.x,top:it.y},onClick},[
       React.cloneElement(body,{key:'body'}),
-      h('div',{key:'lbl',className:'struct-label'},[h('span',{key:'n'},it.label),it.sub&&h('span',{key:'s',className:'struct-sub px'},it.sub)]),
+      h('div',{key:'lbl',className:'struct-label'},[h('span',{key:'n'},T(it.label)),it.sub&&window.__LANG!=='en'&&h('span',{key:'s',className:'struct-sub px'},it.sub)]),
     ]);
   }
 
@@ -375,17 +377,42 @@
   }
 
   // ================= SESSION GRID =================
+  // 相对时间：距最后一条消息的分钟数 → "3h ago"
+  const agoLabel=(m)=>m==null?'':m<1?'now':m<60?(m+'m ago'):m<1440?(((m/60)|0)+'h ago'):(((m/1440)|0)+'d ago');
+  const STATUS_W={askuser:0,error:1,active:2,idle:3,done:4};
+  const PROJ_AC={};DATA.projects.forEach(p=>PROJ_AC[p.id]=p.accent);
   function SessionGrid({onClose,onEnter,onImport,runtime,onOpen}){
     const [mode,setMode]=useState('sessions'); // sessions | schedule
-    const [rt,setRt]=useState(runtime&&runtime!=='all'?runtime:'all');
+    const [rt,setRtRaw]=useState(runtime&&runtime!=='all'?runtime:'all');
+    const [projSel,setProjSel]=useState([]);   // 多选：项目标签
+    const [modelSel,setModelSel]=useState([]); // 多选：模型标签
+    const [activeOnly,setActiveOnly]=useState(false);
     const [sched,setSched]=useState(()=>DATA.scheduled.map(s=>({...s})));
     const [editing,setEditing]=useState(null); // null | 'new' | task object
-    let list=DATA.sessions.filter(s=>rt==='all'||s.runtime===rt);
+    const all=DATA.sessions;
+    const rtList=all.filter(s=>rt==='all'||s.runtime===rt);
+    const projects=[...new Set(rtList.map(s=>s.project))];
+    const models=[...new Set(rtList.map(s=>s.model))];
+    const setRt=(k)=>{ setRtRaw(k);
+      const nl=all.filter(s=>k==='all'||s.runtime===k);
+      const np=new Set(nl.map(s=>s.project)), nm=new Set(nl.map(s=>s.model));
+      setProjSel(ps=>ps.filter(p=>np.has(p))); setModelSel(ms=>ms.filter(m=>nm.has(m))); };
+    const togIn=(arr,set)=>(v)=>set(arr.includes(v)?arr.filter(x=>x!==v):[...arr,v]);
+    const togProj=togIn(projSel,setProjSel), togModel=togIn(modelSel,setModelSel);
+    const hasFilter=projSel.length||modelSel.length||activeOnly||rt!=='all';
+    const clearAll=()=>{setRtRaw('all');setProjSel([]);setModelSel([]);setActiveOnly(false);};
+    let list=rtList.filter(s=>(!projSel.length||projSel.includes(s.project))&&(!modelSel.length||modelSel.includes(s.model))&&(!activeOnly||['active','askuser','error'].includes(s.status)));
+    list=[...list].sort((a,b)=>(STATUS_W[a.status]-STATUS_W[b.status])||((a.lastActive||0)-(b.lastActive||0)));
     const stMeta={active:['#36c5e0','活跃'],idle:['#8a8170','待命'],askuser:['#36c5e0','待回应'],done:['#5fd35f','完成'],error:['#ff4d6d','出错']};
-    const subLabel=mode==='schedule'?('定时任务 · '+sched.filter(s=>s.on).length+' 已启用'):('任务台 · '+({all:'全部会话',claude:'Claude 项目',codex:'Codex 项目'}[rt]));
+    const subLabel=mode==='schedule'?('定时任务 · '+sched.filter(s=>s.on).length+' 已启用'):('任务台 · '+list.length+' / '+all.length+' 会话');
     const toggle=(id)=>setSched(ss=>ss.map(s=>s.id===id?{...s,on:!s.on}:s));
     const del=(id)=>setSched(ss=>ss.filter(s=>s.id!==id));
     const saveTask=(t)=>{ setSched(ss=>ss.some(s=>s.id===t.id)?ss.map(s=>s.id===t.id?t:s):[...ss,t]); setEditing(null); };
+    const cnt=(fn)=>rtList.filter(fn).length;
+    const fchip=(key,on,label,extra,onClick,ac)=>h('div',{key,className:'fchip'+(on?' on':''),style:ac?{'--ac':ac}:null,onClick},[
+      h('span',{key:'l',className:'cjk'},label),
+      extra!=null&&h('span',{key:'n',className:'fc-n px'},extra),
+    ]);
     return h(window.Modal,{title:'SESSIONS',sub:subLabel,icon:'quest',onClose,width:1240},
       h('div',{className:'sg-wrap'},[
         h('div',{key:'mode',className:'sg-modebar'},[
@@ -395,36 +422,66 @@
           ]),
           mode==='schedule'&&!editing&&h('button',{key:'add',className:'pxbtn primary cjk sm',onClick:()=>setEditing('new')},'+ 新建定时任务'),
         ]),
-        mode==='sessions'&&h('div',{key:'tabs',className:'tabs'},[['all','全部'],['claude','Claude'],['codex','Codex']].map(([k,l])=>
-          h('div',{key:k,className:'tab'+(rt===k?' on':''),onClick:()=>setRt(k)},l))),
+        // ---- 多级过滤：runtime / 项目 / 模型 同级标签，可叠加 ----
+        mode==='sessions'&&h('div',{key:'filters',className:'sg-filters'},[
+          h('div',{key:'rt',className:'sg-frow'},[
+            h('span',{key:'lab',className:'sg-flab px'},'RUNTIME'),
+            fchip('all',rt==='all','全部',all.length,()=>setRt('all')),
+            fchip('claude',rt==='claude','Claude',all.filter(s=>s.runtime==='claude').length,()=>setRt('claude'),'var(--claude, #36c5e0)'),
+            fchip('codex',rt==='codex','Codex',all.filter(s=>s.runtime==='codex').length,()=>setRt('codex'),'#5fd35f'),
+            h('span',{key:'sp',className:'sg-fsp'}),
+            fchip('act',activeOnly,'仅活跃',cnt(s=>['active','askuser','error'].includes(s.status)),()=>setActiveOnly(v=>!v),'#36c5e0'),
+            hasFilter?h('div',{key:'clr',className:'sg-clear px',onClick:clearAll},'✕ 清除筛选'):null,
+          ]),
+          h('div',{key:'pj',className:'sg-frow'},[
+            h('span',{key:'lab',className:'sg-flab px'},'项目'),
+            ...projects.map(p=>fchip(p,projSel.includes(p),p,cnt(s=>s.project===p),()=>togProj(p),PROJ_AC[p]||'#36c5e0')),
+          ]),
+          h('div',{key:'md',className:'sg-frow'},[
+            h('span',{key:'lab',className:'sg-flab px'},'模型'),
+            ...models.map(m=>fchip(m,modelSel.includes(m),m,cnt(s=>s.model===m),()=>togModel(m),'#f2c84b')),
+          ]),
+        ]),
         mode==='sessions'&&h('div',{key:'grid',className:'sg-grid scroll'},[
-          h('div',{key:'imp',className:'sg-card sg-import',onClick:onImport},[
+          !hasFilter&&h('div',{key:'imp',className:'sg-card sg-import',onClick:onImport},[
             h(Icon,{key:'i',name:'import',size:40,glow:'#f2c84b'}),
             h('div',{key:'t',className:'sg-import-t'},'导入历史会话'),
             h('div',{key:'s',className:'faint',style:{fontSize:11}},'+ 从本地扫描'),
           ]),
           ...list.map(s=>{const m=stMeta[s.status];
             const live=s.status==='active', ask=s.status==='askuser';
-            return h('div',{key:s.id,className:'sg-card'+(live?' breathing':'')+(ask?' breathing askstop':''),style:{'--st':m[0]},onClick:()=>onEnter(s)},[
+            const inactive=s.status==='idle'||s.status==='done';
+            return h('div',{key:s.id,className:'sg-card'+(live?' breathing':'')+(ask?' breathing askstop':'')+(inactive?' inactive':''),style:{'--st':m[0]},onClick:()=>onEnter(s)},[
               live&&h('div',{key:'bg',className:'sg-breath'}),
               h('div',{key:'top',className:'sg-top'},[
                 h('div',{key:'p',className:'sg-portrait'},h(PixelSprite,{base:s.hero,anim:live?'run':'idle',scale:2.6,filter:s.status==='done'?'grayscale(.8) brightness(.7)':s.runtime==='codex'?'hue-rotate(60deg) saturate(1.1)':undefined})),
                 ask&&h('div',{key:'a',className:'sg-ask'},h('span',{className:'sg-ask-q'},'?')),
                 s.status==='error'&&h('div',{key:'e',className:'sg-alert'},h(Icon,{name:'error',size:14})),
               ]),
-              h('div',{key:'pr',className:'sg-proj'},s.project),
+              h('div',{key:'pr',className:'sg-proj'+(projSel.includes(s.project)?' on':''),title:'按项目 '+s.project+' 筛选',onClick:(e)=>{e.stopPropagation();togProj(s.project);}},'# '+s.project),
               h('div',{key:'ti',className:'sg-title'},s.title),
               h('div',{key:'meta',className:'sg-meta'},[
                 h('span',{key:'st',className:'sg-status',style:{color:m[0]}},[h('span',{key:'d',className:'sg-dot'+(live?' pulse':''),style:{background:m[0]}}),h('span',{key:'l'},m[1])]),
-                h('span',{key:'rt',className:'chip px '+(s.runtime==='codex'?'tag-codex':'tag-claude'),style:{fontSize:8}},s.runtime==='codex'?'Codex':'Claude'),
+                h('span',{key:'ch',className:'sg-chips'},[
+                  h('span',{key:'rt',className:'chip px '+(s.runtime==='codex'?'tag-codex':'tag-claude'),style:{fontSize:8}},s.runtime==='codex'?'Codex':'Claude'),
+                  h('span',{key:'m',className:'chip px',style:{fontSize:8}},s.model),
+                ]),
               ]),
-              h('div',{key:'tok',className:'sg-tok px'},(s.tokens/1000).toFixed(0)+'k tok · '+s.agents+'P'),
+              h('div',{key:'ft',className:'sg-foot'},[
+                h('span',{key:'tok',className:'sg-tok px'},(s.tokens/1000).toFixed(0)+'k tok · '+s.agents+'P'),
+                h('span',{key:'tm',className:'sg-time px'+(live?' live':''),title:'最后一条消息'},agoLabel(s.lastActive)),
+              ]),
               h('div',{key:'act',className:'sg-act'},[
                 h('button',{key:'c',className:'sg-actbtn cjk'+(ask?' hot':''),onClick:(e)=>{e.stopPropagation();onOpen&&onOpen('chat',s);}},[h(Icon,{key:'i',name:'chat',size:13,style:{marginRight:5}}),ask?'回应':'聊天']),
                 h('button',{key:'e',className:'sg-actbtn cjk',onClick:(e)=>{e.stopPropagation();onEnter(s);}},'进入'),
               ]),
             ]);
           }),
+          list.length===0&&h('div',{key:'empty',className:'sg-empty'},[
+            h(Icon,{key:'i',name:'search',size:36,glow:'#8a8170'}),
+            h('div',{key:'t',className:'cjk',style:{marginTop:10}},'没有匹配的会话'),
+            h('button',{key:'b',className:'pxbtn cjk sm',style:{marginTop:12},onClick:clearAll},'清除筛选'),
+          ]),
         ]),
         mode==='schedule'&&!editing&&h(ScheduledList,{key:'sl',sched,onToggle:toggle,onEdit:(t)=>setEditing(t),onDelete:del,onNew:()=>setEditing('new')}),
         mode==='schedule'&&editing&&h(ScheduleForm,{key:'sf',task:editing==='new'?null:editing,onCancel:()=>setEditing(null),onSave:saveTask}),
@@ -448,9 +505,9 @@
       h('div',{key:'vig',className:'vignette'}),
       h('div',{key:'c',className:'empty-center'},[
         h('div',{key:'f',className:'struct-tower big'},[h('div',{key:'r',className:'tower-ring'}),h('div',{key:'o',className:'tower-orb'},h(Icon,{name:'quest',size:72,glow:'#36c5e0'}))]),
-        h('div',{key:'t',className:'empty-title px'},'空无一人'),
-        h('div',{key:'s',className:'empty-sub cjk'},'召唤你的第一个小队，开始 vibe coding'),
-        h('button',{key:'b',className:'pxbtn gold cjk',onClick:onSummon},[h(Icon,{key:'i',name:'task',size:18,style:{marginRight:8}}),'召唤小队']),
+        h('div',{key:'t',className:'empty-title px'},T('空无一人')),
+        h('div',{key:'s',className:'empty-sub cjk'},T('召唤你的第一个小队，开始 vibe coding')),
+        h('button',{key:'b',className:'pxbtn gold cjk',onClick:onSummon},[h(Icon,{key:'i',name:'task',size:18,style:{marginRight:8}}),T('召唤小队')]),
       ]),
     ]);
   }
@@ -477,7 +534,7 @@
   function Guide({open,onToggle,go}){
     const screens=[
       ['登录页','login',null],['内景房间','interior',null],['大厅 Hub','lobby',null],['任务台','panel','sessiongrid'],['空态','empty',null],['错误态','error',null],
-      ['NPC 卡片','panel','npc'],['任务面板','panel','tasks'],['设置','panel','settings'],['技能','panel','skills'],['商店','panel','shop'],['排行榜','panel','leaderboard'],
+      ['NPC 卡片','panel','npc'],['任务面板','panel','tasks'],['设置','panel','settings'],['技能','panel','skills'],['插件市场','panel','market'],['装饰商店','panel','shop'],['排行榜','panel','leaderboard'],
       ['成就殿','panel','achievements'],['邮箱','panel','mailbox'],['扭蛋机','panel','gacha'],['扫码配对','panel','pairing'],
     ];
     return h('div',{className:'guide'+(open?' open':'')},[
