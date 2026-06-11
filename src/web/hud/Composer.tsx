@@ -1,18 +1,20 @@
 import { useState } from "react";
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { sendCommand } from "../ws-client";
 import { SlashMenu } from "./SlashMenu";
 
 export function Composer({ sessionId }: { sessionId: string }) {
+  const t = useT();
   const session = useRoomStore((s) => s.sessions[sessionId]);
   const [text, setText] = useState("");
   const [slashOpen, setSlashOpen] = useState(false);
   const isBusy = session?.status === "busy";
 
   const send = () => {
-    const t = text.trim();
-    if (sessionId && t) {
-      sendCommand({ cmd: "sendMessage", sessionId, text: t });
+    const trimmed = text.trim();
+    if (sessionId && trimmed) {
+      sendCommand({ cmd: "sendMessage", sessionId, text: trimmed });
       setText("");
     }
   };
@@ -48,7 +50,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
             send();
           }
         }}
-        placeholder="输入消息… (Enter 发送, Shift+Enter 换行)"
+        placeholder={t("输入消息… (Enter 发送, Shift+Enter 换行)")}
         style={{ resize: "none", overflowY: "auto" }}
       />
       {isBusy ? (
@@ -60,7 +62,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
             sessionId && sendCommand({ cmd: "interrupt", sessionId })
           }
         >
-          停止
+          {t("停止")}
         </button>
       ) : (
         <button
@@ -69,7 +71,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
           onClick={send}
           disabled={!text.trim()}
         >
-          发送
+          {t("发送")}
         </button>
       )}
     </div>

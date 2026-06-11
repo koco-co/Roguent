@@ -389,6 +389,60 @@ export const DICT: Record<string, string> = {
   "资源/连接失败时显示可见错误层,绝不静默黑屏。":
     "A visible error layer shows on resource/connection failure — never a silent black screen.",
   重试连接: "Retry connection",
+  // ── i18n sweep C-1 (previously-unswept components) ───────────
+  // AmbientControls (Hud)
+  辉光: "Glow",
+  雨幕: "Rain",
+  粒子: "Particles",
+  声音: "Sound",
+  // HeroSelect
+  选择像素角色进入大厅: "Pick a pixel hero to enter the lobby",
+  "进入后用 WASD 或点击移动 · 走到中央任务台按 E 打开会话":
+    "Move with WASD or click after entering · walk to the central console and press E to open a session",
+  // ChatHeader
+  无会话: "No session",
+  "目录 cwd(默认服务端)": "Directory cwd (server default)",
+  "＋ 新会话": "＋ New session",
+  已归档: "Archived",
+  "搜索已归档…": "Search archived…",
+  点击复活到大厅: "Click to revive into the lobby",
+  "↺ 复活": "↺ Revive",
+  // Composer
+  "输入消息… (Enter 发送, Shift+Enter 换行)":
+    "Type a message… (Enter to send, Shift+Enter for newline)",
+  停止: "Stop",
+  // Timeline
+  选一个会话: "Pick a session",
+  "还没有消息,发一条开始…": "No messages yet — send one to start…",
+  // PromptCard
+  "✓ 已回答": "✓ Answered",
+  "✕ 已忽略": "✕ Dismissed",
+  允许: "Allow",
+  拒绝: "Deny",
+  // MessageBubble
+  你: "You",
+  复制消息: "Copy message",
+  // ThinkingBlock
+  思考过程: "Reasoning",
+  // PairingQr
+  微信: "WeChat",
+  飞书: "Feishu",
+  用微信扫码绑定本指挥台: "Scan with WeChat to bind this command deck",
+  用飞书扫码或打开机器人配对: "Scan with Feishu or open the bot to pair",
+  等待引擎生成配对码: "Waiting for the engine to generate a pairing code",
+  "单个会话绑定,新绑定覆盖旧绑定":
+    "One binding per session — a new binding replaces the old one",
+  "生成 QR": "Generate QR",
+  // BindingList
+  已绑定: "Bound",
+  扫码完成后会出现在这里: "Appears here once scanning completes",
+  未命名会话: "Unnamed session",
+  转发: "Forward",
+  解绑: "Unbind",
+  // PortalTransition
+  返回大厅: "Back to lobby",
+  // CatPet
+  黑猫伙伴: "Black cat companion",
 };
 
 export function translate(s: string, lang: Lang): string {

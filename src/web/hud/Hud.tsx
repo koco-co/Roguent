@@ -1,3 +1,4 @@
+import { useT } from "../i18n";
 import { useSettingsStore } from "../settings-store";
 import { useUiStore } from "../ui-store";
 import { About } from "./About";
@@ -53,6 +54,7 @@ const AMBIENT_TOGGLES: {
 ];
 
 function AmbientControls() {
+  const t = useT();
   const inInterior = useUiStore((s) => s.view !== "overworld");
   const ambientGlow = useSettingsStore((s) => s.ambientGlow);
   const ambientRain = useSettingsStore((s) => s.ambientRain);
@@ -82,10 +84,10 @@ function AmbientControls() {
               aria-checked={on}
               className={`ambient-toggle${on ? " on" : ""}`}
               onClick={() => setSetting(item.key, !on)}
-              title={item.label}
+              title={t(item.label)}
             >
               <Icon name={item.icon} size={18} />
-              <span className="ambient-label">{item.label}</span>
+              <span className="ambient-label">{t(item.label)}</span>
               <span className={`pxtoggle${on ? " on" : ""}`}>
                 <span className="knob" />
               </span>

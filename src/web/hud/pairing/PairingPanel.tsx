@@ -68,7 +68,7 @@ export function PairingPanel({
               aria-pressed={channel === item}
               onClick={() => setChannel(item)}
             >
-              {channelLabel(item)}
+              {t(channelLabel(item))}
             </button>
           ))}
         </div>

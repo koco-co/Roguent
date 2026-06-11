@@ -4,6 +4,7 @@ import type {
   QuestionData,
   TimelinePromptItem,
 } from "../../shared/domain";
+import { useT, useTL } from "../i18n";
 import { useRoomStore } from "../store";
 import { sendCommand } from "../ws-client";
 
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export function PromptCard({ item, sessionId }: Props) {
+  const t = useT();
+  const tl = useTL();
   const [submitted, setSubmitted] = useState(false);
   const errorSignal = useRoomStore((state) => {
     const session = state.sessions[sessionId];
@@ -34,7 +37,7 @@ export function PromptCard({ item, sessionId }: Props) {
   if (item.status !== "pending") {
     return (
       <div className="prompt-card resolved px faint" style={{ fontSize: 11 }}>
-        {item.status === "answered" ? "✓ 已回答" : "✕ 已忽略"}
+        {item.status === "answered" ? t("✓ 已回答") : t("✕ 已忽略")}
       </div>
     );
   }
@@ -57,7 +60,8 @@ export function PromptCard({ item, sessionId }: Props) {
           className="prompt-title px"
           style={{ fontSize: 12, fontWeight: 600 }}
         >
-          {data.title ?? `允许使用 ${data.toolName}？`}
+          {data.title ??
+            tl(`允许使用 ${data.toolName}？`, `Allow ${data.toolName}?`)}
         </div>
         {data.description && (
           <div className="prompt-desc px faint" style={{ fontSize: 11 }}>
@@ -82,7 +86,7 @@ export function PromptCard({ item, sessionId }: Props) {
             disabled={submitted}
             onClick={() => respond("allow")}
           >
-            允许
+            {t("允许")}
           </button>
           <button
             type="button"
@@ -90,7 +94,7 @@ export function PromptCard({ item, sessionId }: Props) {
             disabled={submitted}
             onClick={() => respond("deny")}
           >
-            拒绝
+            {t("拒绝")}
           </button>
         </div>
       </div>

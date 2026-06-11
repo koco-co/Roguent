@@ -1,4 +1,5 @@
 import type { PairingBinding } from "../../../shared/events";
+import { useT } from "../../i18n";
 import { sendCommand } from "../../ws-client";
 import { type PairableChannel, channelLabel } from "./PairingQr";
 
@@ -9,19 +10,20 @@ export function BindingList({
   channel: PairableChannel;
   bindings: PairingBinding[];
 }) {
+  const t = useT();
   return (
     <div className="pair-bindings">
       <div className="pair-section-title">
-        <span className="px">已绑定</span>
+        <span className="px">{t("已绑定")}</span>
         <span className="faint">
-          {channelLabel(channel)} · {bindings.length}
+          {t(channelLabel(channel))} · {bindings.length}
         </span>
       </div>
 
       {bindings.length === 0 ? (
         <div className="pair-empty">
           <div className="px">EMPTY</div>
-          <div className="faint">扫码完成后会出现在这里</div>
+          <div className="faint">{t("扫码完成后会出现在这里")}</div>
         </div>
       ) : (
         <div className="pair-binding-list">
@@ -35,7 +37,9 @@ export function BindingList({
 }
 
 function BindingRow({ binding }: { binding: PairingBinding }) {
-  const title = binding.displayName || binding.externalUserId || "未命名会话";
+  const t = useT();
+  const title =
+    binding.displayName || binding.externalUserId || t("未命名会话");
   const toggleForwarding = () => {
     sendCommand({
       cmd: "updatePairing",
@@ -76,7 +80,7 @@ function BindingRow({ binding }: { binding: PairingBinding }) {
         <button
           type="button"
           role="switch"
-          aria-label="转发"
+          aria-label={t("转发")}
           aria-checked={binding.forwardingEnabled}
           className={`pxtoggle${binding.forwardingEnabled ? " on" : ""}`}
           onClick={toggleForwarding}
@@ -84,7 +88,7 @@ function BindingRow({ binding }: { binding: PairingBinding }) {
           <span className="knob" />
         </button>
         <button type="button" className="pxbtn danger cjk" onClick={revoke}>
-          解绑
+          {t("解绑")}
         </button>
       </div>
     </div>

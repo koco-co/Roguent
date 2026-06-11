@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useT, useTL } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
@@ -7,6 +8,8 @@ import { modelLabel } from "./model-label";
 import { runtimeMetaText } from "./runtime-display";
 
 export function ChatHeader({ sessionId }: { sessionId: string }) {
+  const t = useT();
+  const tl = useTL();
   const closePanel = useUiStore((s) => s.closePanel);
   const sessions = useRoomStore((s) => s.sessions);
   const session = useRoomStore((s) => s.sessions[sessionId]);
@@ -54,7 +57,7 @@ export function ChatHeader({ sessionId }: { sessionId: string }) {
     sendCommand({
       cmd: "newSession",
       sessionId: `s${n}`,
-      title: `会话 ${n}`,
+      title: tl(`会话 ${n}`, `Session ${n}`),
       model: session?.model ?? "claude-opus-4-8",
       ...runtimeConfig,
       ...(dir ? { cwd: dir } : {}),
@@ -78,7 +81,9 @@ export function ChatHeader({ sessionId }: { sessionId: string }) {
         <div className="cdrawer-hd-l">
           <Icon name="chat" size={22} glow="#36c5e0" />
           <div className="cdrawer-titles">
-            <div className="cdrawer-name cjk">{session?.title ?? "无会话"}</div>
+            <div className="cdrawer-name cjk">
+              {session?.title ?? t("无会话")}
+            </div>
             <div className="cdrawer-meta px">
               {runtimeMetaText(session)} · {modelLabel(session?.model)} ·{" "}
               {agentCount}P
@@ -90,7 +95,7 @@ export function ChatHeader({ sessionId }: { sessionId: string }) {
           className="pxbtn sm cjk"
           onClick={() => setMgrOpen((v) => !v)}
         >
-          会话
+          {t("会话")}
         </button>
         <button type="button" className="closex px" onClick={close}>
           ✕
@@ -101,7 +106,7 @@ export function ChatHeader({ sessionId }: { sessionId: string }) {
       {mgrOpen && (
         <div className="cdrawer-mgr scroll">
           <div className="px" style={{ fontSize: 10, color: "var(--gold)" }}>
-            会话
+            {t("会话")}
           </div>
           {activeList.map((s) => (
             <button
@@ -124,7 +129,7 @@ export function ChatHeader({ sessionId }: { sessionId: string }) {
             className="pxinput"
             value={cwd}
             onChange={(e) => setCwd(e.target.value)}
-            placeholder="目录 cwd(默认服务端)"
+            placeholder={t("目录 cwd(默认服务端)")}
             style={{ marginTop: 8, fontSize: 10 }}
           />
           <button
@@ -133,7 +138,7 @@ export function ChatHeader({ sessionId }: { sessionId: string }) {
             style={{ width: "100%", marginTop: 6 }}
             onClick={newSession}
           >
-            ＋ 新会话
+            {t("＋ 新会话")}
           </button>
 
           {list.some((s) => s.archived) ? (
@@ -142,13 +147,13 @@ export function ChatHeader({ sessionId }: { sessionId: string }) {
                 className="px"
                 style={{ fontSize: 10, color: "var(--gold)", marginTop: 14 }}
               >
-                已归档
+                {t("已归档")}
               </div>
               <input
                 className="pxinput"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="搜索已归档…"
+                placeholder={t("搜索已归档…")}
                 style={{ marginTop: 6, fontSize: 10 }}
               />
               {archivedList.map((s) => (
@@ -157,7 +162,7 @@ export function ChatHeader({ sessionId }: { sessionId: string }) {
                   type="button"
                   className="chat-sess"
                   style={{ opacity: 0.7 }}
-                  title="点击复活到大厅"
+                  title={t("点击复活到大厅")}
                   onClick={() => unarchiveSession(s.id)}
                 >
                   <div style={{ fontSize: 12, color: "var(--text)" }}>
@@ -165,7 +170,7 @@ export function ChatHeader({ sessionId }: { sessionId: string }) {
                   </div>
                   <div className="faint" style={{ fontSize: 10 }}>
                     {s.project ? `${s.project} · ` : ""}
-                    {runtimeMetaText(s)} · ↺ 复活
+                    {runtimeMetaText(s)} · {t("↺ 复活")}
                   </div>
                 </button>
               ))}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useT, useTL } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { portalFrame } from "./portal";
@@ -16,6 +17,8 @@ const DURATION_MS = 900;
  * 显示「点击继续」会误导。文案取真实会话数据(标题 / agent 数 / model),不抄原型 mock 台词。
  */
 export function PortalTransition() {
+  const t = useT();
+  const tl = useTL();
   const transition = useUiStore((s) => s.transition);
   const enterInterior = useUiStore((s) => s.enterInterior);
   const exitOverworld = useUiStore((s) => s.exitOverworld);
@@ -63,7 +66,9 @@ export function PortalTransition() {
   const session = transition ? sessions[transition.sessionId] : undefined;
   const isEnter = transition?.kind === "enter";
   const agentCount = session ? Object.keys(session.agents).length : 0;
-  const topText = isEnter ? `进入 ${session?.title ?? "会话"}` : "返回大厅";
+  const topText = isEnter
+    ? t(`进入 ${session?.title ?? tl("会话", "session")}`)
+    : t("返回大厅");
   const bottomText = isEnter
     ? `${agentCount}P · ${session?.model ?? ""}`
     : (session?.title ?? "");
