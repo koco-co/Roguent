@@ -1,3 +1,4 @@
+import { useT } from "../i18n";
 import { useUiStore } from "../ui-store";
 import { Icon, type IconName } from "./icons";
 
@@ -54,6 +55,7 @@ function HotbarSlot({
   lit: boolean;
   onClick: () => void;
 }) {
+  const t = useT();
   // 角标暂无真实数据源 → 不渲染(保留 .badge 能力,引擎补齐后传 badge 即可)。
   const badge: number | null = null;
   return (
@@ -64,7 +66,7 @@ function HotbarSlot({
     >
       <Icon name={slot.icon} size={30} />
       {badge != null && <div className="badge count">{badge}</div>}
-      <div className="tip cjk">{slot.label}</div>
+      <div className="tip cjk">{t(slot.label)}</div>
     </button>
   );
 }

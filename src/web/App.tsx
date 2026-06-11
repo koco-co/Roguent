@@ -5,6 +5,7 @@ import { resolveEngineUrl } from "./engine-url";
 import { Hud } from "./hud/Hud";
 import { NpcCard } from "./hud/NpcCard";
 import { AnnouncementPopup } from "./hud/mailbox/AnnouncementPopup";
+import { useT } from "./i18n";
 import { LobbyView } from "./lobby/HubPlaza";
 import { LoginGate } from "./lobby/LoginGate";
 import { PortalTransition } from "./overworld/PortalTransition";
@@ -37,6 +38,7 @@ function useStageScale(ref: React.RefObject<HTMLDivElement | null>) {
 }
 
 export function App() {
+  const t = useT();
   const view = useUiStore((s) => s.view);
   const exitOverworld = useUiStore((s) => s.exitOverworld);
   const beginExit = useUiStore((s) => s.beginExit);
@@ -151,7 +153,7 @@ export function App() {
               }}
               onClick={() => interiorId && beginExit(interiorId)}
             >
-              ← 大厅
+              ← {t("大厅")}
             </button>
           ) : (
             <NpcCard />

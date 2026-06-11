@@ -1,3 +1,4 @@
+import { useT } from "../i18n";
 import { useUiStore } from "../ui-store";
 import { Icon, type IconName } from "./icons";
 
@@ -31,6 +32,7 @@ const DOCK_BTNS: DockBtn[] = [
  * 顶右设置坞。自带绝对定位(.dock + .dock-anchor),落在 Currency 下方。两视图都显示。
  */
 export function ButtonDock() {
+  const t = useT();
   const activePanel = useUiStore((s) => s.activePanel);
   const openPanel = useUiStore((s) => s.openPanel);
 
@@ -44,7 +46,7 @@ export function ButtonDock() {
           onClick={() => openPanel(b.panel)}
         >
           <Icon name={b.icon} size={28} />
-          <div className="tip cjk">{b.label}</div>
+          <div className="tip cjk">{t(b.label)}</div>
         </button>
       ))}
     </div>

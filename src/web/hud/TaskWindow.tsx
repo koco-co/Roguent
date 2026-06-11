@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { Icon } from "./icons";
@@ -18,6 +19,7 @@ import {
  * 函数引用 / 基元,绝不在 selector 里构造新值(zustand 铁律)。
  */
 export function TaskWindow() {
+  const t = useT();
   const inInterior = useUiStore((s) => s.view !== "overworld");
   const openPanel = useUiStore((s) => s.openPanel);
   // 取当前会话对象引用(稳定:同一会话对象同一引用),todos 展平在渲染期算,不进 selector。
@@ -50,7 +52,7 @@ export function TaskWindow() {
         <div className="tw-body scroll">
           {rows.length === 0 ? (
             <div className="roster-empty">
-              暂无任务(agent 调 TodoWrite 后同步)
+              {t("暂无任务(agent 调 TodoWrite 后同步)")}
             </div>
           ) : (
             rows.map((tk, i) => {
@@ -92,9 +94,15 @@ export function TaskWindow() {
 
       {open && (
         <div className="tw-foot">
-          <span className="cyan">{c.in_progress} 进行中</span>
-          <span className="faint">{c.pending} 待办</span>
-          <span className="greenc">{c.completed} 完成</span>
+          <span className="cyan">
+            {c.in_progress} {t("进行中")}
+          </span>
+          <span className="faint">
+            {c.pending} {t("待办")}
+          </span>
+          <span className="greenc">
+            {c.completed} {t("完成")}
+          </span>
         </div>
       )}
     </div>

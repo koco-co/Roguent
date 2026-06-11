@@ -1,11 +1,12 @@
+import { useT } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { Icon, type IconName } from "./icons";
 import { formatCountdown } from "./limits-format";
 
-const WARN_AT = 85; // 已用高于此 → 警示闪烁(仅 5h / WEEK,CTX 不触发)
+const WARN_AT = 85; // 已用高于此 → 警示闪烁(仅 5h / Weekly,CTX 不触发)
 
-/** 单条 bar:统一显示「已用%」(5h/WEEK 订阅用量、CTX 当前会话上下文占用),对齐 claude-hud。 */
+/** 单条 bar:统一显示「已用%」(5h/Weekly 订阅用量、Context 当前会话上下文占用),对齐 claude-hud。 */
 function BarRow({
   icon,
   kind,
@@ -17,7 +18,7 @@ function BarRow({
 }: {
   icon: IconName;
   kind: "hp" | "mp" | "shield";
-  label: string; // "5h" | "CTX" | "WEEK"
+  label: string; // "5h" | "Context" | "Weekly"
   /** 已用%(0-100;null=无数据→0 且弱化)。 */
   value: number | null;
   resetsAt: number | null;
@@ -49,11 +50,12 @@ function BarRow({
 
 /**
  * 左上账户限额条,统一显示「已用%」(对齐 claude-hud / Claude Code):
- * - 5h(❤ hp) / WEEK(💠 mp) 是**账户级**(源自 OAuth /api/oauth/usage poll),两视图都显。
- * - CTX(💎 shield,当前会话上下文占用%)是**会话级**,只在**内景**显示;大厅(overworld)
- *   没有「当前会话」语境,故隐藏(见用户规则:大厅不展示 CTX)。
+ * - 5h(❤ hp) / Weekly(💠 mp) 是**账户级**(源自 OAuth /api/oauth/usage poll),两视图都显。
+ * - Context(💎 shield,当前会话上下文占用%)是**会话级**,只在**内景**显示;大厅(overworld)
+ *   没有「当前会话」语境,故隐藏(见用户规则:大厅不展示 Context)。
  */
 export function LimitBars() {
+  const t = useT();
   const limits = useRoomStore((s) => s.limits);
   const ctxUtil = useRoomStore((s) =>
     s.currentSessionId
@@ -70,8 +72,8 @@ export function LimitBars() {
         <div className="lb-plan px">
           <span className="gold">
             CLAUDE · {limits?.planName ?? "—"}
-            {limits?.stale ? " · 同步中" : ""}
-            {limits?.apiError ? " · 同步失败" : ""}
+            {limits?.stale ? ` · ${t("同步中")}` : ""}
+            {limits?.apiError ? ` · ${t("同步失败")}` : ""}
           </span>
         </div>
         <BarRow
@@ -86,7 +88,7 @@ export function LimitBars() {
           <BarRow
             icon="gem"
             kind="shield"
-            label="CTX"
+            label="Context"
             value={ctxUtil}
             resetsAt={null}
             now={now}
@@ -96,7 +98,7 @@ export function LimitBars() {
         <BarRow
           icon="gemcur"
           kind="mp"
-          label="WEEK"
+          label="Weekly"
           value={limits?.sevenDay.utilization ?? null}
           resetsAt={limits?.sevenDay.resetsAt ?? null}
           now={now}

@@ -2,6 +2,7 @@ import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type RuntimeKind, defaultRuntimeConfig } from "../../shared/runtime";
 import { Icon } from "../hud/icons";
+import { useT, useTL } from "../i18n";
 import { useSettingsStore } from "../settings-store";
 import { useRoomStore } from "../store";
 import { type PanelId, useUiStore } from "../ui-store";
@@ -203,6 +204,9 @@ function Structure({
   onClick: (e: React.MouseEvent) => void;
   tick: number;
 }) {
+  const t = useT();
+  // en 模式隐藏 struct-sub(英文代号在英文 UI 里冗余,对标设计原型)。基元 selector。
+  const lang = useSettingsStore((s) => s.uiLang);
   const float = Math.sin(tick / 3) * 4;
   let body: React.ReactNode;
   if (it.id === "tower") {
@@ -268,14 +272,16 @@ function Structure({
     <button
       type="button"
       className={`structure${near ? " near" : ""}`}
-      aria-label={`${it.label}${it.sub ? ` ${it.sub}` : ""}`}
+      aria-label={`${t(it.label)}${it.sub ? ` ${it.sub}` : ""}`}
       style={{ left: pct(it.x, VW), top: pct(it.y, VH) }}
       onClick={onClick}
     >
       {body}
       <div className="struct-label">
-        <span>{it.label}</span>
-        {it.sub ? <span className="struct-sub px">{it.sub}</span> : null}
+        <span>{t(it.label)}</span>
+        {lang !== "en" && it.sub ? (
+          <span className="struct-sub px">{it.sub}</span>
+        ) : null}
       </div>
     </button>
   );
@@ -295,6 +301,8 @@ export interface HubPlazaProps {
 }
 
 export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
+  const t = useT();
+  const tl = useTL();
   const openPanel = useUiStore((s) => s.openPanel);
   const avatarHero = useSettingsStore((s) => s.avatarHero) ?? "knight_m";
   const hubRef = useRef<HTMLDivElement>(null);
@@ -527,7 +535,7 @@ export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
       >
         {near ? (
           <div className="hub-prompt">
-            <span className="px">E</span> 进入 {near.label}
+            <span className="px">E</span> {t("进入")} {t(near.label)}
           </div>
         ) : null}
         <div className="hub-avatar-ring" />
@@ -538,7 +546,9 @@ export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
           flip={facing < 0}
         />
       </div>
-      <div className="hub-controls px">WASD / 点击移动 · E 交互</div>
+      <div className="hub-controls px">
+        {tl("WASD / 点击移动 · E 交互", "WASD / click to move · E interact")}
+      </div>
     </div>
   );
 }

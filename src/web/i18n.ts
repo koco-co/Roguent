@@ -12,6 +12,10 @@ export const DICT: Record<string, string> = {
   大厅: "Lobby",
   // ── generic actions / buttons ───────────────────────────────
   进入: "Enter",
+  技能: "Skills",
+  背包: "Backpack",
+  任务: "Tasks",
+  信箱: "Mailbox",
   聊天: "Chat",
   归档: "Archive",
   删除: "Delete",
@@ -186,6 +190,7 @@ export const DICT: Record<string, string> = {
   // ── menu items ──────────────────────────────────────────────
   设置祭坛: "Config Altar",
   成就殿: "Achievements Hall",
+  成就陈列: "Achievements",
   邮箱: "Mailbox",
   排行榜: "Ranking",
   公告板: "Board",
@@ -215,6 +220,8 @@ export const DICT: Record<string, string> = {
   空无一人: "No one here",
   "召唤你的第一个小队，开始 vibe coding":
     "Summon your first squad and start vibe coding",
+  "召唤你的第一个小队,开始 vibe coding":
+    "Summon your first squad and start vibe coding",
   召唤小队: "Summon squad",
   撸一下: "pet me",
   宝箱: "chest",
@@ -236,6 +243,15 @@ export const DICT: Record<string, string> = {
   "装饰商店 · 宝石消费 · 仅外观，不影响开发结果":
     "Decoration shop · gems · cosmetic only",
   去扭蛋机: "To Gacha",
+  // ── HUD chrome (sweep A) ─────────────────────────────────────
+  暂无在岗: "No one on duty",
+  同步中: "syncing",
+  同步失败: "sync failed",
+  示例: "demo",
+  "示例数据(引擎暂未提供)": "Demo data (not yet provided by engine)",
+  "Codex 占位,暂未接入": "Codex placeholder — not connected yet",
+  "暂无任务(agent 调 TodoWrite 后同步)":
+    "No tasks yet (syncs after an agent calls TodoWrite)",
 };
 
 export function translate(s: string, lang: Lang): string {
