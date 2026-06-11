@@ -27,6 +27,7 @@ type PanelAction = Extract<
   | "sessiongrid"
   | "tasks"
   | "shop"
+  | "market"
   | "gacha"
   | "achievements"
   | "board"
@@ -48,7 +49,15 @@ interface Interactable {
   label: string;
   sub: string;
   action: InteractAction;
-  icon: "quest" | "shop" | "trophy" | "gear" | "vault" | "pouch" | "crystal";
+  icon:
+    | "quest"
+    | "shop"
+    | "trophy"
+    | "gear"
+    | "vault"
+    | "pouch"
+    | "crystal"
+    | "mcp";
   accent: string;
 }
 
@@ -69,11 +78,22 @@ const INTERACT: Interactable[] = [
     x: 1480,
     y: 380,
     r: 140,
-    label: "商店",
+    label: "装饰商店",
     sub: "SHOP",
     action: { kind: "panel", panel: "shop" },
     icon: "shop",
-    accent: "#f2c84b",
+    accent: "#a06cd5",
+  },
+  {
+    id: "market",
+    x: 660,
+    y: 452,
+    r: 132,
+    label: "插件市场",
+    sub: "MARKET",
+    action: { kind: "panel", panel: "market" },
+    icon: "mcp",
+    accent: "#36c5e0",
   },
   {
     id: "gacha",
@@ -88,8 +108,8 @@ const INTERACT: Interactable[] = [
   },
   {
     id: "board",
-    x: 440,
-    y: 380,
+    x: 360,
+    y: 742,
     r: 140,
     label: "公告板",
     sub: "BOARD",
@@ -99,8 +119,8 @@ const INTERACT: Interactable[] = [
   },
   {
     id: "mailbox",
-    x: 285,
-    y: 555,
+    x: 1272,
+    y: 248,
     r: 120,
     label: "信箱",
     sub: "MAIL",
@@ -111,7 +131,7 @@ const INTERACT: Interactable[] = [
   {
     id: "altar",
     x: 960,
-    y: 215,
+    y: 236,
     r: 130,
     label: "设置祭坛",
     sub: "CONFIG",
@@ -121,8 +141,8 @@ const INTERACT: Interactable[] = [
   },
   {
     id: "achievements",
-    x: 650,
-    y: 235,
+    x: 652,
+    y: 248,
     r: 120,
     label: "成就陈列",
     sub: "LOOT",
@@ -132,8 +152,8 @@ const INTERACT: Interactable[] = [
   },
   {
     id: "leaderboard",
-    x: 1270,
-    y: 235,
+    x: 362,
+    y: 452,
     r: 120,
     label: "排行榜",
     sub: "RANK",
@@ -168,8 +188,8 @@ const INTERACT: Interactable[] = [
 // 漫步装饰小人(纯氛围,不可交互):[hero, x, y] 虚拟坐标。
 const DECOR: [string, number, number][] = [
   ["knight_f", 150, 300],
-  ["dwarf_m", 1760, 330],
-  ["wizzard_f", 1780, 520],
+  ["dwarf_m", 1700, 392],
+  ["wizzard_f", 1668, 586],
   ["goblin", 120, 560],
 ];
 

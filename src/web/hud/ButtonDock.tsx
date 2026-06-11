@@ -6,26 +6,38 @@ import { Icon, type IconName } from "./icons";
 // 两视图(大厅 / 内景)都显示。lit 态 = 该按钮目标 panel 当前为 activePanel。
 //
 // 接线说明(过渡期):
-// - gear→settings、menu→menu、pause→menu(暂代「暂停」;真正的 transition 漩涡是 T3.12)
-//   这三个目标 panel(settings/menu)是 T3.x 才建,现在点了只设 activePanel、无组件渲染 =
-//   安全空操作(单一路由 openPanel 不报错)。注释标注「panel 待 T3.x」。
+// - gear→settings、menu→menu:这两个目标 panel(settings/menu)是 T3.x 才建,现在点了
+//   只设 activePanel、无组件渲染 = 安全空操作(单一路由 openPanel 不报错)。注释标注「panel 待 T3.x」。
+// - design v2 已删原「暂停」槽(它只是 menu 的占位别名,无真实游戏循环暂停逻辑)。
 // - account→account:T3.11 已把账号正式接到 Account 面板(订阅 plan + 5h/周用量真数据)。
 //   原 about 入口(T1.2 临时接在账号槽上)后续由 T3.12 SystemMenu 的「关于」承接;
 //   "about" 暂保留在联合类型里(About 组件仍 working,T3.12 再正式接入口)。
 type DockBtn = {
   icon: IconName;
-  panel: "settings" | "menu" | "about" | "account" | "mailbox" | "board";
+  panel:
+    | "settings"
+    | "menu"
+    | "about"
+    | "account"
+    | "mailbox"
+    | "board"
+    | "pairing";
   label: string;
+  // 设计稿 v2:系统类按钮(设置)前加一道视觉分隔(margin-top via .dock-sys)。
+  sys?: boolean;
 };
 
+// design v2 顺序:通知类(邮箱/公告)→ 身份类(账号/配对)→ 系统类(设置/菜单)。
+// 「公告」槽:设计稿此位本是「活动 events」登录活动弹窗,引擎无该数据源 →
+// 用真实公告板(board)占位,不造假。pairing 配对从 hotbar 移来此处(身份类)。
 const DOCK_BTNS: DockBtn[] = [
   { icon: "vault", panel: "mailbox", label: "信箱" },
   { icon: "trophy", panel: "board", label: "公告" },
-  { icon: "gear", panel: "settings", label: "设置" }, // panel 待 T3.x
-  { icon: "menu", panel: "menu", label: "菜单" }, // panel 待 T3.x
   // T3.11:账号正式接 Account 面板;原临时的 about 入口由 T3.12 SystemMenu 承接。
   { icon: "account", panel: "account", label: "账号" },
-  { icon: "pause", panel: "menu", label: "暂停" }, // 暂代,transition 漩涡是 T3.12
+  { icon: "mcp", panel: "pairing", label: "配对" },
+  { icon: "gear", panel: "settings", label: "设置", sys: true }, // panel 待 T3.x
+  { icon: "menu", panel: "menu", label: "菜单" }, // panel 待 T3.x
 ];
 
 /**
@@ -42,7 +54,7 @@ export function ButtonDock() {
         <button
           key={b.label}
           type="button"
-          className={`iconbtn${activePanel === b.panel ? " active" : ""}`}
+          className={`iconbtn${activePanel === b.panel ? " active" : ""}${b.sys ? " dock-sys" : ""}`}
           onClick={() => openPanel(b.panel)}
         >
           <Icon name={b.icon} size={28} />

@@ -110,8 +110,9 @@ test("Feishu fake pairing", async ({ page }) => {
     // the lobby NPC card.
     await page.getByRole("button", { name: "内景" }).click();
 
-    // Open the pairing panel via the Hotbar "配对" button.
-    // The Hotbar is only visible in the interior view.
+    // Open the pairing panel via the ButtonDock "配对" button (mcp icon, label "配对").
+    // design v2 moved 配对 from the Hotbar to the ButtonDock; it's the only "配对"
+    // button on screen, so the unscoped role selector resolves uniquely.
     await page.getByRole("button", { name: "配对" }).click();
 
     // The PairingPanel renders a <dialog aria-label="Pairing">.
@@ -185,8 +186,9 @@ test("WeChat fake pairing", async ({ page }) => {
     // the lobby NPC card.
     await page.getByRole("button", { name: "内景" }).click();
 
-    // Open the pairing panel via the Hotbar "配对" button (mcp icon, label "配对").
-    // The Hotbar is only visible in the interior view.
+    // Open the pairing panel via the ButtonDock "配对" button (mcp icon, label "配对").
+    // design v2 moved 配对 from the Hotbar to the ButtonDock; it's the only "配对"
+    // button on screen, so the unscoped role selector resolves uniquely.
     await page.getByRole("button", { name: "配对" }).click();
 
     // The PairingPanel renders a <dialog aria-label="Pairing">.
@@ -309,9 +311,10 @@ test("GitHub and X subscription routing", async ({ page }) => {
     // "replay", which auto-focuses and shows the "内景" button in the lobby NPC card.
     await page.getByRole("button", { name: "内景" }).click();
 
-    // Open the Mailbox panel via the Hotbar "信箱" button (vault icon, label "信箱").
-    // Scope to .hotbar to avoid the identically-labelled lobby interactable button.
-    await page.locator(".hotbar").getByRole("button", { name: "信箱" }).click();
+    // Open the Mailbox panel via the ButtonDock "信箱" button (vault icon, label "信箱").
+    // design v2 moved 信箱 from the Hotbar to the ButtonDock (.dock); scope to .dock to
+    // avoid the identically-labelled lobby interactable button.
+    await page.locator(".dock").getByRole("button", { name: "信箱" }).click();
 
     // The MailboxPanel renders inside a Modal with class .mailbox-panel.
     const mailboxPanel = page.locator(".mailbox-panel");

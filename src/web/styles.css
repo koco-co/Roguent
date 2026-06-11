@@ -863,6 +863,10 @@ img {
   top: 64px;
   right: 12px;
 }
+/* design v2:系统类按钮(设置)前加一道视觉间隔,与通知/身份类分组。 */
+.iconbtn.dock-sys {
+  margin-top: 10px;
+}
 
 /* ── 底中操作坞(Hotbar,移植自原型 layout.css 的 .hotbar*)─────────────── */
 /* .panel.hotbar 复用 .panel 边框;.hotbar-anchor 自带绝对定位(底中),仅内景渲染 */
@@ -3711,6 +3715,7 @@ img {
   background: rgba(11, 10, 18, 0.7);
   padding: 5px 10px;
   box-shadow: 0 0 0 2px #000;
+  white-space: nowrap;
 }
 .struct-label > span:first-child {
   font-size: 13px;

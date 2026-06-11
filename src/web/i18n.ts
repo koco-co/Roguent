@@ -189,6 +189,7 @@ export const DICT: Record<string, string> = {
   "暂停 · 点击继续": "Paused · click to resume",
   // ── menu items ──────────────────────────────────────────────
   设置祭坛: "Config Altar",
+  成就: "Achievements",
   成就殿: "Achievements Hall",
   成就陈列: "Achievements",
   邮箱: "Mailbox",
