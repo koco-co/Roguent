@@ -4180,3 +4180,335 @@ img {
 }
 /* 大厅核心辉光本就吃 --core-glow,holo 已在 settingsRootStyle 把它强制成青
    (rgba(54,200,255,.3)),无需再覆盖 .hub-bigglow。 */
+
+/* ============================================================
+   BIG COMMAND VIEWSCREEN — 内景大屏:指挥大屏 · 实时工具流
+   (搬自设计 Prototype extra.css BIG COMMAND VIEWSCREEN 段;数据换真 tool timeline,
+    线框页 / 扫描线 / CRT flicker / 光标纯装饰。z 低于模态 scrim。)
+   ============================================================ */
+.bigscreen {
+  position: absolute;
+  left: 50%;
+  top: 84px;
+  transform: translateX(-50%);
+  width: 540px;
+  z-index: 14;
+  pointer-events: auto;
+  perspective: 1100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: bsFloat 6s ease-in-out infinite;
+}
+@keyframes bsFloat {
+  50% {
+    transform: translateX(-50%) translateY(-7px);
+  }
+}
+/* ceiling mount arm */
+.bigscreen-arm {
+  width: 14px;
+  height: 34px;
+  background: linear-gradient(180deg, #1a2c33, #0d1a1f);
+  box-shadow: inset 0 0 0 2px #2c4a52, 0 0 0 2px #0b1418;
+  margin-bottom: -2px;
+}
+.bigscreen-frame {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(180deg, #0c1418, #070d10);
+  box-shadow: 0 0 0 4px #16323a, 0 0 0 7px #0a1a20, 0 0 30px
+    rgba(54, 197, 224, 0.32), 0 18px 30px rgba(0, 0, 0, 0.55);
+  transform: rotateX(7deg);
+  transform-origin: center top;
+  overflow: hidden;
+}
+/* browser chrome */
+.bs-chrome {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 11px;
+  background: linear-gradient(180deg, #15272e, #0d1a20);
+  border-bottom: 2px solid #0a1418;
+}
+.bs-dots {
+  display: flex;
+  gap: 5px;
+}
+.bs-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+.bs-tab {
+  font-size: 11px;
+  color: #bfeaf5;
+  background: rgba(54, 197, 224, 0.1);
+  padding: 3px 9px;
+  box-shadow: inset 0 0 0 1px rgba(54, 197, 224, 0.28);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bs-live {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8px;
+  color: #5fd35f;
+  letter-spacing: 0.5px;
+}
+.bs-live.busy {
+  color: #9fe9f7;
+}
+/* 空闲态(无 tool 活动):灰徽标,不声称在跑 */
+.bs-live.idle {
+  color: var(--ink-faint, #6c7b85);
+}
+.bs-livedot {
+  width: 7px;
+  height: 7px;
+  background: #5fd35f;
+  box-shadow: 0 0 7px #5fd35f;
+  animation: bsLive 1.3s ease-in-out infinite;
+}
+.bs-live.busy .bs-livedot {
+  background: #36c5e0;
+  box-shadow: 0 0 8px #36c5e0;
+}
+.bs-live.idle .bs-livedot {
+  background: var(--ink-faint, #6c7b85);
+  box-shadow: none;
+  animation: none;
+}
+@keyframes bsLive {
+  50% {
+    opacity: 0.35;
+  }
+}
+/* url bar */
+.bs-urlbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #0a1418;
+  border-bottom: 2px solid #0a1418;
+  position: relative;
+}
+.bs-url {
+  font-size: 10px;
+  color: #7fb8c4;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bs-load {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, #36c5e0, transparent);
+  animation: bsLoad 1s linear infinite;
+}
+@keyframes bsLoad {
+  from {
+    left: -30%;
+  }
+  to {
+    left: 100%;
+  }
+}
+/* viewport / rendered page(纯装饰线框) */
+.bs-viewport {
+  position: relative;
+  height: 166px;
+  background: radial-gradient(120% 100% at 50% 0%, #10242b, #0a161b 70%);
+  overflow: hidden;
+}
+.bs-page {
+  position: absolute;
+  inset: 0;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.bs-blk {
+  background: linear-gradient(
+    110deg,
+    rgba(54, 197, 224, 0.12),
+    rgba(54, 197, 224, 0.05)
+  );
+  box-shadow: inset 0 0 0 1px rgba(54, 197, 224, 0.16);
+}
+.bs-hero {
+  height: 38px;
+  background: linear-gradient(
+    110deg,
+    rgba(54, 197, 224, 0.22),
+    rgba(160, 108, 213, 0.12)
+  );
+  box-shadow: inset 0 0 0 1px rgba(54, 197, 224, 0.3);
+}
+.bs-row {
+  display: flex;
+  gap: 9px;
+}
+.bs-card {
+  flex: 1;
+  height: 46px;
+}
+.bs-line {
+  height: 9px;
+}
+.bs-line.w80 {
+  width: 80%;
+}
+.bs-line.w60 {
+  width: 60%;
+}
+.bs-line.w70 {
+  width: 70%;
+}
+/* scanline sweep + crt flicker for the 3D holo feel(纯装饰) */
+.bs-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(54, 197, 224, 0.16),
+    transparent
+  );
+  animation: bsScan 3.6s linear infinite;
+  z-index: 2;
+  pointer-events: none;
+}
+@keyframes bsScan {
+  from {
+    top: -40px;
+  }
+  to {
+    top: 200px;
+  }
+}
+.bs-flicker {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.18),
+    rgba(0, 0, 0, 0.18) 1px,
+    transparent 2px,
+    transparent 3px
+  );
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+  animation: bsFlick 5s steps(2) infinite;
+}
+@keyframes bsFlick {
+  48% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.32;
+  }
+  52% {
+    opacity: 0.5;
+  }
+}
+/* agent cursor(纯装饰;motion 关时组件不更新位置,保持静止) */
+.bs-cursor {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-2px, -2px);
+  transition: left 0.8s cubic-bezier(0.4, 0, 0.3, 1), top 0.8s
+    cubic-bezier(0.4, 0, 0.3, 1);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+}
+.bs-cursor.click::after {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: -7px;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #36c5e0;
+  border-radius: 50%;
+  animation: bsClick 0.7s ease-out;
+}
+@keyframes bsClick {
+  from {
+    transform: scale(0.2);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+/* caption(agent · tool;空闲走 i18n 提示) */
+.bs-caption {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 12px;
+  background: linear-gradient(180deg, #0d1a20, #0a1418);
+  border-top: 2px solid #16323a;
+}
+.bs-act {
+  font-size: 11px;
+  color: #cfe9f0;
+}
+.bigscreen-base {
+  width: 120px;
+  height: 12px;
+  margin-top: 8px;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(54, 197, 224, 0.3),
+    transparent 70%
+  );
+}
+.bigscreen-glow {
+  position: absolute;
+  inset: -8% -4% -20% -4%;
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgba(54, 197, 224, 0.16),
+    transparent 68%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+/* no-motion 守卫:no-motion 与根主题同挂根节点 .stage(同节点连写)。 */
+.stage.no-motion .bigscreen {
+  animation: none;
+}
+.stage.no-motion .bs-scan,
+.stage.no-motion .bs-flicker,
+.stage.no-motion .bs-load,
+.stage.no-motion .bs-livedot {
+  animation: none;
+}
+.room-forest .bigscreen-frame {
+  box-shadow: 0 0 0 4px #1c3a22, 0 0 0 7px #0a1a10, 0 0 30px
+    rgba(95, 211, 95, 0.3), 0 18px 30px rgba(0, 0, 0, 0.55);
+}
+.room-cyber .bigscreen-frame {
+  box-shadow: 0 0 0 4px #2c1f44, 0 0 0 7px #140e22, 0 0 30px
+    rgba(160, 108, 213, 0.32), 0 18px 30px rgba(0, 0, 0, 0.55);
+}
+.skin-holo .bigscreen-frame {
+  box-shadow: 0 0 0 4px #16465a, 0 0 0 7px #0a1a2a, 0 0 34px
+    rgba(54, 200, 255, 0.4), 0 18px 30px rgba(0, 0, 0, 0.55);
+}

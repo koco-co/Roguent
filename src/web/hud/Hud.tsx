@@ -3,6 +3,7 @@ import { useUiStore } from "../ui-store";
 import { About } from "./About";
 import { Account } from "./Account";
 import { AgentCard } from "./AgentCard";
+import { BrowserScreen } from "./BrowserScreen";
 import { ButtonDock } from "./ButtonDock";
 import { ChatDrawer } from "./ChatDrawer";
 import { Currency } from "./Currency";
@@ -110,6 +111,10 @@ export function Hud() {
       <SkinSwitch />
       {/* 顶中会话横幅(仅内景显示,自带绝对定位)*/}
       <SessionBanner />
+
+      {/* 内景大屏 · 实时工具流(仅内景显示,自带 inInterior gate;tab/url/caption 取
+          会话 timeline 最近 tool,线框/扫描/光标纯装饰,无活动显 IDLE 不造数据)*/}
+      <BrowserScreen />
 
       {/* 顶右货币条(两视图都显示,自带绝对定位 top:12 right:12)*/}
       <Currency />
