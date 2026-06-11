@@ -4047,3 +4047,136 @@ img {
   background: linear-gradient(135deg, #5fe0ff, #2a6fdb);
   box-shadow: 0 0 6px rgba(54, 200, 255, 0.8);
 }
+
+/* ============================================================
+   HOLO / BLUE-TECH SKIN — 全息蓝科技皮肤(可切换场景)
+   把暖木 HUD 推成青玻璃,叠加扫描线 / 网格 / 辉光 overlay。
+   适配差异(对标设计 extra.css 的 HOLO 段):
+   · 真实内景是单张 Pixi canvas(地板+小人同画布),给 canvas 整体加
+     CSS 滤镜会二次染色 holo 地板 graphics、且把小人也染成青色失可读。
+     故 Pixi 端不加 .room-canvas / .pxsprite 滤镜——holo 地板由
+     DungeonRoom 的 HoloFloor 直接用目标青色绘制,小人保留原皮可读。
+   · 设计的场景 overlay 挂 .world/.lobby;本仓库内景外层是 .room-host、
+     大厅是 .hub,故扫描线/网格/景深 overlay 分别挂到这两个真实节点。
+   · 大厅(纯 DOM)按设计照搬全套滤镜(hub-floor / hub 背景 / vignette)。
+   ============================================================ */
+
+/* HUD 木质面板变量 → 玻璃青边:重定义 token,所有面板/按钮/标题栏自动转青玻璃。 */
+.skin-holo {
+  --panel: #0f2c3e;
+  --panel-2: #0a2230;
+  --panel-edge: #04141f;
+  --panel-hi: #2d6f86;
+  --panel-deep: #07202c;
+  --titlebar: #0a2838;
+}
+.skin-holo .panel {
+  background: linear-gradient(
+      180deg,
+      rgba(120, 220, 255, 0.08),
+      rgba(0, 0, 0, 0.18)
+    ), #0f2c3e !important;
+}
+.skin-holo .panel.rivets::before,
+.skin-holo .panel.rivets::after {
+  background: #5fe0ff;
+  box-shadow: 0 0 0 1px #04141f, 0 0 5px rgba(54, 200, 255, 0.7);
+}
+.skin-holo .panel-titlebar {
+  background: linear-gradient(180deg, #123042, #0a2838);
+}
+.skin-holo .pxbtn {
+  background: linear-gradient(180deg, #1c4e60, #10303e);
+}
+.skin-holo .pxbtn.gold {
+  background: linear-gradient(180deg, #5fe0ff, #2a8fdb);
+  color: #04141f;
+}
+/* 图标按钮(底部快捷栏 + 右侧 dock)→ 青玻璃 */
+.skin-holo .iconbtn {
+  background: linear-gradient(180deg, #1c4e60, #10303e);
+}
+.skin-holo .iconbtn.active {
+  background: linear-gradient(180deg, #16596e, #0c2c3a);
+}
+/* 模态内木质 tab → 青 */
+.skin-holo .tab {
+  background: linear-gradient(180deg, #13384a, #0c2533);
+}
+.skin-holo .tab.on {
+  background: linear-gradient(180deg, #1c5e74, #103040);
+}
+
+/* ── 扫描线 + 网格 / 景深 overlay ─────────────────────────────
+   内景外层 .room-host 与大厅 .hub 都覆盖一层青色扫描线(::before)
+   + 顶部辉光/上下渐晕的景深(::after),z 高于场景、不挡交互。 */
+@keyframes holoScan {
+  from {
+    background-position-y: 0;
+  }
+  to {
+    background-position-y: 8px;
+  }
+}
+.skin-holo .room-host::before,
+.skin-holo .hub::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(54, 200, 255, 0.05),
+    rgba(54, 200, 255, 0.05) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+  mix-blend-mode: screen;
+  animation: holoScan 7s linear infinite;
+}
+.skin-holo .room-host::after,
+.skin-holo .hub::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: radial-gradient(
+      130% 100% at 50% 0%,
+      rgba(54, 160, 224, 0.12),
+      transparent 60%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(5, 11, 22, 0.2),
+      transparent 30%,
+      transparent 70%,
+      rgba(5, 11, 22, 0.5)
+    );
+}
+/* no-motion 守卫:skin-holo 与 no-motion 同挂根节点 .stage,故连写;
+   room-host / hub 是后代。 */
+.skin-holo.no-motion .room-host::before,
+.skin-holo.no-motion .hub::before {
+  animation: none;
+}
+
+/* ── 大厅(DOM)深蓝滤镜:照搬设计全套 ──────────────────────── */
+.skin-holo .hub {
+  background: #050b16;
+}
+.skin-holo .hub-floor {
+  filter: sepia(1) hue-rotate(150deg) saturate(2.1) brightness(1.06);
+}
+/* 暗角 → 深海军蓝(大厅 .vignette;内景暗角是 Pixi 精灵,不走 CSS) */
+.skin-holo .vignette {
+  background: radial-gradient(
+    125% 95% at 50% 40%,
+    transparent 36%,
+    rgba(6, 16, 30, 0.55) 70%,
+    rgba(4, 9, 20, 0.95) 100%
+  );
+}
+/* 大厅核心辉光本就吃 --core-glow,holo 已在 settingsRootStyle 把它强制成青
+   (rgba(54,200,255,.3)),无需再覆盖 .hub-bigglow。 */

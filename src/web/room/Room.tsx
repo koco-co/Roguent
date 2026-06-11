@@ -229,7 +229,11 @@ export function Room() {
   }, []);
 
   return (
-    <div ref={hostRef} style={{ position: "absolute", inset: 0 }}>
+    <div
+      ref={hostRef}
+      className="room-host"
+      style={{ position: "absolute", inset: 0 }}
+    >
       <Application resizeTo={hostRef} background={0x0b0a12} antialias={false}>
         {sheet && size.w > 0 ? (
           <AtlasProvider value={sheet}>
