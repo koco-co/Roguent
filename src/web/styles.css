@@ -4061,28 +4061,19 @@ img {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: #2c2013;
+  background: #5a3f2a; /* town 暖底色,对照原型 extra.css §WARM TOWN HUB */
 }
-.hub-floor {
+/* 地面整张 canvas(paintHub):虚拟 1920×1120 等比贴 1080 高的 .hub,
+   多出的底部 40px 被 overflow:hidden 裁掉(照原型);不挡点击寻路。 */
+.hub-canvas {
   position: absolute;
-  inset: 0;
-  background-color: #3a2a1c;
-  background-image: radial-gradient(
-      circle at 50% 40%,
-      rgba(96, 74, 48, 0.55),
-      transparent 52%
-    ),
-    repeating-linear-gradient(
-      0deg,
-      rgba(0, 0, 0, 0.16) 0 2px,
-      transparent 2px 80px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(0, 0, 0, 0.16) 0 2px,
-      transparent 2px 80px
-    );
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: calc(100% * 1120 / 1080);
   image-rendering: pixelated;
+  z-index: 0;
+  pointer-events: none;
 }
 .hub-bigglow {
   position: absolute;
@@ -4372,7 +4363,7 @@ img {
      DungeonRoom 的 HoloFloor 直接用目标青色绘制,小人保留原皮可读。
    · 设计的场景 overlay 挂 .world/.lobby;本仓库内景外层是 .room-host、
      大厅是 .hub,故扫描线/网格/景深 overlay 分别挂到这两个真实节点。
-   · 大厅(纯 DOM)按设计照搬全套滤镜(hub-floor / hub 背景 / vignette)。
+   · 大厅(DOM+canvas)按设计照搬全套滤镜(hub-canvas / hub 背景 / vignette)。
    ============================================================ */
 
 /* HUD 木质面板变量 → 玻璃青边:重定义 token,所有面板/按钮/标题栏自动转青玻璃。 */
@@ -4480,8 +4471,9 @@ img {
 .skin-holo .hub {
   background: #050b16;
 }
-.skin-holo .hub-floor {
-  filter: sepia(1) hue-rotate(150deg) saturate(2.1) brightness(1.06);
+.skin-holo .hub-canvas {
+  filter: sepia(1) hue-rotate(150deg) saturate(2.1) brightness(1.06)
+    contrast(1.04);
 }
 /* 暗角 → 深海军蓝(大厅 .vignette;内景暗角是 Pixi 精灵,不走 CSS) */
 .skin-holo .vignette {

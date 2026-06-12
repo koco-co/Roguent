@@ -8,6 +8,7 @@ import { useRoomStore } from "../store";
 import { type PanelId, useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
 import { CatPet } from "./CatPet";
+import { HubCanvas } from "./HubCanvas";
 import { PixelSprite } from "./PixelSprite";
 import { useSpriteTick } from "./sprite-tick";
 
@@ -517,7 +518,7 @@ export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: 点击寻路;键盘走 WASD,a11y 由 App 集中处理
     <div ref={hubRef} className="hub" onClick={clickBg}>
-      <div className="hub-floor" />
+      <HubCanvas />
       <div className="vignette" />
       <div className="hub-bigglow" />
       {DECOR.map(([hero, x, y]) => (

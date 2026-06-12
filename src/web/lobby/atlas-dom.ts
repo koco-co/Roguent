@@ -55,6 +55,11 @@ function load(): Promise<AtlasDom> {
   return promise;
 }
 
+/** 非 hook 路径(HubCanvas 的 canvas 绘制)也要帧表:暴露底层加载,共享同一份缓存。 */
+export function loadAtlasDom(): Promise<AtlasDom> {
+  return load();
+}
+
 /** 加载并缓存 0x72 atlas 的 DOM 用帧表;加载中返回 null(精灵暂不渲染)。 */
 export function useAtlasDom(): AtlasDom | null {
   const [data, setData] = useState<AtlasDom | null>(cache);
