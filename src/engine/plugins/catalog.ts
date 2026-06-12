@@ -98,31 +98,36 @@ export function readPluginCatalog(opts: {
     )?.enabledPlugins ?? {};
 
   const entries: PluginEntry[] = [];
+  const seenIds = new Set<string>();
   for (const [marketplace, mk] of Object.entries(known)) {
     const loc = str(mk?.installLocation);
     if (!loc) continue;
-    const manifest = readJson<{ plugins?: ManifestPlugin[] }>(
+    const manifest = readJson<{ plugins?: unknown }>(
       readText,
       join(loc, ".claude-plugin", "marketplace.json"),
     );
-    if (!manifest?.plugins) continue;
-    for (const p of manifest.plugins) {
-      const name = str(p.name);
+    if (!Array.isArray(manifest?.plugins)) continue;
+    for (const p of manifest.plugins as unknown[]) {
+      if (!p || typeof p !== "object") continue;
+      const mp = p as ManifestPlugin;
+      const name = str(mp.name);
       if (!name) continue;
       const id = `${name}@${marketplace}`;
+      if (seenIds.has(id)) continue;
+      seenIds.add(id);
       const cat = catalog[id];
-      const { hasMcp, hasSkills, componentType } = classify(cat, p);
+      const { hasMcp, hasSkills, componentType } = classify(cat, mp);
       const installs =
         cat && typeof cat.unique_installs === "number"
           ? cat.unique_installs
           : null;
       entries.push({
         id,
-        name: str(p.displayName) ?? name,
+        name: str(mp.displayName) ?? name,
         marketplace,
-        author: authorName(p.author),
-        description: str(p.description) ?? "",
-        category: str(p.category),
+        author: authorName(mp.author),
+        description: str(mp.description) ?? "",
+        category: str(mp.category),
         componentType,
         hasMcp,
         hasSkills,
