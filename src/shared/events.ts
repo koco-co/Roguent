@@ -141,6 +141,9 @@ export interface SessionCreatedPayload {
   networkAccess?: boolean;
   apiKeySource: string;
   slashCommands: string[];
+  // 当前会话可用的技能(SDK init 的 skills 字段;与 slashCommands 并列上报)。
+  // 可选语义靠默认 [] 兜底 → replay/旧 fixture 不带也安全(协议为加法)。
+  skills: string[];
   // 总览世界:服务端把会话 cwd + 算出的 project(git 根 basename)随会话一起下发。
   // 可选 → replay/旧 fixture 不带也安全(spec §服务端/协议改动:均为加法)。
   cwd?: string;

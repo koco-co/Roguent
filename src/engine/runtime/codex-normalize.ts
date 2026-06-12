@@ -459,6 +459,7 @@ function sessionCreatedPayload(
     ),
     apiKeySource: "",
     slashCommands: stringArrayField(event, "slashCommands", "slash_commands"),
+    skills: stringArrayField(event, "skills"),
     sandboxMode: normalizeSandboxMode(event.sandboxMode, defaults.sandboxMode),
     networkAccess:
       booleanField(event, "networkAccess") ?? defaults.networkAccess,
