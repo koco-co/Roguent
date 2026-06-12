@@ -256,6 +256,11 @@ export const DICT: Record<string, string> = {
     "Demo plugins · install not wired (no plugin market in engine)",
   "评分 / 安装数为示例 · 真实能力以本机已配置的 MCP / Skills 为准":
     "Ratings / installs are demo · real capabilities come from locally configured MCP / Skills",
+  停用: "Disable",
+  启用: "Enable",
+  卸载: "Uninstall",
+  "处理中…": "Working…",
+  插件变更对新建会话生效: "Plugin changes apply to new sessions",
   // ── HUD chrome (sweep A) ─────────────────────────────────────
   暂无在岗: "No one on duty",
   同步中: "syncing",
