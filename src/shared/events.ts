@@ -338,6 +338,41 @@ export interface LimitsMessage {
   limits: AccountLimits;
 }
 
+export type PluginComponentType = "MCP" | "Skills" | "插件";
+
+export interface PluginEntry {
+  id: string; // "<name>@<marketplace>"
+  name: string; // displayName || name
+  marketplace: string;
+  author: string | null;
+  description: string;
+  category: string | null; // manifest category(development/security/…)
+  componentType: PluginComponentType; // 主类型(mcp 优先 → skills → 插件)
+  hasMcp: boolean;
+  hasSkills: boolean;
+  installs: number | null; // unique_installs;无 catalog → null
+  installed: boolean;
+  enabled: boolean;
+}
+
+export type PluginActionPhase =
+  | "installing"
+  | "enabling"
+  | "disabling"
+  | "uninstalling";
+
+export interface PluginActionState {
+  id: string;
+  phase: PluginActionPhase;
+}
+
+export interface PluginsMessage {
+  kind: "plugins";
+  ts: number;
+  plugins: PluginEntry[];
+  busy: PluginActionState[];
+}
+
 export function isToolEvent(e: RoomEvent): boolean {
   return (
     e.type === "tool.started" ||
