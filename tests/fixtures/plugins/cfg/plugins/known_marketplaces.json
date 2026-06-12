@@ -1,0 +1,13 @@
+{
+  "official": {
+    "source": {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    },
+    "installLocation": "tests/fixtures/plugins/cfg/plugins/marketplaces/official"
+  },
+  "tide": {
+    "source": { "source": "github", "repo": "koco-co/tide" },
+    "installLocation": "tests/fixtures/plugins/cfg/plugins/marketplaces/tide"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "tide",
+  "plugins": [
+    {
+      "name": "tide",
+      "description": "Tide plugin.",
+      "author": { "name": "koco" }
+    }
+  ]
+}

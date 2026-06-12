@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "catalog": {
+    "plugins": {
+      "alpha-mcp@official": {
+        "plugin": "alpha-mcp",
+        "unique_installs": 1000,
+        "components": {
+          "commands": [],
+          "agents": [],
+          "skills": [],
+          "hooks": [],
+          "mcpServers": [{ "name": "alpha" }],
+          "lspServers": []
+        }
+      },
+      "beta-skill@official": {
+        "plugin": "beta-skill",
+        "unique_installs": 500,
+        "components": {
+          "commands": [],
+          "agents": [],
+          "skills": [{ "name": "beta" }],
+          "hooks": [],
+          "mcpServers": [],
+          "lspServers": []
+        }
+      },
+      "gamma-cmd@official": {
+        "plugin": "gamma-cmd",
+        "unique_installs": 250,
+        "components": {
+          "commands": [{ "name": "g" }],
+          "agents": [],
+          "skills": [],
+          "hooks": [],
+          "mcpServers": [],
+          "lspServers": []
+        }
+      }
+    }
+  }
+}
