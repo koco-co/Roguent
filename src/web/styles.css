@@ -2929,6 +2929,10 @@ img {
 .cmsg.me .cmsg-author {
   color: var(--cyan);
 }
+.cmsg-role {
+  font-size: 7px;
+  color: var(--ink-faint);
+}
 .cmsg-bubble {
   font-size: 14px;
   line-height: 1.65;

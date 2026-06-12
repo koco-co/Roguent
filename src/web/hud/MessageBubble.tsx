@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Session, TimelineMessageItem } from "../../shared/domain";
+import { titleCase } from "../../shared/strings";
 import { useT } from "../i18n";
 import { mdToHtml } from "./markdown";
 
@@ -8,17 +9,22 @@ interface Props {
   session: Session;
 }
 
-const authorName = (
+// 作者 = 名(role 的 Title Case)+ role 徽(agent kind 派生)。
+// user 消息只有名 `你`、无徽。
+const author = (
   item: TimelineMessageItem,
   session: Session,
   t: (s: string) => string,
-): string => {
-  if (item.role === "user") return t("你");
-  return (
-    (item.agentId ? session.agents[item.agentId]?.role : undefined) ??
-    item.agentId ??
-    item.role
-  );
+): { name: string; roleTag?: string } => {
+  if (item.role === "user") return { name: t("你") };
+  const agent = item.agentId ? session.agents[item.agentId] : undefined;
+  const rawName = agent?.role ?? item.agentId ?? item.role;
+  const name = titleCase(rawName) || rawName;
+  const kind =
+    agent?.kind ??
+    (agent?.role === "orchestrator" ? "orchestrator" : "subagent");
+  const roleTag = kind === "orchestrator" ? t("主控") : t("分身");
+  return { name, roleTag };
 };
 
 const formatTime = (ts: number) =>
@@ -31,6 +37,7 @@ export function MessageBubble({ item, session }: Props) {
   const t = useT();
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const { name, roleTag } = author(item, session, t);
 
   const copy = () => {
     void copyText(item.text).then((ok) => {
@@ -63,7 +70,8 @@ export function MessageBubble({ item, session }: Props) {
         className="cmsg-author px"
         style={{ display: "flex", alignItems: "center", gap: 6 }}
       >
-        {authorName(item, session, t)}
+        <span>{name}</span>
+        {roleTag && <span className="cmsg-role px">{roleTag}</span>}
         <span
           className="faint"
           style={{ fontSize: 9, opacity: 0.5 }}
