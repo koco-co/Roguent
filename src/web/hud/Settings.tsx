@@ -78,7 +78,7 @@ function renderCtrl(
         className={`pxtoggle${on ? " on" : ""}`}
         onClick={() => set(it.k, !on)}
         aria-pressed={on}
-        aria-label={it.label}
+        aria-label={t(it.label)}
       >
         <span className="knob" />
       </button>
@@ -88,13 +88,13 @@ function renderCtrl(
     return (
       <select
         className="pxselect"
-        aria-label={it.label}
+        aria-label={t(it.label)}
         value={typeof val === "string" ? val : ""}
         onChange={(e) => set(it.k, e.target.value)}
       >
         {(it.opts ?? []).map((o) => (
           <option key={o} value={o}>
-            {o}
+            {t(o)}
           </option>
         ))}
       </select>
@@ -109,9 +109,9 @@ function renderCtrl(
             type="button"
             className={`seg-opt${val === o ? " on" : ""}`}
             onClick={() => set(it.k, o)}
-            aria-label={`${it.label}: ${o}`}
+            aria-label={`${t(it.label)}: ${t(o)}`}
           >
-            {o}
+            {t(o)}
           </button>
         ))}
       </div>
@@ -164,7 +164,7 @@ function renderCtrl(
   return (
     <input
       className="pxinput"
-      aria-label={it.label}
+      aria-label={t(it.label)}
       value={typeof val === "string" ? val : ""}
       onChange={(e) => set(it.k, e.target.value)}
     />
@@ -522,8 +522,8 @@ function Field({
   return (
     <div className="field">
       <div className="field-label">
-        <span>{it.label}</span>
-        <QTip text={it.tip} />
+        <span>{t(it.label)}</span>
+        <QTip text={t(it.tip)} />
       </div>
       <div className="field-ctrl">{renderCtrl(it, val, set, t)}</div>
     </div>
@@ -772,7 +772,7 @@ export function Settings() {
                 onClick={() => setGrp(gr.id)}
               >
                 <Icon name={gr.icon} size={18} />
-                <span>{gr.name}</span>
+                <span>{t(gr.name)}</span>
               </button>
             ))}
           </div>
