@@ -122,36 +122,8 @@ test("畸形 manifest — plugins 数组含 null/非对象:跳过坏条目、正
 });
 
 test("重复 id 去重:后出现的同 id 条目被丢弃", () => {
-  // 两个市场输出同名插件 → id 相同 → 只保留第一个
+  // 相同 id 只能来自同市场重复条目 → 只保留第一个
   const fs = require("node:fs") as typeof import("node:fs");
-  const path = require("node:path") as typeof import("node:path");
-  const dupReadText = (filePath: string): string | null => {
-    if (filePath.endsWith("known_marketplaces.json")) {
-      return JSON.stringify({
-        mktA: { installLocation: "/tmp/dup-a" },
-        mktB: { installLocation: "/tmp/dup-b" },
-      });
-    }
-    if (filePath === "/tmp/dup-a/.claude-plugin/marketplace.json") {
-      return JSON.stringify({
-        plugins: [{ name: "dup-plugin", displayName: "From A" }],
-      });
-    }
-    if (filePath === "/tmp/dup-b/.claude-plugin/marketplace.json") {
-      return JSON.stringify({
-        plugins: [{ name: "dup-plugin", displayName: "From B" }],
-      });
-    }
-    try {
-      return fs.readFileSync(filePath, "utf8");
-    } catch {
-      return null;
-    }
-  };
-  const result = readPluginCatalog({ configDir: CFG, readText: dupReadText });
-  const dups = result.filter((p) => p.name === "From A" || p.name === "From B");
-  // 两个市场不同 id (dup-plugin@mktA vs dup-plugin@mktB) — no actual dup
-  // 真正的 dup: 相同 id 只能来自同市场重复条目
   const sameIdReadText = (filePath: string): string | null => {
     if (filePath.endsWith("known_marketplaces.json")) {
       return JSON.stringify({ mkt: { installLocation: "/tmp/dup-same" } });
