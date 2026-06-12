@@ -100,16 +100,8 @@ export function Skills() {
 
   if (!active) return null;
 
-  // 真实技能 = slash 命令(有命令文件)+ skills(SDK init 的 skills 字段,如
-  // brainstorming)。统一规整成不带前导 / 的名字、按名去重(/code-review 可能既是
-  // 命令又是技能),渲染时统一加 /。在 render 体里 map,不进 selector(守铁律)。
-  const cmds = Array.from(
-    new Set(
-      [...(session?.slashCommands ?? []), ...(session?.skills ?? [])].map((c) =>
-        c.replace(/^\//, ""),
-      ),
-    ),
-  );
+  // 真实技能:当前会话可用的 slash 命令(string[]);在 render 体里 map,不进 selector。
+  const cmds = session?.slashCommands ?? [];
 
   return (
     <Modal
@@ -133,12 +125,13 @@ export function Skills() {
         <div className="faint">{t("当前会话无可用 slash 命令")}</div>
       ) : (
         <div className="skill-grid">
-          {cmds.map((name) => {
+          {cmds.map((c) => {
+            const name = c.replace(/^\//, "");
             const decor = SKILL_DECOR[name] ?? DEFAULT_DECOR;
             const rarityColor = RARITY[decor.rarity];
             return (
               <button
-                key={name}
+                key={c}
                 type="button"
                 className="skill-cell"
                 style={{ "--rar": rarityColor } as React.CSSProperties}
