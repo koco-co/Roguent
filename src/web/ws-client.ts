@@ -1,5 +1,9 @@
 import type { ClientCommand } from "../shared/commands";
-import type { AccountLimits, RoomEvent } from "../shared/events";
+import type {
+  AccountLimits,
+  PluginsMessage,
+  RoomEvent,
+} from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
 import { useRoomStore } from "./store";
 import { useUiStore } from "./ui-store";
@@ -9,6 +13,7 @@ export function handleIncoming(
   apply: (e: RoomEvent) => void,
   onControl?: (c: ControlMessage) => void,
   onLimits?: (l: AccountLimits) => void,
+  onPlugins?: (m: PluginsMessage) => void,
 ): void {
   let parsed: unknown;
   try {
@@ -22,6 +27,10 @@ export function handleIncoming(
       : undefined;
   if (kind === "limits") {
     onLimits?.((parsed as { limits: AccountLimits }).limits);
+    return;
+  }
+  if (kind === "plugins") {
+    onPlugins?.(parsed as PluginsMessage);
     return;
   }
   if (kind === "control") {
@@ -66,6 +75,8 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
     }
   };
   const onLimits = (l: AccountLimits) => useRoomStore.getState().setLimits(l);
+  const onPlugins = (m: PluginsMessage) =>
+    useRoomStore.getState().setPlugins(m);
   // 连接建立前发出的命令(如 newSession)先入队,onopen 后补发;
   // 断线非主动关闭则退避重连(spec §10)。
   const buffer: ClientCommand[] = [];
@@ -77,7 +88,7 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
     useRoomStore.getState().setConnection("connecting");
     ws = new WebSocket(url);
     ws.onmessage = (ev) =>
-      handleIncoming(String(ev.data), apply, onControl, onLimits);
+      handleIncoming(String(ev.data), apply, onControl, onLimits, onPlugins);
     ws.onopen = () => {
       useRoomStore.getState().setConnection("open");
       for (const cmd of buffer.splice(0)) ws.send(JSON.stringify(cmd));

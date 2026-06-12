@@ -120,3 +120,20 @@ test("connectRoom stores commandError control messages in ui state", () => {
     conn.close();
   }
 });
+
+test("handleIncoming: kind:plugins → onPlugins", () => {
+  const got: unknown[] = [];
+  handleIncoming(
+    JSON.stringify({
+      kind: "plugins",
+      ts: 1,
+      plugins: [{ id: "a@b" }],
+      busy: [],
+    }),
+    () => {},
+    undefined,
+    undefined,
+    (m) => got.push(m),
+  );
+  expect(got.length).toBe(1);
+});
