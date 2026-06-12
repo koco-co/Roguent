@@ -1,39 +1,57 @@
 import { useState } from "react";
+import type { PluginEntry } from "../../shared/events";
 import { useT } from "../i18n";
+import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
+import { sendCommand } from "../ws-client";
 import { Modal } from "./Modal";
 import { Icon } from "./icons";
-import { SHOP_CATS, SHOP_PLUGINS } from "./shop-data";
+
+const CATS = ["全部", "已安装", "Skills", "MCP", "插件"] as const;
+
+function matchesCat(p: PluginEntry, cat: string): boolean {
+  if (cat === "全部") return true;
+  if (cat === "已安装") return p.installed;
+  if (cat === "MCP") return p.hasMcp;
+  if (cat === "Skills") return p.hasSkills;
+  if (cat === "插件") return !p.hasMcp && !p.hasSkills;
+  return true;
+}
 
 /**
- * 插件市场(MARKET)面板 Market —— 从旧 Shop 的「插件市场」tab 拆出的独立面板。
+ * 插件市场(MARKET)面板 — 渲染真实插件目录(来自引擎 PluginsMessage),
+ * 安装 / 启用 / 停用 / 卸载按钮经 sendCommand 上行到引擎处理。
  *
- * **整面板 mock + banner**:Roguent 引擎无插件市场,这里的插件 / 评分 / 安装数 /
- * 拥有状态全为示例占位,「安装」按钮不绑真实逻辑,只忠实复刻原型外观。
- *
- * Zustand selector 铁律:只取基元值(布尔)或稳定引用;分类 / 搜索过滤等派生操作
- * 放在 render 体里。activePanel gate 放在所有 hooks 之后(React hooks 规则)。
+ * Zustand selector 铁律:只取基元值或稳定引用;派生过滤在 render 体里做。
+ * hooks 全在 early return 之前(React hooks 规则)。
  */
 export function Market() {
   const active = useUiStore((s) => s.activePanel === "market");
   const closePanel = useUiStore((s) => s.closePanel);
+  const plugins = useRoomStore((s) => s.plugins);
+  const busy = useRoomStore((s) => s.pluginsBusy);
   const t = useT();
-  // 分类、搜索串,均为本地 UI 态。
-  const [cat, setCat] = useState("全部");
+  const [cat, setCat] = useState<string>("全部");
   const [q, setQ] = useState("");
 
   if (!active) return null;
 
-  // 已安装计数:拥有的插件数(供「已安装」分类右侧角标)。
-  const ownedCount = SHOP_PLUGINS.filter((p) => p.owned).length;
+  const installedCount = plugins.filter((p) => p.installed).length;
+  const busyIds = new Set(busy.map((b) => b.id));
 
-  // 在 render 体里对本地 mock 常量过滤(同原型逻辑):cat==='已安装'→ owned;
-  // cat!=='全部'→ p.cat===cat;再叠加 q(name 或 desc 包含 q)。不在 selector 里。
-  const plugins = SHOP_PLUGINS.filter((p) => {
-    if (cat === "已安装") return p.owned;
-    if (cat !== "全部") return p.cat === cat;
-    return true;
-  }).filter((p) => !q || p.name.includes(q) || p.desc.includes(q));
+  const list = plugins
+    .filter((p) => matchesCat(p, cat))
+    .filter(
+      (p) =>
+        !q ||
+        p.name.toLowerCase().includes(q.toLowerCase()) ||
+        p.description.toLowerCase().includes(q.toLowerCase()),
+    );
+
+  const act = (
+    action: "install" | "enable" | "disable" | "uninstall",
+    id: string,
+  ) => sendCommand({ cmd: "plugins", action, pluginId: id });
 
   return (
     <Modal
@@ -44,14 +62,7 @@ export function Market() {
       onClose={closePanel}
     >
       <div className="shop-wrap">
-        {/* mock 标注:整面板示例数据,显眼 banner——引擎无插件市场。 */}
-        <div className="task-mock-banner">
-          <Icon name="error" size={14} glow="#f2c84b" />
-          {t("示例插件 · 安装逻辑未接入(引擎暂无插件市场)")}
-        </div>
-
         <div className="shop-market">
-          {/* 左侧:搜索框 + 分类列表。 */}
           <div className="shop-side">
             <div className="shop-search">
               <Icon name="search" size={16} />
@@ -62,7 +73,7 @@ export function Market() {
                 onChange={(e) => setQ(e.target.value)}
               />
             </div>
-            {SHOP_CATS.map((c) => (
+            {CATS.map((c) => (
               <button
                 key={c}
                 type="button"
@@ -71,65 +82,133 @@ export function Market() {
               >
                 {t(c)}
                 {c === "已安装" && (
-                  <span className="shop-cat-n px">{ownedCount}</span>
+                  <span className="shop-cat-n px">{installedCount}</span>
                 )}
               </button>
             ))}
             <div className="shop-side-note faint">
-              {t(
-                "评分 / 安装数为示例 · 真实能力以本机已配置的 MCP / Skills 为准",
-              )}
+              {t("插件变更对新建会话生效")}
             </div>
           </div>
 
-          {/* 右侧:过滤后的插件卡 grid。 */}
           <div className="shop-grid scroll">
-            {plugins.map((p) => (
-              <div key={p.id} className="plugin-card">
-                <div className="plugin-top">
-                  <div className="plugin-ic">
-                    <Icon name={p.icon} size={30} glow="#36c5e0" />
-                  </div>
-                  <div className="plugin-meta">
-                    <div className="plugin-name">{p.name}</div>
-                    <div className="faint" style={{ fontSize: 11 }}>
-                      by {p.author}
+            {list.length === 0 ? (
+              <div className="faint" style={{ padding: "24px 16px" }}>
+                {plugins.length === 0 ? (
+                  <>
+                    <div>{t("目录未就绪")}</div>
+                    <div style={{ fontSize: 11, marginTop: 4 }}>
+                      {t("引擎还未广播插件目录")}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>{t("无匹配结果")}</div>
+                    <div style={{ fontSize: 11, marginTop: 4 }}>
+                      {t("尝试调整搜索词或分类筛选")}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              list.map((p) => {
+                const isBusy = busyIds.has(p.id);
+                return (
+                  <div key={p.id} className="plugin-card">
+                    <div className="plugin-top">
+                      <div className="plugin-ic">
+                        <Icon name="mcp" size={30} glow="#36c5e0" />
+                      </div>
+                      <div className="plugin-meta">
+                        <div className="plugin-name">{p.name}</div>
+                        <div className="faint" style={{ fontSize: 11 }}>
+                          by {p.author ?? "—"}
+                        </div>
+                      </div>
+                      <span className="chip px" style={{ fontSize: 8 }}>
+                        {t(p.componentType)}
+                      </span>
+                    </div>
+                    <div className="plugin-desc">{p.description}</div>
+                    <div className="plugin-bottom">
+                      {p.category && (
+                        <span className="chip px" style={{ fontSize: 8 }}>
+                          {p.category}
+                        </span>
+                      )}
+                      <span className="faint" style={{ fontSize: 11 }}>
+                        {p.installs !== null
+                          ? `${formatInstalls(p.installs)} ${t("次安装")}`
+                          : "—"}
+                      </span>
+                      <span className="chip px" style={{ fontSize: 8 }}>
+                        {p.marketplace}
+                      </span>
+                      <div style={{ flex: 1 }} />
+                      {renderAction(p, isBusy, t, act)}
                     </div>
                   </div>
-                  <span className="chip px" style={{ fontSize: 8 }}>
-                    {p.cat}
-                  </span>
-                </div>
-                <div className="plugin-desc">{p.desc}</div>
-                <div className="plugin-bottom">
-                  {/* ★ 是普通星号字符(非 emoji),可用。 */}
-                  <span
-                    className="px"
-                    style={{ fontSize: 9, color: "#f2c84b" }}
-                  >
-                    ★ {p.stars}
-                  </span>
-                  <span className="faint" style={{ fontSize: 11 }}>
-                    {p.installs} 安装
-                  </span>
-                  <span className="chip px" style={{ fontSize: 8 }}>
-                    {p.runtime === "both" ? t("通用") : "Claude"}
-                  </span>
-                  <div style={{ flex: 1 }} />
-                  {/* mock 视觉:「安装」按钮不绑真实逻辑。 */}
-                  {p.owned ? (
-                    <span className="chip greenc">{t("已启用")}</span>
-                  ) : (
-                    <button type="button" className="pxbtn gold sm cjk">
-                      {t("安装")}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                );
+              })
+            )}
           </div>
         </div>
       </div>
     </Modal>
+  );
+}
+
+function formatInstalls(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+}
+
+function renderAction(
+  p: PluginEntry,
+  isBusy: boolean,
+  t: (s: string) => string,
+  act: (a: "install" | "enable" | "disable" | "uninstall", id: string) => void,
+) {
+  if (isBusy) return <span className="chip">{t("处理中…")}</span>;
+  if (!p.installed)
+    return (
+      <button
+        type="button"
+        className="pxbtn gold sm cjk"
+        onClick={() => act("install", p.id)}
+      >
+        {t("安装")}
+      </button>
+    );
+  if (p.enabled)
+    return (
+      <>
+        <span className="chip greenc">{t("已启用")}</span>
+        <button
+          type="button"
+          className="pxbtn sm cjk"
+          onClick={() => act("disable", p.id)}
+        >
+          {t("停用")}
+        </button>
+      </>
+    );
+  return (
+    <>
+      <button
+        type="button"
+        className="pxbtn gold sm cjk"
+        onClick={() => act("enable", p.id)}
+      >
+        {t("启用")}
+      </button>
+      <button
+        type="button"
+        className="pxbtn sm cjk"
+        onClick={() => act("uninstall", p.id)}
+      >
+        {t("卸载")}
+      </button>
+    </>
   );
 }

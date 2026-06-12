@@ -1,0 +1,25 @@
+{
+  "name": "official",
+  "plugins": [
+    {
+      "name": "alpha-mcp",
+      "displayName": "Alpha MCP",
+      "description": "An MCP plugin.",
+      "author": { "name": "anthropic" },
+      "category": "development"
+    },
+    {
+      "name": "beta-skill",
+      "description": "A skill plugin.",
+      "author": { "name": "community" },
+      "category": "testing",
+      "skills": [{ "name": "beta" }]
+    },
+    {
+      "name": "gamma-cmd",
+      "description": "A command plugin.",
+      "author": { "name": "studio" },
+      "category": "productivity"
+    }
+  ]
+}

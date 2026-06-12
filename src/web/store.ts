@@ -38,6 +38,9 @@ import type {
   PairingBindingUpdatedPayload,
   PairingQr,
   PairingQrUpdatedPayload,
+  PluginActionState,
+  PluginEntry,
+  PluginsMessage,
   PromptRequestedPayload,
   PromptResolvedPayload,
   RoguentSettings,
@@ -1361,6 +1364,9 @@ export interface RoomStore extends RoomStateWithPrototype {
   reconcileSessions: (ids: string[]) => void;
   limits: AccountLimits | null;
   setLimits: (limits: AccountLimits) => void;
+  plugins: PluginEntry[];
+  pluginsBusy: PluginActionState[];
+  setPlugins: (msg: PluginsMessage) => void;
   setConnection: (c: ConnectionStatus) => void;
 }
 
@@ -1372,6 +1378,9 @@ export const useRoomStore = create<RoomStore>((set) => ({
   ...createPrototypeStateSlices(),
   limits: null,
   setLimits: (limits) => set({ limits }),
+  plugins: [],
+  pluginsBusy: [],
+  setPlugins: (msg) => set({ plugins: msg.plugins, pluginsBusy: msg.busy }),
   setConnection: (connection) => set({ connection }),
   applyEvent: (e) => set((st) => reduce(st, e)),
   switchSession: (id) => set({ currentSessionId: id }),

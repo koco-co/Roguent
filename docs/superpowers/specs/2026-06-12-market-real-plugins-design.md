@@ -66,7 +66,11 @@
 
 **⚠️ 可行性风险(实现首步必须先验证)**:install / enable 在**非交互(非 TTY)**下是否会弹确认提示。已知 `claude plugin list` 在 `< /dev/null` 下 exit 0 正常;所有目标插件都来自**已知市场**(无新市场 trust 提示)。若某 op 仍需交互,则该 op **回落为「复制命令」**(给出 `/plugin install <name>` 让用户在 Claude Code 内执行),其余 op 不受影响。
 
+> **✅ 探针结论(2026-06-12,本机实测)**:`claude plugin disable/enable context7@claude-plugins-official --scope user < /dev/null` 两条均 `exit=0`、无任何交互阻塞,操作后插件状态正确复原(`Status: ✔ enabled`)。**非交互路径可用,无需「复制命令」回落。**
+
 **安装即启用**:UI 的「安装」语义 = `install`(CLI 默认会 enable)。实现首步同时核验 install 是否真的顺带写 `enabledPlugins=true`;若不会,则「安装」内部串行执行 `install` 后再 `enable`。
+
+> **✅ 探针结论(同上)**:`claude plugin install --help` 仅有 `--config` / `--scope` / `--help` 三个选项,**无 `--no-enable` 类开关**;本机 `enabledPlugins` 中已装插件皆为 true。佐证 install 默认顺带 enable,「安装」无需追加 `enable` 串行步骤。
 
 ## 4. 协议(照搬 limits 非 seq 样板)
 

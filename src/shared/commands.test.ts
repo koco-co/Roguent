@@ -546,3 +546,55 @@ test("parseClientCommand rejects non-conservative prototype payloads", () => {
     }).ok,
   ).toBe(false);
 });
+
+test("plugins command: 合法 install 解析通过", () => {
+  const r = parseClientCommand(
+    JSON.stringify({
+      cmd: "plugins",
+      action: "install",
+      pluginId: "context7@claude-plugins-official",
+    }),
+  );
+  expect(r.ok).toBe(true);
+  if (r.ok)
+    expect(r.command).toEqual({
+      cmd: "plugins",
+      action: "install",
+      pluginId: "context7@claude-plugins-official",
+    });
+});
+
+test("plugins command: 非法 action 被拒", () => {
+  const r = parseClientCommand(
+    JSON.stringify({ cmd: "plugins", action: "frobnicate", pluginId: "x@y" }),
+  );
+  expect(r.ok).toBe(false);
+});
+
+test("plugins command: 空 pluginId 被拒", () => {
+  const r = parseClientCommand(
+    JSON.stringify({ cmd: "plugins", action: "enable", pluginId: "   " }),
+  );
+  expect(r.ok).toBe(false);
+});
+
+test("plugins command: pluginId 前后空格被 trim 且解析成功", () => {
+  const r = parseClientCommand({
+    cmd: "plugins",
+    action: "enable",
+    pluginId: "  foo@bar  ",
+  });
+  expect(r.ok).toBe(true);
+  if (r.ok) {
+    expect(r.command).toEqual({
+      cmd: "plugins",
+      action: "enable",
+      pluginId: "foo@bar",
+    });
+  }
+});
+
+test("plugins command: 缺少 pluginId 被拒", () => {
+  const r = parseClientCommand({ cmd: "plugins", action: "enable" });
+  expect(r.ok).toBe(false);
+});

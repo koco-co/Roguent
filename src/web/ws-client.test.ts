@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import type { RoomEvent } from "../shared/events";
+import type { PluginsMessage, RoomEvent } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
 import { useUiStore } from "./ui-store";
 import { handleIncoming, sendCommand } from "./ws-client";
@@ -119,4 +119,24 @@ test("connectRoom stores commandError control messages in ui state", () => {
   } finally {
     conn.close();
   }
+});
+
+test("handleIncoming: kind:plugins → onPlugins", () => {
+  const got: PluginsMessage[] = [];
+  const events: unknown[] = [];
+  handleIncoming(
+    JSON.stringify({
+      kind: "plugins",
+      ts: 1,
+      plugins: [{ id: "a@b" }],
+      busy: [],
+    }),
+    (e) => events.push(e),
+    undefined,
+    undefined,
+    (m) => got.push(m),
+  );
+  expect(got.length).toBe(1);
+  expect(got[0]?.plugins[0]?.id).toBe("a@b");
+  expect(events).toHaveLength(0);
 });

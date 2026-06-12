@@ -1,10 +1,13 @@
 import { WebSocketServer } from "ws";
 import { readOauthCredentials } from "./credentials";
+import { cliPathFromEnv } from "./driver";
 import { resolveIngressPort, startIngressServer } from "./ingress/server";
 import { startLiveIntegrations } from "./integrations/live";
 import { createMailboxService } from "./mailbox/service";
 import { openDatabase, resolveDatabasePath } from "./persistence/db";
 import { migrate } from "./persistence/migrations";
+import { claudeConfigDir } from "./plugins/paths";
+import { createPluginsService } from "./plugins/service";
 import { resolvePort } from "./port";
 import { replayTimed } from "./record";
 import { loadAnyFixture } from "./replay/prototype-fixtures";
@@ -56,10 +59,16 @@ if (replayFixture) {
   const secretStore = new KeychainSecretStore();
   const mgr = new SessionManager(undefined, process.cwd(), { auditDb: db });
   const scheduler = createSchedulerService(db);
+  const pluginsService = createPluginsService({
+    configDir: claudeConfigDir(),
+    // dev 回落 PATH 上的 claude(可能与 SDK 内置 CLI 版本不同);Tauri 下走 ROGUENT_CLI_PATH。
+    cliPath: cliPathFromEnv(process.env) ?? "claude",
+  });
   const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`), {
     mailbox: createMailboxService(db),
     scheduler,
     settings: createSettingsService(db, secretStore),
+    plugins: pluginsService,
   });
   const schedulerRunner = createSchedulerRunner({ db, sessions: mgr });
   schedulerRunner.start();
@@ -95,5 +104,7 @@ if (replayFixture) {
   });
   // 进程级 5 分钟轮询,随引擎生命周期常驻;无需显式 stop()(进程退出即止)。
   poller.start();
+  // 启动即读一次真实插件目录并广播(连入的客户端经 lastPlugins 重放)。
+  gateway.pushPlugins(pluginsService.snapshot(), []);
   console.log("[server] LIVE");
 }

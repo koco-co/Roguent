@@ -199,6 +199,19 @@ export interface SettingsCommand {
   metadata?: Record<string, unknown>;
 }
 
+export interface PluginsCommand {
+  cmd: "plugins";
+  action: "install" | "enable" | "disable" | "uninstall";
+  pluginId: string;
+}
+
+export const PLUGIN_ACTIONS = [
+  "install",
+  "enable",
+  "disable",
+  "uninstall",
+] as const satisfies readonly PluginsCommand["action"][];
+
 export type ClientCommand =
   | NewSessionCommand
   | SendMessageCommand
@@ -218,7 +231,8 @@ export type ClientCommand =
   | SchedulerCommand
   | MailboxCommand
   | EconomyCommand
-  | SettingsCommand;
+  | SettingsCommand
+  | PluginsCommand;
 
 export type ParseClientCommandFailure = {
   ok: false;
@@ -351,6 +365,8 @@ export function parseClientCommand(raw: unknown): ParseClientCommandResult {
       return parseEconomyCommand(o);
     case "settings":
       return parseSettingsCommand(o);
+    case "plugins":
+      return parsePluginsCommand(o);
     default:
       return fail("Unknown client command", sessionIdOf(o));
   }
@@ -696,6 +712,30 @@ function parseEconomyCommand(
     default:
       return fail("Unknown economy action", sessionIdOf(o));
   }
+}
+
+function isPluginAction(x: unknown): x is PluginsCommand["action"] {
+  return (
+    typeof x === "string" && (PLUGIN_ACTIONS as readonly string[]).includes(x)
+  );
+}
+
+function parsePluginsCommand(
+  o: Record<string, unknown>,
+): ParseClientCommandResult {
+  const pluginId =
+    typeof o.pluginId === "string" ? o.pluginId.trim() : undefined;
+  if (isPluginAction(o.action) && pluginId) {
+    return {
+      ok: true,
+      command: {
+        cmd: "plugins",
+        action: o.action,
+        pluginId,
+      },
+    };
+  }
+  return fail("Invalid plugins command", sessionIdOf(o));
 }
 
 function parseSettingsCommand(

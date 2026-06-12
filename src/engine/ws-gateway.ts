@@ -8,6 +8,9 @@ import type {
   InventoryUpdatedPayload,
   LimitsMessage,
   MailboxItem,
+  PluginActionPhase,
+  PluginEntry,
+  PluginsMessage,
   RoguentSettings,
   RoomEvent,
   SettingsScope,
@@ -75,12 +78,21 @@ export interface GatewayGachaService {
     | { ok: false; reason: "insufficient_balance" | "unknown_sku" | string };
 }
 
+export interface GatewayPluginsService {
+  snapshot(): PluginEntry[];
+  runAction(
+    action: "install" | "enable" | "disable" | "uninstall",
+    pluginId: string,
+  ): Promise<PluginEntry[]>;
+}
+
 export interface WsGatewayOptions {
   mailbox?: GatewayMailboxService;
   scheduler?: GatewaySchedulerService;
   settings?: GatewaySettingsService;
   achievements?: GatewayAchievementsService;
   gacha?: GatewayGachaService;
+  plugins?: GatewayPluginsService;
   /**
    * Returns the initial value for the pull sequence counter. Called lazily on
    * the first pull so the gateway does not need to be async.
@@ -104,6 +116,7 @@ export class WsGateway {
   /** Lazily initialized from options.initialPullSeq on the first pull. */
   private pullSeq: number | null = null;
   private lastLimits: LimitsMessage | null = null;
+  private lastPlugins: PluginsMessage | null = null;
 
   constructor(
     port: number,
@@ -128,6 +141,7 @@ export class WsGateway {
   private handleConnection(ws: WebSocket): void {
     this.clients.add(ws);
     if (this.lastLimits) ws.send(JSON.stringify(this.lastLimits));
+    if (this.lastPlugins) ws.send(JSON.stringify(this.lastPlugins));
     // 当前会话花名册 → 客户端对账清幽灵(重连/换引擎后残留的旧会话)。
     this.reply(ws, {
       kind: "control",
@@ -169,6 +183,18 @@ export class WsGateway {
   pushLimits(limits: AccountLimits): void {
     const msg: LimitsMessage = { kind: "limits", ts: Date.now(), limits };
     this.lastLimits = msg;
+    const json = JSON.stringify(msg);
+    for (const ws of this.clients) if (ws.readyState === ws.OPEN) ws.send(json);
+  }
+
+  pushPlugins(plugins: PluginEntry[], busy: PluginsMessage["busy"]): void {
+    const msg: PluginsMessage = {
+      kind: "plugins",
+      ts: Date.now(),
+      plugins,
+      busy,
+    };
+    this.lastPlugins = msg;
     const json = JSON.stringify(msg);
     for (const ws of this.clients) if (ws.readyState === ws.OPEN) ws.send(json);
   }
@@ -248,6 +274,8 @@ export class WsGateway {
       void this.handleSettingsCommand(c, ws);
     } else if (c.cmd === "economy") {
       this.handleEconomyCommand(c, ws);
+    } else if (c.cmd === "plugins") {
+      void this.handlePluginsCommand(c, ws);
     } else {
       this.replyCommandError(
         ws,
@@ -284,6 +312,35 @@ export class WsGateway {
         undefined,
         `Economy command not implemented: ${commandLabel(c)}`,
       );
+    }
+  }
+
+  private async handlePluginsCommand(
+    c: Extract<ClientCommand, { cmd: "plugins" }>,
+    ws: WebSocket,
+  ): Promise<void> {
+    const svc = this.options.plugins;
+    if (!svc) {
+      this.replyCommandError(ws, undefined, "Plugins service unavailable");
+      return;
+    }
+    const current = this.lastPlugins?.plugins ?? svc.snapshot();
+    const phase: PluginActionPhase = PLUGIN_PHASE[c.action];
+    // Single-in-flight assumption: busy array is replaced, not merged.
+    // Fine for a single local user with a serialized service.
+    this.pushPlugins(current, [{ id: c.pluginId, phase }]);
+    try {
+      const fresh = await svc.runAction(c.action, c.pluginId);
+      this.pushPlugins(fresh, []);
+    } catch (error) {
+      // Broadcast actual service state rather than the pre-action snapshot so
+      // that partial mutations (and concurrent successes) are not clobbered.
+      this.pushPlugins(svc.snapshot(), []);
+      const message = error instanceof Error ? error.message : String(error);
+      const reason = message.startsWith("claude plugin")
+        ? message
+        : `Plugin ${c.action} failed: ${message}`;
+      this.replyCommandError(ws, undefined, reason);
     }
   }
 
@@ -529,6 +586,16 @@ export class WsGateway {
     this.reply(ws, msg);
   }
 }
+
+const PLUGIN_PHASE: Record<
+  "install" | "enable" | "disable" | "uninstall",
+  PluginActionPhase
+> = {
+  install: "installing",
+  enable: "enabling",
+  disable: "disabling",
+  uninstall: "uninstalling",
+};
 
 function commandSessionId(command: ClientCommand): string | undefined {
   return "sessionId" in command && typeof command.sessionId === "string"

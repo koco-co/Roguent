@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "plugins": {
+    "alpha-mcp@official": [{ "scope": "user" }],
+    "beta-skill@official": [{ "scope": "user" }]
+  }
+}
