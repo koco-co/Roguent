@@ -551,37 +551,6 @@ img {
 
 /* ── STAT BARS ─────────────────────────────────────────────── */
 /* ── 左上账户限额三条布局(移植自原型 layout.css)──────────────────────── */
-/* .limitbars 在 Hud 里无定位包裹,自带绝对定位维持左上角(原 .px-limits 行为) */
-.limitbars {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  width: 312px;
-}
-.lb-body {
-  padding: 12px 14px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.lb-plan {
-  font-size: 9px;
-}
-.lb-row {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.lb-row .barframe {
-  flex: 1;
-}
-.lb-reset {
-  font-size: 8px;
-  color: var(--ink-faint);
-  min-width: 48px;
-  text-align: right;
-}
-
 /* ── 英雄卡 PlayerCard(移植自原型 layout.css 的 .playercard / .pc-*)──────
    token 转换:原型 --ink(浅文本) → 本仓库 --text;--ink-dim → --muted。
    原型 .playercard 无定位(挂在左上栈),本仓库自带绝对定位维持左上角(原 .limitbars
