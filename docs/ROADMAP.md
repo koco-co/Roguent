@@ -210,7 +210,9 @@ status: living-doc
 
 **明确不做(无数据源 / 范围控制)**:events 登录活动弹窗 / dailyRewards(引擎无源,dock「活动」槽用真实公告板 board 占位,不造签到)· git 状态横幅(无 git 状态事件,SessionBanner 维持现状只接 i18n)· PlayerCard(LimitBars+RosterCard 已承载同信息)· Codex 真接入(维持视觉占位)· 设计 Settings 面板的 uiLanguage/uiFont radio(LangToggle 是真实入口,不在 mock 面板造真控件)。
 
-**已知小取舍 / backlog**:`src/web/hud/settings-schema.ts` 的 ~85 条字段 label/tip 是 Settings(mock 面板)的纯数据文案,本轮未接 `useT()`(包而不译会泄漏,逐条翻译超范围)——**无回归**(两语均显中文),待后续专门一轮 schema 数据翻译。大厅若干结构物(tower/shop x/gacha/doors)相对设计 `lobby.jsx` 的坐标偏差为**早于本轮的既存**,不在本轮 delta 范围,未动。
+**i18n 全量收口(sweep C,2026-06-12)**:合入后 preview EN 复验发现一批**未纳入 plan sweep A/B 文件清单**的次要组件仍漏中文,已补 sweep C 全部接通:C-1 = 氛围控件(辉光/雨幕/粒子/声音)、HeroSelect 角色名+提示、聊天内部(ChatHeader/Composer/Timeline/PromptCard/MessageBubble/ThinkingBlock)、pairing(PairingQr/BindingList/PairingPanel 渠道名)、PortalTransition、CatPet(SVG title);C-2 = `settings-schema.ts` ~88 条字段 label/tip/选项/组名(Settings mock 面板)在 `Settings.tsx` 渲染处接 `t()` + 全量入 DICT(schema 数据本身不改;hook `cmd` 等命令数据按设计不译)。至此 EN 模式无遗漏;DICT ~436 键;leak 脚本交叉核对 0 泄漏。
+
+**已知小取舍**:大厅若干结构物(tower/shop x/gacha/doors)相对设计 `lobby.jsx` 的坐标偏差为**早于本轮的既存**,不在本轮 delta 范围,未动。
 
 ---
 
