@@ -214,6 +214,15 @@ status: living-doc
 
 **已知小取舍**:大厅若干结构物(tower/shop x/gacha/doors)相对设计 `lobby.jsx` 的坐标偏差为**早于本轮的既存**,不在本轮 delta 范围,未动。
 
+**内景对齐设计稿(4 项,2026-06-12)**:design-delta-v2 合入后,用户对照设计原型 `Prototype/roguent/project/roguent/` 逐项核对内景,补齐四处视觉/信息密度差异(plan [interior-design-parity](superpowers/plans/2026-06-12-interior-design-parity.md);走 subagent-driven-development:每项 实现子代理 → 规格复核 → 质量复核 → 提交)。**真/假分明**同前:
+
+- **#2 抽屉「小队」头像行**(`ChatTeamStrip`,插入 `ChatDrawer` 配置条下方):**全接真** —— 队员头像/状态点来自 `session.agents`(role/status/kind),lead 用 `ORCHESTRATOR_HERO` 否则 `roleToHero`,复用 `HeroPortrait`;引擎不产出的 `st-askuser/st-todo` 等状态色不留死类(同 RosterCard 处理)。
+- **#3 消息作者「名 + role 徽」**(`MessageBubble`):**接真派生** —— 名 = role 的 `titleCase`(抽到 `src/shared/strings.ts` 复用),role 徽 = `AgentKind`(orchestrator→主控/subagent→分身,DICT EN: Lead/Subagent);user 消息无徽。
+- **#1 左上英雄卡 + PROFILE 面板**(`PlayerCard` 替换 `LimitBars`;`Account`→PROFILE):用户选「照搬设计原稿」。**真** = Context XP 条接 `session.context.utilization`(内景 gate、阈值 `<60/≤85/else` 着色)+ plan 名;**5h/Weekly 真实用量从常驻挪入点击打开的 PROFILE 面板**(`store.limits`,完整保留未弄丢)。**mock(三重标注:`MOCK_*` 命名 + 代码注释 + 面板 faint)** = Lv 47 / 名 `指挥官 Orc` / 句柄 `orc@roguent`(**不用真实 userEmail**);无 crown 资源故省略皇冠子节点。死代码 `LimitBars` 已删(其独有 `.limitbars/.lb-*` CSS 一并清,共享 `.barframe/.barfill` 保留)。
+- **#4 房间 NPC 头顶名牌**(`Character.tsx` 加 `pixiText`):**接真** —— 文案 `npcLabel(role,isLead)`(role `titleCase`,lead 带金色 `★`),挂在 `flipRef` **外**故小人翻转时文字不镜像;复用 `Room.tsx` 既有 `extend({…,Text})` 不重复注册;y=-38 在头顶、不挡 ToolBubble/Emote。
+
+门禁:`bun test` 744 pass + `bunx tsc --noEmit` 0 + `bun run check` 0 + `bun run build` 成功。涉及 `src/web/hud/{ChatTeamStrip,PlayerCard,Account,MessageBubble,ChatDrawer,Hud}.tsx`、`src/web/room/{Character,Room}.tsx`、`src/shared/strings.ts`、`src/web/styles.css`、`src/web/i18n.ts`。
+
 ---
 
 ## 4. Phase 2 —— 原愿景未实现功能(后续,先不展开)
