@@ -61,6 +61,7 @@ if (replayFixture) {
   const scheduler = createSchedulerService(db);
   const pluginsService = createPluginsService({
     configDir: claudeConfigDir(),
+    // dev 回落 PATH 上的 claude(可能与 SDK 内置 CLI 版本不同);Tauri 下走 ROGUENT_CLI_PATH。
     cliPath: cliPathFromEnv(process.env) ?? "claude",
   });
   const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`), {
