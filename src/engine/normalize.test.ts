@@ -55,12 +55,18 @@ test("system init → session.created with apiKeySource; result → usage", () =
     subtype: "init",
     apiKeySource: "oauth",
     slash_commands: ["/code-review"],
+    skills: ["brainstorming", "writing-plans"],
     model: "claude-opus-4-8",
   });
   expect(created?.type).toBe("session.created");
   expect((created?.payload as { apiKeySource: string }).apiKeySource).toBe(
     "oauth",
   );
+  // SDK init 把 skills 与 slash_commands 分两个字段上报;normalize 两者都要带出。
+  expect((created?.payload as { skills: string[] }).skills).toEqual([
+    "brainstorming",
+    "writing-plans",
+  ]);
   const [usage] = normalizeSdkMessage({
     type: "result",
     subtype: "success",

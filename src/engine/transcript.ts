@@ -64,6 +64,7 @@ export function normalizeTranscript(input: unknown[]): TimedDraft[] {
     permissionMode: "default",
     apiKeySource: "",
     slashCommands: [],
+    skills: [],
     cwd: cwd || undefined,
   };
   const out: TimedDraft[] = [
