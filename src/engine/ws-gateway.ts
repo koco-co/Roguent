@@ -326,17 +326,21 @@ export class WsGateway {
     }
     const current = this.lastPlugins?.plugins ?? svc.snapshot();
     const phase: PluginActionPhase = PLUGIN_PHASE[c.action];
+    // Single-in-flight assumption: busy array is replaced, not merged.
+    // Fine for a single local user with a serialized service.
     this.pushPlugins(current, [{ id: c.pluginId, phase }]);
     try {
       const fresh = await svc.runAction(c.action, c.pluginId);
       this.pushPlugins(fresh, []);
     } catch (error) {
-      this.pushPlugins(current, []);
-      this.replyCommandError(
-        ws,
-        undefined,
-        error instanceof Error ? error.message : String(error),
-      );
+      // Broadcast actual service state rather than the pre-action snapshot so
+      // that partial mutations (and concurrent successes) are not clobbered.
+      this.pushPlugins(svc.snapshot(), []);
+      const message = error instanceof Error ? error.message : String(error);
+      const reason = message.startsWith("claude plugin")
+        ? message
+        : `Plugin ${c.action} failed: ${message}`;
+      this.replyCommandError(ws, undefined, reason);
     }
   }
 

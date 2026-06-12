@@ -929,6 +929,111 @@ test("WsGateway dispatches rollback and retryFrom commands to SessionManager", a
   ]);
 });
 
+test("plugins: runAction failure broadcasts snapshot() catalog, not stale pre-action data, then replies commandError", async () => {
+  const allSent: string[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => allSent.push(msg),
+    on: () => undefined,
+  };
+
+  // Stale catalog pre-seeded into lastPlugins (installed: false).
+  const staleEntry: PluginEntry = {
+    id: "delta-cmd@official",
+    name: "delta",
+    marketplace: "official",
+    author: null,
+    description: "",
+    category: null,
+    componentType: "插件" as const,
+    hasMcp: false,
+    hasSkills: false,
+    installs: 10,
+    installed: false,
+    enabled: false,
+  };
+  // Fresh snapshot returned by service (installed: true — simulates partial mutation).
+  const freshEntry: PluginEntry = {
+    ...staleEntry,
+    installed: true,
+    enabled: true,
+  };
+
+  const svc: GatewayPluginsService = {
+    snapshot: () => [freshEntry],
+    runAction: async () => {
+      throw new Error("network timeout");
+    },
+  };
+
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+  } as unknown as SessionManager;
+
+  const gateway = new WsGateway(0, mgr, undefined, { plugins: svc });
+
+  // Pre-seed lastPlugins with stale data (installed: false).
+  gateway.pushPlugins([staleEntry], []);
+
+  // Connect the client so it is in the broadcast set and receives pushPlugins frames.
+  invokeHandleConnection(gateway, ws);
+  // Wait for publishSavedSettings tick (no settings svc, resolves immediately).
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  try {
+    // Clear connect-time replay frames; only watch command-triggered ones.
+    allSent.length = 0;
+
+    // Issue install command — runAction will reject.
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "plugins",
+        action: "install",
+        pluginId: "delta-cmd@official",
+      }),
+      ws,
+    );
+    // Wait for async runAction rejection.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    const frames = allSent.map((s) => JSON.parse(s) as Record<string, unknown>);
+    const pluginsFrames = frames.filter((f) => f.kind === "plugins") as Array<{
+      kind: string;
+      plugins: PluginEntry[];
+      busy: { id: string; phase: string }[];
+    }>;
+    const controlFrames = frames.filter((f) => f.kind === "control") as Array<{
+      kind: string;
+      type: string;
+      reason: string;
+    }>;
+
+    // 1. First plugins frame: busy broadcast.
+    expect(pluginsFrames.length).toBeGreaterThanOrEqual(2);
+    const busyFrame = pluginsFrames[0];
+    expect(busyFrame?.busy).toHaveLength(1);
+    expect(busyFrame?.busy[0]?.phase).toBe("installing");
+
+    // 2. Second plugins frame: rollback via snapshot() — must contain FRESH data
+    //    (installed: true), NOT the stale pre-action snapshot (installed: false).
+    const rollbackFrame = pluginsFrames[pluginsFrames.length - 1];
+    expect(rollbackFrame?.busy).toEqual([]);
+    expect(rollbackFrame?.plugins[0]?.installed).toBe(true);
+
+    // 3. commandError reply on the issuing socket.
+    expect(controlFrames).toHaveLength(1);
+    expect(controlFrames[0]?.type).toBe("commandError");
+    expect(controlFrames[0]?.reason).toBe(
+      "Plugin install failed: network timeout",
+    );
+  } finally {
+    await closeGateway(gateway);
+  }
+});
+
 test("plugins: connect-time replay lastPlugins + command triggers busy→fresh broadcast", async () => {
   // Track all messages sent on each fake WebSocket.
   const wsSent: string[] = [];
@@ -973,11 +1078,7 @@ test("plugins: connect-time replay lastPlugins + command triggers busy→fresh b
   const gateway = new WsGateway(0, mgr, undefined, { plugins: svc });
 
   // Pre-seed lastPlugins via pushPlugins before client connects.
-  (
-    gateway as unknown as {
-      pushPlugins: (p: PluginEntry[], b: unknown[]) => void;
-    }
-  ).pushPlugins(svc.snapshot(), []);
+  gateway.pushPlugins(svc.snapshot(), []);
 
   try {
     // Connect client — should receive replay frame first (kind:"plugins", installed:false).
@@ -987,7 +1088,7 @@ test("plugins: connect-time replay lastPlugins + command triggers busy→fresh b
 
     // Verify connect-time replay: first non-roster message should be the plugins frame.
     const frames = wsSent.map((s) => JSON.parse(s) as Record<string, unknown>);
-    // First frame: roster (kind:"control"), second: plugins replay.
+    // First frame: plugins replay, second: roster (kind:"control").
     const pluginsReplay = frames.find((f) => f.kind === "plugins");
     expect(pluginsReplay).toBeDefined();
     const replayMsg = pluginsReplay as {
