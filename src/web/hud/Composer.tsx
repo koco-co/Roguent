@@ -19,21 +19,11 @@ export function Composer({ sessionId }: { sessionId: string }) {
     }
   };
 
-  // / 菜单 = 命令(有命令文件)+ 技能(SDK init 的 skills,如 /brainstorming)。
-  // 技能名规整成带前导 /,按规整后字符串去重(/code-review 可能既是命令又是技能)。
-  // 在 render 体里合并,不进 selector(守 zustand selector 铁律)。
-  const slashItems = Array.from(
-    new Set([
-      ...(session?.slashCommands ?? []),
-      ...(session?.skills ?? []).map((s) => (s.startsWith("/") ? s : `/${s}`)),
-    ]),
-  );
-
   return (
     <div className="cdrawer-input" style={{ position: "relative" }}>
-      {slashOpen && slashItems.length > 0 ? (
+      {slashOpen && (session?.slashCommands?.length ?? 0) > 0 ? (
         <SlashMenu
-          commands={slashItems}
+          commands={session!.slashCommands}
           filter={text.slice(1)}
           onSelect={(cmd) => {
             setText(`${cmd} `);

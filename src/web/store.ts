@@ -884,7 +884,6 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
       title: string;
       model: string;
       slashCommands?: string[];
-      skills?: string[];
       cwd?: string;
       project?: string;
       permissionMode?: string;
@@ -908,7 +907,6 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
         slashCommands: p.slashCommands?.length
           ? p.slashCommands
           : existing.slashCommands,
-        skills: p.skills?.length ? p.skills : existing.skills,
         cwd: existing.cwd ?? p.cwd,
         project: proj,
         // SDK init 派生的第二条带真实 permissionMode;只在它是非 default 时覆盖,
@@ -954,7 +952,6 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
       title: p.title || e.sessionId,
       model: p.model,
       slashCommands: p.slashCommands ?? [],
-      skills: p.skills ?? [],
       cwd: p.cwd,
       project: p.project,
       // 合成的第一条恒为 "default";若首条已带真实模式(如 init 先于合成到达)则尊重之。

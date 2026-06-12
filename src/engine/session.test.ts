@@ -92,7 +92,6 @@ test("session.created draft from SDK init is enriched with the user title", () =
           model: "sdk-model",
           permissionMode: "acceptEdits",
           slashCommands: ["/compact"],
-          skills: ["brainstorming"],
         },
       },
     ],
@@ -106,13 +105,11 @@ test("session.created draft from SDK init is enriched with the user title", () =
     model: string;
     permissionMode: string;
     slashCommands: string[];
-    skills: string[];
   };
   expect(payload.title).toBe("code-review · kata");
   expect(payload.model).toBe("sdk-model");
   expect(payload.permissionMode).toBe("acceptEdits");
   expect(payload.slashCommands).toEqual(["/compact"]);
-  expect(payload.skills).toEqual(["brainstorming"]);
 });
 
 test("createSession stamps cwd + derived project onto session.created", () => {

@@ -224,11 +224,6 @@ export class SessionManager {
           (item): item is string => typeof item === "string",
         )
       : [];
-    const skills = Array.isArray(incoming.skills)
-      ? incoming.skills.filter(
-          (item): item is string => typeof item === "string",
-        )
-      : [];
     const payload: SessionCreatedPayload = {
       title: state.title,
       model: state.config.model,
@@ -237,7 +232,6 @@ export class SessionManager {
       apiKeySource:
         typeof incoming.apiKeySource === "string" ? incoming.apiKeySource : "",
       slashCommands,
-      skills,
       cwd: state.cwd,
       project: state.project,
       sandboxMode: state.config.sandboxMode,

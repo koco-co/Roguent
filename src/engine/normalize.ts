@@ -23,10 +23,6 @@ export interface SdkMessageLike {
   session_id?: string;
   apiKeySource?: string;
   slash_commands?: string[];
-  // SDK init 把 skills 与 slash_commands 分两个字段上报:slash_commands 只含有命令
-  // 文件(.claude/commands/*.md)的命令,skills 是技能(superpowers 等插件迁成的纯
-  // skill,如 /brainstorming),交互式 CLI 才会自动把后者生成 /xxx 入口。两者都要带出。
-  skills?: string[];
   model?: string;
   permissionMode?: string;
   parent_tool_use_id?: string | null;
@@ -194,7 +190,6 @@ export function normalizeSdkMessage(m: SdkMessageLike): DraftEvent[] {
           permissionMode: m.permissionMode ?? "default",
           apiKeySource: m.apiKeySource ?? "",
           slashCommands: m.slash_commands ?? [],
-          skills: m.skills ?? [],
         },
       },
     ];

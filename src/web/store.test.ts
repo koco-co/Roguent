@@ -615,12 +615,7 @@ test("a second session.created (from SDK init) merges, keeping messages and fill
     empty,
     ev({
       type: "session.created",
-      payload: {
-        title: "会话 1",
-        model: "claude-opus-4-8",
-        slashCommands: [],
-        skills: [],
-      },
+      payload: { title: "会话 1", model: "claude-opus-4-8", slashCommands: [] },
     }),
   );
   st = reduce(
@@ -636,12 +631,7 @@ test("a second session.created (from SDK init) merges, keeping messages and fill
     ev({
       seq: 9,
       type: "session.created",
-      payload: {
-        title: "会话 1",
-        model: "m",
-        slashCommands: ["/review"],
-        skills: ["brainstorming"],
-      },
+      payload: { title: "会话 1", model: "m", slashCommands: ["/review"] },
     }),
   );
   expect(st.sessions.s1?.timeline).toHaveLength(1);
@@ -649,8 +639,6 @@ test("a second session.created (from SDK init) merges, keeping messages and fill
     "first reply",
   );
   expect(st.sessions.s1?.slashCommands).toEqual(["/review"]);
-  // SDK init 的 skills 与 slashCommands 同样幂等合并到会话上。
-  expect(st.sessions.s1?.skills).toEqual(["brainstorming"]);
 });
 
 test("session.created merges runtime config without resetting timeline", () => {

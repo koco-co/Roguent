@@ -176,8 +176,6 @@ export interface Session {
   reasoningEffort?: ReasoningEffort;
   networkAccess: boolean;
   slashCommands: string[];
-  // SDK init 上报的可用技能(superpowers 等迁成纯 skill 的命令,如 /brainstorming)。
-  skills: string[];
   agents: Record<string, Agent>;
   timeline: TimelineItem[];
   loot: Loot[];
@@ -263,7 +261,6 @@ export function createSession(partial: CreateSessionInput): Session {
     loot: [],
     todos: {},
     slashCommands: [],
-    skills: [],
     usage: { tokens: 0, cost: 0 },
     createdAt: 0,
     lastActiveAt: 0,
