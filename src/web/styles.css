@@ -4121,6 +4121,346 @@ img {
   pointer-events: none;
 }
 
+/* ============================================================
+   HUB 环境装饰 — port 自原型 extra.css §WARM TOWN HUB + layout.css
+   (阳光 / 暗角 / 火星 / 浮叶 / 萤火虫 / 广场符文环 / 火把 / 雕像)。
+   日夜切换无真实设置源:tod-tint / hub-sun 直接固化原型 .tod-day 观感。
+   ============================================================ */
+/* 暗角:基础(layout.css:8)+ town 变体(extra.css:80)。 */
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    125% 95% at 50% 40%,
+    transparent 38%,
+    rgba(7, 12, 16, 0.5) 70%,
+    rgba(5, 9, 13, 0.92) 100%
+  );
+}
+.vignette.town {
+  background: radial-gradient(
+    132% 102% at 50% 38%,
+    transparent 54%,
+    rgba(44, 26, 12, 0.32) 84%,
+    rgba(28, 16, 8, 0.6) 100%
+  );
+}
+/* 阳光(extra.css:81;opacity:1 即 .tod-day 档)。 */
+.hub-sun {
+  position: absolute;
+  left: 50%;
+  top: 10%;
+  width: 920px;
+  height: 680px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 224, 160, 0.28),
+    transparent 64%
+  );
+  mix-blend-mode: screen;
+  opacity: 1;
+}
+/* 时段色罩:固定 day 渐变(原型 .tod-day .tod-tint,extra.css:536)。 */
+.tod-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 18;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 236, 180, 0.05),
+    rgba(255, 210, 150, 0.03)
+  );
+}
+/* 上浮火星(extra.css:97)。 */
+.ember {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #ffc079;
+  box-shadow: 0 0 7px #ff944d;
+  z-index: 3;
+  pointer-events: none;
+  animation: emberrise linear infinite;
+}
+@keyframes emberrise {
+  from {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.85;
+  }
+  50% {
+    transform: translateY(-380px) translateX(12px);
+  }
+  to {
+    transform: translateY(-760px) translateX(-8px);
+    opacity: 0;
+  }
+}
+/* 城墙火把(extra.css:101-113)。 */
+.torch {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  pointer-events: none;
+}
+.torch-bracket {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  width: 8px;
+  height: 26px;
+  transform: translateX(-50%);
+  background: linear-gradient(#5a3a1e, #2c1c10);
+  box-shadow: 0 0 0 2px #2c1c10;
+}
+.torch-flame {
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  width: 16px;
+  height: 24px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, #fff3c8, #ffb13c 40%, #ff5a22);
+  clip-path: polygon(50% 0, 78% 36%, 68% 70%, 50% 100%, 32% 70%, 22% 36%);
+  filter: drop-shadow(0 0 8px #ff7a2c);
+  animation: flicker 0.22s steps(2) infinite;
+}
+@keyframes flicker {
+  50% {
+    transform: translateX(-50%) scaleY(1.15) scaleX(0.92);
+    filter: drop-shadow(0 0 12px #ff8a3c) brightness(1.12);
+  }
+}
+.torch-glow {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 140px;
+  height: 140px;
+  transform: translate(-50%, -46%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 150, 60, 0.34), transparent 64%);
+  mix-blend-mode: screen;
+  animation: torchpulse 1.6s ease-in-out infinite;
+}
+@keyframes torchpulse {
+  50% {
+    opacity: 0.65;
+  }
+}
+.torch-spark {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  width: 3px;
+  height: 3px;
+  background: #ffd08a;
+  box-shadow: 0 0 5px #ff944d;
+  animation: torchspark 1.5s linear infinite;
+}
+@keyframes torchspark {
+  from {
+    transform: translate(-50%, 0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -60px) translateX(8px);
+    opacity: 0;
+  }
+}
+/* 石化英雄雕像(layout.css:671-678):石化滤镜 + 基座 + 呼吸光晕。 */
+.hub-statue {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 5;
+  pointer-events: none;
+}
+.hub-statue-fig {
+  filter: grayscale(1) brightness(1.18) contrast(0.82) sepia(0.12);
+  opacity: 0.92;
+}
+.hub-statue-ped {
+  position: relative;
+  width: 62px;
+  height: 26px;
+  margin-top: -4px;
+  background: linear-gradient(180deg, #9a9aa4, #5c5c66 60%, #3a3a42);
+  box-shadow: 0 0 0 3px #23232a, inset 0 3px 0 rgba(255, 255, 255, 0.22), inset
+    0 -5px 0 rgba(0, 0, 0, 0.32);
+}
+.hub-statue-ped::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 74px;
+  height: 16px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(8, 16, 8, 0.46), transparent 72%);
+}
+.hub-statue::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  width: 78px;
+  height: 96px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgba(120, 200, 220, 0.18),
+    transparent 70%
+  );
+  animation: statueaura 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes statueaura {
+  50% {
+    opacity: 0.4;
+  }
+}
+/* 任务台脚下的旋转符文环(layout.css:680-682;原型 960/512px → pct)。 */
+.hub-plaza-rune {
+  position: absolute;
+  left: 50%;
+  top: calc(100% * 512 / 1080);
+  width: 360px;
+  height: 360px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1;
+}
+.hub-plaza-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px dashed color-mix(in srgb, var(--rune, #36c5e0) 32%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--rune, #36c5e0) 17%, transparent),
+    inset 0 0 22px color-mix(in srgb, var(--rune, #36c5e0) 11%, transparent);
+  animation: runespin 30s linear infinite;
+}
+.hub-plaza-ring.rev {
+  inset: 46px;
+  border-style: dotted;
+  border-color: rgba(242, 200, 75, 0.26);
+  box-shadow: 0 0 14px rgba(242, 200, 75, 0.12);
+  animation: runespin 22s linear infinite reverse;
+}
+@keyframes runespin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* 飘落花瓣 / 树叶(layout.css:685-690)。 */
+.hub-leaf {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  z-index: 7;
+  opacity: 0.85;
+  animation: leaffall linear infinite;
+}
+.hub-leaf.k0 {
+  background: #7fc24a;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+.hub-leaf.k1 {
+  background: #f2c84b;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+.hub-leaf.k2 {
+  width: 8px;
+  height: 8px;
+  background: #ff9ed2;
+  border-radius: 50% 50% 50% 0;
+}
+.hub-leaf.k3 {
+  width: 8px;
+  height: 8px;
+  background: #ff6a7a;
+  border-radius: 50% 50% 50% 0;
+}
+@keyframes leaffall {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate(74px, 560px) rotate(220deg);
+  }
+  92% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-34px, 1180px) rotate(430deg);
+    opacity: 0;
+  }
+}
+/* 广场萤火虫(layout.css:693-694)。 */
+.hub-firefly {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff3b0;
+  box-shadow: 0 0 8px 2px rgba(255, 224, 120, 0.8);
+  pointer-events: none;
+  z-index: 7;
+  animation: firefly ease-in-out infinite;
+}
+@keyframes firefly {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate(20px, -16px);
+    opacity: 0.55;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-14px, -30px);
+    opacity: 0;
+  }
+}
+/* 动效开关:挂根节点 .stage 的 .no-motion(本仓设置只有开/关,不引入原型
+   fx 三档假设置;原型 .fx-off「停动画 / 隐粒子」那组规则并入此处)。 */
+.no-motion .ember,
+.no-motion .hub-leaf,
+.no-motion .hub-firefly {
+  display: none;
+}
+.no-motion .torch-flame,
+.no-motion .torch-glow,
+.no-motion .torch-spark,
+.no-motion .hub-plaza-ring,
+.no-motion .hub-statue::after {
+  animation: none;
+}
+
 /* structures */
 .structure {
   position: absolute;

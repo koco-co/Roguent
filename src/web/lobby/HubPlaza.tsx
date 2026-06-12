@@ -194,6 +194,25 @@ const DECOR: [string, number, number][] = [
   ["goblin", 120, 560],
 ];
 
+// ── 环境装饰(纯氛围,全确定性,禁 Math.random;照原型 lobby.jsx:147-181)──
+// 城墙火把坐标(虚拟 1920×1080)。
+const TORCHES: [number, number][] = [
+  [150, 150],
+  [560, 150],
+  [960, 120],
+  [1360, 150],
+  [1770, 150],
+];
+// 石化英雄雕像:[hero, x, y, flip],分立广场两侧。
+const STATUES: [string, number, number, boolean][] = [
+  ["knight_m", 724, 548, false],
+  ["elf_f", 1196, 548, true],
+];
+// 粒子参数走原型公式(density 固定 1):embers×18 / leaves×14 / fireflies×7。
+const EMBER_N = 18;
+const LEAF_N = 14;
+const FIREFLY_N = 7;
+
 const pct = (v: number, total: number) => `${(v / total) * 100}%`;
 const dist = (
   p: { x: number; y: number },
@@ -519,8 +538,74 @@ export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
     // biome-ignore lint/a11y/useKeyWithClickEvents: 点击寻路;键盘走 WASD,a11y 由 App 集中处理
     <div ref={hubRef} className="hub" onClick={clickBg}>
       <HubCanvas />
-      <div className="vignette" />
+      <div className="hub-sun" />
+      {/* 日夜切换无真实设置源,固定 day 观感(tod-tint/hub-sun 的 CSS 默认值
+          即原型 .tod-day 那组,见 styles.css §HUB 环境装饰)。 */}
+      <div className="tod-tint" />
+      <div className="vignette town" />
       <div className="hub-bigglow" />
+      {Array.from({ length: EMBER_N }, (_, i) => (
+        <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: 静态确定性粒子,数量固定不重排
+          key={`em${i}`}
+          className="ember"
+          style={{
+            left: `${4 + i * (95 / EMBER_N)}%`,
+            bottom: "-20px",
+            animationDelay: `${i * 0.6}s`,
+            animationDuration: `${8 + (i % 6)}s`,
+          }}
+        />
+      ))}
+      {Array.from({ length: LEAF_N }, (_, i) => (
+        <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: 静态确定性粒子,数量固定不重排
+          key={`lf${i}`}
+          className={`hub-leaf k${i % 4}`}
+          style={{
+            left: `${-4 + i * (100 / LEAF_N)}%`,
+            top: "-6%",
+            animationDelay: `${i * 1.3}s`,
+            animationDuration: `${11 + (i % 7)}s`,
+          }}
+        />
+      ))}
+      {Array.from({ length: FIREFLY_N }, (_, i) => (
+        <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: 静态确定性粒子,数量固定不重排
+          key={`ff${i}`}
+          className="hub-firefly"
+          style={{
+            left: pct(640 + ((i * 173) % 680), VW),
+            top: pct(390 + ((i * 97) % 280), VH),
+            animationDelay: `${i * 0.8}s`,
+            animationDuration: `${4 + (i % 4)}s`,
+          }}
+        />
+      ))}
+      <div className="hub-plaza-rune">
+        <div className="hub-plaza-ring" />
+        <div className="hub-plaza-ring rev" />
+      </div>
+      {TORCHES.map(([x, y], i) => (
+        <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: 静态固定坐标火把,不重排
+          key={`tor${i}`}
+          className="torch"
+          style={{ left: pct(x, VW), top: pct(y, VH) }}
+        >
+          <div className="torch-bracket" />
+          <div className="torch-flame" />
+          <div className="torch-glow" />
+          {[0, 1, 2].map((s) => (
+            <div
+              key={`s${s}`}
+              className="torch-spark"
+              style={{ animationDelay: `${s * 0.5}s` }}
+            />
+          ))}
+        </div>
+      ))}
       {DECOR.map(([hero, x, y]) => (
         <div
           key={hero}
@@ -528,6 +613,18 @@ export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
           style={{ left: pct(x, VW), top: pct(y, VH) }}
         >
           <PixelSprite base={hero} anim="idle" scale={3.4} flip={x > VW / 2} />
+        </div>
+      ))}
+      {STATUES.map(([hero, x, y, flip]) => (
+        <div
+          key={hero}
+          className="hub-statue"
+          style={{ left: pct(x, VW), top: pct(y, VH) }}
+        >
+          <div className="hub-statue-fig">
+            <PixelSprite base={hero} anim="idle" scale={3.6} flip={flip} />
+          </div>
+          <div className="hub-statue-ped" />
         </div>
       ))}
       {INTERACT.map((it) => (
