@@ -16,3 +16,7 @@ src-tauri/target/
 src-tauri/gen/
 src-tauri/binaries/
 src-tauri/resources/
+
+# 验证报告:每跑 bun test 自动生成时间戳文件,噪声不入仓(保留 .gitkeep + 一份证据)
+docs/verification/*.md
+!docs/verification/2026-06-10T07-29-18Z-roguent-full-prototype.md
