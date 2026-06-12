@@ -1,6 +1,7 @@
 import type React from "react";
 import { HeroPortrait } from "../hud/HeroPortrait";
 import { Icon } from "../hud/icons";
+import { useT } from "../i18n";
 import { useSettingsStore } from "../settings-store";
 
 export const HERO_SELECT_OPTIONS = [
@@ -20,6 +21,7 @@ export interface HeroSelectProps {
 }
 
 export function HeroSelect({ onSelect }: HeroSelectProps) {
+  const t = useT();
   const setSetting = useSettingsStore((s) => s.setSetting);
   const choose = onSelect ?? ((hero: string) => setSetting("avatarHero", hero));
 
@@ -36,7 +38,7 @@ export function HeroSelect({ onSelect }: HeroSelectProps) {
         <span className="title" style={{ color: "#f2c84b" }}>
           CHOOSE HERO
         </span>
-        <span className="sub cjk">选择像素角色进入大厅</span>
+        <span className="sub cjk">{t("选择像素角色进入大厅")}</span>
       </div>
       <div className="panel-body scroll" style={{ flex: 1, minHeight: 0 }}>
         <div className="charsel-grid">
@@ -56,7 +58,7 @@ export function HeroSelect({ onSelect }: HeroSelectProps) {
                   className=""
                 />
               </div>
-              <div className="charsel-name">{name}</div>
+              <div className="charsel-name">{t(name)}</div>
             </button>
           ))}
         </div>
@@ -64,7 +66,7 @@ export function HeroSelect({ onSelect }: HeroSelectProps) {
           className="faint"
           style={{ textAlign: "center", marginTop: 14, fontSize: 12 }}
         >
-          进入后用 WASD 或点击移动 · 走到中央任务台按 E 打开会话
+          {t("进入后用 WASD 或点击移动 · 走到中央任务台按 E 打开会话")}
         </div>
       </div>
     </div>

@@ -1,7 +1,9 @@
 import { useState } from "react";
 import type { TimelineThinkingItem } from "../../shared/domain";
+import { useT } from "../i18n";
 
 export function ThinkingBlock({ item }: { item: TimelineThinkingItem }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   return (
     <div className="thinking-block">
@@ -22,7 +24,7 @@ export function ThinkingBlock({ item }: { item: TimelineThinkingItem }) {
         onClick={() => setOpen((v) => !v)}
       >
         <span>{open ? "▾" : "▸"}</span>
-        <span>思考过程</span>
+        <span>{t("思考过程")}</span>
       </button>
       {open && (
         <div

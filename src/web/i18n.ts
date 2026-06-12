@@ -389,6 +389,173 @@ export const DICT: Record<string, string> = {
   "资源/连接失败时显示可见错误层,绝不静默黑屏。":
     "A visible error layer shows on resource/connection failure — never a silent black screen.",
   重试连接: "Retry connection",
+  // ── i18n sweep C-1 (previously-unswept components) ───────────
+  // AmbientControls (Hud)
+  辉光: "Glow",
+  雨幕: "Rain",
+  粒子: "Particles",
+  声音: "Sound",
+  // HeroSelect
+  选择像素角色进入大厅: "Pick a pixel hero to enter the lobby",
+  "进入后用 WASD 或点击移动 · 走到中央任务台按 E 打开会话":
+    "Move with WASD or click after entering · walk to the central console and press E to open a session",
+  // ChatHeader
+  无会话: "No session",
+  "目录 cwd(默认服务端)": "Directory cwd (server default)",
+  "＋ 新会话": "＋ New session",
+  已归档: "Archived",
+  "搜索已归档…": "Search archived…",
+  点击复活到大厅: "Click to revive into the lobby",
+  "↺ 复活": "↺ Revive",
+  // Composer
+  "输入消息… (Enter 发送, Shift+Enter 换行)":
+    "Type a message… (Enter to send, Shift+Enter for newline)",
+  停止: "Stop",
+  // Timeline
+  选一个会话: "Pick a session",
+  "还没有消息,发一条开始…": "No messages yet — send one to start…",
+  // PromptCard
+  "✓ 已回答": "✓ Answered",
+  "✕ 已忽略": "✕ Dismissed",
+  允许: "Allow",
+  拒绝: "Deny",
+  // MessageBubble
+  你: "You",
+  复制消息: "Copy message",
+  // ThinkingBlock
+  思考过程: "Reasoning",
+  // PairingQr
+  微信: "WeChat",
+  飞书: "Feishu",
+  用微信扫码绑定本指挥台: "Scan with WeChat to bind this command deck",
+  用飞书扫码或打开机器人配对: "Scan with Feishu or open the bot to pair",
+  等待引擎生成配对码: "Waiting for the engine to generate a pairing code",
+  "单个会话绑定,新绑定覆盖旧绑定":
+    "One binding per session — a new binding replaces the old one",
+  "生成 QR": "Generate QR",
+  // BindingList
+  已绑定: "Bound",
+  扫码完成后会出现在这里: "Appears here once scanning completes",
+  未命名会话: "Unnamed session",
+  转发: "Forward",
+  解绑: "Unbind",
+  // PortalTransition
+  返回大厅: "Back to lobby",
+  // CatPet
+  黑猫伙伴: "Black cat companion",
+  // ── settings-schema (sweep C-2) ──────────────────────────────
+  // group names
+  "IM / 订阅": "IM / Subscriptions",
+  "通用 General": "General",
+  "界面 Interface": "Interface",
+  "上下文压缩 Compaction": "Compaction",
+  "权限 Permissions": "Permissions",
+  "Agent / 团队": "Agent / Team",
+  "MCP 服务器": "MCP Servers",
+  "技能 / 插件": "Skills / Plugins",
+  "审批 Approval": "Approval",
+  "沙箱 Sandbox": "Sandbox",
+  // integrations group — labels
+  "微信扫码配对 WeChat": "WeChat QR pairing",
+  "飞书长连接 Feishu": "Feishu long connection",
+  "飞书 App ID": "Feishu App ID",
+  "飞书 App Secret": "Feishu App Secret",
+  "GitHub 订阅": "GitHub subscription",
+  "GitHub webhookSecret": "GitHub webhookSecret",
+  "X 订阅": "X subscription",
+  "Relay 转发": "Relay forwarding",
+  // integrations group — tips
+  "允许微信单会话扫码配对并把 agent 回复转发回当前微信会话。":
+    "Allow single-session WeChat QR pairing and forward agent replies back to the current WeChat chat.",
+  "启用飞书/Lark bot 长连接收发消息。":
+    "Enable Feishu/Lark bot long-connection messaging.",
+  "飞书/Lark bot 的 app_id。": "The Feishu/Lark bot app_id.",
+  "敏感字段,保存时只写入 SecretStore 引用。":
+    "Sensitive field — only a SecretStore reference is written on save.",
+  "接收 GitHub webhook 并路由到邮箱/公告板/会话。":
+    "Receive GitHub webhooks and route them to mailbox / board / session.",
+  "订阅仓库,格式 owner/repo。": "Subscribed repo, format owner/repo.",
+  "GitHub webhook HMAC secret,保存时只写 SecretStore 引用。":
+    "GitHub webhook HMAC secret — only a SecretStore reference is written on save.",
+  "启用 X webhook/订阅事件接入。":
+    "Enable X webhook / subscription event intake.",
+  "X API bearer token,保存时只写 SecretStore 引用。":
+    "X API bearer token — only a SecretStore reference is written on save.",
+  "启用本地 tunnel 或生产 relay 转发 webhook。":
+    "Enable a local tunnel or production relay to forward webhooks.",
+  "Relay 服务地址。": "Relay service address.",
+  "Relay capability token,保存时只写 SecretStore 引用。":
+    "Relay capability token — only a SecretStore reference is written on save.",
+  // general group
+  "默认模型 model": "Default model",
+  "新会话默认使用的模型。": "Model used by default for new sessions.",
+  "输出风格 outputStyle": "Output style",
+  "回复的详略与口吻。": "Verbosity and tone of replies.",
+  "回复语言 language": "Reply language",
+  跟随系统: "Follow system",
+  中文: "Chinese",
+  "模型回复使用的语言。": "Language used in model replies.",
+  "推理强度 effortLevel": "Reasoning effort",
+  "更高强度更慢但更准。": "Higher effort is slower but more accurate.",
+  "默认深度思考 alwaysThinkingEnabled": "Always think by default",
+  "每轮默认启用扩展思考。": "Enable extended thinking by default each turn.",
+  // ui group
+  "主题 theme": "Theme",
+  地牢深青: "Dungeon Teal",
+  城镇暖棕: "Town Warm Brown",
+  暗夜: "Midnight",
+  "面板与世界的整体配色。": "Overall color scheme for panels and the world.",
+  "编辑模式 editorMode": "Editor mode",
+  "输入框的键位模式。": "Keybinding mode for the input box.",
+  "视图 viewMode": "View mode",
+  "信息密度。": "Information density.",
+  "自动滚动 autoScrollEnabled": "Auto-scroll",
+  "新输出时自动滚到底部。": "Scroll to the bottom automatically on new output.",
+  "减少动效 prefersReducedMotion": "Reduce motion",
+  "关闭闪烁与粒子。": "Turn off flashing and particles.",
+  // permissions group
+  "默认模式 defaultMode": "Default mode",
+  "工具调用的默认审批策略。": "Default approval policy for tool calls.",
+  "附加目录 additionalDirectories": "Additional directories",
+  "允许访问的额外目录。": "Extra directories allowed for access.",
+  // team group
+  "实验性团队 EXPERIMENTAL_AGENT_TEAMS": "Experimental teams",
+  "开启 agent teams 协作机制。":
+    "Enable the agent teams collaboration mechanism.",
+  "队友模式 teammateMode": "Teammate mode",
+  "队友进程的运行方式。": "How teammate processes run.",
+  默认队友模型: "Default teammate model",
+  "subagent 默认模型。": "Default model for subagents.",
+  // mcp group
+  "启用项目内全部 MCP": "Enable all project MCP",
+  "自动启用 .mcp.json 中的服务器。": "Auto-enable servers from .mcp.json.",
+  "已启用 enabledMcpjsonServers": "Enabled servers",
+  "白名单服务器。": "Allowlisted servers.",
+  // skills group
+  "技能覆盖 skillOverrides": "Skill overrides",
+  "技能注入策略。": "Skill injection policy.",
+  "禁用技能 shell 执行": "Disable skill shell execution",
+  "安全：禁止技能执行 shell。": "Security: forbid skills from running shell.",
+  // hooks group
+  生命周期事件: "Lifecycle events",
+  "在事件触发时运行命令（含 agent teams 事件）。":
+    "Run commands when events fire (including agent teams events).",
+  // codex groups
+  "模型 model": "Model",
+  "Codex CLI 使用的模型。": "Model used by the Codex CLI.",
+  "模型提供方 model_provider": "Model provider",
+  "模型接入的 provider。": "Provider the model connects through.",
+  "推理强度 reasoning_effort": "Reasoning effort",
+  "推理链的深度。": "Depth of the reasoning chain.",
+  "审批策略 approval_policy": "Approval policy",
+  "什么时候需要人工批准命令。": "When commands require manual approval.",
+  "沙箱模式 sandbox_mode": "Sandbox mode",
+  "命令可访问的文件系统范围。": "Filesystem scope commands can access.",
+  "网络访问 network_access": "Network access",
+  "沙箱内是否允许联网。": "Whether networking is allowed inside the sandbox.",
+  "config.toml 中配置的 MCP 服务器。": "MCP servers configured in config.toml.",
+  "Roguent 保存的 Codex MCP 配置 profile。":
+    "Codex MCP config profile saved by Roguent.",
 };
 
 export function translate(s: string, lang: Lang): string {

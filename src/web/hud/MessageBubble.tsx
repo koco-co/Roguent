@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Session, TimelineMessageItem } from "../../shared/domain";
+import { useT } from "../i18n";
 import { mdToHtml } from "./markdown";
 
 interface Props {
@@ -7,8 +8,12 @@ interface Props {
   session: Session;
 }
 
-const authorName = (item: TimelineMessageItem, session: Session): string => {
-  if (item.role === "user") return "你";
+const authorName = (
+  item: TimelineMessageItem,
+  session: Session,
+  t: (s: string) => string,
+): string => {
+  if (item.role === "user") return t("你");
   return (
     (item.agentId ? session.agents[item.agentId]?.role : undefined) ??
     item.agentId ??
@@ -23,6 +28,7 @@ const formatTime = (ts: number) =>
   });
 
 export function MessageBubble({ item, session }: Props) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
@@ -57,7 +63,7 @@ export function MessageBubble({ item, session }: Props) {
         className="cmsg-author px"
         style={{ display: "flex", alignItems: "center", gap: 6 }}
       >
-        {authorName(item, session)}
+        {authorName(item, session, t)}
         <span
           className="faint"
           style={{ fontSize: 9, opacity: 0.5 }}
@@ -68,7 +74,7 @@ export function MessageBubble({ item, session }: Props) {
         <button
           type="button"
           onClick={copy}
-          title="复制消息"
+          title={t("复制消息")}
           style={{
             fontSize: 10,
             background: "none",

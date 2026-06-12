@@ -1,3 +1,4 @@
+import { useT } from "../i18n";
 import { useSpriteTick } from "./sprite-tick";
 
 // 自绘像素黑猫(0x72 atlas 无猫),移植自原型 hud.jsx 的 CatPet。2 帧摆尾待机;
@@ -11,6 +12,7 @@ type Cell = [number, number, number, number, string];
 
 /** 像素黑猫:14×14 viewBox,摆尾 2 帧。scale 控制渲染尺寸。 */
 export function CatPet({ scale = 4 }: { scale?: number }) {
+  const translate = useT();
   const t = useSpriteTick();
   const tail = Math.floor(t / 2) % 2 === 0;
   const cells: Cell[] = [
@@ -43,7 +45,7 @@ export function CatPet({ scale = 4 }: { scale?: number }) {
       style={{ shapeRendering: "crispEdges", imageRendering: "pixelated" }}
       role="img"
     >
-      <title>黑猫伙伴</title>
+      <title>{translate("黑猫伙伴")}</title>
       {cells.map((c, i) => (
         <rect
           // biome-ignore lint/suspicious/noArrayIndexKey: 静态像素艺术,顺序固定

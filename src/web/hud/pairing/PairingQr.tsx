@@ -2,6 +2,7 @@ import type {
   IntegrationChannel,
   PairingQr as PairingQrData,
 } from "../../../shared/events";
+import { useT } from "../../i18n";
 
 const CHANNEL_COPY = {
   wechat: {
@@ -37,13 +38,14 @@ export function PairingQr({
   qr?: PairingQrData;
   onCreate: () => void;
 }) {
+  const t = useT();
   const copy = CHANNEL_COPY[channel];
   return (
     <div className="pair-qr-card">
       <div className="pair-qr-head">
         <div>
-          <div className="px pair-card-title">{copy.label} QR</div>
-          <div className="faint">{copy.hint}</div>
+          <div className="px pair-card-title">{t(copy.label)} QR</div>
+          <div className="faint">{t(copy.hint)}</div>
         </div>
         <span className={`pair-status ${qr?.status ?? "idle"}`}>
           {qr ? qr.status : "idle"}
@@ -60,7 +62,7 @@ export function PairingQr({
         ) : (
           <div className="pair-qr-empty">
             <div className="px">NO QR</div>
-            <div className="faint">等待引擎生成配对码</div>
+            <div className="faint">{t("等待引擎生成配对码")}</div>
           </div>
         )}
       </div>
@@ -71,10 +73,10 @@ export function PairingQr({
             expires {new Date(qr.expiresAt).toLocaleTimeString()}
           </span>
         ) : (
-          <span className="faint">单个会话绑定,新绑定覆盖旧绑定</span>
+          <span className="faint">{t("单个会话绑定,新绑定覆盖旧绑定")}</span>
         )}
         <button type="button" className="pxbtn cjk" onClick={onCreate}>
-          生成 QR
+          {t("生成 QR")}
         </button>
       </div>
       {qr?.error ? <div className="pair-error">{qr.error}</div> : null}
