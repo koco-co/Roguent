@@ -714,21 +714,24 @@ function parseEconomyCommand(
   }
 }
 
+function isPluginAction(x: unknown): x is PluginsCommand["action"] {
+  return (
+    typeof x === "string" && (PLUGIN_ACTIONS as readonly string[]).includes(x)
+  );
+}
+
 function parsePluginsCommand(
   o: Record<string, unknown>,
 ): ParseClientCommandResult {
-  if (
-    typeof o.action === "string" &&
-    (PLUGIN_ACTIONS as readonly string[]).includes(o.action) &&
-    typeof o.pluginId === "string" &&
-    o.pluginId.trim()
-  ) {
+  const pluginId =
+    typeof o.pluginId === "string" ? o.pluginId.trim() : undefined;
+  if (isPluginAction(o.action) && pluginId) {
     return {
       ok: true,
       command: {
         cmd: "plugins",
-        action: o.action as PluginsCommand["action"],
-        pluginId: o.pluginId,
+        action: o.action,
+        pluginId,
       },
     };
   }

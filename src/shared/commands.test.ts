@@ -577,3 +577,24 @@ test("plugins command: 空 pluginId 被拒", () => {
   );
   expect(r.ok).toBe(false);
 });
+
+test("plugins command: pluginId 前后空格被 trim 且解析成功", () => {
+  const r = parseClientCommand({
+    cmd: "plugins",
+    action: "enable",
+    pluginId: "  foo@bar  ",
+  });
+  expect(r.ok).toBe(true);
+  if (r.ok) {
+    expect(r.command).toEqual({
+      cmd: "plugins",
+      action: "enable",
+      pluginId: "foo@bar",
+    });
+  }
+});
+
+test("plugins command: 缺少 pluginId 被拒", () => {
+  const r = parseClientCommand({ cmd: "plugins", action: "enable" });
+  expect(r.ok).toBe(false);
+});
