@@ -2941,6 +2941,62 @@ img {
   background: linear-gradient(180deg, #1f6d80, #15505e);
   box-shadow: inset 0 0 0 2px #36c5e0;
 }
+/* team-presence strip — squad avatars + status dots under the runtime config.
+   Ported from prototype layout.css .cdrawer-team*; --panel-edge/--ink-faint are
+   this repo's warm-wood tokens, status-dot hex kept as-is. */
+.cdrawer-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 15px;
+  margin: 0 6px;
+  background: rgba(11, 10, 18, 0.4);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+}
+.cdrawer-team-l {
+  font-size: 8px;
+  color: var(--ink-faint);
+  margin-right: 2px;
+}
+.cdrawer-team-av {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.3);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px var(--panel-edge), inset 0 0 0 2px var(--panel-edge),
+    inset 0 2px 0 rgba(255, 236, 200, 0.1);
+}
+.cdrawer-team-av.lead {
+  box-shadow: 0 0 0 2px #6b4f12, inset 0 0 0 2px #c79a2e, inset 0 2px 0
+    rgba(255, 236, 200, 0.18);
+}
+.cdrawer-team-av.ended {
+  filter: saturate(0.4) brightness(0.7);
+}
+.cdrawer-team-dot {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  color: #8a8170;
+  box-shadow: 0 0 0 2px var(--panel-edge), 0 0 5px currentColor;
+}
+.cdrawer-team-dot.st-working {
+  color: #5fd35f;
+}
+.cdrawer-team-dot.st-thinking,
+.cdrawer-team-dot.st-spawning {
+  color: #36c5e0;
+}
+.cdrawer-team-dot.st-done,
+.cdrawer-team-dot.st-idle {
+  color: #8a8170;
+}
 .cdrawer-input {
   display: flex;
   gap: 10px;
