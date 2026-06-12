@@ -38,6 +38,7 @@ extend({ Container, Graphics, Sprite, AnimatedSprite, Text });
 interface Actor {
   id: string;
   hero: string;
+  role: string;
   isLead: boolean;
   home: Pos;
   bornAtDoor: boolean;
@@ -127,6 +128,7 @@ function Scene({
         next.push({
           id: a.id,
           isLead,
+          role: a.role,
           hero: isLead ? ORCHESTRATOR_HERO : roleToHero(a.role),
           home: lay[a.id] ?? { x: VW / 2, y: VH / 2 },
           bornAtDoor: true,
@@ -162,6 +164,7 @@ function Scene({
               key={act.id}
               id={act.id}
               heroBase={act.hero}
+              role={agent?.role ?? act.role}
               isLead={act.isLead}
               selected={act.id === selectedId && !act.leaving}
               status={agent?.status ?? "idle"}

@@ -75,6 +75,7 @@ export const DICT: Record<string, string> = {
   小队: "Squad",
   正在思考: "Thinking",
   主控: "Lead",
+  分身: "Subagent",
   // ── modal subtitles ─────────────────────────────────────────
   会话档案: "Session profile",
   "共享任务清单 · agent teams": "Shared task list · agent teams",

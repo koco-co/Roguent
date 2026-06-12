@@ -1,6 +1,7 @@
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { ChatHeader } from "./ChatHeader";
+import { ChatTeamStrip } from "./ChatTeamStrip";
 import { Composer } from "./Composer";
 import { RuntimeControls } from "./RuntimeControls";
 import { Timeline } from "./Timeline";
@@ -33,6 +34,7 @@ export function ChatDrawer({ sessionId }: { sessionId?: string } = {}) {
       <div className="cdrawer" onClick={(e) => e.stopPropagation()}>
         <ChatHeader sessionId={currentId} />
         <RuntimeControls sessionId={currentId} />
+        <ChatTeamStrip sessionId={currentId} />
         <Timeline sessionId={currentId} />
         <Composer sessionId={currentId} />
       </div>

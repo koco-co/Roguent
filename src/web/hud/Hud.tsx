@@ -13,11 +13,11 @@ import { Hotbar } from "./Hotbar";
 import { ImportPanel } from "./ImportPanel";
 import { LangToggle } from "./LangToggle";
 import { Leaderboard } from "./Leaderboard";
-import { LimitBars } from "./LimitBars";
 import { LootPanel } from "./LootPanel";
 import { Market } from "./Market";
 import { Minimap } from "./Minimap";
 import { ModelPicker } from "./ModelPicker";
+import { PlayerCard } from "./PlayerCard";
 import { RosterCard } from "./RosterCard";
 import { SessionBanner } from "./SessionBanner";
 import { SessionGrid } from "./SessionGrid";
@@ -102,8 +102,8 @@ function AmbientControls() {
 export function Hud() {
   return (
     <>
-      <LimitBars />
-      {/* 内景左上栈:在岗轮播卡(自带绝对定位,落在 LimitBars 下方)*/}
+      <PlayerCard />
+      {/* 内景左上栈:在岗轮播卡(自带绝对定位,落在 PlayerCard 下方)*/}
       <RosterCard />
       {/* 视图切换段(两视图都显示,落左上栈)*/}
       <ViewSwitch />

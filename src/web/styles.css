@@ -551,35 +551,160 @@ img {
 
 /* ── STAT BARS ─────────────────────────────────────────────── */
 /* ── 左上账户限额三条布局(移植自原型 layout.css)──────────────────────── */
-/* .limitbars 在 Hud 里无定位包裹,自带绝对定位维持左上角(原 .px-limits 行为) */
-.limitbars {
+/* ── 英雄卡 PlayerCard(移植自原型 layout.css 的 .playercard / .pc-*)──────
+   token 转换:原型 --ink(浅文本) → 本仓库 --text;--ink-dim → --muted。
+   原型 .playercard 无定位(挂在左上栈),本仓库自带绝对定位维持左上角(原 .limitbars
+   行为)。原型用 PixelSprite 作立绘 → 本仓库用 HeroPortrait <canvas>,故 .pc-portrait
+   规则改为定位 .pc-portrait-canvas;无 crown 资源,.pc-crown 子节点与样式省略。 */
+.playercard {
   position: absolute;
   top: 12px;
   left: 12px;
   width: 312px;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.12s ease, filter 0.12s ease;
 }
-.lb-body {
-  padding: 12px 14px 14px;
+.playercard:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+.playercard:active {
+  transform: translateY(0);
+}
+.pc-body {
+  padding: 16px 16px 14px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.pc-frame {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  flex: none;
+  background: radial-gradient(circle at 50% 36%, #2b3b41, #12181c);
+  box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px var(--gold), inset 0 0 0 6px
+    #000, 0 0 0 1px #000;
+  overflow: hidden;
+}
+.pc-portrait-canvas {
+  position: absolute;
+  left: 50%;
+  top: 9px;
+  transform: translateX(-50%);
+  image-rendering: pixelated;
+}
+.pc-rt {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  background: rgba(11, 10, 18, 0.82);
+  padding: 1px;
+  box-shadow: 0 0 0 1px #000;
+  z-index: 5;
+}
+.pc-level {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  background: var(--gold);
+  color: #2c1c10;
+  font-size: 8px;
+  line-height: 1;
+  padding: 3px 7px;
+  box-shadow: 0 0 0 2px #000;
+  white-space: nowrap;
+  z-index: 5;
+}
+.pc-corners::before,
+.pc-corners::after {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  z-index: 4;
+}
+.pc-corners::before {
+  top: 3px;
+  left: 3px;
+  border-top: 2px solid var(--gold);
+  border-left: 2px solid var(--gold);
+}
+.pc-corners::after {
+  top: 3px;
+  right: 3px;
+  border-top: 2px solid var(--gold);
+  border-right: 2px solid var(--gold);
+}
+.pc-info {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
+  min-width: 0;
 }
-.lb-plan {
-  font-size: 9px;
+.pc-name {
+  font-size: 11px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.lb-row {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.lb-row .barframe {
-  flex: 1;
-}
-.lb-reset {
+.pc-plan {
   font-size: 8px;
+  color: var(--muted);
+}
+.pc-xp {
+  margin-top: 3px;
+}
+.pc-xp-lab {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7px;
   color: var(--ink-faint);
-  min-width: 48px;
-  text-align: right;
+  margin-bottom: 3px;
+}
+.pc-xp-bar {
+  position: relative;
+  height: 14px;
+  background: var(--panel-edge);
+  box-shadow: inset 0 0 0 2px #000;
+  overflow: hidden;
+}
+.pc-xp-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  transition: width 0.5s ease;
+}
+.pc-xp-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 52% 0;
+  background: rgba(255, 255, 255, 0.22);
+}
+.pc-xp-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 12px,
+    rgba(0, 0, 0, 0.42) 12px,
+    rgba(0, 0, 0, 0.42) 14px
+  );
+}
+.pc-hint {
+  font-size: 7px;
+  color: var(--accent);
+  opacity: 0.85;
+  margin-top: 1px;
 }
 
 /* ── 在岗轮播卡(移植自原型 layout.css 的 .roster*)──────────────────── */
@@ -2929,6 +3054,10 @@ img {
 .cmsg.me .cmsg-author {
   color: var(--cyan);
 }
+.cmsg-role {
+  font-size: 7px;
+  color: var(--ink-faint);
+}
 .cmsg-bubble {
   font-size: 14px;
   line-height: 1.65;
@@ -2940,6 +3069,62 @@ img {
 .cmsg.me .cmsg-bubble {
   background: linear-gradient(180deg, #1f6d80, #15505e);
   box-shadow: inset 0 0 0 2px #36c5e0;
+}
+/* team-presence strip — squad avatars + status dots under the runtime config.
+   Ported from prototype layout.css .cdrawer-team*; --panel-edge/--ink-faint are
+   this repo's warm-wood tokens, status-dot hex kept as-is. */
+.cdrawer-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 15px;
+  margin: 0 6px;
+  background: rgba(11, 10, 18, 0.4);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+}
+.cdrawer-team-l {
+  font-size: 8px;
+  color: var(--ink-faint);
+  margin-right: 2px;
+}
+.cdrawer-team-av {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.3);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px var(--panel-edge), inset 0 0 0 2px var(--panel-edge),
+    inset 0 2px 0 rgba(255, 236, 200, 0.1);
+}
+.cdrawer-team-av.lead {
+  box-shadow: 0 0 0 2px #6b4f12, inset 0 0 0 2px #c79a2e, inset 0 2px 0
+    rgba(255, 236, 200, 0.18);
+}
+.cdrawer-team-av.ended {
+  filter: saturate(0.4) brightness(0.7);
+}
+.cdrawer-team-dot {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  color: #8a8170;
+  box-shadow: 0 0 0 2px var(--panel-edge), 0 0 5px currentColor;
+}
+.cdrawer-team-dot.st-working {
+  color: #5fd35f;
+}
+.cdrawer-team-dot.st-thinking,
+.cdrawer-team-dot.st-spawning {
+  color: #36c5e0;
+}
+.cdrawer-team-dot.st-done,
+.cdrawer-team-dot.st-idle {
+  color: #8a8170;
 }
 .cdrawer-input {
   display: flex;
@@ -3075,6 +3260,12 @@ img {
   flex-direction: column;
   gap: 12px;
 }
+/* PROFILE 分区小标题(Usage 等)——port 自原型 layout.css .acct2-sec。 */
+.acct2-sec {
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
 .acct-row {
   display: flex;
   align-items: center;
@@ -3082,6 +3273,129 @@ img {
 }
 .acct-row .sr-label {
   min-width: 70px;
+}
+
+/* ── PROFILE 头部(移植自原型 layout.css 的 .acct2-*)────────────────────
+   token 转换:原型 --ink(浅文本) → 本仓库 --text;--ink-dim → --muted。
+   原型用 PixelSprite 立绘 → 本仓库用 HeroPortrait <canvas>,.acct2-portrait 规则改为
+   定位 .acct2-portrait-canvas;无 crown 资源,.acct2-crown 子节点与样式省略。下方真实
+   5h/Weekly 用量仍走现有 .acct-usage/.acct-row(真数据,不改)。 */
+.acct2-hero {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  background: rgba(11, 10, 18, 0.4);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  padding: 20px 22px;
+}
+.acct2-frame {
+  position: relative;
+  width: 118px;
+  height: 118px;
+  flex: none;
+  background: radial-gradient(circle at 50% 36%, #2b3b41, #12181c);
+  box-shadow: inset 0 0 0 2px #000, inset 0 0 0 5px var(--gold), inset 0 0 0 8px
+    #000, 0 0 0 1px #000;
+  overflow: hidden;
+}
+.acct2-portrait-canvas {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  image-rendering: pixelated;
+}
+.acct2-level {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  background: var(--gold);
+  color: #2c1c10;
+  font-size: 10px;
+  line-height: 1;
+  padding: 4px 10px;
+  box-shadow: 0 0 0 2px #000;
+  white-space: nowrap;
+  z-index: 5;
+}
+.acct2-corners::before,
+.acct2-corners::after {
+  content: "";
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  z-index: 4;
+}
+.acct2-corners::before {
+  top: 5px;
+  left: 5px;
+  border-top: 2px solid var(--gold);
+  border-left: 2px solid var(--gold);
+}
+.acct2-corners::after {
+  top: 5px;
+  right: 5px;
+  border-top: 2px solid var(--gold);
+  border-right: 2px solid var(--gold);
+}
+.acct2-id {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.acct2-name {
+  font-size: 16px;
+  color: var(--text);
+}
+.acct2-plan {
+  font-size: 10px;
+  color: var(--muted);
+}
+.acct2-handle {
+  font-size: 9px;
+  color: var(--ink-faint);
+}
+.acct2-xprow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.acct2-xplab {
+  font-size: 8px;
+  color: var(--ink-faint);
+}
+.acct2-xpbar {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  background: var(--panel-edge);
+  box-shadow: inset 0 0 0 2px #000;
+  overflow: hidden;
+}
+.acct2-xpbar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 12px,
+    rgba(0, 0, 0, 0.42) 12px,
+    rgba(0, 0, 0, 0.42) 14px
+  );
+}
+.acct2-xpfill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  transition: width 0.5s ease;
 }
 
 /* 系统/暂停菜单 SystemMenu + runtime 离线错误层 ErrorOverlay(T3.12)。

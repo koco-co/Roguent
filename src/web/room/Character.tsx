@@ -1,5 +1,5 @@
 import { useTick } from "@pixi/react";
-import type { AnimatedSprite, Container, Graphics } from "pixi.js";
+import type { AnimatedSprite, Container, Graphics, TextStyle } from "pixi.js";
 import {
   type RefObject,
   useCallback,
@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { AgentStatus } from "../../shared/domain";
 import { toolNameToIcon } from "../../shared/mapping";
+import { npcLabel } from "../../shared/strings";
 import type { IconName } from "../hud/icons";
 import { Emote } from "./Emote";
 import { ToolBubble } from "./ToolBubble";
@@ -56,6 +57,7 @@ function randPauseFrames(status: AgentStatus | "leaving"): number {
 export function Character({
   id,
   heroBase,
+  role,
   isLead,
   selected,
   status,
@@ -69,6 +71,7 @@ export function Character({
 }: {
   id: string;
   heroBase: string;
+  role: string;
   isLead: boolean;
   selected: boolean;
   status: AgentStatus;
@@ -99,6 +102,7 @@ export function Character({
 
   const bounds = useMemo(() => floorBounds(), []);
   const radius = isLead ? WANDER_R_LEAD : WANDER_R_SUB;
+  const label = useMemo(() => npcLabel(role, isLead), [role, isLead]);
 
   // Imperative motion state (refs, never React state).
   const pos = useRef<Pos>({ ...home });
@@ -287,6 +291,25 @@ export function Character({
       <pixiContainer ref={flipRef}>
         <pixiAnimatedSprite ref={spriteRef} textures={idleFrames} />
       </pixiContainer>
+      {/* Persistent name plate above the head. Lives OUTSIDE flipRef so the text
+          never mirrors when the sprite faces left, and sits high enough (y=-38)
+          to clear the head-level tool bubble / emote (both ~y=-26). */}
+      {label ? (
+        <pixiText
+          text={label}
+          anchor={{ x: 0.5, y: 1 }}
+          y={-38}
+          resolution={4}
+          style={
+            {
+              fontSize: 7,
+              fill: isLead ? 0xffd166 : 0xe8ecff,
+              fontWeight: "bold",
+              stroke: { color: 0x10121c, width: 3 },
+            } as Partial<TextStyle>
+          }
+        />
+      ) : null}
       {currentTool && !leaving ? (
         <ToolBubble icon={toolNameToIcon(currentTool) as IconName} />
       ) : null}
