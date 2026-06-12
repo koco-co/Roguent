@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { titleCase } from "./strings";
+import { npcLabel, titleCase } from "./strings";
 
 test("titleCase upper-cases a single word", () => {
   expect(titleCase("orchestrator")).toBe("Orchestrator");
@@ -19,4 +19,17 @@ test("titleCase returns empty string for empty input", () => {
 
 test("titleCase ignores leading/trailing/duplicate separators", () => {
   expect(titleCase("--foo__bar  ")).toBe("Foo Bar");
+});
+
+test("npcLabel title-cases a non-lead role with no prefix", () => {
+  expect(npcLabel("code-review", false)).toBe("Code Review");
+});
+
+test("npcLabel adds the gold ★ prefix for the lead", () => {
+  expect(npcLabel("orchestrator", true)).toBe("★ Orchestrator");
+});
+
+test("npcLabel handles empty role safely", () => {
+  expect(npcLabel("", false)).toBe("");
+  expect(npcLabel("", true)).toBe("★ ");
 });
