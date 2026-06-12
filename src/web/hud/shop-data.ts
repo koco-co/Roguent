@@ -5,9 +5,9 @@ import type { IconName } from "./icons";
  * (items / currency.gems)。
  *
  * **本文件仅含装饰 Shop 面板的 `SHOP_ITEMS` / `SHOP_GEMS` / `ShopItem`**。
- * `ShopPlugin`、`SHOP_PLUGINS`、`SHOP_CATS` 已随 Market 面板接真(Task 9)而退役删除:
- * Market 现在展示真实本机插件目录(来自 `claude plugin list` 等 CLI 命令),不再依赖
- * 任何静态 mock 数组。
+ * `ShopPlugin`、`SHOP_PLUGINS`、`SHOP_CATS` 已随 Market 面板接真(2026-06,见
+ * docs/ROADMAP.md §3.6)而退役删除:Market 现在展示真实本机插件目录(来自
+ * `~/.claude/plugins` 目录文件合并;操作经 `claude plugin` CLI),不再依赖静态 mock 数组。
  *
  * 道具店(`SHOP_ITEMS`)/ 宝石余额(`SHOP_GEMS`)仍为视觉占位,引擎暂无宝石经济。
  * icon 字段对应 icons.tsx 的 IconName(items:quest/crystal/account/bash/task/trophy/write/gemcur)。
