@@ -252,7 +252,7 @@ export const DICT: Record<string, string> = {
   UI: "UI",
   "示例商品 · 购买逻辑未接入(宝石余额/已拥有为真)":
     "Demo items · purchase not wired (gem balance / owned are real)",
-  安装数: "installs",
+  次安装: "installs",
   目录未就绪: "Catalog not ready",
   无匹配结果: "No matching plugins",
   引擎还未广播插件目录: "Engine hasn't broadcast the plugin catalog yet",

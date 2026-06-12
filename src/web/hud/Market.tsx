@@ -138,7 +138,7 @@ export function Market() {
                       )}
                       <span className="faint" style={{ fontSize: 11 }}>
                         {p.installs !== null
-                          ? `${formatInstalls(p.installs)} ${t("安装数")}`
+                          ? `${formatInstalls(p.installs)} ${t("次安装")}`
                           : "—"}
                       </span>
                       <span className="chip px" style={{ fontSize: 8 }}>
