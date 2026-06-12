@@ -92,45 +92,65 @@ export function Market() {
           </div>
 
           <div className="shop-grid scroll">
-            {list.map((p) => {
-              const isBusy = busyIds.has(p.id);
-              return (
-                <div key={p.id} className="plugin-card">
-                  <div className="plugin-top">
-                    <div className="plugin-ic">
-                      <Icon name="mcp" size={30} glow="#36c5e0" />
+            {list.length === 0 ? (
+              <div className="faint" style={{ padding: "24px 16px" }}>
+                {plugins.length === 0 ? (
+                  <>
+                    <div>{t("目录未就绪")}</div>
+                    <div style={{ fontSize: 11, marginTop: 4 }}>
+                      {t("引擎还未广播插件目录")}
                     </div>
-                    <div className="plugin-meta">
-                      <div className="plugin-name">{p.name}</div>
-                      <div className="faint" style={{ fontSize: 11 }}>
-                        by {p.author ?? "—"}
+                  </>
+                ) : (
+                  <>
+                    <div>{t("无匹配结果")}</div>
+                    <div style={{ fontSize: 11, marginTop: 4 }}>
+                      {t("尝试调整搜索词或分类筛选")}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              list.map((p) => {
+                const isBusy = busyIds.has(p.id);
+                return (
+                  <div key={p.id} className="plugin-card">
+                    <div className="plugin-top">
+                      <div className="plugin-ic">
+                        <Icon name="mcp" size={30} glow="#36c5e0" />
                       </div>
-                    </div>
-                    <span className="chip px" style={{ fontSize: 8 }}>
-                      {p.componentType}
-                    </span>
-                  </div>
-                  <div className="plugin-desc">{p.description}</div>
-                  <div className="plugin-bottom">
-                    {p.category && (
+                      <div className="plugin-meta">
+                        <div className="plugin-name">{p.name}</div>
+                        <div className="faint" style={{ fontSize: 11 }}>
+                          by {p.author ?? "—"}
+                        </div>
+                      </div>
                       <span className="chip px" style={{ fontSize: 8 }}>
-                        {p.category}
+                        {t(p.componentType)}
                       </span>
-                    )}
-                    <span className="faint" style={{ fontSize: 11 }}>
-                      {p.installs !== null
-                        ? `${formatInstalls(p.installs)} 安装`
-                        : "—"}
-                    </span>
-                    <span className="chip px" style={{ fontSize: 8 }}>
-                      {p.marketplace}
-                    </span>
-                    <div style={{ flex: 1 }} />
-                    {renderAction(p, isBusy, t, act)}
+                    </div>
+                    <div className="plugin-desc">{p.description}</div>
+                    <div className="plugin-bottom">
+                      {p.category && (
+                        <span className="chip px" style={{ fontSize: 8 }}>
+                          {p.category}
+                        </span>
+                      )}
+                      <span className="faint" style={{ fontSize: 11 }}>
+                        {p.installs !== null
+                          ? `${formatInstalls(p.installs)} ${t("安装数")}`
+                          : "—"}
+                      </span>
+                      <span className="chip px" style={{ fontSize: 8 }}>
+                        {p.marketplace}
+                      </span>
+                      <div style={{ flex: 1 }} />
+                      {renderAction(p, isBusy, t, act)}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
       </div>

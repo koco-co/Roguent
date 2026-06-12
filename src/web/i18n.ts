@@ -252,10 +252,11 @@ export const DICT: Record<string, string> = {
   UI: "UI",
   "示例商品 · 购买逻辑未接入(宝石余额/已拥有为真)":
     "Demo items · purchase not wired (gem balance / owned are real)",
-  "示例插件 · 安装逻辑未接入(引擎暂无插件市场)":
-    "Demo plugins · install not wired (no plugin market in engine)",
-  "评分 / 安装数为示例 · 真实能力以本机已配置的 MCP / Skills 为准":
-    "Ratings / installs are demo · real capabilities come from locally configured MCP / Skills",
+  安装数: "installs",
+  目录未就绪: "Catalog not ready",
+  无匹配结果: "No matching plugins",
+  引擎还未广播插件目录: "Engine hasn't broadcast the plugin catalog yet",
+  尝试调整搜索词或分类筛选: "Try adjusting your search or category filter",
   停用: "Disable",
   启用: "Enable",
   卸载: "Uninstall",
