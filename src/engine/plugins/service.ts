@@ -22,7 +22,19 @@ const defaultRun: PluginRun = (cli, args, env) =>
             : err
               ? 1
               : 0;
-        resolve({ code, stderr: stderr?.toString() ?? err?.message ?? "" });
+        const stderrStr = stderr?.toString() || "";
+        // On timeout (err.signal) or bad cliPath (err.code "ENOENT"), stderr is
+        // empty; fall back to err.message and prefix signal/code when present.
+        let msg = stderrStr;
+        if (!msg && err) {
+          const hint =
+            (err as { signal?: string }).signal ??
+            (typeof (err as { code?: unknown }).code === "string"
+              ? String((err as { code: string }).code)
+              : undefined);
+          msg = hint ? `${hint}: ${err.message}` : (err.message ?? "");
+        }
+        resolve({ code, stderr: msg });
       },
     );
   });
@@ -60,7 +72,12 @@ export function createPluginsService(opts: {
         action === "uninstall"
           ? ["plugin", "uninstall", pluginId]
           : ["plugin", action, pluginId, "--scope", "user"];
-      const { code, stderr } = await run(opts.cliPath, args, env);
+      // Action/state coherence (install-on-installed etc.) is intentionally
+      // delegated to the CLI, whose stderr is propagated verbatim on failure.
+      const { code, stderr } = await run(opts.cliPath, args, {
+        ...env,
+        CLAUDE_CONFIG_DIR: opts.configDir,
+      });
       if (code !== 0) {
         throw new Error(
           `claude plugin ${action} failed (${code}): ${stderr}`.trim(),

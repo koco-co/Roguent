@@ -86,3 +86,36 @@ test("并发 runAction 串行执行(不重叠)", async () => {
   ]);
   expect(maxActive).toBe(1);
 });
+
+test("链保活：第一个 runAction 失败后第二个仍执行并 resolve", async () => {
+  let callCount = 0;
+  const svc = createPluginsService({
+    configDir: CFG,
+    cliPath: "claude",
+    run: async () => {
+      callCount++;
+      if (callCount === 1) return { code: 1, stderr: "first fails" };
+      return { code: 0, stderr: "" };
+    },
+  });
+  const first = svc.runAction("enable", "alpha-mcp@official");
+  const second = svc.runAction("disable", "beta-skill@official");
+  await expect(first).rejects.toThrow(/first fails/);
+  const result = await second;
+  expect(Array.isArray(result)).toBe(true);
+  expect(callCount).toBe(2);
+});
+
+test("run 收到的 env 包含 CLAUDE_CONFIG_DIR === configDir", async () => {
+  let capturedEnv: NodeJS.ProcessEnv | undefined;
+  const svc = createPluginsService({
+    configDir: CFG,
+    cliPath: "claude",
+    run: async (_cli, _args, env) => {
+      capturedEnv = env;
+      return { code: 0, stderr: "" };
+    },
+  });
+  await svc.runAction("install", "gamma-cmd@official");
+  expect(capturedEnv?.CLAUDE_CONFIG_DIR).toBe(CFG);
+});
