@@ -186,7 +186,7 @@ status: living-doc
 - **大厅 UX**:保留现有 Pixi `Overworld` 作唯一可玩 hub(已有 WASD+A\*、传送门、项目房、会话 NPC);只从原型采纳 SessionGrid(DOM 面板)、角色选择、空/错态;**未**在 DOM 里重建原型的走动大厅。
 - **Codex**:徽标 / runtime 筛选片 / 设置页签 / SessionGrid 的 Codex tab 全为视觉占位(引擎只跑 Claude)。
 - **会话级 askuser 角标**:无真数据,SessionGrid/NpcCard 只做 error 角标,不造 askuser。
-- **Tasks 已接真(当前会话 TodoWrite)**;**仅信箱**仍为标注 mock(引擎无 inter-agent 信箱)。**mock 面板**(Settings·CONFIG / 装饰 Shop / gems):引擎无对应能力,整面板 mock + banner;待引擎补宝石经济/askuser/任务清单后再接真。注:原混合 Shop 已在 §3.6 拆分为装饰 Shop(仍 mock)+ Market(已随 MARKET-real Task 8–9 接真,见 §3.6)。
+- **Tasks 已接真(当前会话 TodoWrite)**;**仅信箱**仍为标注 mock(引擎无 inter-agent 信箱)。**mock 面板**(Settings·CONFIG / 装饰 Shop / gems):引擎无对应能力,整面板 mock + banner;待引擎补宝石经济/askuser/任务清单后再接真。注:原混合 Shop 已在 §3.6 拆分为装饰 Shop(仍 mock)+ Market(已随 MARKET-real Task 8–9 接真,见 §3.6)。 ⚠️ **Tasks 邮箱区(agent 间信件)已于 §3.7(prototype-parity-restore,2026-06-13)翻案做成 mock 标注版 + Mailbox 阅读器**(三重标注;邮箱「未读徽标」本身接真,信件内容 mock);**UpdateModal 更新日志**同期亦做成 mock 标注版。
 - 全 UI 按固定 1920×1080 逻辑舞台等比缩放贴屏(`src/web/stage-scale.ts` + App `#viewport/#stage`),修复小屏人物过大。
 - **冷蓝死 token**:已在 T0.1 重指向时消除(旧名改暖木值且仍被 `.px-*` 引用,非死);§9 暖木调色板里 `--hp/--shield/--mp/--purple` 等带语义注释的 token 暂未消费但保留为设计调色板。
 
@@ -208,11 +208,11 @@ status: living-doc
 
 **门禁**:723 单测 + `tsc` + `bun run check` + `typecheck:e2e` + `bun run build` 全绿(`check` 此前因设计稿 `Prototype/` bundle 被 biome lint 恒红,本轮把 `Prototype` 加入 `biome.json` 的 `files.ignore` 修正,使门禁如实反映真实 `src`)。
 
-**明确不做(无数据源 / 范围控制)**:events 登录活动弹窗 / dailyRewards(引擎无源,dock「活动」槽用真实公告板 board 占位,不造签到)· git 状态横幅(无 git 状态事件,SessionBanner 维持现状只接 i18n)· PlayerCard(LimitBars+RosterCard 已承载同信息)· Codex 真接入(维持视觉占位)· 设计 Settings 面板的 uiLanguage/uiFont radio(LangToggle 是真实入口,不在 mock 面板造真控件)。
+**明确不做(无数据源 / 范围控制)**:events 登录活动弹窗 / dailyRewards(引擎无源,dock「活动」槽用真实公告板 board 占位,不造签到)· git 状态横幅(无 git 状态事件,SessionBanner 维持现状只接 i18n)· PlayerCard(LimitBars+RosterCard 已承载同信息)· Codex 真接入(维持视觉占位)· 设计 Settings 面板的 uiLanguage/uiFont radio(LangToggle 是真实入口,不在 mock 面板造真控件)。 ⚠️ **「events 登录活动弹窗」已于 §3.7(prototype-parity-restore,2026-06-13)翻案做成 mock 标注版 `LoginEvents`**(三重标注、入口在 SystemMenu 不自动弹);其余「明确不做」仍成立。
 
 **i18n 全量收口(sweep C,2026-06-12)**:合入后 preview EN 复验发现一批**未纳入 plan sweep A/B 文件清单**的次要组件仍漏中文,已补 sweep C 全部接通:C-1 = 氛围控件(辉光/雨幕/粒子/声音)、HeroSelect 角色名+提示、聊天内部(ChatHeader/Composer/Timeline/PromptCard/MessageBubble/ThinkingBlock)、pairing(PairingQr/BindingList/PairingPanel 渠道名)、PortalTransition、CatPet(SVG title);C-2 = `settings-schema.ts` ~88 条字段 label/tip/选项/组名(Settings mock 面板)在 `Settings.tsx` 渲染处接 `t()` + 全量入 DICT(schema 数据本身不改;hook `cmd` 等命令数据按设计不译)。至此 EN 模式无遗漏;DICT ~436 键;leak 脚本交叉核对 0 泄漏。
 
-**已知小取舍**:大厅若干结构物(tower/shop x/gacha/doors)相对设计 `lobby.jsx` 的坐标偏差为**早于本轮的既存**,不在本轮 delta 范围,未动。
+**已知小取舍**:大厅若干结构物(tower/shop x/gacha/doors)相对设计 `lobby.jsx` 的坐标偏差为**早于本轮的既存**,不在本轮 delta 范围,未动。 ⚠️ **已被 §3.7(prototype-parity-restore,2026-06-13)推翻并全部回原型坐标**(用户本轮 AskUserQuestion 拍板「坐标全部回原型」)。
 
 **内景对齐设计稿(4 项,2026-06-12)**:design-delta-v2 合入后,用户对照设计原型 `Prototype/roguent/project/roguent/` 逐项核对内景,补齐四处视觉/信息密度差异(plan [interior-design-parity](superpowers/plans/2026-06-12-interior-design-parity.md);走 subagent-driven-development:每项 实现子代理 → 规格复核 → 质量复核 → 提交)。**真/假分明**同前:
 
@@ -222,6 +222,31 @@ status: living-doc
 - **#4 房间 NPC 头顶名牌**(`Character.tsx` 加 `pixiText`):**接真** —— 文案 `npcLabel(role,isLead)`(role `titleCase`,lead 带金色 `★`),挂在 `flipRef` **外**故小人翻转时文字不镜像;复用 `Room.tsx` 既有 `extend({…,Text})` 不重复注册;y=-38 在头顶、不挡 ToolBubble/Emote。
 
 门禁:`bun test` 744 pass + `bunx tsc --noEmit` 0 + `bun run check` 0 + `bun run build` 成功。涉及 `src/web/hud/{ChatTeamStrip,PlayerCard,Account,MessageBubble,ChatDrawer,Hud}.tsx`、`src/web/room/{Character,Room}.tsx`、`src/shared/strings.ts`、`src/web/styles.css`、`src/web/i18n.ts`。
+
+---
+
+## 3.7 原型全面还原(prototype-parity-restore,2026-06-13)
+
+> 用户对照 handoff(`Roguent-handoff.zip` / `Prototype/roguent/project/roguent/`,2026-06-11)做了一次**全面差异盘点**,把此前各轮(§3.5/§3.6)未还原到位的原型内容一次性补齐。本轮按 plan [prototype-parity-restore](superpowers/plans/2026-06-12-prototype-parity-restore.md)(8 个实现 task)走 subagent-driven-development(每 task:实现子代理 → 规格复核 → 质量复核 → 提交),非 Workflow 批量。纯前端改动(`src/web`),不动 engine / 事件协议 / domain。
+>
+> **本轮三条用户决策(2026-06-12 AskUserQuestion)**,均推翻此前旧取舍:① 大厅结构物坐标**全部回原型**(推翻 §3.6「坐标偏差既存未动」);② `LoginEvents` / `UpdateModal` / Tasks 邮箱区(agent 间信件)**翻案做成 mock 标注版**(推翻 §3.6「明确不做」与 §3.5「仅信箱仍 mock 不展开」);③ 彩蛋四件套与扭蛋 lucky 保底**全部还原**。
+>
+> **真/假分明铁律**同 §3.5/§3.6:有引擎数据源的接真;无源的**三重标注 mock**(`MOCK_*` 命名 + 代码注释 + 面板内 banner/faint,数据放独立 `*-mock-data.ts` 顶注「全为 mock,引擎不消费」);纯视觉元素不声称数据、无需 banner。
+
+| 还原块 | 内容 | 真 / 假边界 |
+| --- | --- | --- |
+| **大厅地面 canvas** | port 原型 `paintHub` 到 `<canvas>`(草坪 + 八角石板广场 + 北城墙 + 三挂旗 + 落地道具 + 程序化花草),替换原 CSS 渐变 div;新建 `hub-paint.ts` / `atlas-image.ts` / `HubCanvas.tsx`(atlas 两边 md5 一致、含 `grass`/`edge-*` 自定义帧可直接画) | **纯装饰**(确定性绘制,不声称数据) |
+| **大厅环境装饰** | 阳光(`hub-sun`)· embers×18 · leaves×14 · fireflies×7 · 旋转符文环(`hub-plaza-rune`)· 火把×5 · 英雄雕像×2,全确定性、reduced-motion 停 | **纯装饰**(粒子 / 火把 / 雕像 / 符文不声称数据) |
+| **结构物特化 + 坐标** | 坐标全回原型(tower y512 / shop(1556,452)/ gacha(1576,738)/ 双门 y946 等)+ Structure 特化造型(tower 喷泉+水滴 / door 旗 / gacha 穹顶彩球 / board 公告便签 / mailbox 红旗+红点 / stall 摊位)+ 新增 mail/medal 像素图标 | **邮箱未读徽标接真**(`selectMailboxUnreadCount` over `store.mailbox`)· **公告便签接真**(`selectMailboxBoardItems`,**不** port 原型 `DATA.announcements` mock,空则不渲染);喷泉水滴 / door 旗 / gacha 彩球**纯装饰** |
+| **内景布局** | 还原内景房间布局:地毯径 + 中央指挥台 + 12 辐条符文圈 + 泉水回北墙中央(col11 单个)+ 道具群全量 `ROOM_PROPS` 16 件 + 墙幅回 col4&19 + 地板 `floor_1` + 稀疏 `floor_2/3`(holo 皮肤下这些不画) | **纯装饰**(布局 / 道具 / 喷泉不声称数据) |
+| **HUD 徽标 + 键位** | dock 邮箱未读红点 + Hotbar 槽位键位字(务/话/技/插/智/入·物/市/榜/成)+ 成就槽 medal 图标 | **dock 邮箱未读红点接真**(同上 `store.mailbox` 计数);键位字 / medal 图标纯展示 |
+| **彩蛋四件套** | `PetActor`(撸猫出心)· `MimicChest`(宝箱怪)· `WishingSpot`(许愿池)· `QuipOverlay`(内景台词气泡);大厅 mimic + 内景 `InteriorEasterLayer` 覆盖层;`QUIPS` 删 askuser+todo 两组无源状态 | **彩蛋纯交互装饰**(localStorage 计数,**不声称业务数据**) |
+| **翻案三面板(mock)** | `UpdateModal`(更新日志)· `LoginEvents`(签到 / 活动弹窗,入口在 SystemMenu **不自动弹**)· Tasks 邮箱区(agent 间信件);三重标注(数据文件顶注 + `MOCK_` 前缀 + `.task-mock-banner`) | **三重标注 mock**(`UpdateModal` / `LoginEvents` / Tasks 邮箱区,引擎不消费) |
+| **面板细节五项** | 成就三页签 · Mailbox 阅读器(master-detail + meta code 块,「转发到配对 IM」**置灰**因无真命令)· Market「已安装」计数 · Composer quick replies · GachaPanel lucky 保底(5 次蓄力纯确定性状态机) | **成就页签 / Market 计数 / quick replies 接真**(quick replies = 真发消息;Market 计数 = 真插件目录)· **gacha lucky 保底 = 纯前端确定性状态机**(消耗真宝石,无假数据)· **「转发到配对 IM」置灰**(无真实命令源) |
+
+**门禁**:`bun test` **824 pass** + `bunx tsc --noEmit` 0 + `bun run check` 0 + `bun run build` 成功(纯前端改动,不动 engine / 事件协议)。
+
+**真/假边界一句话收口**:邮箱未读徽标 / 公告便签 / Market「已安装」计数 / quick replies / 成就页签 **接真**;`UpdateModal` / `LoginEvents` / Tasks 邮箱区 **三重标注 mock**;火把 / 雕像 / 符文 / 粒子 / 喷泉 / 花草 **纯装饰**;「转发到配对 IM」按钮 **置灰(无真命令)**;彩蛋四件套 **localStorage 纯交互、不声称业务数据**。
 
 ---
 
@@ -252,3 +277,4 @@ status: living-doc
 - 2026-06-07:**ROADMAP 对齐 HEAD `e70f5db`**:修正自相矛盾的 baseline(frontmatter `6698293` / 正文 `2070a0d`)→ 统一 `e70f5db`;补记聊天窗口大改与零散修复;测试现状刷新为 **247 单测 / 39 文件 / biome 291 文件 / tsc 全绿**(2026-06-07 核实);文档地图补 chat-window-overhaul 与 full-prototype-integration 行。**新主线 = [full-prototype-integration plan](superpowers/plans/2026-06-07-roguent-full-prototype-integration.md)**(67 task,已审查修订,先做 Task 0:测试基建 + 文件盘点 + 命名锁定)。
 - 2026-06-12:**设计稿 v2 增量落地**(`Roguent.html` 2026-06-11 修订 vs 已合入的 06-07 版,merge 见 git log 顶部)。13-task(走 subagent-driven-development:逐 task 实现 + 规格/质量双复核 + 提交):① 全局 i18n(中→英字典 + `useT/useTL` + `uiLang` 持久化 + HUD `LangToggle`,产品术语不入典)② 场景皮肤 holo(`settings.skin` + `SkinSwitch` + PixiJS 全息地板 + 青玻璃/扫描线/大厅深蓝滤镜)③ 内景指挥大屏 `BrowserScreen`(接真 `Session.timeline` 最近 tool 流,无源不造数据)④ Shop 拆 Market + 装饰 Shop(余额/已拥有真)+ 挂载真实 GachaPanel(Market 初期 mock,随后 MARKET-real Task 8–9 接真:本机插件目录 + CLI 操作,`SHOP_PLUGINS` mock 退役)⑤ SessionGrid v2(多级过滤/排序/置灰/相对时间,**修硬编码 Claude chip bug**)⑥ Hotbar/Dock 重排 + 大厅 market 摊位 ⑦ 固定文案改名(Context/Weekly 等)。门禁 723 单测 + tsc + check + typecheck:e2e + build 全绿;附带把设计稿 `Prototype/` 加入 biome ignore(此前恒红的 `bun run check` 转为如实校验真实 src)。详见 §3.6。无源功能(events 弹窗 / git banner / Codex 真接入)按真假分明明确不做;`settings-schema.ts` ~85 条 mock 面板字段文案留待后续 schema 翻译轮。
 - 2026-06-12:**充实 demo fixtures 的 slash 命令列表 + 订正一次误诊**。现象:SKILLS 法术书/`/` 菜单只显示 3 条命令(`/code-review /deep-research /frontend-design`)。① **先误诊**(fix `d54c568`,已 revert `413d216`):轻信 `sample-run.jsonl` 的 3 条 + SDK 类型把 init 拆 `slash_commands`/`skills` 两字段,判为「normalize 漏接 skills」,沿 slashCommands 同构补了 skills 全链路。② **探针实测纠正**:忠实复制 driver 配置抓真实 `system:init`,`slash_commands` **本就返回 ~60 条**(含 superpowers:* / deep-research / codex:* / update-config 等全部),`skills`(~38)是其**子集**(`skills ⊆ slash_commands`)——live 下现有代码本就显示全部;截图里只有 3 条是因为看的是 `sample-run.jsonl` 的 replay(cwd `/work/kata` 是假路径)。故 skills 改动**冗余、回退**。③ **真正修法**:把所有 committed fixture 的 `session.created` slashCommands 充实成探针实测的代表性子集(~25 条 bare 名 + 前导 /),让 replay 演示也反映 live 真实。CLI 内建命令(/add-dir /agents 等)是 REPL 专属、SDK 从不上报,不纳入。门禁 744 单测 + tsc + check 全绿。**教训**:fixture 是陈旧快照,下结论前先用探针/真会话核对 live SDK 实际上报。
+- 2026-06-13:**原型全面还原**(prototype-parity-restore,对照 `Roguent-handoff.zip` / `Prototype/roguent/` 全面差异盘点)。8-task(走 subagent-driven-development:逐 task 实现 + 规格/质量双复核 + 提交):① 大厅地面 canvas(port `paintHub`:草坪/石板广场/北城墙+三挂旗/道具/程序化花草,替换 CSS 渐变 div)② 大厅环境装饰(阳光/embers/leaves/fireflies/旋转符文环/火把×5/雕像×2,确定性 + reduced-motion 停)③ 结构物坐标全回原型 + 特化造型(tower 喷泉/door 旗/gacha 穹顶/board 便签/mailbox 红旗/stall 摊位)④ 内景布局还原(地毯/中央指挥台+12 辐条符文圈/泉水回北墙 col11/全量 16 件道具/墙幅 col4&19/floor 变体)⑤ HUD 徽标 + Hotbar 键位字 + 成就 medal 图标 ⑥ 彩蛋四件套(撸猫/宝箱怪/许愿池/台词气泡)⑦ 翻案三面板做 mock 标注版(UpdateModal/LoginEvents/Tasks 邮箱区)⑧ 面板细节(成就三页签/Mailbox 阅读器+转发置灰/Market 计数/quick replies/gacha lucky 保底)。**真假分明**:邮箱徽标 / 公告便签 / Market 计数 / quick replies / 成就页签**接真**;UpdateModal / LoginEvents / Tasks 邮箱区**三重标注 mock**;火把 / 雕像 / 符文 / 粒子 / 喷泉**纯装饰**;转发按钮**置灰(无真命令)**;彩蛋**localStorage 纯交互、不声称业务数据**。三条用户决策推翻 §3.6/§3.5 旧取舍(坐标全回原型 / LoginEvents·UpdateModal·Tasks 邮箱区翻案 mock / 彩蛋·扭蛋保底全还原),旧表述已加注。门禁 **824 单测** + tsc + check + build 全绿;纯前端,不动 engine。详见 §3.7。

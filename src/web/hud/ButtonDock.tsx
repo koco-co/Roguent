@@ -1,4 +1,5 @@
 import { useT } from "../i18n";
+import { selectMailboxUnreadCount, useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { Icon, type IconName } from "./icons";
 
@@ -47,6 +48,9 @@ export function ButtonDock() {
   const t = useT();
   const activePanel = useUiStore((s) => s.activePanel);
   const openPanel = useUiStore((s) => s.openPanel);
+  // zustand 铁律:订阅稳定的 s.mailbox 引用,未读数用纯函数派生(不在 selector 里构造新值)。
+  const mailbox = useRoomStore((s) => s.mailbox);
+  const unread = selectMailboxUnreadCount(mailbox);
 
   return (
     <div className="dock dock-anchor">
@@ -58,6 +62,11 @@ export function ButtonDock() {
           onClick={() => openPanel(b.panel)}
         >
           <Icon name={b.icon} size={28} />
+          {/* 邮箱槽未读徽标(真):unread>0 才渲染,数字 = selectMailboxUnreadCount。
+              对标原型 hud.jsx:435 的 `.badge count`。board(公告)槽无「未读」概念,不造徽标。 */}
+          {b.panel === "mailbox" && unread > 0 && (
+            <div className="badge count">{unread}</div>
+          )}
           <div className="tip cjk">{t(b.label)}</div>
         </button>
       ))}

@@ -55,6 +55,13 @@ export function SystemMenu() {
     // 占位:引擎无会话导出能力,点击仅关菜单(对标原型 fn||onClose 回退)。
     { label: "保存 / 导出会话", icon: "save", action: closePanel },
     { label: "导入会话", icon: "import", action: () => openPanel("import") },
+    // LoginEvents 入口:dock「活动」槽已被真实 board(公告聚合)占用,故签到/活动
+    // 弹窗的**唯一手动入口**放在此处(整面板 mock,引擎无登录活动源,不自动弹)。
+    {
+      label: "活动 · 签到(示例)",
+      icon: "gemcur",
+      action: () => openPanel("loginEvents"),
+    },
     { label: "外观 / 主题", icon: "gear", action: () => openPanel("settings") },
     {
       label: "关于 Roguent",

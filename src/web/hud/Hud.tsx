@@ -28,11 +28,13 @@ import { SkinSwitch } from "./SkinSwitch";
 import { SystemMenu } from "./SystemMenu";
 import { TaskWindow } from "./TaskWindow";
 import { Tasks } from "./Tasks";
+import { UpdateModal } from "./UpdateModal";
 import { ViewSwitch } from "./ViewSwitch";
 import { AchievementsPanel } from "./economy/AchievementsPanel";
 import { GachaPanel } from "./economy/GachaPanel";
 import { Icon, type IconName } from "./icons";
 import { BoardPanel } from "./mailbox/BoardPanel";
+import { LoginEvents } from "./mailbox/LoginEvents";
 import { MailboxPanel } from "./mailbox/MailboxPanel";
 import { PairingPanelHost } from "./pairing/PairingPanel";
 
@@ -149,6 +151,11 @@ export function Hud() {
       {/* 全会话总览(真数据:会话列表/进入/导入/error 角标;由大厅中央任务台 E 键触发,自带 activePanel gate)*/}
       <SessionGrid />
       <About />
+      {/* 版本与更新日志(整面板 mock + banner;检查/升级为模拟,自带 activePanel gate)*/}
+      <UpdateModal />
+      {/* 登录活动弹窗(整面板 mock + banner;引擎无登录活动源,不自动弹,只手动入口
+          打开,自带 activePanel gate)*/}
+      <LoginEvents />
       {/* 账号(ACCOUNT)面板(plan/用量真;auth 按钮占位,自带 activePanel gate)*/}
       <Account />
       {/* 共享任务面板(整面板 mock 占位,自带 activePanel gate)*/}

@@ -288,6 +288,16 @@ export function selectMailboxBoardItemsFromMailbox(
     .slice(0, limit);
 }
 
+// 邮箱未读徽标真源:纯函数,数 status==="unread" 条数,返回 number 单值。
+// 调用方传 mailbox slice(zustand selector 直接读 s.mailbox,不在 selector 里构造新值)。
+export function selectMailboxUnreadCount(mailbox: MailboxState): number {
+  let count = 0;
+  for (const id of mailbox.order) {
+    if (mailbox.items[id]?.status === "unread") count++;
+  }
+  return count;
+}
+
 function runtimeMailboxItem(
   event: RoomEvent,
   payload: RuntimeStatusPayload,

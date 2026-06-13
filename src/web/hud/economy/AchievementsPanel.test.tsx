@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AchievementProgress } from "../../../shared/economy";
+import { useSettingsStore } from "../../settings-store";
 import { useRoomStore } from "../../store";
 import { useUiStore } from "../../ui-store";
 import { type RoomConnection, connectRoom } from "../../ws-client";
@@ -70,6 +71,7 @@ afterEach(() => {
     transition: null,
     view: "overworld",
   });
+  useSettingsStore.setState({ uiLang: "cn" });
 });
 
 test("achievements panel renders completed and claimed states", () => {
@@ -96,6 +98,39 @@ test("achievements panel renders completed and claimed states", () => {
   ).toBeTruthy();
   expect(screen.getByText("Claimed Trophy")).toBeTruthy();
   expect(screen.getByText("Claimed")).toBeTruthy();
+});
+
+test("tabs filter achievements by all / unlocked / progress", async () => {
+  useSettingsStore.setState({ uiLang: "en" });
+  useRoomStore.setState({
+    achievements: {
+      done: progress({ id: "done", title: "Done One", completed: true }),
+      wip: progress({
+        id: "wip",
+        title: "Wip One",
+        completed: false,
+        progress: 1,
+        target: 3,
+      }),
+    },
+  });
+  useUiStore.setState({ activePanel: "achievements" });
+
+  render(<AchievementsPanel />);
+
+  // all tab: both
+  expect(screen.getByText("Done One")).toBeTruthy();
+  expect(screen.getByText("Wip One")).toBeTruthy();
+
+  // unlocked tab: only completed
+  await userEvent.click(screen.getByRole("tab", { name: "Unlocked" }));
+  expect(screen.getByText("Done One")).toBeTruthy();
+  expect(screen.queryByText("Wip One")).toBeNull();
+
+  // progress tab: only not-completed
+  await userEvent.click(screen.getByRole("tab", { name: "In progress" }));
+  expect(screen.queryByText("Done One")).toBeNull();
+  expect(screen.getByText("Wip One")).toBeTruthy();
 });
 
 test("claim button sends economy claimAchievement command", async () => {

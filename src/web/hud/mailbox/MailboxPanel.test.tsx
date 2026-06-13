@@ -3,6 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createSession } from "../../../shared/domain";
 import type { MailboxItem } from "../../../shared/events";
+import { useSettingsStore } from "../../settings-store";
 import { useRoomStore } from "../../store";
 import { useUiStore } from "../../ui-store";
 import { type RoomConnection, connectRoom } from "../../ws-client";
@@ -95,6 +96,7 @@ afterEach(() => {
     transition: null,
     view: "overworld",
   });
+  useSettingsStore.setState({ uiLang: "cn" });
 });
 
 test("mailbox panel filters real items and shows connector configuration state", async () => {
@@ -117,14 +119,19 @@ test("mailbox panel filters real items and shows connector configuration state",
 
   render(<MailboxPanel />);
 
-  expect(screen.getByText("GitHub workflow failed")).toBeTruthy();
-  expect(screen.getByText("X mention")).toBeTruthy();
+  // 标题同时出现在列表行与右侧阅读器(master-detail),故用 getAllByText。
+  expect(
+    screen.getAllByText("GitHub workflow failed").length,
+  ).toBeGreaterThanOrEqual(1);
+  expect(screen.getAllByText("X mention").length).toBeGreaterThanOrEqual(1);
   expect(screen.getAllByText("configuration-required")).toHaveLength(2);
   expect(screen.getByText("webhook entitlement missing")).toBeTruthy();
 
   await userEvent.click(screen.getByRole("tab", { name: "GitHub" }));
 
-  expect(screen.getByText("GitHub workflow failed")).toBeTruthy();
+  expect(
+    screen.getAllByText("GitHub workflow failed").length,
+  ).toBeGreaterThanOrEqual(1);
   expect(screen.queryByText("X mention")).toBeNull();
 });
 
@@ -205,6 +212,44 @@ test("open source only enables safe http urls and supports url fallback", async 
   await userEvent.click(screen.getByRole("button", { name: "Open Source" }));
 
   expect(opened).toEqual(["https://github.example/fallback"]);
+});
+
+test("reader renders meta code block only when raw payload exists, and forward stays disabled", async () => {
+  useSettingsStore.setState({ uiLang: "en" });
+  seedMailbox([
+    item({
+      id: "with-raw",
+      source: "github",
+      title: "Has raw payload",
+      summary: "body text",
+      metadata: { raw: { event: "push", sha: "abc123" } },
+    }),
+    item({
+      id: "no-raw",
+      source: "x",
+      title: "No raw payload",
+      summary: "plain body",
+      ts: Date.UTC(2026, 0, 1, 9),
+    }),
+  ]);
+  useUiStore.setState({ activePanel: "mailbox" });
+
+  render(<MailboxPanel />);
+
+  // 默认选中第一项(ts 降序 → with-raw):渲染 meta code 块。
+  expect(screen.getByText(/"event": "push"/)).toBeTruthy();
+
+  // 转发按钮恒置灰(无单条转发命令)。
+  const forward = screen.getByRole("button", { name: "Forward to IM" });
+  expect((forward as HTMLButtonElement).disabled).toBe(true);
+  // 未配对注脚。
+  expect(
+    screen.getByText("Not paired · bind in PAIRING to enable forwarding"),
+  ).toBeTruthy();
+
+  // 选中无 raw 的信件:不渲染 meta code 块。
+  await userEvent.click(screen.getByText("No raw payload"));
+  expect(screen.queryByText(/"event": "push"/)).toBeNull();
 });
 
 test("board panel renders board-selected mailbox items without samples", () => {

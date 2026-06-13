@@ -71,12 +71,12 @@ test("lobby structures expose panel actions and keyboard activation", async () =
 
   expect(screen.getByRole("button", { name: /任务台/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: /公告板/ })).toBeTruthy();
-  expect(screen.getByRole("button", { name: /信箱/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /邮箱/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: /排行榜/ })).toBeTruthy();
-  expect(screen.getByRole("button", { name: /成就陈列/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /成就殿/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: /扭蛋机/ })).toBeTruthy();
 
-  await userEvent.click(screen.getByRole("button", { name: /信箱/ }));
+  await userEvent.click(screen.getByRole("button", { name: /邮箱/ }));
   expect(useUiStore.getState().activePanel).toBe("mailbox");
 
   act(() => useUiStore.setState({ activePanel: null }));
@@ -89,6 +89,47 @@ test("lobby structures expose panel actions and keyboard activation", async () =
   expect(useUiStore.getState().activePanel).toBe("gacha");
   // gacha 路由由真实 GachaPanel 接管(Shop 已摘除 gacha 分支)。
   expect(screen.getByTestId("gacha-balance")).toBeTruthy();
+});
+
+test("mailbox structure renders a real unread badge from store state", () => {
+  useSettingsStore.setState({ avatarHero: "orc_warrior" });
+  // 邮箱徽标接真:从 store 的 mailbox 真未读条数渲染 .mailbox-count(不造数据)。
+  useRoomStore.setState({
+    mailbox: {
+      items: {
+        a: {
+          id: "a",
+          source: "system",
+          title: "Alert",
+          summary: "x",
+          ts: Date.now(),
+          status: "unread",
+        },
+        b: {
+          id: "b",
+          source: "system",
+          title: "Alert",
+          summary: "y",
+          ts: Date.now(),
+          status: "unread",
+        },
+        c: {
+          id: "c",
+          source: "system",
+          title: "Read",
+          summary: "z",
+          ts: Date.now(),
+          status: "read",
+        },
+      },
+      order: ["a", "b", "c"],
+    },
+  });
+
+  const { container } = render(<LobbyView />);
+  const badge = container.querySelector(".mailbox-count");
+  expect(badge).toBeTruthy();
+  expect(badge?.textContent).toBe("2");
 });
 
 test("clicking Codex and Claude doors sends runtime-specific newSession commands", async () => {

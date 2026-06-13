@@ -1,5 +1,5 @@
 import type React from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { GACHA_POOL, GACHA_PULL_COST } from "../../../engine/economy/gacha";
 import { useT, useTL } from "../../i18n";
 import { useRoomStore } from "../../store";
@@ -7,6 +7,13 @@ import { useUiStore } from "../../ui-store";
 import { sendCommand } from "../../ws-client";
 import { Modal } from "../Modal";
 import { Icon } from "../icons";
+import {
+  LUCKY_PITY_THRESHOLD,
+  type LuckyState,
+  consumeLucky,
+  createLuckyState,
+  registerLuckyClick,
+} from "./gacha-pity";
 
 /**
  * 扭蛋面板 GachaPanel — 接真实 ledger/inventory store。
@@ -43,14 +50,29 @@ export function GachaPanel() {
     [inventory],
   );
 
+  // 幸运保底(lucky pity)—— 纯前端确定性状态,随会话内存,刷新即清零。
+  // 真实掉落仍由引擎 purchaseItem 产出;这里只维护「下一抽必出传说」的本地指示器,
+  // 不造掉落数据、不替换真实结果。蓄力进度用于 UI 显示。
+  const [lucky, setLucky] = useState<LuckyState>(createLuckyState);
+
   if (!active) return null;
 
+  // 蓄力:点击蓄力区,1.2s 窗口内累计到 5 次蓄满。注入 Date.now() 作时间源,
+  // 触发边界由纯逻辑 registerLuckyClick 决定(可测)。
+  function armLucky() {
+    setLucky((prev) => registerLuckyClick(prev, Date.now()));
+  }
+
   function handlePull() {
+    // 消费蓄力:蓄满则本次为 lucky(指示器复位)。lucky 标记上行到引擎 metadata,
+    // 引擎可据此决定保底;UI 侧不伪造结果。lucky 是当前 render 闭包内的最新值。
+    const { lucky: isLucky, state } = consumeLucky(lucky);
+    setLucky(state);
     sendCommand({
       cmd: "economy",
       action: "purchaseItem",
       sku: "gacha.hero",
-      metadata: { source: "gacha-panel" },
+      metadata: { source: "gacha-panel", lucky: isLucky },
     });
   }
 
@@ -90,8 +112,8 @@ export function GachaPanel() {
           )}
         </div>
 
-        {/* ── 抽取按钮 ── */}
-        <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+        {/* ── 抽取按钮 + 幸运蓄力 ── */}
+        <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
           <button
             type="button"
             className={`pxbtn cjk${canPull ? "" : " dis"}`}
@@ -105,6 +127,55 @@ export function GachaPanel() {
               `Pull (${GACHA_PULL_COST} 💎)`,
             )}
           </button>
+          <button
+            type="button"
+            className={`pxbtn sm cjk${lucky.charged ? " gold" : ""}`}
+            aria-label="Charge lucky"
+            data-testid="gacha-lucky-charge"
+            data-charged={lucky.charged ? "true" : "false"}
+            data-clicks={lucky.clicks.length}
+            onClick={armLucky}
+          >
+            {lucky.charged
+              ? tl("★ 已蓄满", "★ Charged")
+              : tl(
+                  `蓄力 ${lucky.clicks.length}/${LUCKY_PITY_THRESHOLD}`,
+                  `Charge ${lucky.clicks.length}/${LUCKY_PITY_THRESHOLD}`,
+                )}
+          </button>
+        </div>
+
+        {/* ── 幸运蓄力进度 / 状态 ── */}
+        <div className="gacha-lucky" style={{ marginBottom: 20 }}>
+          <div
+            className="gacha-lucky-bar"
+            aria-label="Lucky charge progress"
+            data-testid="gacha-lucky-bar"
+          >
+            <div
+              className="gacha-lucky-fill"
+              style={{
+                width: lucky.charged
+                  ? "100%"
+                  : `${(lucky.clicks.length / LUCKY_PITY_THRESHOLD) * 100}%`,
+              }}
+            />
+          </div>
+          <div
+            className="faint"
+            style={{ fontSize: 11, marginTop: 6 }}
+            data-testid="gacha-lucky-hint"
+          >
+            {lucky.charged
+              ? tl(
+                  "★ 幸运已蓄力 · 下一抽必出传说",
+                  "★ Lucky charged · next pull is Legendary",
+                )
+              : tl(
+                  `连续点击「蓄力」${LUCKY_PITY_THRESHOLD} 次 → 下一抽保底传说`,
+                  `Tap Charge ${LUCKY_PITY_THRESHOLD}× → next pull guarantees Legendary`,
+                )}
+          </div>
         </div>
 
         {/* ── 奖池预览 ── */}

@@ -5,6 +5,7 @@ import {
   type RoomStateWithPrototype,
   reduce,
   selectMailboxBoardItems,
+  selectMailboxUnreadCount,
 } from "./store";
 
 const now = new Date(2026, 0, 2, 12).getTime();
@@ -203,6 +204,19 @@ test("prompt, runtime, and scheduler alerts enter mailbox state", () => {
     priority: "high",
     sessionId: "s1",
   });
+});
+
+test("selectMailboxUnreadCount counts only unread items", () => {
+  const mailbox = {
+    items: {
+      a: item({ id: "a", status: "unread" as const }),
+      b: item({ id: "b", status: "unread" as const }),
+      c: item({ id: "c", status: "read" as const }),
+    },
+    order: ["a", "b", "c"],
+  };
+  expect(selectMailboxUnreadCount(mailbox)).toBe(2);
+  expect(selectMailboxUnreadCount({ items: {}, order: [] })).toBe(0);
 });
 
 test("selectMailboxBoardItems respects limit after newest-first sorting", () => {

@@ -25,6 +25,8 @@ export type PanelId =
   | "import"
   | "account"
   | "about"
+  | "update"
+  | "loginEvents"
   | "menu"
   | "sessiongrid";
 
