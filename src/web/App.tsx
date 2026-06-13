@@ -1,5 +1,6 @@
 import type React from "react";
 import { useEffect, useRef } from "react";
+import { InteriorEasterLayer } from "./easter/InteriorEasterLayer";
 import { KonamiListener } from "./easter/KonamiListener";
 import { resolveEngineUrl } from "./engine-url";
 import { Hud } from "./hud/Hud";
@@ -138,6 +139,8 @@ export function App() {
         >
           {/* 双层缩放:总览大厅(暖色 DOM 广场)↔ 进入的会话内景(Pixi Room)。*/}
           {inInterior ? <Room /> : <LobbyView />}
+          {/* 内景彩蛋覆盖层:盖在 Pixi canvas 上(pointer-events 穿透),HUD 之下。*/}
+          {inInterior ? <InteriorEasterLayer /> : null}
           <Hud />
           {inInterior ? (
             <button

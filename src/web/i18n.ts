@@ -228,6 +228,7 @@ export const DICT: Record<string, string> = {
   撸一下: "pet me",
   宝箱: "chest",
   许愿: "make a wish",
+  福气: "luck",
   "查看个人详情 · 5h / Weekly 用量": "View profile · 5h / Weekly usage",
   "查看 5h / Weekly 用量": "View 5h / Weekly usage",
   // ── 真实 app 独有文案(设计字典未收录,后续 sweep 任务依赖) ──

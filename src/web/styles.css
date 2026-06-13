@@ -5481,3 +5481,252 @@ img {
   box-shadow: 0 0 0 4px #16465a, 0 0 0 7px #0a1a2a, 0 0 34px
     rgba(54, 200, 255, 0.4), 0 18px 30px rgba(0, 0, 0, 0.55);
 }
+
+/* ============================================================
+   EASTER EGGS — pettable cat / mimic chest / wishing spot / agent quips
+   纯交互装饰彩蛋,移植自原型 extra.css 的 petactor / pet-heart / mimic /
+   mimic-pop / wish / quip / quip-bubble 类。no-motion 守卫沿用本仓 .no-motion。
+   ============================================================ */
+
+/* 内景彩蛋覆盖层:盖在 Pixi canvas 上,容器穿透点击,彩蛋元素自身收点击。 */
+.interior-easter {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.interior-easter .wish-spot,
+.interior-easter .petactor {
+  pointer-events: auto;
+}
+/* 内景撸猫固定右下角(避开左侧 HUD 栈与底部 hotbar)。 */
+.interior-pet {
+  position: absolute;
+  right: 5%;
+  bottom: 13%;
+  z-index: 6;
+}
+
+/* pettable cat — click for a hop + floating hearts */
+.petactor {
+  position: relative;
+  cursor: pointer;
+  display: inline-block;
+}
+.petactor.hop {
+  animation: pethop 0.36s ease;
+}
+@keyframes pethop {
+  30% {
+    transform: translateY(-10px) scale(1.05, 0.95);
+  }
+  65% {
+    transform: translateY(0) scale(0.97, 1.05);
+  }
+}
+.no-motion .petactor.hop {
+  animation: none;
+}
+.pet-heart {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 30;
+  --hx: 0px;
+  animation: heartfloat 1.1s ease-out forwards;
+}
+@keyframes heartfloat {
+  0% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--hx)), 0) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--hx)), -48px) scale(1.1);
+  }
+}
+.pet-heart.rainbow {
+  animation: heartfloat 1.1s ease-out forwards, huecycle 1.1s linear;
+}
+@keyframes huecycle {
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
+/* interior idle quip bubble (over working agents) */
+.quip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  margin-top: -62px;
+  z-index: 21;
+  pointer-events: none;
+}
+.quip-bubble {
+  position: relative;
+  background: #efe7d2;
+  color: #2c1c10;
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 6px 11px;
+  white-space: nowrap;
+  box-shadow: 0 0 0 2px #2c1c10, 2px 3px 0 rgba(0, 0, 0, 0.34);
+  animation: quippop 0.2s ease both;
+}
+.quip-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  transform: translateX(-50%);
+  width: 9px;
+  height: 9px;
+  background: #efe7d2;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  box-shadow: 0 2px 0 #2c1c10;
+}
+@keyframes quippop {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.no-motion .quip-bubble {
+  animation: none;
+}
+
+/* lobby mimic chest easter egg */
+.hub-mimic {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  z-index: 6;
+  cursor: pointer;
+}
+.mimic {
+  position: relative;
+  cursor: pointer;
+}
+.mimic.snap {
+  animation: mimicshake 0.1s steps(2) 0s 7;
+}
+@keyframes mimicshake {
+  50% {
+    transform: translateX(3px) rotate(2.5deg);
+  }
+}
+.no-motion .mimic.snap {
+  animation: none;
+}
+.mimic-pop {
+  position: absolute;
+  left: 50%;
+  top: -20px;
+  transform: translateX(-50%);
+  color: #ff6a7a;
+  font-size: 15px;
+  text-shadow: 1px 1px 0 #2c1c10, 0 0 8px rgba(255, 77, 109, 0.7);
+  animation: quippop 0.14s ease both;
+  z-index: 8;
+}
+
+/* wishing fountain */
+.wish-spot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 92px;
+  height: 104px;
+  cursor: pointer;
+  z-index: 6;
+}
+.wish-fx {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+}
+.wish-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid rgba(120, 224, 247, 0.8);
+  animation: wishring 0.9s ease-out forwards;
+}
+@keyframes wishring {
+  from {
+    width: 8px;
+    height: 8px;
+    opacity: 0.9;
+  }
+  to {
+    width: 82px;
+    height: 82px;
+    opacity: 0;
+  }
+}
+.wish-coin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  animation: wishcoin 1.1s ease-in forwards;
+}
+@keyframes wishcoin {
+  0% {
+    transform: translate(-50%, -170%) scale(0.8);
+    opacity: 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 0;
+  }
+}
+.wish-txt {
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 10px;
+  color: #9fe9f7;
+  text-shadow: 1px 1px 0 #15100a;
+  animation: wishtxt 1.2s ease-out forwards;
+}
+@keyframes wishtxt {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -30px);
+  }
+}
+.wish-fx.lucky .wish-ring {
+  border-color: rgba(242, 200, 75, 0.9);
+}
+.wish-fx.lucky .wish-txt {
+  color: #ffe79a;
+}
+.no-motion .wish-ring,
+.no-motion .wish-coin,
+.no-motion .wish-txt {
+  animation: none;
+}

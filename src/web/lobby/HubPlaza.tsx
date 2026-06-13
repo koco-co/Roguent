@@ -1,6 +1,8 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type RuntimeKind, defaultRuntimeConfig } from "../../shared/runtime";
+import { MimicChest } from "../easter/MimicChest";
+import { PetActor } from "../easter/PetActor";
 import { Icon, type IconName } from "../hud/icons";
 import { useT, useTL } from "../i18n";
 import { useSettingsStore } from "../settings-store";
@@ -11,7 +13,6 @@ import {
 } from "../store";
 import { type PanelId, useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
-import { CatPet } from "./CatPet";
 import { HubCanvas } from "./HubCanvas";
 import { PixelSprite } from "./PixelSprite";
 import { useSpriteTick } from "./sprite-tick";
@@ -737,6 +738,13 @@ export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
           tick={tick}
         />
       ))}
+      {/* 隐藏宝箱怪彩蛋:伪装成草坪宝物,点击咬合(虚拟坐标 1505,846)。 */}
+      <div
+        className="hub-mimic"
+        style={{ left: pct(1505, VW), top: pct(846, VH) }}
+      >
+        <MimicChest scale={4} />
+      </div>
       <div
         ref={petRef}
         className="hub-pet"
@@ -745,7 +753,7 @@ export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
           top: pct(petPos.current.y, VH),
         }}
       >
-        <CatPet scale={3} />
+        <PetActor scale={3} />
       </div>
       <div
         ref={avRef}
