@@ -1672,9 +1672,65 @@ img {
 }
 .mailbox-layout {
   display: grid;
-  grid-template-columns: 230px minmax(0, 1fr);
+  grid-template-columns: 200px minmax(0, 1.2fr) minmax(0, 1fr);
   gap: 16px;
   min-height: 0;
+}
+.inbox-select {
+  cursor: pointer;
+}
+.inbox-select.on .inbox-row {
+  box-shadow: inset 0 0 0 2px var(--cyan, #36c5e0), 0 0 14px
+    rgba(54, 197, 224, 0.12);
+}
+.mbx-read {
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+  max-height: min(62vh, 620px);
+  background: rgba(11, 10, 18, 0.42);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  padding: 16px;
+}
+.mbx-read-body-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mbx-read-hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mbx-read-title {
+  font-family: var(--font-cjk);
+  font-size: 15px;
+  color: var(--ink);
+}
+.mbx-read-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+  white-space: pre-wrap;
+}
+.mbx-read-code {
+  margin: 0;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.42);
+  box-shadow: inset 0 0 0 1px var(--panel-hi);
+  font-size: 11px;
+  line-height: 1.5;
+  color: #9fe6d6;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.mbx-read-act {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
 }
 .connector-strip {
   display: flex;
@@ -1837,6 +1893,46 @@ img {
   flex-direction: column;
   gap: 10px;
   min-height: 320px;
+}
+.ach-summary {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 16px;
+  background: rgba(11, 10, 18, 0.42);
+  box-shadow: inset 0 0 0 1px var(--panel-hi);
+}
+.ach-sum-l {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ach-sum-big {
+  font-size: 20px;
+  color: var(--gold);
+}
+.ach-sum-bar {
+  position: relative;
+  flex: 1;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 0 0 1px var(--panel-hi);
+  overflow: hidden;
+}
+.ach-sum-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #5fd35f, #f2c84b);
+}
+.ach-sum-pct {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: var(--ink);
+}
+.achievements-panel .tabs {
+  margin-bottom: 4px;
 }
 .achievement-row {
   display: grid;
@@ -2805,6 +2901,18 @@ img {
   box-shadow: inset 0 0 0 1px rgba(160, 108, 213, 0.4);
   padding: 11px 14px;
 }
+/* 扭蛋幸运蓄力条(lucky pity)—— 纯前端确定性指示器 */
+.gacha-lucky-bar {
+  height: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 0 0 1px var(--panel-hi);
+  overflow: hidden;
+}
+.gacha-lucky-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #a06cd5, #f2c84b);
+  transition: width 0.12s;
+}
 .item-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -3142,6 +3250,39 @@ img {
 .cdrawer-team-dot.st-done,
 .cdrawer-team-dot.st-idle {
   color: #8a8170;
+}
+.cdrawer-composer {
+  display: flex;
+  flex-direction: column;
+}
+.cdrawer-quick {
+  display: flex;
+  gap: 8px;
+  padding: 10px 15px 0;
+  margin: 0 6px;
+  flex-wrap: wrap;
+}
+.cquick {
+  font-family: var(--font-cjk);
+  font-size: 11px;
+  color: #d4f3fa;
+  background: linear-gradient(180deg, #1d5663, #15414c);
+  box-shadow: 0 0 0 2px #0a2228, inset 0 2px 0 rgba(190, 242, 255, 0.2), inset 0
+    -3px 0 rgba(0, 0, 0, 0.36);
+  padding: 7px 12px;
+  cursor: pointer;
+  border: 0;
+  transition: transform 0.08s, filter 0.1s;
+}
+.cquick:hover:not(:disabled) {
+  filter: brightness(1.16);
+}
+.cquick:active:not(:disabled) {
+  transform: translateY(2px);
+}
+.cquick:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .cdrawer-input {
   display: flex;

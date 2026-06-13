@@ -7,6 +7,7 @@ import { useRoomStore } from "../../store";
 import { useUiStore } from "../../ui-store";
 import { type RoomConnection, connectRoom } from "../../ws-client";
 import { GachaPanel } from "./GachaPanel";
+import { LUCKY_PITY_THRESHOLD } from "./gacha-pity";
 
 const originalWebSocket = globalThis.WebSocket;
 let connection: RoomConnection | null = null;
@@ -134,6 +135,61 @@ test("GachaPanel pull button sends economy purchaseItem command", async () => {
     action: "purchaseItem",
     sku: "gacha.hero",
   });
+});
+
+// ── lucky pity (蓄力保底)──────────────────────────────────────────────────────
+
+test("lucky charge arms on the 5th consecutive click", async () => {
+  useRoomStore.setState({
+    ledger: { entries: [], balances: { gem: GACHA_PULL_COST } },
+    inventory: {},
+  });
+  useUiStore.setState({ activePanel: "gacha" });
+
+  render(<GachaPanel />);
+
+  const charge = screen.getByTestId("gacha-lucky-charge");
+  expect(charge.getAttribute("data-charged")).toBe("false");
+
+  for (let i = 0; i < LUCKY_PITY_THRESHOLD - 1; i++) {
+    await userEvent.click(charge);
+    expect(charge.getAttribute("data-charged")).toBe("false");
+  }
+  // 第 5 次蓄满
+  await userEvent.click(charge);
+  expect(charge.getAttribute("data-charged")).toBe("true");
+});
+
+test("charged pull sends lucky:true then resets lucky state", async () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  connection = connectRoom("ws://roguent.test");
+
+  useRoomStore.setState({
+    ledger: { entries: [], balances: { gem: GACHA_PULL_COST * 5 } },
+    inventory: {},
+  });
+  useUiStore.setState({ activePanel: "gacha" });
+
+  render(<GachaPanel />);
+
+  const charge = screen.getByTestId("gacha-lucky-charge");
+  for (let i = 0; i < LUCKY_PITY_THRESHOLD; i++) {
+    await userEvent.click(charge);
+  }
+  expect(charge.getAttribute("data-charged")).toBe("true");
+
+  await userEvent.click(screen.getByRole("button", { name: /pull/i }));
+
+  const sent = FakeWebSocket.instances[0]?.sent.map((raw) => JSON.parse(raw));
+  expect(sent?.at(-1)).toMatchObject({
+    cmd: "economy",
+    action: "purchaseItem",
+    sku: "gacha.hero",
+    metadata: { lucky: true },
+  });
+  // 消费后复位
+  expect(charge.getAttribute("data-charged")).toBe("false");
 });
 
 // ── inventory display ─────────────────────────────────────────────────────────

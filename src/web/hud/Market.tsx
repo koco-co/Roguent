@@ -6,6 +6,7 @@ import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
 import { Modal } from "./Modal";
 import { Icon } from "./icons";
+import { installedPluginCount } from "./market-counts";
 
 const CATS = ["全部", "已安装", "Skills", "MCP", "插件"] as const;
 
@@ -36,7 +37,7 @@ export function Market() {
 
   if (!active) return null;
 
-  const installedCount = plugins.filter((p) => p.installed).length;
+  const installedCount = installedPluginCount(plugins);
   const busyIds = new Set(busy.map((b) => b.id));
 
   const list = plugins

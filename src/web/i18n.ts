@@ -29,6 +29,10 @@ export const DICT: Record<string, string> = {
   未读: "unread",
   "+ 添加 X 博主 / GitHub 仓库": "+ Add X author / GitHub repo",
   "转发到配对 IM": "Forward to IM",
+  "转发不可用 · 暂无单条转发命令":
+    "Forwarding unavailable · no per-message relay command",
+  "未配对 · 在 PAIRING 扫码绑定后开启转发":
+    "Not paired · bind in PAIRING to enable forwarding",
   "查看 diff": "View diff",
   拉取到本地: "Pull local",
   导入: "Import",
@@ -177,6 +181,7 @@ export const DICT: Record<string, string> = {
   史诗: "Epic",
   传说: "Legendary",
   已解锁成就: "Unlocked",
+  此分类暂无成就: "No achievements in this tab",
   系统: "System",
   全部: "All",
   // ── login / boot ────────────────────────────────────────────
@@ -456,6 +461,11 @@ export const DICT: Record<string, string> = {
   "输入消息… (Enter 发送, Shift+Enter 换行)":
     "Type a message… (Enter to send, Shift+Enter for newline)",
   停止: "Stop",
+  // Composer quick replies
+  继续: "Continue",
+  先跑测试再合并: "Run tests before merging",
+  "给我看 diff": "Show me the diff",
+  解释一下思路: "Explain your approach",
   // Timeline
   选一个会话: "Pick a session",
   "还没有消息,发一条开始…": "No messages yet — send one to start…",
