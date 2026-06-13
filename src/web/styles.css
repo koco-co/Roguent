@@ -5730,3 +5730,467 @@ img {
 .no-motion .wish-txt {
   animation: none;
 }
+
+/* ============================================================
+   LOGIN EVENTS POPUP (mock) — ported from Prototype extra.css
+   签到日历 + 活动海报轮播;整面板 mock(引擎无登录活动源,不自动弹)。
+   ============================================================ */
+.ev-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  background: rgba(8, 5, 12, 0.62);
+  backdrop-filter: blur(2px);
+  display: grid;
+  place-items: center;
+  animation: fadein 0.15s ease;
+}
+.ev-pop {
+  position: relative;
+  width: min(560px, 94vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #3a2614, var(--panel));
+  box-shadow: 0 0 0 3px #2c1c10, 0 0 0 6px var(--ac), inset 0 2px 0
+    rgba(255, 255, 255, 0.08), 0 22px 60px rgba(0, 0, 0, 0.6);
+  padding: 0 0 18px;
+  animation: ev-pop 0.34s cubic-bezier(0.2, 1.2, 0.35, 1) both;
+}
+@keyframes ev-pop {
+  from {
+    transform: scale(0.9) translateY(14px);
+  }
+  to {
+    transform: none;
+  }
+}
+.no-motion .ev-pop {
+  animation: none;
+}
+.ev-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ac) 34%, #3a2614),
+    transparent
+  );
+}
+.ev-ribbon-k {
+  font-size: 9px;
+  color: #2c1c10;
+  background: var(--ac);
+  padding: 4px 8px;
+  box-shadow: 0 0 0 2px #2c1c10;
+}
+.ev-ribbon-t {
+  font-size: 18px;
+  color: var(--ink);
+  text-shadow: 2px 2px 0 #000;
+}
+.ev-ribbon-tag {
+  font-size: 8px;
+  color: #fff;
+  background: var(--pink);
+  padding: 3px 6px;
+  box-shadow: 0 0 0 2px #2c1c10;
+  margin-left: auto;
+  animation: tagblink 1s steps(1) infinite;
+}
+@keyframes tagblink {
+  50% {
+    background: #ff8197;
+  }
+}
+.no-motion .ev-ribbon-tag {
+  animation: none;
+}
+.ev-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--ink-dim);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 2px var(--panel-edge);
+  border: 0;
+  z-index: 2;
+}
+.ev-close:hover {
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--pink);
+}
+.ev-art {
+  margin: 14px 18px 0;
+  height: 170px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 0 2px var(--panel-edge), inset 0 0 30px
+    rgba(0, 0, 0, 0.4);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  position: relative;
+}
+/* sign-in 7-day grid */
+.ev-signin {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+  padding: 12px;
+  width: 100%;
+  height: 100%;
+}
+.ev-day {
+  position: relative;
+  background: rgba(11, 10, 18, 0.5);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px;
+}
+.ev-day.big {
+  box-shadow: inset 0 0 0 2px #f2c84b;
+}
+.ev-day.got {
+  filter: grayscale(0.6) brightness(0.62);
+}
+.ev-day.got::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+.ev-day.today {
+  box-shadow: inset 0 0 0 2px var(--ac), 0 0 12px
+    color-mix(in srgb, var(--ac) 60%, transparent);
+  animation: evtoday 1.6s ease-in-out infinite;
+}
+@keyframes evtoday {
+  50% {
+    box-shadow: inset 0 0 0 2px var(--ac), 0 0 20px var(--ac);
+  }
+}
+.no-motion .ev-day.today {
+  animation: none;
+}
+.ev-day-n {
+  font-size: 7px;
+  color: var(--ink-faint);
+}
+.ev-day-v {
+  font-size: 9px;
+  color: var(--gold);
+}
+.ev-day-check {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  color: #5fd35f;
+  font-size: 11px;
+  z-index: 1;
+}
+.ev-day-badge {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 7px;
+  background: var(--ac);
+  color: #2c1c10;
+  padding: 1px 5px;
+  box-shadow: 0 0 0 1px #2c1c10;
+  z-index: 2;
+}
+/* event poster (double / release) */
+.ev-poster {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(
+    circle at 50% 40%,
+    color-mix(in srgb, var(--ac) 22%, transparent),
+    transparent 60%
+  );
+  overflow: hidden;
+}
+.ev-poster-rays {
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    color-mix(in srgb, var(--ac) 26%, transparent) 12deg,
+    transparent 24deg,
+    color-mix(in srgb, var(--ac) 20%, transparent) 36deg,
+    transparent 48deg
+  );
+  animation: evspin 18s linear infinite;
+  mix-blend-mode: screen;
+  opacity: 0.6;
+}
+@keyframes evspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ev-poster-glyph {
+  position: relative;
+  z-index: 2;
+  animation: evbob 2.6s ease-in-out infinite;
+}
+@keyframes evbob {
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.ev-poster-spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #fff;
+  box-shadow: 0 0 6px var(--ac);
+  animation: evspark 1.8s ease-in-out infinite;
+}
+@keyframes evspark {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.ev-poster-x2 {
+  position: absolute;
+  right: 18%;
+  top: 24%;
+  z-index: 3;
+  font-size: 42px;
+  color: #ffe79a;
+  text-shadow: 3px 3px 0 #2c1c10, 0 0 16px var(--ac);
+  transform: rotate(-12deg);
+}
+.no-motion .ev-poster-rays,
+.no-motion .ev-poster-glyph,
+.no-motion .ev-poster-spark {
+  animation: none;
+}
+.ev-body {
+  padding: 14px 22px 0;
+  text-align: center;
+}
+.ev-sub {
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.ev-desc {
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+.ev-ends {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 9px;
+  color: var(--gold);
+  background: rgba(242, 200, 75, 0.1);
+  padding: 5px 10px;
+  box-shadow: inset 0 0 0 1px rgba(242, 200, 75, 0.35);
+}
+.ev-act {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 16px 22px 6px;
+}
+.pxbtn.is-done {
+  filter: grayscale(0.3) brightness(0.9);
+}
+.ev-foot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 22px 0;
+  border-top: 1px dashed rgba(122, 86, 56, 0.3);
+  margin-top: 10px;
+  padding-top: 14px;
+}
+.ev-dots {
+  display: flex;
+  gap: 7px;
+  margin: 0 auto;
+}
+.ev-dot {
+  width: 9px;
+  height: 9px;
+  background: var(--panel-edge);
+  box-shadow: 0 0 0 1px #000;
+  cursor: pointer;
+  border: 0;
+  transition: all 0.12s;
+}
+.ev-dot.on {
+  background: var(--ac);
+  box-shadow: 0 0 0 1px #000, 0 0 7px var(--ac);
+}
+.ev-nav {
+  display: flex;
+  gap: 4px;
+}
+.ev-arrow {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  color: var(--ink-dim);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 2px var(--panel-edge);
+  border: 0;
+  cursor: pointer;
+}
+.ev-arrow:hover {
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--ac);
+}
+
+/* ============================================================
+   UPDATE / CHANGELOG MODAL (mock) — ported from Prototype extra.css
+   版本与更新日志;整面板 mock(检查/升级为模拟,不动真实 runtime)。
+   ============================================================ */
+.upd-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.upd-cur {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, #3a2614, var(--panel));
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+}
+.upd-cur-l {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.upd-logo {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  color: #2c1c10;
+  background: linear-gradient(180deg, #f2c84b, #c8962a);
+  box-shadow: 0 0 0 2px #15100a, inset 0 2px 0 rgba(255, 255, 255, 0.4);
+}
+.upd-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  background: rgba(95, 211, 95, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(95, 211, 95, 0.4);
+  font-size: 12px;
+  color: var(--green);
+}
+.upd-log {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.upd-entry {
+  padding: 12px 14px;
+  background: rgba(11, 10, 18, 0.4);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+}
+.upd-entry-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.upd-ver {
+  font-size: 12px;
+  color: var(--ac);
+  text-shadow: 1px 1px 0 #15100a;
+}
+.upd-tag {
+  font-size: 8px;
+  color: #2c1c10;
+  background: var(--green);
+  padding: 3px 7px;
+  box-shadow: 0 0 0 2px #15100a;
+}
+.upd-notes {
+  margin: 0;
+  padding-left: 18px;
+  list-style: none;
+}
+.upd-notes li {
+  position: relative;
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.7;
+}
+.upd-notes li::before {
+  content: "▸";
+  position: absolute;
+  left: -16px;
+  color: var(--cyan);
+}
+.upd-spin {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 7px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #2c1c10;
+  border-radius: 50%;
+  animation: updspin 0.7s linear infinite;
+  vertical-align: -1px;
+}
+@keyframes updspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.no-motion .upd-spin {
+  animation: none;
+}
+.upd-done {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  color: var(--green);
+}
+.about-ver {
+  background: none;
+  border: 0;
+  font-family: var(--font-px);
+}
+.about-ver:hover {
+  color: var(--cyan);
+}

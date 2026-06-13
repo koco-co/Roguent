@@ -270,6 +270,43 @@ export const DICT: Record<string, string> = {
   示例: "demo",
   "示例数据(引擎暂未提供)": "Demo data (not yet provided by engine)",
   "Codex 占位,暂未接入": "Codex placeholder — not connected yet",
+  // ── reinstated mock panels: update log / login events / inter-agent mail ──
+  // UpdateModal(版本与更新日志,整面板 mock)
+  "示例更新日志 · 检查/升级为模拟，不会真的改动你的本地 runtime":
+    "Demo changelog · check/upgrade are simulated — won't touch your local runtime",
+  "更新流程为模拟，不会真的改动你的本地 runtime":
+    "Update flow is simulated — it won't actually change your local runtime",
+  "v1.0 已就绪 · 订阅者可一键升级 runtime，会话进度不丢失（演示）":
+    "v1.0 ready · subscribers upgrade the runtime in one click, sessions preserved (demo)",
+  点击查看更新日志: "Click to view changelog",
+  // LoginEvents(签到 / 活动弹窗,整面板 mock,不自动弹)
+  "示例活动 · 引擎无登录活动源(演示用途，不自动弹、不发真实奖励)":
+    "Demo events · the engine has no login-activity source (demo only — no auto-popup, no real rewards)",
+  "✓ 已领取 · 1天 Max(演示)": "✓ Claimed · 1-day Max (demo)",
+  连续登录奖励: "Daily login rewards",
+  "第 3 天 · 今日可领": "Day 3 · claimable today",
+  双倍宝石周末: "Double-gem weekend",
+  "完成会话获得 2× 宝石": "Earn 2× gems per finished session",
+  "本周末内，每完成一个会话或合并一次提交，奖励宝石翻倍。攒满去扭蛋机换限定皮肤。":
+    "This weekend, every finished session or merged commit earns double gems. Save up for limited skins at the gacha.",
+  "agent teams 稳定版上线": "agent teams stable release is live",
+  "tmux 队友模式、/oracle 技能、1M 上下文阈值优化。订阅者可一键升级 runtime。":
+    "tmux teammate mode, /oracle skill, 1M-context threshold tuning. Subscribers upgrade the runtime in one click.",
+  // Tasks 信件区(inter-agent 邮箱,整块 mock)
+  "示例信件 · 引擎无 inter-agent 信箱(演示用途，非真实 agent 通信)":
+    "Demo letters · the engine has no inter-agent mailbox (demo only — not real agent traffic)",
+  "信件区 · inter-agent": "Letters · inter-agent",
+  "活动 · 签到(示例)": "Events · check-in (demo)",
+  勘察: "Surveyor",
+  测试: "Tester",
+  "勘察完成，HERO_POOL 有 8 个稳定皮肤。":
+    "Survey done — HERO_POOL has 8 stable skins.",
+  "状态槽优先级按 §6.6，askuser 置顶。":
+    "Status-slot priority per §6.6 — askuser pinned on top.",
+  "测试套件 88% 上下文，接近阈值，请求压缩。":
+    "Test suite at 88% context, near threshold — requesting compaction.",
+  "bun.lock 无异常，依赖审计通过。":
+    "bun.lock clean — dependency audit passed.",
   "暂无任务(agent 调 TodoWrite 后同步)":
     "No tasks yet (syncs after an agent calls TodoWrite)",
   // ── panels (sweep B) ─────────────────────────────────────────

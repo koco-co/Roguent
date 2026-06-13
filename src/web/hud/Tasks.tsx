@@ -10,6 +10,8 @@ import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { HeroPortrait } from "./HeroPortrait";
 import { Modal } from "./Modal";
+import { Icon } from "./icons";
+import { MOCK_AGENT_LETTERS } from "./tasks-mailbox-mock-data";
 import { TODO_META, sessionTodos } from "./todos-view";
 
 // 三组渲染顺序(对标原型):待办 → 进行中 → 完成。
@@ -138,6 +140,44 @@ export function Tasks() {
             ) : (
               <div className="faint">{t("选择一个待办")}</div>
             )}
+          </div>
+        </div>
+
+        {/* 信件区(inter-agent 邮箱):**整块 mock**,与上方真实 TodoWrite 待办无关。
+            引擎没有 agent 之间的信箱通道(subagent 间不互发信件),这里展示的发件人 /
+            标题 / 时间全是演示。三重标注:数据顶注 + MOCK_ 前缀 + 下方 mock banner。 */}
+        <div className="mailbox">
+          <div className="task-mock-banner" style={{ marginBottom: 10 }}>
+            <Icon name="error" size={14} glow="#f2c84b" />
+            {t(
+              "示例信件 · 引擎无 inter-agent 信箱(演示用途，非真实 agent 通信)",
+            )}
+          </div>
+          <div
+            className="px"
+            style={{ fontSize: 10, color: "#f2c84b", marginBottom: 8 }}
+          >
+            <Icon
+              name="chat"
+              size={16}
+              style={{ marginRight: 6, verticalAlign: "middle" }}
+            />
+            {t("信件区 · inter-agent")}
+          </div>
+          <div className="mb-list">
+            {MOCK_AGENT_LETTERS.map((m) => (
+              <div key={`${m.from}-${m.time}`} className="mb-msg">
+                <span className="cyan">{t(m.from)}</span>
+                <span className="faint"> → </span>
+                <span className="gold">{t(m.to)}</span>
+                <span className="dim">
+                  {" · "}
+                  {m.time}
+                  {"："}
+                  {t(m.title)}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
