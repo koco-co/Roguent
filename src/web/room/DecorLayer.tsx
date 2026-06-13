@@ -1,43 +1,52 @@
-import type { Graphics } from "pixi.js";
-import { useCallback } from "react";
-import { tex, useAtlas } from "./atlas";
-import { COLS, ROWS, TILE } from "./config";
+import { useMemo } from "react";
+import { useSettingsStore } from "../settings-store";
+import { AnimatedDecor } from "./DungeonRoom";
+import { anim, tex, useAtlas } from "./atlas";
+import { TILE } from "./config";
+import { ROOM_PROPS } from "./room-props";
 
-const PROPS: { key: string; name: string; x: number; y: number }[] = [
-  { key: "crate1", name: "crate", x: 3 * TILE, y: (ROWS - 3) * TILE },
-  { key: "crate2", name: "crate", x: 4 * TILE, y: (ROWS - 3) * TILE },
-  {
-    key: "flaskA",
-    name: "flask_big_blue",
-    x: 3 * TILE,
-    y: (ROWS - 4) * TILE,
-  },
-  { key: "flaskB", name: "flask_red", x: (COLS - 3) * TILE, y: 3 * TILE },
-  { key: "skull", name: "skull", x: (COLS - 5) * TILE, y: (ROWS - 3) * TILE },
-];
+// 落地道具层,逐项对照设计原型 room.jsx:93-106(坐标见 room-props.ts 的 ROOM_PROPS)。
+// 纯装饰,不映射任何真实数据。holo 皮肤只画全息地板(原型 holo 分支不画道具),故本层
+// 在 holo 下整体跳过——与原型保持一致。
 
 export function DecorLayer() {
   const sheet = useAtlas();
-  const drawFloorAccents = useCallback((g: Graphics) => {
-    g.clear();
-    g.setFillStyle({ color: 0x120d17, alpha: 0.22 });
-    g.rect(3 * TILE, 4 * TILE, 18 * TILE, 1);
-    g.rect(3 * TILE, (ROWS - 3) * TILE - 1, 18 * TILE, 1);
-    g.rect(5 * TILE, 6 * TILE, 14 * TILE, 2);
-    g.fill();
+  const skin = useSettingsStore((s) => s.skin);
 
-    g.setFillStyle({ color: 0x5fd3d8, alpha: 0.08 });
-    g.rect(7 * TILE, 4 * TILE, 10 * TILE, 1);
-    g.rect(8 * TILE, 5 * TILE, 8 * TILE, 1);
-    g.fill();
-  }, []);
+  // 动画帧集按引用记忆:@pixi/react 用引用 diff `textures`,每帧新数组会重置到第 0 帧。
+  const coinFrames = useMemo(() => anim(sheet, "coin_anim"), [sheet]);
+  const chestEmptyFrames = useMemo(
+    () => anim(sheet, "chest_empty_open_anim"),
+    [sheet],
+  );
+
+  // holo 下不画道具(对齐原型 holo 分支:只全息地板)。
+  if (skin === "holo") return null;
 
   return (
     <pixiContainer>
-      <pixiGraphics draw={drawFloorAccents} />
-      {PROPS.map((p) => (
-        <pixiSprite key={p.key} texture={tex(sheet, p.name)} x={p.x} y={p.y} />
-      ))}
+      {ROOM_PROPS.map((p, i) => {
+        const x = p.col * TILE + p.ox;
+        const y = p.row * TILE + p.oy;
+        const key = `${p.name}_${p.col}_${p.row}_${i}`;
+        if (p.animated) {
+          const frames = p.name === "coin_anim" ? coinFrames : chestEmptyFrames;
+          // 金币转得快、空宝箱开合慢,沿用原型节奏感(纯观感,无数据)。
+          const speed = p.name === "coin_anim" ? 0.12 : 0.06;
+          return (
+            <AnimatedDecor
+              key={key}
+              textures={frames}
+              x={x}
+              y={y}
+              speed={speed}
+            />
+          );
+        }
+        return (
+          <pixiSprite key={key} texture={tex(sheet, p.name)} x={x} y={y} />
+        );
+      })}
     </pixiContainer>
   );
 }

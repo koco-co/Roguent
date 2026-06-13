@@ -33,7 +33,7 @@ export type MotionMap = Record<string, Live>;
 /**
  * Foot-reachable floor rectangle derived from the room geometry. The brick
  * border occupies the top two rows (cap + face), the bottom row, and the left/
- * right columns (see DungeonRoom.structureName), so the floor interior is rows
+ * right columns (see DungeonRoom.wallName), so the floor interior is rows
  * 2..ROWS-2 and cols 1..COLS-2. A small margin keeps sprites off the walls.
  */
 export function floorBounds(margin = 4): Bounds {
