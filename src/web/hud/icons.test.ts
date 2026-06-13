@@ -35,11 +35,13 @@ const EXPECTED_NAMES = [
   "codex",
   "save",
   "vault",
+  "mail",
+  "medal",
 ] as const;
 
 describe("ICON_NAMES", () => {
-  it("contains exactly 33 icons", () => {
-    expect(ICON_NAMES).toHaveLength(33);
+  it("contains exactly 35 icons", () => {
+    expect(ICON_NAMES).toHaveLength(35);
   });
 
   it("contains every expected name", () => {

@@ -1,10 +1,14 @@
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type RuntimeKind, defaultRuntimeConfig } from "../../shared/runtime";
-import { Icon } from "../hud/icons";
+import { Icon, type IconName } from "../hud/icons";
 import { useT, useTL } from "../i18n";
 import { useSettingsStore } from "../settings-store";
-import { useRoomStore } from "../store";
+import {
+  selectMailboxBoardItemsFromMailbox,
+  selectMailboxUnreadCount,
+  useRoomStore,
+} from "../store";
 import { type PanelId, useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
 import { CatPet } from "./CatPet";
@@ -50,15 +54,7 @@ interface Interactable {
   label: string;
   sub: string;
   action: InteractAction;
-  icon:
-    | "quest"
-    | "shop"
-    | "trophy"
-    | "gear"
-    | "vault"
-    | "pouch"
-    | "crystal"
-    | "mcp";
+  icon: IconName;
   accent: string;
 }
 
@@ -66,7 +62,7 @@ const INTERACT: Interactable[] = [
   {
     id: "tower",
     x: 960,
-    y: 480,
+    y: 512,
     r: 170,
     label: "任务台",
     sub: "QUEST CONSOLE",
@@ -76,8 +72,8 @@ const INTERACT: Interactable[] = [
   },
   {
     id: "shop",
-    x: 1480,
-    y: 380,
+    x: 1556,
+    y: 452,
     r: 140,
     label: "装饰商店",
     sub: "SHOP",
@@ -98,9 +94,9 @@ const INTERACT: Interactable[] = [
   },
   {
     id: "gacha",
-    x: 1640,
-    y: 555,
-    r: 120,
+    x: 1576,
+    y: 738,
+    r: 130,
     label: "扭蛋机",
     sub: "GACHA",
     action: { kind: "panel", panel: "gacha" },
@@ -123,8 +119,8 @@ const INTERACT: Interactable[] = [
     x: 1272,
     y: 248,
     r: 120,
-    label: "信箱",
-    sub: "MAIL",
+    label: "邮箱",
+    sub: "MAILBOX",
     action: { kind: "panel", panel: "mailbox" },
     icon: "vault",
     accent: "#36c5e0",
@@ -144,9 +140,9 @@ const INTERACT: Interactable[] = [
     id: "achievements",
     x: 652,
     y: 248,
-    r: 120,
-    label: "成就陈列",
-    sub: "LOOT",
+    r: 130,
+    label: "成就殿",
+    sub: "ACHIEVEMENTS",
     action: { kind: "panel", panel: "achievements" },
     icon: "pouch",
     accent: "#5fd35f",
@@ -155,17 +151,17 @@ const INTERACT: Interactable[] = [
     id: "leaderboard",
     x: 362,
     y: 452,
-    r: 120,
+    r: 140,
     label: "排行榜",
-    sub: "RANK",
+    sub: "RANKING",
     action: { kind: "panel", panel: "leaderboard" },
     icon: "trophy",
     accent: "#f2c84b",
   },
   {
     id: "cdoor",
-    x: 230,
-    y: 760,
+    x: 214,
+    y: 946,
     r: 120,
     label: "Claude 项目",
     sub: "",
@@ -175,8 +171,8 @@ const INTERACT: Interactable[] = [
   },
   {
     id: "xdoor",
-    x: 1690,
-    y: 760,
+    x: 1706,
+    y: 946,
     r: 120,
     label: "Codex 项目",
     sub: "",
@@ -188,10 +184,10 @@ const INTERACT: Interactable[] = [
 
 // 漫步装饰小人(纯氛围,不可交互):[hero, x, y] 虚拟坐标。
 const DECOR: [string, number, number][] = [
-  ["knight_f", 150, 300],
+  ["knight_f", 150, 360],
   ["dwarf_m", 1700, 392],
   ["wizzard_f", 1668, 586],
-  ["goblin", 120, 560],
+  ["goblin", 120, 600],
 ];
 
 // ── 环境装饰(纯氛围,全确定性,禁 Math.random;照原型 lobby.jsx:147-181)──
@@ -233,6 +229,17 @@ function isKeyboardOwnedElement(el: Element | null, key: string): boolean {
   );
 }
 
+// 扭蛋机穹顶 5 色 gm-cap(纯装饰,色序照原型 lobby.jsx:220)。
+const GACHA_CAPS = ["#ff4d6d", "#36c5e0", "#f2c84b", "#5fd35f", "#a06cd5"];
+// 摊位类结构 id → (icon, 强调色),照原型 lobby.jsx:246-247,按本仓 id 映射。
+const STALL_META: Record<string, { icon: IconName; color: string }> = {
+  shop: { icon: "shop", color: "#a06cd5" },
+  leaderboard: { icon: "trophy", color: "#f2c84b" },
+  altar: { icon: "gear", color: "#36c5e0" },
+  achievements: { icon: "medal", color: "#f2c84b" },
+  market: { icon: "mcp", color: "#36c5e0" },
+};
+
 function Structure({
   it,
   near,
@@ -247,6 +254,15 @@ function Structure({
   const t = useT();
   // en 模式隐藏 struct-sub(英文代号在英文 UI 里冗余,对标设计原型)。基元 selector。
   const lang = useSettingsStore((s) => s.uiLang);
+  // 邮箱徽标 / 公告便签接真:订阅 mailbox slice(稳定引用,不在 selector 里构造新值),
+  // 派生值用 useMemo / 纯函数算。hooks 全在 early return 前,顺序稳定。
+  const mailbox = useRoomStore((s) => s.mailbox);
+  const unread = mailbox ? selectMailboxUnreadCount(mailbox) : 0;
+  const boardNotes = useMemo(
+    () =>
+      mailbox ? selectMailboxBoardItemsFromMailbox(mailbox, { limit: 3 }) : [],
+    [mailbox],
+  );
   const float = Math.sin(tick / 3) * 4;
   let body: React.ReactNode;
   if (it.id === "tower") {
@@ -271,6 +287,16 @@ function Structure({
             animated={false}
           />
         </div>
+        {/* 喷泉水滴 ×4(纯装饰,CSS 驱动) */}
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={`d${i}`}
+            className="fountain-drop"
+            style={
+              { "--i": i, animationDelay: `${i * 0.4}s` } as React.CSSProperties
+            }
+          />
+        ))}
       </div>
     );
   } else if (it.action.kind === "runtime") {
@@ -289,22 +315,96 @@ function Structure({
         <PixelSprite name="doors_leaf_closed" scale={4} animated={false} />
       </div>
     );
-  } else {
-    const col = it.accent;
+  } else if (it.id === "gacha") {
     body = (
-      <div className="struct-vendor">
-        <div
-          className="vendor-ic"
-          style={
-            {
-              transform: `translateY(${float}px)`,
-              "--ac": col,
-            } as React.CSSProperties
-          }
-        >
-          <Icon name={it.icon} size={48} glow={col} />
+      <div className="struct-gacha">
+        <div className="gm-dome">
+          {GACHA_CAPS.map((c, i) => (
+            <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: 静态 5 色穹顶豆,不重排
+              key={`cap${i}`}
+              className="gm-cap"
+              style={{
+                background: c,
+                left: `${14 + i * 16}%`,
+                top: `${18 + (i % 2) * 30}%`,
+              }}
+            />
+          ))}
+        </div>
+        <div className="gm-body">
+          <div className="gm-knob" />
+          <div className="gm-slot" />
         </div>
         <div className="vendor-ped" />
+        <div
+          className="gacha-sparkle"
+          style={{ transform: `translateY(${float}px)` }}
+        >
+          ✦
+        </div>
+      </div>
+    );
+  } else if (it.id === "board") {
+    // 公告便签接真:取 mailbox board 前 3 条,标题渲染进 .board-note(无源则不渲染便签)。
+    body = (
+      <div className="struct-board">
+        <div className="board-roof" />
+        <div className="board-face">
+          {boardNotes.map((note, i) => (
+            <div
+              key={note.id}
+              className="board-note"
+              style={
+                {
+                  "--ac": GACHA_CAPS[i % GACHA_CAPS.length],
+                } as React.CSSProperties
+              }
+            >
+              <span className="board-pin" />
+              <span className="board-note-t">{note.title}</span>
+            </div>
+          ))}
+        </div>
+        <div className="board-legs">
+          <span />
+          <span />
+        </div>
+      </div>
+    );
+  } else if (it.id === "mailbox") {
+    // 未读徽标接真:unread>0 才翻旗 + 显示红点数字。
+    body = (
+      <div className="struct-mailbox">
+        <div className={`mailbox-flag${unread > 0 ? " up" : ""}`} />
+        <div className="mailbox-box">
+          <Icon name="mail" size={34} />
+        </div>
+        <div className="mailbox-post" />
+        {unread > 0 ? <div className="mailbox-count px">{unread}</div> : null}
+      </div>
+    );
+  } else {
+    const meta = STALL_META[it.id] ?? { icon: it.icon, color: it.accent };
+    const col = meta.color;
+    body = (
+      <div
+        className={`struct-stall stall-${it.id}`}
+        style={{ "--ac": col } as React.CSSProperties}
+      >
+        <div className="stall-roof" />
+        <div className="stall-valance" />
+        <div className="stall-body">
+          <div className="stall-post l" />
+          <div className="stall-post r" />
+          <div
+            className="stall-sign"
+            style={{ transform: `translateY(${float}px)` }}
+          >
+            <Icon name={meta.icon} size={40} glow={col} />
+          </div>
+          <div className="stall-counter" />
+        </div>
       </div>
     );
   }
@@ -470,7 +570,8 @@ export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
         }
       }
       p.x = Math.max(70, Math.min(VW - 70, p.x));
-      p.y = Math.max(150, Math.min(VH - 40, p.y));
+      // y 下限对照原型 lobby.jsx:121(1060,即 VH-20)。
+      p.y = Math.max(150, Math.min(VH - 20, p.y));
       if (avRef.current) {
         avRef.current.style.left = pct(p.x, VW);
         avRef.current.style.top = pct(p.y, VH);

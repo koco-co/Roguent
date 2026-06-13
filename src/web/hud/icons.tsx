@@ -641,6 +641,48 @@ const ICON_ART_DATA = {
     r(9, 2, 4, 3, C.woodD),
     r(3, 4, 10, 1, O),
   ],
+
+  // ---- mail / envelope (mailbox) ----
+  mail: [
+    ...box(2, 4, 12, 9, C.paper, O),
+    r(3, 5, 10, 1, C.paperD),
+    // flap
+    r(3, 5, 1, 1, O),
+    r(12, 5, 1, 1, O),
+    r(4, 6, 1, 1, O),
+    r(11, 6, 1, 1, O),
+    r(5, 7, 1, 1, O),
+    r(10, 7, 1, 1, O),
+    r(6, 8, 4, 1, O),
+    r(7, 8, 2, 1, C.gold),
+    r(4, 10, 3, 1, C.paperD),
+    r(9, 10, 3, 1, C.paperD),
+    // notification dot
+    r(11, 2, 3, 3, C.red),
+    r(11, 2, 3, 1, C.redH),
+  ],
+
+  // ---- medal (achievements) ----
+  medal: [
+    // ribbon
+    r(5, 1, 2, 4, C.cyan),
+    r(9, 1, 2, 4, C.red),
+    r(5, 1, 2, 1, C.cyanH),
+    r(9, 1, 2, 1, C.redH),
+    // disc
+    r(6, 5, 4, 1, O),
+    r(5, 6, 1, 5, O),
+    r(10, 6, 1, 5, O),
+    r(6, 11, 4, 1, O),
+    r(6, 6, 4, 5, C.gold),
+    r(6, 6, 4, 1, C.goldH),
+    r(6, 10, 4, 1, C.goldD),
+    // star
+    r(7, 7, 2, 1, C.goldD),
+    r(7, 8, 2, 2, C.white),
+    r(6, 8, 1, 1, C.goldH),
+    r(9, 8, 1, 1, C.goldH),
+  ],
 } as const;
 
 // Widened for runtime indexing by arbitrary strings (e.g. mapping.ts tool names).
