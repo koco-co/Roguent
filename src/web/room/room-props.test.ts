@@ -92,4 +92,6 @@ test("floorTileAt 确定性且只产出 floor_1/2/3", () => {
   }
   // floor_1 必占多数;floor_2/floor_3 至少各出现一次(否则等于没变化)。
   expect(seen.has("floor_1")).toBe(true);
+  expect(seen.has("floor_2")).toBe(true);
+  expect(seen.has("floor_3")).toBe(true);
 });
