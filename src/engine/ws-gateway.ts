@@ -240,6 +240,10 @@ export class WsGateway {
       const id = `${basename(c.path, ".jsonl")}#imp${++this.importSeq}`;
       try {
         this.mgr.importSession(id, c.path);
+        // 成功 → 回带引擎分配的 id，让发起方关闭面板并切进该会话内景。
+        // 历史事件已 broadcast 在前（同一 ws，TCP 保序），故此 reply 到达时
+        // 客户端的 reducer 已把会话建好、焦点切过去。
+        this.reply(ws, { kind: "control", type: "importDone", sessionId: id });
       } catch (e) {
         this.reply(ws, {
           kind: "control",

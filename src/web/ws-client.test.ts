@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import type { PluginsMessage, RoomEvent } from "../shared/events";
 import type { ControlMessage } from "../shared/local-sessions";
+import { useRoomStore } from "./store";
 import { useUiStore } from "./ui-store";
 import { handleIncoming, sendCommand } from "./ws-client";
 import { connectRoom } from "./ws-client";
@@ -116,6 +117,29 @@ test("connectRoom stores commandError control messages in ui state", () => {
       }),
     );
     expect(useUiStore.getState().commandError).toBe("Command not implemented");
+  } finally {
+    conn.close();
+  }
+});
+
+test("connectRoom: importDone control lands the user in the imported session's interior + closes the panel", () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  // 模拟导入面板正开着、当前在大厅。
+  useUiStore.setState({ activePanel: "import", view: "overworld" });
+  const conn = connectRoom("ws://roguent.test");
+  try {
+    FakeWebSocket.instances[0]?.receive(
+      JSON.stringify({
+        kind: "control",
+        type: "importDone",
+        sessionId: "t#imp1",
+      }),
+    );
+    // 焦点切到导入会话、视图进其内景、导入面板关闭 → 不再「没反应」。
+    expect(useRoomStore.getState().currentSessionId).toBe("t#imp1");
+    expect(useUiStore.getState().view).toEqual({ interior: "t#imp1" });
+    expect(useUiStore.getState().activePanel).toBeNull();
   } finally {
     conn.close();
   }
