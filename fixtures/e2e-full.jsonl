@@ -1,0 +1,25 @@
+{"seq":1,"ts":100,"sessionId":"s1","type":"session.created","payload":{"title":"roguent · 主线开发","model":"claude-opus-4-8","permissionMode":"default","apiKeySource":"oauth","cwd":"/Users/poco/Projects/Roguent","project":"roguent","slashCommands":["/brainstorming","/writing-plans","/subagent-driven-development","/systematic-debugging","/test-driven-development","/code-review","/deep-research","/frontend-design","/security-review","/simplify","/verify","/debug","/compact","/context","/review","/init","/loop","/schedule"]}}
+{"seq":2,"ts":200,"sessionId":"s1","type":"agent.spawned","agentId":"ag-impl","payload":{"role":"coder","promptSummary":"实现导入面板","parentId":"orchestrator"}}
+{"seq":3,"ts":250,"sessionId":"s1","type":"agent.spawned","agentId":"ag-review","payload":{"role":"reviewer","promptSummary":"审查 store reducer","parentId":"orchestrator"}}
+{"seq":4,"ts":300,"sessionId":"s1","type":"agent.spawned","agentId":"ag-research","payload":{"role":"researcher","promptSummary":"调研 PixiJS v8 文本","parentId":"orchestrator"}}
+{"seq":5,"ts":350,"sessionId":"s1","type":"context.updated","agentId":"orchestrator","payload":{"usedTokens":78000,"windowSize":200000,"utilization":39}}
+{"seq":6,"ts":400,"sessionId":"s1","type":"todos.updated","agentId":"orchestrator","payload":{"todos":[{"content":"端到端验证大厅结构物","status":"in_progress"},{"content":"修复 SessionGrid runtime chip","status":"completed"},{"content":"接 BrowserScreen 工具流","status":"in_progress"},{"content":"补 Minimap 缩略点","status":"pending"},{"content":"回写 E2E 清单","status":"pending"}]}}
+{"seq":7,"ts":450,"sessionId":"s1","type":"tool.started","agentId":"ag-impl","payload":{"toolName":"Edit","inputSummary":"src/web/hud/ImportPanel.tsx","toolUseId":"t1"}}
+{"seq":8,"ts":500,"sessionId":"s1","type":"tool.ended","agentId":"ag-impl","payload":{"toolUseId":"t1","ok":true}}
+{"seq":9,"ts":550,"sessionId":"s1","type":"tool.started","agentId":"ag-research","payload":{"toolName":"WebSearch","inputSummary":"pixijs v8 BitmapText","toolUseId":"t2"}}
+{"seq":10,"ts":600,"sessionId":"s1","type":"tool.started","agentId":"ag-review","payload":{"toolName":"Bash","inputSummary":"bun test store","toolUseId":"t3"}}
+{"seq":11,"ts":650,"sessionId":"s1","type":"tool.failed","agentId":"ag-review","payload":{"toolUseId":"t3","ok":false}}
+{"seq":12,"ts":700,"sessionId":"s1","type":"thinking.delta","agentId":"orchestrator","payload":{"text":"先验证大厅结构物,再进内景核对 HUD。"}}
+{"seq":13,"ts":750,"sessionId":"s1","type":"message.delta","agentId":"orchestrator","payload":{"text":"开始端到端验证。engine + web 已起,正在逐项核对。","role":"assistant"}}
+{"seq":14,"ts":800,"sessionId":"s1","type":"loot.dropped","agentId":"ag-impl","payload":{"kind":"diff","label":"ImportPanel.tsx 改动","sourceRef":"t1"}}
+{"seq":15,"ts":850,"sessionId":"s1","type":"loot.dropped","agentId":"ag-research","payload":{"kind":"report","label":"PixiJS 文本调研","sourceRef":"t2"}}
+{"seq":16,"ts":900,"sessionId":"s1","type":"usage.updated","agentId":"orchestrator","payload":{"tokens":78000,"cost":0.42}}
+{"seq":17,"ts":950,"sessionId":"s1","type":"economy.ledger.appended","payload":{"entry":{"id":"l1","ts":950,"reason":"welcome_bonus","amount":500,"currency":"gem","delta":{"gem":500},"balance":{"gem":500},"source":"system","sourceEventId":"e1"}}}
+{"seq":18,"ts":1000,"sessionId":"s1","type":"economy.ledger.appended","payload":{"entry":{"id":"l2","ts":1000,"reason":"gacha_pull","amount":-100,"currency":"gem","delta":{"gem":-100},"balance":{"gem":400},"source":"gacha","sourceEventId":"e2","metadata":{"inventory":{"action":"added","item":{"id":"skin.ninja","sku":"skin.ninja","kind":"skin","label":"忍者皮肤","quantity":1,"acquiredAt":1000}}}}}}
+{"seq":19,"ts":1050,"sessionId":"s1","type":"achievement.updated","payload":{"achievement":{"id":"ach-first","title":"First Session","description":"创建第一个会话","progress":1,"target":1,"completed":true,"claimed":false,"updatedAt":1050,"reward":{"gem":50}}}}
+{"seq":20,"ts":1100,"sessionId":"s1","type":"achievement.updated","payload":{"achievement":{"id":"ach-code","title":"Code Master","description":"完成 10 次代码审查","progress":4,"target":10,"completed":false,"updatedAt":1100,"reward":{"gem":200}}}}
+{"seq":21,"ts":1150,"sessionId":"s1","type":"scheduler.task.created","payload":{"task":{"id":"sch1","title":"每日依赖审计","prompt":"运行 bun audit 并汇报结果","status":"enabled","createdAt":1150,"nextRunAt":1700000000000,"cwd":"/Users/poco/Projects/Roguent","schedule":{"kind":"daily","hour":9,"minute":0,"timezone":"Asia/Shanghai"}}}}
+{"seq":22,"ts":1200,"sessionId":"s1","type":"agent.idle","agentId":"ag-research","payload":{}}
+{"seq":23,"ts":1250,"sessionId":"s2","type":"session.created","payload":{"title":"alpha · 实验","model":"claude-sonnet-4-6","permissionMode":"acceptEdits","apiKeySource":"oauth","cwd":"/repo/alpha","project":"alpha","slashCommands":["/code-review","/run"]}}
+{"seq":24,"ts":1300,"sessionId":"s2","type":"agent.spawned","agentId":"ag-a","payload":{"role":"coder","promptSummary":"alpha 任务","parentId":"orchestrator"}}
+{"seq":25,"ts":1350,"sessionId":"s2","type":"agent.done","agentId":"ag-a","payload":{"stopReason":"end_turn"}}
