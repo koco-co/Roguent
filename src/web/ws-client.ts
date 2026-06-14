@@ -60,7 +60,13 @@ export function connectRoom(url = "ws://localhost:8787"): RoomConnection {
     const ui = useUiStore.getState();
     if (c.type === "localSessions") ui.setLocalSessions(c.items);
     else if (c.type === "importError") ui.setImportError(c.reason);
-    else if (c.type === "commandError") ui.setCommandError(c.reason);
+    else if (c.type === "importDone") {
+      // 导入落地:历史事件已先到、reducer 已建好会话并切焦点。这里关掉导入面板
+      // 并切进该会话内景，让用户立刻看到导入的对话（否则模态盖着 = 「没反应」）。
+      useRoomStore.getState().switchSession(c.sessionId);
+      ui.enterInterior(c.sessionId);
+      ui.closePanel();
+    } else if (c.type === "commandError") ui.setCommandError(c.reason);
     else if (c.type === "roster") {
       // 重连对账:清掉引擎花名册外的幽灵会话(导入会话豁免,见 reconcileSessions)。
       useRoomStore.getState().reconcileSessions(c.sessionIds);

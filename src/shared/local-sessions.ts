@@ -11,6 +11,9 @@ export interface LocalSessionMeta {
 export type ControlMessage =
   | { kind: "control"; type: "localSessions"; items: LocalSessionMeta[] }
   | { kind: "control"; type: "importError"; path: string; reason: string }
+  // 导入成功:引擎回带它分配的 sessionId（`<file>#imp<n>`，前端无法预知此序号），
+  // 客户端据此关闭导入面板并切进该会话内景（「云存档同步式回看」落地）。
+  | { kind: "control"; type: "importDone"; sessionId: string }
   | {
       kind: "control";
       type: "commandError";
