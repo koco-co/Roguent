@@ -39,6 +39,15 @@ Roguent —— Claude Code agent 活动的游戏化实时可视化平台。把**
 
 改后即测:动了代码 / 配置 / runtime 就跑 `bun test` + `bun run check` + `bunx tsc --noEmit`,失败先修;**不把局部通过说成全量通过**。注意 `bun run check` 只是 Biome(lint+format)、**不查类型**,改 TS 必须单独跑 `bunx tsc --noEmit`(仓库强约束 `noUncheckedIndexedAccess`,Biome 抓不到的类型错只有 tsc 抓得到)。**主 `tsconfig` 的 `include` 不含 `tests/`**,所以改 `tests/e2e/` 下的 Playwright 用例 / `helpers.ts` 要单独跑 `bun run typecheck:e2e`(`tsconfig.e2e.json`,补 DOM+node+@playwright/test;主 tsc 查不到这些文件)。端到端验证用回放 fixture,不烧额度。
 
+### 端到端验证(强约束:改 / 修任何功能都必须做,不可跳过)
+
+单测 + tsc + check **绿了不等于功能好用**。改动或修复**任何用户可见功能**,合并前必须在**真实运行的应用**里把**用户实际走的那条完整路径**走通,并附**证据**(preview 截图 / DOM 断言 / 日志):
+
+1. **测用户实际看的入口和界面**,不是只测你改的那个组件。同一功能常有多个入口(如「导入」既在 Hotbar,也在 SystemMenu、SessionGrid 导入卡)——验证要落在**用户报告问题的那个界面**上,确认数据/状态真的出现在那里(例:导入后会话要出现在「会话总览」里,而不仅是横幅闪一下)。
+2. **从用户起点的初始状态开始**(如空 store / 大厅),一路点到终态,确认每一跳的可见结果,而非只断言内部状态变了。
+3. **附证据再下结论**:截图或 DOM 断言或控制台无报错;**没跑过就不许说「已验证 / 好用」**(沿用上面「不把局部通过说成全量通过」)。
+4. **注意验证环境与用户环境的差异**:`bun --watch` 的 engine 在你合并 `main` 时会**自动重启并清空内存态**(含已导入的会话);导入会话是纯内存、**engine 重启 / 页面刷新后不重放**。验证时若另起了独立实例,要意识到它和用户那个实例是两套状态,别拿自己实例的成功当用户实例的成功。
+
 ## 工作流
 
 见 [.claude/rules/workflow.md](.claude/rules/workflow.md):detached worktree 优先 + Conventional Commits。
