@@ -92,6 +92,7 @@ export interface WsGatewayOptions {
   settings?: GatewaySettingsService;
   achievements?: GatewayAchievementsService;
   gacha?: GatewayGachaService;
+  onSettingsUpdated?: (payload: SettingsUpdatedPayload) => void | Promise<void>;
   plugins?: GatewayPluginsService;
   /**
    * Returns the initial value for the pull sequence counter. Called lazily on
@@ -455,6 +456,14 @@ export class WsGateway {
         type: "settings.updated",
         payload,
       });
+      try {
+        await this.options.onSettingsUpdated?.(payload);
+      } catch (error) {
+        console.warn(
+          "[gateway] settings update side effect failed:",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
     } catch (error) {
       this.replyCommandError(
         ws,

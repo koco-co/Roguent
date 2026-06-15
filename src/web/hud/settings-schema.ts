@@ -95,6 +95,13 @@ const INTEGRATION_SETTINGS_GROUP: SettingGroup = {
       tip: "敏感字段,保存时只写入 SecretStore 引用。",
     },
     {
+      k: "public_webhook_base_url",
+      label: "Webhook base URL",
+      type: "text",
+      val: "",
+      tip: "公开 HTTPS webhook 根地址,例如 https://example.com,不要带 /webhooks 路径。",
+    },
+    {
       k: "github_enabled",
       label: "GitHub 订阅",
       type: "toggle",
@@ -109,6 +116,13 @@ const INTEGRATION_SETTINGS_GROUP: SettingGroup = {
       tip: "订阅仓库,格式 owner/repo。",
     },
     {
+      k: "github_token",
+      label: "GitHub token",
+      type: "text",
+      val: "",
+      tip: "GitHub fine-grained PAT,需要目标仓库 Webhooks Read and write 权限,保存时只写 SecretStore 引用。",
+    },
+    {
       k: "github_webhook_secret",
       label: "GitHub webhookSecret",
       type: "text",
@@ -121,6 +135,27 @@ const INTEGRATION_SETTINGS_GROUP: SettingGroup = {
       type: "toggle",
       val: false,
       tip: "启用 X webhook/订阅事件接入。",
+    },
+    {
+      k: "x_handle",
+      label: "X handle",
+      type: "text",
+      val: "",
+      tip: "订阅的 X 账号 handle,例如 @SugerQvQ。",
+    },
+    {
+      k: "x_consumer_key",
+      label: "X consumerKey",
+      type: "text",
+      val: "",
+      tip: "X App Consumer Key / API Key,保存时只写 SecretStore 引用。",
+    },
+    {
+      k: "x_webhook_secret",
+      label: "X secretKey",
+      type: "text",
+      val: "",
+      tip: "X App Secret Key,用于 webhook CRC/HMAC 签名校验,保存时只写 SecretStore 引用。",
     },
     {
       k: "x_bearer_token",

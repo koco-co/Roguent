@@ -135,6 +135,7 @@ async function handleXWebhook(
         rawBodyHash: rawBodyHash(rawBody),
       });
     },
+    secret: () => resolveXWebhookSecret(options, env),
     secretName: "ROGUENT_X_WEBHOOK_SECRET",
     signatureHeader: "x-twitter-webhooks-signature",
     verifier: verifyXWebhookSignature,
@@ -239,6 +240,15 @@ async function resolveWebhookSecret(
       : undefined;
   }
   return env.ROGUENT_GITHUB_WEBHOOK_SECRET;
+}
+
+async function resolveXWebhookSecret(
+  options: IngressServerOptions,
+  env: Record<string, string | undefined>,
+): Promise<string | undefined> {
+  const ref = env.ROGUENT_X_WEBHOOK_SECRET_REF?.trim();
+  if (ref) return options.secretStore?.get(ref);
+  return env.ROGUENT_X_WEBHOOK_SECRET;
 }
 
 async function handleRelayWebhook(
@@ -404,13 +414,13 @@ async function handleFeishuWebhook(
   return json({ ok: true, id: event.id });
 }
 
-function handleXCrc(
+async function handleXCrc(
   url: URL,
   options: IngressServerOptions,
   env: Record<string, string | undefined>,
-): Response {
+): Promise<Response> {
   const crcToken = url.searchParams.get("crc_token");
-  const secret = env.ROGUENT_X_WEBHOOK_SECRET?.trim();
+  const secret = await resolveXWebhookSecret(options, env);
   const rawBody = Buffer.from(crcToken ?? "");
   if (!crcToken || !secret) {
     appendIngressAudit(options.db, {

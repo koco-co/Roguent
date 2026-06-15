@@ -298,6 +298,13 @@ function settingsFieldValues(
   }
 
   const integrations = settings?.integrations;
+  const globalMeta = metadataRecord(settings?.metadata);
+  const webhookBaseUrl =
+    stringMetadata(globalMeta?.webhookBaseUrl) ??
+    stringMetadata(globalMeta?.publicWebhookBaseUrl) ??
+    stringMetadata(integrations?.github?.metadata?.webhookBaseUrl) ??
+    stringMetadata(integrations?.x?.metadata?.webhookBaseUrl);
+  if (webhookBaseUrl) values.public_webhook_base_url = webhookBaseUrl;
   if (integrations?.wechat)
     values.im_wechat_enabled = integrations.wechat.enabled;
   if (integrations?.feishu) {
@@ -312,13 +319,22 @@ function settingsFieldValues(
     values.github_enabled = integrations.github.enabled;
     const meta = integrations.github.metadata;
     const repo = stringMetadata(meta?.repo);
+    const token = stringMetadata(meta?.token);
     const webhookSecret = stringMetadata(meta?.webhookSecret);
     if (repo) values.github_repo = repo;
+    if (token) values.github_token = token;
     if (webhookSecret) values.github_webhook_secret = webhookSecret;
   }
   if (integrations?.x) {
     values.x_enabled = integrations.x.enabled;
-    const bearerToken = stringMetadata(integrations.x.metadata?.bearerToken);
+    const meta = integrations.x.metadata;
+    const bearerToken = stringMetadata(meta?.bearerToken);
+    const consumerKey = stringMetadata(meta?.consumerKey);
+    const handle = stringMetadata(meta?.handle);
+    const webhookSecret = stringMetadata(meta?.webhookSecret);
+    if (handle) values.x_handle = handle;
+    if (consumerKey) values.x_consumer_key = consumerKey;
+    if (webhookSecret) values.x_webhook_secret = webhookSecret;
     if (bearerToken) values.x_bearer_token = bearerToken;
   }
   if (integrations?.relay) {
@@ -432,6 +448,11 @@ function integrationSettings(
           "github_repo",
           saved?.github?.metadata?.repo,
         ),
+        token: metadataField(
+          overrides,
+          "github_token",
+          saved?.github?.metadata?.token,
+        ),
         webhookSecret: metadataField(
           overrides,
           "github_webhook_secret",
@@ -442,6 +463,21 @@ function integrationSettings(
     x: {
       enabled: booleanField(vals, "x_enabled", SETTINGS_VALUE_GROUPS, false),
       metadata: {
+        handle: metadataField(
+          overrides,
+          "x_handle",
+          saved?.x?.metadata?.handle,
+        ),
+        consumerKey: metadataField(
+          overrides,
+          "x_consumer_key",
+          saved?.x?.metadata?.consumerKey,
+        ),
+        webhookSecret: metadataField(
+          overrides,
+          "x_webhook_secret",
+          saved?.x?.metadata?.webhookSecret,
+        ),
         bearerToken: metadataField(
           overrides,
           "x_bearer_token",
@@ -472,6 +508,19 @@ function integrationSettings(
   };
 }
 
+function webhookMetadata(
+  overrides: Record<string, SettingValue>,
+  savedSettings: RoguentSettings | null | undefined,
+): Record<string, unknown> {
+  const savedMeta = metadataRecord(savedSettings?.metadata);
+  const webhookBaseUrl = metadataField(
+    overrides,
+    "public_webhook_base_url",
+    savedMeta?.webhookBaseUrl ?? savedMeta?.publicWebhookBaseUrl,
+  );
+  return webhookBaseUrl ? { webhookBaseUrl } : {};
+}
+
 function buildSettings(
   rt: "claude" | "codex",
   vals: Record<string, SettingValue>,
@@ -483,6 +532,7 @@ function buildSettings(
       runtime: runtimeSettings(rt, vals),
       integrations: integrationSettings(vals, overrides, savedSettings),
       metadata: {
+        ...webhookMetadata(overrides, savedSettings),
         codex: {
           provider: stringField(
             vals,
@@ -504,6 +554,7 @@ function buildSettings(
   return {
     runtime: runtimeSettings(rt, vals),
     integrations: integrationSettings(vals, overrides, savedSettings),
+    metadata: webhookMetadata(overrides, savedSettings),
     ui: Object.fromEntries(Object.entries(vals)),
   };
 }

@@ -59,20 +59,39 @@ if (replayFixture) {
   const secretStore = new KeychainSecretStore();
   const mgr = new SessionManager(undefined, process.cwd(), { auditDb: db });
   const scheduler = createSchedulerService(db);
+  const settingsService = createSettingsService(db, secretStore);
   const pluginsService = createPluginsService({
     configDir: claudeConfigDir(),
     // dev 回落 PATH 上的 claude(可能与 SDK 内置 CLI 版本不同);Tauri 下走 ROGUENT_CLI_PATH。
     cliPath: cliPathFromEnv(process.env) ?? "claude",
   });
+  const integrations = startLiveIntegrations({
+    db,
+    secretStore,
+    sessions: mgr,
+  });
+  void settingsService
+    .load("user")
+    .then((settings) =>
+      settings ? integrations.applySubscriptionSettings(settings) : undefined,
+    )
+    .catch((error) => {
+      console.warn(
+        "[server] saved subscription settings apply failed:",
+        error instanceof Error ? error.message : String(error),
+      );
+    });
   const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`), {
     mailbox: createMailboxService(db),
     scheduler,
-    settings: createSettingsService(db, secretStore),
+    settings: settingsService,
+    onSettingsUpdated(payload) {
+      return integrations.applySubscriptionSettings(payload.settings);
+    },
     plugins: pluginsService,
   });
   const schedulerRunner = createSchedulerRunner({ db, sessions: mgr });
   schedulerRunner.start();
-  const integrations = startLiveIntegrations({ db, sessions: mgr });
   const ingressPort = resolveIngressPort(process.env);
   if (ingressPort !== null && ingressPort === port && port !== 0) {
     console.warn(

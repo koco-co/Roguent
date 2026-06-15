@@ -85,13 +85,30 @@ test("settings save sends real Codex runtime and MCP profile command", async () 
   await userEvent.click(screen.getByRole("button", { name: /Codex/ }));
   await userEvent.selectOptions(screen.getByLabelText(/模型 model/), "gpt-5");
   await userEvent.click(screen.getByRole("button", { name: /IM \/ 订阅/ }));
+  await userEvent.type(
+    screen.getByLabelText("Webhook base URL"),
+    "https://41b82ac0947447.lhr.life",
+  );
   await userEvent.click(screen.getByRole("button", { name: "GitHub 订阅" }));
   await userEvent.type(screen.getByLabelText("GitHub repo"), "poco/roguent");
+  await userEvent.type(
+    screen.getByLabelText("GitHub token"),
+    "github-token-value",
+  );
   await userEvent.type(
     screen.getByLabelText("GitHub webhookSecret"),
     "github-secret-value",
   );
   await userEvent.click(screen.getByRole("button", { name: "X 订阅" }));
+  await userEvent.type(screen.getByLabelText("X handle"), "@SugerQvQ");
+  await userEvent.type(
+    screen.getByLabelText("X consumerKey"),
+    "x-consumer-key",
+  );
+  await userEvent.type(
+    screen.getByLabelText("X secretKey"),
+    "x-consumer-secret",
+  );
   await userEvent.type(screen.getByLabelText("X bearerToken"), "x-token-value");
   await userEvent.click(screen.getByRole("button", { name: "保存" }));
 
@@ -110,6 +127,7 @@ test("settings save sends real Codex runtime and MCP profile command", async () 
         networkAccess: false,
       },
       metadata: {
+        webhookBaseUrl: "https://41b82ac0947447.lhr.life",
         codex: {
           provider: "openai",
           mcpServers: ["github-mcp"],
@@ -125,6 +143,7 @@ test("settings save sends real Codex runtime and MCP profile command", async () 
           enabled: true,
           metadata: {
             repo: "poco/roguent",
+            token: "github-token-value",
             webhookSecret: "github-secret-value",
           },
         },
@@ -132,6 +151,9 @@ test("settings save sends real Codex runtime and MCP profile command", async () 
           enabled: true,
           metadata: {
             bearerToken: "x-token-value",
+            consumerKey: "x-consumer-key",
+            handle: "@SugerQvQ",
+            webhookSecret: "x-consumer-secret",
           },
         },
       },
@@ -140,8 +162,13 @@ test("settings save sends real Codex runtime and MCP profile command", async () 
       "cx_model",
       "github_enabled",
       "github_repo",
+      "github_token",
       "github_webhook_secret",
+      "public_webhook_base_url",
       "x_enabled",
+      "x_handle",
+      "x_consumer_key",
+      "x_webhook_secret",
       "x_bearer_token",
     ]),
     metadata: { source: "settings-panel", runtime: "codex" },
@@ -169,14 +196,33 @@ test("settings panel hydrates saved Codex settings and preserves secret refs", a
           enabled: true,
           metadata: {
             repo: "poco/roguent",
+            token: {
+              secretRef: "settings/user.integrations.github.metadata.token",
+            },
             webhookSecret: {
               secretRef:
                 "settings/user.integrations.github.metadata.webhookSecret",
             },
           },
         },
+        x: {
+          enabled: true,
+          metadata: {
+            bearerToken: {
+              secretRef: "settings/user.integrations.x.metadata.bearerToken",
+            },
+            consumerKey: {
+              secretRef: "settings/user.integrations.x.metadata.consumerKey",
+            },
+            handle: "@SugerQvQ",
+            webhookSecret: {
+              secretRef: "settings/user.integrations.x.metadata.webhookSecret",
+            },
+          },
+        },
       },
       metadata: {
+        webhookBaseUrl: "https://41b82ac0947447.lhr.life",
         codex: {
           provider: "custom",
           mcpServers: ["github-mcp", "linear-mcp"],
@@ -210,6 +256,7 @@ test("settings panel hydrates saved Codex settings and preserves secret refs", a
         networkAccess: true,
       },
       metadata: {
+        webhookBaseUrl: "https://41b82ac0947447.lhr.life",
         codex: {
           provider: "custom",
           mcpServers: ["github-mcp", "linear-mcp"],
@@ -221,9 +268,27 @@ test("settings panel hydrates saved Codex settings and preserves secret refs", a
           enabled: true,
           metadata: {
             repo: "poco/roguent",
+            token: {
+              secretRef: "settings/user.integrations.github.metadata.token",
+            },
             webhookSecret: {
               secretRef:
                 "settings/user.integrations.github.metadata.webhookSecret",
+            },
+          },
+        },
+        x: {
+          enabled: true,
+          metadata: {
+            bearerToken: {
+              secretRef: "settings/user.integrations.x.metadata.bearerToken",
+            },
+            consumerKey: {
+              secretRef: "settings/user.integrations.x.metadata.consumerKey",
+            },
+            handle: "@SugerQvQ",
+            webhookSecret: {
+              secretRef: "settings/user.integrations.x.metadata.webhookSecret",
             },
           },
         },

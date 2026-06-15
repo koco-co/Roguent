@@ -9,6 +9,7 @@ import { MemorySecretStore } from "../secrets/memory-store";
 import { SessionManager } from "../session";
 import { startLiveIntegrations } from "./live";
 import { PairingService } from "./pairing";
+import type { XFilteredStreamRegistrationInput } from "./subscriptions";
 import type { IntegrationEvent } from "./types";
 import type {
   ImConnectorEvent,
@@ -245,6 +246,192 @@ test("live integrations publish webhook connector statuses on startup", async ()
         }),
       }),
     );
+    live.stop();
+  } finally {
+    testDb.cleanup();
+  }
+});
+
+test("live integrations apply subscription settings and publish connector statuses", async () => {
+  const testDb = createTestDatabase();
+  try {
+    migrate(testDb.db);
+    const secretStore = new MemorySecretStore();
+    await secretStore.put(
+      "settings/user.integrations.github.metadata.webhookSecret",
+      "github-secret",
+    );
+    await secretStore.put(
+      "settings/user.integrations.x.metadata.webhookSecret",
+      "consumer-secret",
+    );
+    await secretStore.put(
+      "settings/user.integrations.x.metadata.bearerToken",
+      "x-bearer",
+    );
+    const sessions = new SessionManager(
+      new CapturingRuntime(),
+      "/tmp/roguent",
+      { auditDb: testDb.db },
+    );
+    const published: RoomEvent[] = [];
+    const xInputs: XFilteredStreamRegistrationInput[] = [];
+    sessions.subscribe((event) => published.push(event));
+
+    const live = startLiveIntegrations({
+      db: testDb.db,
+      env: {
+        ROGUENT_GITHUB_TOKEN: "ghp_test",
+        ROGUENT_PUBLIC_WEBHOOK_BASE_URL: "https://example.test",
+      },
+      imConnectors: {},
+      secretStore,
+      sessions,
+      subscriptionRegistrars: {
+        registerGitHubWebhook: async (input) => ({
+          hookId: 42,
+          mode: "api",
+          secretRef: input.secretRef,
+          url: "https://api.github.com/repos/koco-co/Roguent/hooks/42",
+        }),
+        registerXFilteredStreamWebhook: async (input) => {
+          xInputs.push(input);
+          return {
+            mode: "filtered-stream-webhook",
+            provisioned: true,
+            ruleIds: ["rule-1"],
+            webhookId: "1952390923729424384",
+          };
+        },
+      },
+    });
+
+    await live.applySubscriptionSettings({
+      integrations: {
+        github: {
+          enabled: true,
+          metadata: {
+            repo: "koco-co/Roguent",
+            webhookSecret: {
+              secretRef:
+                "settings/user.integrations.github.metadata.webhookSecret",
+            },
+          },
+        },
+        x: {
+          enabled: true,
+          metadata: {
+            bearerToken: {
+              secretRef: "settings/user.integrations.x.metadata.bearerToken",
+            },
+            handle: "@SugerQvQ",
+            webhookSecret: {
+              secretRef: "settings/user.integrations.x.metadata.webhookSecret",
+            },
+          },
+        },
+      },
+    });
+
+    await waitFor(() =>
+      ["github", "x"].every((channel) =>
+        published.some(
+          (event) =>
+            event.type === "integration.status" &&
+            (event.payload as { status?: { channel?: unknown } }).status
+              ?.channel === channel &&
+            (event.payload as { status?: { state?: unknown } }).status
+              ?.state === "connected",
+        ),
+      ),
+    );
+
+    expect(xInputs).toEqual([
+      expect.objectContaining({
+        handle: "@SugerQvQ",
+        ruleValue: "from:SugerQvQ",
+        webhookUrl: "https://example.test/webhooks/x",
+      }),
+    ]);
+    expect(published).toContainEqual(
+      expect.objectContaining({
+        sessionId: "integrations",
+        type: "integration.status",
+        payload: expect.objectContaining({
+          status: expect.objectContaining({
+            channel: "github",
+            metadata: expect.objectContaining({
+              hookId: 42,
+              repo: "koco-co/Roguent",
+            }),
+            state: "connected",
+          }),
+        }),
+      }),
+    );
+    expect(published).toContainEqual(
+      expect.objectContaining({
+        sessionId: "integrations",
+        type: "integration.status",
+        payload: expect.objectContaining({
+          status: expect.objectContaining({
+            account: "@SugerQvQ",
+            channel: "x",
+            state: "connected",
+          }),
+        }),
+      }),
+    );
+    live.stop();
+  } finally {
+    testDb.cleanup();
+  }
+});
+
+test("live subscription routing persists created sessions before assigning inbox", async () => {
+  const testDb = createTestDatabase();
+  try {
+    migrate(testDb.db);
+    const sessions = new SessionManager(
+      new CapturingRuntime(),
+      "/tmp/roguent",
+      { auditDb: testDb.db },
+    );
+    const live = startLiveIntegrations({
+      db: testDb.db,
+      imConnectors: {},
+      sessions,
+    });
+
+    const result = await live.router.route({
+      bodyText: "abc1234 live subscription smoke",
+      channel: "github",
+      deliveryId: "delivery-live-1",
+      direction: "inbound",
+      id: "github:delivery-live-1",
+      metadata: { repository: "koco-co/Roguent" },
+      receivedAt: 1_717_452_000_000,
+      summary: "push to subscription-smoke in koco-co/Roguent",
+    });
+
+    expect(result.createdSession).toBe(true);
+    expect(result.sessionId).toBe("integration-github-github-delivery-live-1");
+    expect(
+      createRepositories(testDb.db).sessions.get(
+        "integration-github-github-delivery-live-1",
+      ),
+    ).toMatchObject({
+      id: "integration-github-github-delivery-live-1",
+      runtime: "claude",
+      title: "GitHub · push to subscription-smoke in koco-co/Roguent",
+    });
+    expect(
+      testDb.db
+        .query<{ session_id: string | null }, []>(
+          "SELECT session_id FROM inbox_items WHERE id = 'inbox:github:delivery-live-1'",
+        )
+        .get(),
+    ).toEqual({ session_id: "integration-github-github-delivery-live-1" });
     live.stop();
   } finally {
     testDb.cleanup();

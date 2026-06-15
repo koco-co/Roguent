@@ -24,7 +24,8 @@ export interface SettingsService {
   load(scope: SettingsScope): Promise<RoguentSettings | null>;
 }
 
-const SENSITIVE_KEY = /(token|secret|password|private.?key|access.?key)/i;
+const SENSITIVE_KEY =
+  /(token|secret|password|private.?key|access.?key|api.?key|consumer.?key)/i;
 
 export function createSettingsService(
   db: Database,

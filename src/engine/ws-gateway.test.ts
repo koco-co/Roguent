@@ -446,6 +446,7 @@ test("WsGateway purchaseItem seed increments per pull (successive pulls get diff
 test("WsGateway handles settings commands through SettingsService and publishes updates", async () => {
   const sent: string[] = [];
   const published: unknown[] = [];
+  const appliedSettings: unknown[] = [];
   const settingsCalls: unknown[] = [];
   const ws = {
     OPEN: 1,
@@ -471,7 +472,12 @@ test("WsGateway handles settings commands through SettingsService and publishes 
     subscribe: () => () => {},
     publishIntegrationEvent: (event: unknown) => published.push(event),
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr, undefined, { settings });
+  const gateway = new WsGateway(0, mgr, undefined, {
+    onSettingsUpdated: (payload) => {
+      appliedSettings.push(payload);
+    },
+    settings,
+  });
   try {
     invokeOnCommand(
       gateway,
@@ -510,6 +516,14 @@ test("WsGateway handles settings commands through SettingsService and publishes 
         changedKeys: ["scheduler.enabled"],
         metadata: { source: "settings-panel" },
       },
+    },
+  ]);
+  expect(appliedSettings).toEqual([
+    {
+      scope: "user",
+      settings: { scheduler: { enabled: true, timezone: "UTC" } },
+      changedKeys: ["scheduler.enabled"],
+      metadata: { source: "settings-panel" },
     },
   ]);
 });

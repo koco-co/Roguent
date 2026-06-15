@@ -1,5 +1,10 @@
 import type { Database } from "bun:sqlite";
-import type { IntegrationChannel, PairingBinding } from "../../shared/events";
+import type {
+  IntegrationChannel,
+  PairingBinding,
+  RoguentSettings,
+} from "../../shared/events";
+import { defaultRuntimeConfig } from "../../shared/runtime";
 import { appendAuditRecord } from "../audit/log";
 import { createRepositories } from "../persistence/repositories";
 import { KeychainSecretStore } from "../secrets/keychain";
@@ -10,11 +15,16 @@ import { IntegrationManager } from "./manager";
 import { PairingService } from "./pairing";
 import { relayConnectorStatus } from "./relay";
 import { IntegrationRouter } from "./router";
+import {
+  type ApplySubscriptionSettingsOptions,
+  applySubscriptionSettings as applySubscriptionSettingsToConnectors,
+} from "./subscriptions";
 import { createWeChatConnector } from "./wechat-node-host";
 import type { ImConnector } from "./wechat-types";
 import { xConnectorStatus } from "./x";
 
 export interface LiveIntegrationRuntime {
+  applySubscriptionSettings(settings: RoguentSettings): Promise<void>;
   manager: IntegrationManager;
   router: IntegrationRouter;
   stop(): void;
@@ -26,6 +36,10 @@ export interface LiveIntegrationOptions {
   env?: Record<string, string | undefined>;
   imConnectors?: Partial<Record<IntegrationChannel, ImConnector>>;
   secretStore?: SecretStore;
+  subscriptionRegistrars?: Pick<
+    ApplySubscriptionSettingsOptions,
+    "registerGitHubWebhook" | "registerXFilteredStreamWebhook"
+  >;
 }
 
 export function startLiveIntegrations(
@@ -48,7 +62,18 @@ export function startLiveIntegrations(
     () => {},
   );
 
+  const applySubscriptionSettings = async (settings: RoguentSettings) => {
+    await applySubscriptionSettingsToConnectors({
+      env,
+      publishStatus: (status) => router.publishStatus(status),
+      secretStore,
+      settings,
+      ...options.subscriptionRegistrars,
+    });
+  };
+
   return {
+    applySubscriptionSettings,
     manager,
     router,
     stop() {
@@ -97,6 +122,23 @@ export function createLiveIntegrationRouter(
     },
     sessions: {
       createSubscriptionSession(input) {
+        const config = defaultRuntimeConfig("claude");
+        const now = Date.now();
+        repositories.sessions.upsert({
+          id: input.id,
+          runtime: config.runtime,
+          title: input.title,
+          model: config.model,
+          cwd: null,
+          permissionMode: config.permissionMode,
+          sandboxMode: config.sandboxMode,
+          reasoningEffort: config.reasoningEffort ?? null,
+          networkAccess: config.networkAccess,
+          approvalPolicy: config.approvalPolicy ?? null,
+          metadataJson: JSON.stringify({ source: input.source }),
+          createdAt: now,
+          updatedAt: now,
+        });
         sessions.createSession(input.id, { title: input.title });
       },
       forwardToRuntime(sessionId, text) {

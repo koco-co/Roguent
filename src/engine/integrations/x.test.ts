@@ -91,6 +91,15 @@ test("xConnectorStatus records blocked reasons for missing config and entitlemen
     },
     state: "disconnected",
   });
+  expect(
+    xConnectorStatus({ ROGUENT_X_WEBHOOK_SECRET_REF: "secret:x:webhook" }),
+  ).toMatchObject({
+    metadata: {
+      mode: "webhook",
+      status: "configured",
+    },
+    state: "disconnected",
+  });
 });
 
 test("local X fixture routes to inbox, audit, and selected session", async () => {
