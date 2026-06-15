@@ -341,7 +341,7 @@ export function MailboxPanel() {
   return (
     <Modal
       title="MAILBOX"
-      sub="真实 inbox · IM / GitHub / X / runtime"
+      sub="真实信箱 · IM / GitHub / X / runtime"
       icon="vault"
       width={1240}
       onClose={closePanel}
@@ -366,7 +366,7 @@ export function MailboxPanel() {
                 <span aria-hidden="true" className="mbx-folder-ic">
                   <Icon name={f.icon} size={16} />
                 </span>
-                {f.label}
+                {t(f.label)}
                 {count !== undefined ? (
                   <span className="mbx-count px">{count}</span>
                 ) : null}
@@ -414,7 +414,7 @@ export function MailboxPanel() {
             <div className="mbx-list scroll">
               {items.length === 0 ? (
                 <div className="empty-center">
-                  <div className="empty-title">No mailbox items</div>
+                  <div className="empty-title">{t("暂无信件")}</div>
                   <div className="empty-sub">
                     {t(
                       "外部平台未配置时只显示 configuration state，不填充样例消息。",
@@ -572,27 +572,27 @@ function MailboxReader({
       <div className="mbx-read-act">
         <button
           type="button"
-          className="pxbtn sm"
+          className="pxbtn sm cjk"
           disabled={!url}
           onClick={() => {
             if (url) globalThis.open?.(url, "_blank", "noopener,noreferrer");
           }}
         >
-          Open Source
+          {t("打开原文")}
         </button>
         <button
           type="button"
-          className="pxbtn sm"
+          className="pxbtn sm cjk"
           disabled={!canOpenSession}
           onClick={() => {
             if (item.sessionId) onOpenSession(item.sessionId);
           }}
         >
-          Open Session
+          {t("进入会话")}
         </button>
         <button
           type="button"
-          className="pxbtn sm"
+          className="pxbtn sm cjk"
           onClick={() =>
             sendCommand({
               cmd: "mailbox",
@@ -602,11 +602,11 @@ function MailboxReader({
             })
           }
         >
-          Resend
+          {t("重发")}
         </button>
         <button
           type="button"
-          className="pxbtn sm"
+          className="pxbtn sm cjk"
           disabled={item.status !== "unread"}
           onClick={() =>
             sendCommand({
@@ -616,11 +616,11 @@ function MailboxReader({
             })
           }
         >
-          Mark Read
+          {t("标记已读")}
         </button>
         <button
           type="button"
-          className="pxbtn sm danger"
+          className="pxbtn sm danger cjk"
           disabled={item.status === "archived"}
           onClick={() =>
             sendCommand({
@@ -630,7 +630,7 @@ function MailboxReader({
             })
           }
         >
-          Archive
+          {t("归档")}
         </button>
         <button
           type="button"

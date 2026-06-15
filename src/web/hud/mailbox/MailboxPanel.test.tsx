@@ -138,6 +138,44 @@ test("mailbox panel filters real items and shows connector configuration state",
   expect(screen.getByText("webhook entitlement missing")).toBeTruthy();
 });
 
+test("folders, subtitle and reader actions localize to EN with no Chinese leak", async () => {
+  useSettingsStore.setState({ uiLang: "en" });
+  seedMailbox([
+    item({
+      id: "g1",
+      source: "github",
+      title: "GitHub workflow failed",
+      metadata: { sourceUrl: "https://github.example/run/1" },
+      sessionId: "s1",
+    }),
+  ]);
+  useUiStore.setState({ activePanel: "mailbox" });
+
+  render(<MailboxPanel />);
+
+  // 副标题 + 左侧分类全部翻译到英文。
+  expect(
+    screen.getByText("Real inbox · IM / GitHub / X / runtime"),
+  ).toBeTruthy();
+  expect(screen.getByRole("button", { name: /All mail/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /GitHub watch/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /X feed/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Subscriptions/ })).toBeTruthy();
+
+  // 英文模式不允许中文泄漏。
+  expect(screen.queryByText("全部信件")).toBeNull();
+  expect(screen.queryByText("GitHub 监控")).toBeNull();
+  expect(screen.queryByText("X 博主动态")).toBeNull();
+  expect(screen.queryByText("订阅源管理")).toBeNull();
+
+  // 阅读器操作按钮英文。
+  expect(screen.getByRole("button", { name: "Open source" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Open session" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Resend" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Mark read" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Archive" })).toBeTruthy();
+});
+
 test("mailbox row actions send archive, mark read, resend, open source, and open session", async () => {
   FakeWebSocket.instances = [];
   globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
@@ -160,12 +198,13 @@ test("mailbox row actions send archive, mark read, resend, open source, and open
 
   render(<MailboxPanel />);
 
-  await userEvent.click(screen.getByRole("button", { name: "Open Source" }));
+  // 默认 cn 模式:操作按钮走 t(),显示中文。
+  await userEvent.click(screen.getByRole("button", { name: "打开原文" }));
   expect(opened).toEqual(["https://github.example/run/1"]);
 
-  await userEvent.click(screen.getByRole("button", { name: "Resend" }));
-  await userEvent.click(screen.getByRole("button", { name: "Mark Read" }));
-  await userEvent.click(screen.getByRole("button", { name: "Archive" }));
+  await userEvent.click(screen.getByRole("button", { name: "重发" }));
+  await userEvent.click(screen.getByRole("button", { name: "标记已读" }));
+  await userEvent.click(screen.getByRole("button", { name: "归档" }));
 
   const sent = FakeWebSocket.instances[0]?.sent.map((raw) => JSON.parse(raw));
   expect(sent?.slice(-3)).toEqual([
@@ -179,7 +218,7 @@ test("mailbox row actions send archive, mark read, resend, open source, and open
     { cmd: "mailbox", action: "archive", itemId: "i1" },
   ]);
 
-  await userEvent.click(screen.getByRole("button", { name: "Open Session" }));
+  await userEvent.click(screen.getByRole("button", { name: "进入会话" }));
   expect(useRoomStore.getState().currentSessionId).toBe("s1");
   expect(useUiStore.getState().activePanel).toBeNull();
 });
@@ -200,7 +239,7 @@ test("open source only enables safe http urls and supports url fallback", async 
     const { unmount } = render(
       <InboxItemRow item={item({ metadata })} onOpenSession={() => {}} />,
     );
-    const openSource = screen.getByRole("button", { name: "Open Source" });
+    const openSource = screen.getByRole("button", { name: "打开原文" });
     expect((openSource as HTMLButtonElement).disabled).toBe(true);
     await userEvent.click(openSource);
     unmount();
@@ -212,7 +251,7 @@ test("open source only enables safe http urls and supports url fallback", async 
       onOpenSession={() => {}}
     />,
   );
-  await userEvent.click(screen.getByRole("button", { name: "Open Source" }));
+  await userEvent.click(screen.getByRole("button", { name: "打开原文" }));
 
   expect(opened).toEqual(["https://github.example/fallback"]);
 });
