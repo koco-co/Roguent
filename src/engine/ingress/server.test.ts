@@ -295,6 +295,57 @@ test("POST /webhooks/x validates signature and routes event", async () => {
   }
 });
 
+test("X webhook resolves CRC and POST secrets through SecretStore ref", async () => {
+  const rawBody = JSON.stringify({
+    tweet_create_events: [
+      {
+        id_str: "1800000000000000001",
+        text: "Roguent subscription ref smoke.",
+        user: { screen_name: "SugerQvQ" },
+      },
+    ],
+  });
+  const secretStore = new MemorySecretStore();
+  await secretStore.put("secret:x:webhook", "consumer-secret");
+  const harness = createHarness({
+    env: { ROGUENT_X_WEBHOOK_SECRET_REF: "secret:x:webhook" },
+    secretStore,
+  });
+  try {
+    const crc = await harness.fetch(
+      "http://ingress.test/webhooks/x?crc_token=token-ref",
+    );
+    expect(crc.status).toBe(200);
+    expect(await crc.json()).toEqual({
+      response_token: `sha256=${hmacSha256Base64(
+        "consumer-secret",
+        Buffer.from("token-ref"),
+      )}`,
+    });
+
+    const accepted = await harness.fetch("http://ingress.test/webhooks/x", {
+      method: "POST",
+      headers: {
+        "x-roguent-delivery": "x-delivery-ref",
+        "x-twitter-webhooks-signature": `sha256=${hmacSha256Base64(
+          "consumer-secret",
+          Buffer.from(rawBody),
+        )}`,
+      },
+      body: rawBody,
+    });
+
+    expect(accepted.status).toBe(200);
+    expect(harness.routed.at(-1)?.event).toMatchObject({
+      channel: "x",
+      deliveryId: "x-delivery-ref",
+      from: "@SugerQvQ",
+    });
+  } finally {
+    harness.cleanup();
+  }
+});
+
 test("GET /webhooks/x returns CRC response token", async () => {
   const harness = createHarness({
     env: { ROGUENT_X_WEBHOOK_SECRET: "consumer-secret" },

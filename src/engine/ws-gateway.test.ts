@@ -446,6 +446,7 @@ test("WsGateway purchaseItem seed increments per pull (successive pulls get diff
 test("WsGateway handles settings commands through SettingsService and publishes updates", async () => {
   const sent: string[] = [];
   const published: unknown[] = [];
+  const appliedSettings: unknown[] = [];
   const settingsCalls: unknown[] = [];
   const settingsSideEffects: unknown[] = [];
   const ws = {

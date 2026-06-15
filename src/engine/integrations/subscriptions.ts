@@ -10,12 +10,30 @@ import {
   registerGitHubRepositoryWebhook,
 } from "./github";
 
+export interface XFilteredStreamRegistrationInput {
+  bearerToken: string;
+  fetch?: typeof fetch;
+  handle: string;
+  ruleValue: string;
+  webhookUrl: string;
+}
+
+export interface XFilteredStreamRegistrationResult {
+  mode: "filtered-stream-webhook";
+  provisioned: boolean;
+  ruleIds: string[];
+  webhookId: string;
+}
+
 export interface ApplySubscriptionSettingsOptions {
   env?: Record<string, string | undefined>;
   publishStatus?: (status: IntegrationConnectorStatus) => void | Promise<void>;
   registerGitHubWebhook?: (
     input: GitHubWebhookRegistrationInput,
   ) => Promise<GitHubWebhookRegistrationResult>;
+  registerXFilteredStreamWebhook?: (
+    input: XFilteredStreamRegistrationInput,
+  ) => Promise<XFilteredStreamRegistrationResult>;
   secretStore: SecretStore;
   settings: RoguentSettings;
 }
@@ -34,6 +52,16 @@ interface ResolvedSecretRef {
   secretStore: SecretStore;
 }
 
+class XApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "XApiError";
+  }
+}
+
 export async function applySubscriptionSettings(
   options: ApplySubscriptionSettingsOptions,
 ): Promise<ApplySubscriptionSettingsResult> {
@@ -44,6 +72,7 @@ export async function applySubscriptionSettings(
   };
 
   await applyGitHubSubscription(options, publish);
+  await applyXSubscription(options, publish);
 
   return { statuses };
 }
@@ -73,11 +102,37 @@ export function normalizeGitHubRepo(input: unknown): GitHubRepoTarget | null {
   return cleanRepoTarget(owner, repo);
 }
 
+export function normalizeXHandle(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  const value = input.trim().replace(/^@/, "");
+  if (!/^[A-Za-z0-9_]{1,15}$/.test(value)) return null;
+  return `@${value}`;
+}
+
 export function subscriptionWebhookUrl(
   publicBaseUrl: string,
-  channel: Extract<IntegrationChannel, "github">,
+  channel: Extract<IntegrationChannel, "github" | "x">,
 ): string {
   return `${publicBaseUrl.replace(/\/+$/, "")}/webhooks/${channel}`;
+}
+
+export async function registerXFilteredStreamWebhook(
+  input: XFilteredStreamRegistrationInput,
+): Promise<XFilteredStreamRegistrationResult> {
+  const request = input.fetch ?? fetch;
+  const webhook = await ensureXWebhook(request, input);
+  const ruleIds = await ensureXRule(request, input);
+  const linked = await linkXWebhookToFilteredStream(
+    request,
+    input.bearerToken,
+    webhook.id,
+  );
+  return {
+    mode: "filtered-stream-webhook",
+    provisioned: linked,
+    ruleIds,
+    webhookId: webhook.id,
+  };
 }
 
 async function applyGitHubSubscription(
@@ -90,20 +145,19 @@ async function applyGitHubSubscription(
   const repo = normalizeGitHubRepo(config.metadata?.repo);
   if (!repo) {
     await publish(
-      blockedStatus("invalid_repo", "GitHub repo must be owner/repo"),
+      blockedStatus("github", "invalid_repo", "GitHub repo must be owner/repo"),
     );
     return;
   }
 
-  const publicBaseUrl = publicWebhookBaseUrl(options);
+  const publicBaseUrl = publicWebhookBaseUrl(options, "github");
   if (!publicBaseUrl) {
     await publish(
       blockedStatus(
+        "github",
         "missing_public_webhook_url",
         "Public webhook base URL is required",
-        {
-          repo: repoName(repo),
-        },
+        { repo: repoName(repo) },
       ),
     );
     return;
@@ -119,11 +173,10 @@ async function applyGitHubSubscription(
   if (!secret) {
     await publish(
       blockedStatus(
+        "github",
         "missing_webhook_secret",
         "GitHub webhook secret is required",
-        {
-          repo: repoName(repo),
-        },
+        { repo: repoName(repo) },
       ),
     );
     return;
@@ -141,9 +194,10 @@ async function applyGitHubSubscription(
   if (!token) {
     await publish(
       blockedStatus(
+        "github",
         "missing_token",
         "GitHub token is required to register repository webhook",
-        { repo: repoName(repo) },
+        { mode: "api", repo: repoName(repo) },
       ),
     );
     return;
@@ -163,10 +217,16 @@ async function applyGitHubSubscription(
     });
     if (result.mode === "manual-webhook") {
       await publish(
-        blockedStatus(result.reason, "GitHub webhook requires manual setup", {
-          repo: repoName(repo),
-          secretRef: result.secretRef,
-        }),
+        blockedStatus(
+          "github",
+          result.reason,
+          "GitHub webhook requires manual setup",
+          {
+            mode: result.mode,
+            repo: repoName(repo),
+            secretRef: result.secretRef,
+          },
+        ),
       );
       return;
     }
@@ -185,18 +245,130 @@ async function applyGitHubSubscription(
       state: "connected",
     });
   } catch (error) {
-    await publish({
-      channel: "github",
-      error: `GitHub webhook registration failed: ${errorMessage(error)}`,
-      id: "github",
-      label: "GitHub webhooks",
-      metadata: {
-        reason: "registration_failed",
+    await publish(
+      errorStatus("github", "GitHub webhook registration failed", error, {
         repo: repoName(repo),
         webhookUrl,
-      },
-      state: "error",
+      }),
+    );
+  }
+}
+
+async function applyXSubscription(
+  options: ApplySubscriptionSettingsOptions,
+  publish: (status: IntegrationConnectorStatus) => Promise<void>,
+): Promise<void> {
+  const config = options.settings.integrations?.x;
+  if (!config?.enabled) return;
+
+  const handle = normalizeXHandle(config.metadata?.handle);
+  if (!handle) {
+    await publish(blockedStatus("x", "missing_handle", "X handle is required"));
+    return;
+  }
+
+  const publicBaseUrl = publicWebhookBaseUrl(options, "x");
+  if (!publicBaseUrl) {
+    await publish(
+      blockedStatus(
+        "x",
+        "missing_public_webhook_url",
+        "Public webhook base URL is required",
+        { handle },
+      ),
+    );
+    return;
+  }
+
+  const webhookSecret = await resolveSecretValue({
+    envSecret: options.env?.ROGUENT_X_WEBHOOK_SECRET,
+    envSecretRef: options.env?.ROGUENT_X_WEBHOOK_SECRET_REF,
+    secretStore: options.secretStore,
+    value: config.metadata?.webhookSecret,
+  });
+  if (!webhookSecret) {
+    await publish(
+      blockedStatus(
+        "x",
+        "missing_webhook_secret",
+        "X webhook secret is required",
+        {
+          handle,
+        },
+      ),
+    );
+    return;
+  }
+
+  const bearerToken = await resolveSecretValue({
+    envSecret: firstNonEmpty(
+      options.env?.X_BEARER_TOKEN,
+      options.env?.ROGUENT_X_BEARER_TOKEN,
+    ),
+    secretStore: options.secretStore,
+    value: config.metadata?.bearerToken,
+  });
+  if (!bearerToken) {
+    await publish(
+      blockedStatus("x", "missing_bearer_token", "X bearer token is required", {
+        handle,
+      }),
+    );
+    return;
+  }
+
+  const entitlementBlocker = options.env?.ROGUENT_X_ENTITLEMENT_BLOCKER?.trim();
+  if (entitlementBlocker) {
+    await publish(
+      blockedStatus("x", "entitlement_blocked", entitlementBlocker, {
+        handle,
+      }),
+    );
+    return;
+  }
+
+  const webhookUrl = subscriptionWebhookUrl(publicBaseUrl, "x");
+  const ruleValue = `from:${handle.slice(1)}`;
+  try {
+    const register =
+      options.registerXFilteredStreamWebhook ?? registerXFilteredStreamWebhook;
+    const result = await register({
+      bearerToken,
+      handle,
+      ruleValue,
+      webhookUrl,
     });
+    await publish({
+      account: handle,
+      channel: "x",
+      id: "x",
+      label: "X filtered stream webhooks",
+      metadata: {
+        handle,
+        mode: result.mode,
+        provisioned: result.provisioned,
+        ruleIds: result.ruleIds,
+        ruleValue,
+        webhookId: result.webhookId,
+        webhookUrl,
+      },
+      state: "connected",
+    });
+  } catch (error) {
+    const status = error instanceof XApiError ? error.status : undefined;
+    const reason =
+      status === 401
+        ? "auth_failed"
+        : status === 403
+          ? "entitlement_blocked"
+          : "registration_failed";
+    await publish(
+      blockedStatus("x", reason, errorMessage(error), {
+        handle,
+        ruleValue,
+        webhookUrl,
+      }),
+    );
   }
 }
 
@@ -214,13 +386,15 @@ function cleanRepoTarget(
 
 function publicWebhookBaseUrl(
   options: ApplySubscriptionSettingsOptions,
+  channel: Extract<IntegrationChannel, "github" | "x">,
 ): string | undefined {
-  const githubMeta = options.settings.integrations?.github?.metadata;
+  const integrations = options.settings.integrations;
+  const channelMeta = integrations?.[channel]?.metadata;
   const metadata = metadataRecord(options.settings.metadata);
   return validPublicBaseUrl(
     firstNonEmpty(
-      stringMetadata(githubMeta?.webhookBaseUrl),
-      stringMetadata(githubMeta?.publicWebhookBaseUrl),
+      stringMetadata(channelMeta?.webhookBaseUrl),
+      stringMetadata(channelMeta?.publicWebhookBaseUrl),
       stringMetadata(metadata?.webhookBaseUrl),
       stringMetadata(metadata?.publicWebhookBaseUrl),
       options.env?.ROGUENT_PUBLIC_WEBHOOK_BASE_URL,
@@ -329,24 +503,197 @@ function repoName(repo: GitHubRepoTarget): string {
 }
 
 function blockedStatus(
+  channel: Extract<IntegrationChannel, "github" | "x">,
   reason: string,
   message: string,
   metadata: Record<string, unknown> = {},
 ): IntegrationConnectorStatus {
   return {
-    channel: "github",
+    channel,
     error: message,
-    id: "github",
-    label: "GitHub webhooks",
+    id: channel,
+    label: channel === "github" ? "GitHub webhooks" : "X webhooks",
     metadata: {
       ...metadata,
       reason,
     },
-    ...(typeof metadata.repo === "string" ? { account: metadata.repo } : {}),
+    ...(typeof metadata.handle === "string"
+      ? { account: metadata.handle }
+      : typeof metadata.repo === "string"
+        ? { account: metadata.repo }
+        : {}),
     state: "blocked",
+  };
+}
+
+function errorStatus(
+  channel: Extract<IntegrationChannel, "github" | "x">,
+  prefix: string,
+  error: unknown,
+  metadata: Record<string, unknown>,
+): IntegrationConnectorStatus {
+  return {
+    channel,
+    error: `${prefix}: ${errorMessage(error)}`,
+    id: channel,
+    label: channel === "github" ? "GitHub webhooks" : "X webhooks",
+    metadata: {
+      ...metadata,
+      reason: "registration_failed",
+    },
+    state: "error",
   };
 }
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+async function ensureXWebhook(
+  fetchImpl: typeof fetch,
+  input: XFilteredStreamRegistrationInput,
+): Promise<{ id: string }> {
+  const existing = await xJsonRequest(
+    fetchImpl,
+    "/2/webhooks",
+    input.bearerToken,
+  );
+  const matching = arrayField(existing, "data").find((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      return false;
+    }
+    return (
+      stringField(entry as Record<string, unknown>, "url") === input.webhookUrl
+    );
+  });
+  if (matching && typeof matching === "object" && !Array.isArray(matching)) {
+    const id = stringField(matching as Record<string, unknown>, "id");
+    if (id) return { id };
+  }
+
+  const created = await xJsonRequest(
+    fetchImpl,
+    "/2/webhooks",
+    input.bearerToken,
+    {
+      body: { url: input.webhookUrl },
+      method: "POST",
+    },
+  );
+  const id = stringField(created, "id");
+  if (!id) throw new Error("X webhook registration response missing id");
+  return { id };
+}
+
+async function ensureXRule(
+  fetchImpl: typeof fetch,
+  input: XFilteredStreamRegistrationInput,
+): Promise<string[]> {
+  const existing = await xJsonRequest(
+    fetchImpl,
+    "/2/tweets/search/stream/rules",
+    input.bearerToken,
+  );
+  const existingRuleIds = arrayField(existing, "data")
+    .map((entry) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        return null;
+      }
+      const record = entry as Record<string, unknown>;
+      return stringField(record, "value") === input.ruleValue
+        ? stringField(record, "id")
+        : null;
+    })
+    .filter((id): id is string => Boolean(id));
+  if (existingRuleIds.length > 0) return existingRuleIds;
+
+  const created = await xJsonRequest(
+    fetchImpl,
+    "/2/tweets/search/stream/rules",
+    input.bearerToken,
+    {
+      body: {
+        add: [
+          {
+            tag: `roguent:${input.handle.slice(1)}`,
+            value: input.ruleValue,
+          },
+        ],
+      },
+      method: "POST",
+    },
+  );
+  const ids = arrayField(created, "data")
+    .map((entry) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        return null;
+      }
+      return stringField(entry as Record<string, unknown>, "id");
+    })
+    .filter((id): id is string => Boolean(id));
+  if (ids.length === 0) {
+    throw new Error("X rule registration response missing rule id");
+  }
+  return ids;
+}
+
+async function linkXWebhookToFilteredStream(
+  fetchImpl: typeof fetch,
+  bearerToken: string,
+  webhookId: string,
+): Promise<boolean> {
+  const response = await xJsonRequest(
+    fetchImpl,
+    `/2/tweets/search/webhooks/${webhookId}?expansions=author_id&tweet.fields=created_at,author_id&user.fields=username,name,id`,
+    bearerToken,
+    { method: "POST" },
+  );
+  const data = metadataRecord(response.data);
+  return data?.provisioned === true;
+}
+
+async function xJsonRequest(
+  fetchImpl: typeof fetch,
+  path: string,
+  bearerToken: string,
+  options: { body?: unknown; method?: string } = {},
+): Promise<Record<string, unknown>> {
+  const response = await fetchImpl(`https://api.x.com${path}`, {
+    ...(options.body !== undefined
+      ? { body: JSON.stringify(options.body) }
+      : {}),
+    headers: {
+      Authorization: `Bearer ${bearerToken}`,
+      ...(options.body !== undefined
+        ? { "Content-Type": "application/json" }
+        : {}),
+    },
+    method: options.method ?? "GET",
+  });
+  if (!response.ok) {
+    throw new XApiError(
+      `X API request failed: HTTP ${response.status}`,
+      response.status,
+    );
+  }
+  const payload = (await response.json()) as unknown;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("X API response was not a JSON object");
+  }
+  return payload as Record<string, unknown>;
+}
+
+function arrayField(value: Record<string, unknown>, key: string): unknown[] {
+  const nested = value[key];
+  return Array.isArray(nested) ? nested : [];
+}
+
+function stringField(
+  value: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const nested = value[key];
+  return typeof nested === "string" && nested.trim()
+    ? nested.trim()
+    : undefined;
 }

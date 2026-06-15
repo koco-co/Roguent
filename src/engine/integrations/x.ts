@@ -55,7 +55,10 @@ export function normalizeXEvent(
 export function xConnectorStatus(
   env: Record<string, string | undefined>,
 ): IntegrationConnectorStatus {
-  if (!env.ROGUENT_X_WEBHOOK_SECRET?.trim()) {
+  if (
+    !env.ROGUENT_X_WEBHOOK_SECRET?.trim() &&
+    !env.ROGUENT_X_WEBHOOK_SECRET_REF?.trim()
+  ) {
     return blockedStatus(
       "missing_webhook_secret",
       "X webhook secret is required",

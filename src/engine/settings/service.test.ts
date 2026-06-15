@@ -40,6 +40,7 @@ test("settings service stores sensitive values in SecretStore and only secret re
         enabled: true,
         metadata: {
           repo: "poco/roguent",
+          token: "github-token-value",
           webhookSecret: "github-secret-value",
         },
       },
@@ -48,6 +49,7 @@ test("settings service stores sensitive values in SecretStore and only secret re
         metadata: {
           bearerToken: "x-token-value",
           consumerKey: "x-consumer-key-value",
+          webhookSecret: "x-secret-key-value",
         },
       },
     },
@@ -81,6 +83,7 @@ test("settings service stores sensitive values in SecretStore and only secret re
           enabled: true,
           metadata: {
             repo: "poco/roguent",
+            token: { secretRef: expect.any(String) },
             webhookSecret: { secretRef: expect.any(String) },
           },
         },
@@ -89,6 +92,7 @@ test("settings service stores sensitive values in SecretStore and only secret re
           metadata: {
             bearerToken: { secretRef: expect.any(String) },
             consumerKey: { secretRef: expect.any(String) },
+            webhookSecret: { secretRef: expect.any(String) },
           },
         },
       },
@@ -101,8 +105,10 @@ test("settings service stores sensitive values in SecretStore and only secret re
   expect(await secrets.get(xSecretRef ?? "")).toBe("x-token-value");
   expect(await secrets.get(xConsumerKeyRef ?? "")).toBe("x-consumer-key-value");
   expect(rawDbText(testDb)).not.toContain("github-secret-value");
+  expect(rawDbText(testDb)).not.toContain("github-token-value");
   expect(rawDbText(testDb)).not.toContain("x-token-value");
   expect(rawDbText(testDb)).not.toContain("x-consumer-key-value");
+  expect(rawDbText(testDb)).not.toContain("x-secret-key-value");
   expect(rawDbText(testDb)).toContain("secretRef");
   expect(await service.load("user")).toEqual(payload.settings);
 });

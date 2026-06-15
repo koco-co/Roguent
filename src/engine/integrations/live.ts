@@ -38,7 +38,7 @@ export interface LiveIntegrationOptions {
   secretStore?: SecretStore;
   subscriptionRegistrars?: Pick<
     ApplySubscriptionSettingsOptions,
-    "registerGitHubWebhook"
+    "registerGitHubWebhook" | "registerXFilteredStreamWebhook"
   >;
 }
 

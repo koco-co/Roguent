@@ -137,6 +137,27 @@ const INTEGRATION_SETTINGS_GROUP: SettingGroup = {
       tip: "启用 X webhook/订阅事件接入。",
     },
     {
+      k: "x_handle",
+      label: "X handle",
+      type: "text",
+      val: "",
+      tip: "订阅的 X 账号 handle,例如 @SugerQvQ。",
+    },
+    {
+      k: "x_consumer_key",
+      label: "X consumerKey",
+      type: "text",
+      val: "",
+      tip: "X App Consumer Key / API Key,保存时只写 SecretStore 引用。",
+    },
+    {
+      k: "x_webhook_secret",
+      label: "X secretKey",
+      type: "text",
+      val: "",
+      tip: "X App Secret Key,用于 webhook CRC/HMAC 签名校验,保存时只写 SecretStore 引用。",
+    },
+    {
       k: "x_bearer_token",
       label: "X bearerToken",
       type: "text",

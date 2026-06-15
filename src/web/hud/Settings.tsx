@@ -303,7 +303,8 @@ function settingsFieldValues(
   const webhookBaseUrl =
     stringMetadata(globalMeta?.webhookBaseUrl) ??
     stringMetadata(globalMeta?.publicWebhookBaseUrl) ??
-    stringMetadata(integrations?.github?.metadata?.webhookBaseUrl);
+    stringMetadata(integrations?.github?.metadata?.webhookBaseUrl) ??
+    stringMetadata(integrations?.x?.metadata?.webhookBaseUrl);
   if (webhookBaseUrl) values.public_webhook_base_url = webhookBaseUrl;
   if (integrations?.wechat)
     values.im_wechat_enabled = integrations.wechat.enabled;
@@ -327,7 +328,14 @@ function settingsFieldValues(
   }
   if (integrations?.x) {
     values.x_enabled = integrations.x.enabled;
-    const bearerToken = stringMetadata(integrations.x.metadata?.bearerToken);
+    const meta = integrations.x.metadata;
+    const bearerToken = stringMetadata(meta?.bearerToken);
+    const consumerKey = stringMetadata(meta?.consumerKey);
+    const handle = stringMetadata(meta?.handle);
+    const webhookSecret = stringMetadata(meta?.webhookSecret);
+    if (handle) values.x_handle = handle;
+    if (consumerKey) values.x_consumer_key = consumerKey;
+    if (webhookSecret) values.x_webhook_secret = webhookSecret;
     if (bearerToken) values.x_bearer_token = bearerToken;
   }
   if (integrations?.relay) {
@@ -456,6 +464,21 @@ function integrationSettings(
     x: {
       enabled: booleanField(vals, "x_enabled", SETTINGS_VALUE_GROUPS, false),
       metadata: {
+        handle: metadataField(
+          overrides,
+          "x_handle",
+          saved?.x?.metadata?.handle,
+        ),
+        consumerKey: metadataField(
+          overrides,
+          "x_consumer_key",
+          saved?.x?.metadata?.consumerKey,
+        ),
+        webhookSecret: metadataField(
+          overrides,
+          "x_webhook_secret",
+          saved?.x?.metadata?.webhookSecret,
+        ),
         bearerToken: metadataField(
           overrides,
           "x_bearer_token",

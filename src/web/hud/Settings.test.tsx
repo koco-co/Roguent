@@ -97,6 +97,15 @@ test("settings save sends real Codex runtime and MCP profile command", async () 
     "github-secret-value",
   );
   await userEvent.click(screen.getByRole("button", { name: "X 订阅" }));
+  await userEvent.type(screen.getByLabelText("X handle"), "@SugerQvQ");
+  await userEvent.type(
+    screen.getByLabelText("X consumerKey"),
+    "x-consumer-key",
+  );
+  await userEvent.type(
+    screen.getByLabelText("X secretKey"),
+    "x-consumer-secret",
+  );
   await userEvent.type(screen.getByLabelText("X bearerToken"), "x-token-value");
   await userEvent.click(screen.getByRole("button", { name: "保存" }));
 
@@ -139,6 +148,9 @@ test("settings save sends real Codex runtime and MCP profile command", async () 
           enabled: true,
           metadata: {
             bearerToken: "x-token-value",
+            consumerKey: "x-consumer-key",
+            handle: "@SugerQvQ",
+            webhookSecret: "x-consumer-secret",
           },
         },
       },
@@ -150,7 +162,11 @@ test("settings save sends real Codex runtime and MCP profile command", async () 
       "github_repo",
       "github_token",
       "github_webhook_secret",
+      "public_webhook_base_url",
       "x_enabled",
+      "x_handle",
+      "x_consumer_key",
+      "x_webhook_secret",
       "x_bearer_token",
     ]),
     metadata: { source: "settings-panel", runtime: "codex" },
@@ -184,6 +200,21 @@ test("settings panel hydrates saved Codex settings and preserves secret refs", a
             webhookSecret: {
               secretRef:
                 "settings/user.integrations.github.metadata.webhookSecret",
+            },
+          },
+        },
+        x: {
+          enabled: true,
+          metadata: {
+            bearerToken: {
+              secretRef: "settings/user.integrations.x.metadata.bearerToken",
+            },
+            consumerKey: {
+              secretRef: "settings/user.integrations.x.metadata.consumerKey",
+            },
+            handle: "@SugerQvQ",
+            webhookSecret: {
+              secretRef: "settings/user.integrations.x.metadata.webhookSecret",
             },
           },
         },
@@ -241,6 +272,21 @@ test("settings panel hydrates saved Codex settings and preserves secret refs", a
             webhookSecret: {
               secretRef:
                 "settings/user.integrations.github.metadata.webhookSecret",
+            },
+          },
+        },
+        x: {
+          enabled: true,
+          metadata: {
+            bearerToken: {
+              secretRef: "settings/user.integrations.x.metadata.bearerToken",
+            },
+            consumerKey: {
+              secretRef: "settings/user.integrations.x.metadata.consumerKey",
+            },
+            handle: "@SugerQvQ",
+            webhookSecret: {
+              secretRef: "settings/user.integrations.x.metadata.webhookSecret",
             },
           },
         },
