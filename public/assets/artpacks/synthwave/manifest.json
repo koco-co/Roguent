@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "synthwave",
+  "name": "Synthwave Grid",
+  "accent": "#ff6a8a",
+  "status": "runtime_atlas_ready",
+  "generatedWith": "built-in image_gen for source sheets; local palette mapping for frame-contract runtime atlas",
+  "generatedAt": "2026-06-15",
+  "atlas": {
+    "json": "atlas/dungeon.json",
+    "image": "atlas/dungeon.png",
+    "referenceFrameContract": "/assets/0x72/dungeon.json",
+    "frameCount": 381
+  },
+  "previews": {
+    "lobby": "previews/lobby.png",
+    "interior": "previews/interior.png"
+  },
+  "sourceSheets": {
+    "gptImageSources": "docs/art-previews/2026-06-15/sources/synthwave",
+    "structures": "structures/source-sheet.png",
+    "hud": "hud/icons.png",
+    "easter": "easter/sprites.png"
+  },
+  "notes": [
+    "Generated GPT-image source sheets plus palette-mapped runtime atlas preserving 0x72 frame contract.",
+    "Runtime atlas is complete and layout-compatible; fine-grained GPT-image sheet slicing remains available as a later fidelity pass."
+  ]
+}

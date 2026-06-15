@@ -17,6 +17,10 @@ src-tauri/gen/
 src-tauri/binaries/
 src-tauri/resources/
 
+# 美术生成原始素材(150MB 大图 + 与 public 重复的预览图;只是生成草稿/溯源,不入仓库)
+# 运行时真正 serve 的素材在 public/assets/artpacks/,那个进仓库。
+docs/art-previews/
+
 # 验证报告:每跑 bun test 自动生成时间戳文件,噪声不入仓(保留 .gitkeep + 一份证据)
 docs/verification/*.md
 !docs/verification/2026-06-10T07-29-18Z-roguent-full-prototype.md

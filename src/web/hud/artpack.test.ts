@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import {
+  ARTPACK_CHANGE_EVENT,
   ARTPACK_KEY,
   ART_PACKS,
   DEFAULT_ARTPACK,
@@ -25,11 +26,25 @@ test("ART_PACKS:5 包、id 唯一、字段齐全", () => {
   }
 });
 
-test("唯一 ready 包 = 默认 = pixel-fantasy(其余为占位)", () => {
+test("五个美术包均 ready;默认仍是 pixel-fantasy", () => {
   const ready = ART_PACKS.filter((p) => p.ready);
-  expect(ready).toHaveLength(1);
-  expect(ready[0]?.id).toBe(DEFAULT_ARTPACK);
+  expect(ready.map((p) => p.id)).toEqual([
+    "pixel-fantasy",
+    "neon-terminal",
+    "holo-blueprint",
+    "deep-space",
+    "synthwave",
+  ]);
   expect(DEFAULT_ARTPACK).toBe("pixel-fantasy");
+});
+
+test("生成美术包暴露真实 lobby/interior 预览图", () => {
+  for (const p of ART_PACKS.filter((pack) => pack.id !== DEFAULT_ARTPACK)) {
+    expect(p.previews).toEqual({
+      lobby: `/assets/artpacks/${p.id}/previews/lobby.png`,
+      interior: `/assets/artpacks/${p.id}/previews/interior.png`,
+    });
+  }
 });
 
 test("loadArtPack:空→默认;读已存值", () => {
@@ -44,4 +59,19 @@ test("applyArtPack:写 localStorage + 盖 data-artpack", () => {
   expect(document.documentElement.getAttribute("data-artpack")).toBe(
     "neon-terminal",
   );
+});
+
+test("applyArtPack:派发素材包切换事件", () => {
+  let detail: unknown;
+  window.addEventListener(
+    ARTPACK_CHANGE_EVENT,
+    (event) => {
+      detail = (event as CustomEvent).detail;
+    },
+    { once: true },
+  );
+
+  applyArtPack("deep-space");
+
+  expect(detail).toEqual({ id: "deep-space" });
 });

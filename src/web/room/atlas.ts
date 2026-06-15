@@ -1,21 +1,24 @@
 import { Assets, type Spritesheet, type Texture } from "pixi.js";
 import { createContext, useContext } from "react";
+import { resolveCurrentArtPackAtlasUrls } from "../artpack-assets";
 
 // 0x72 "16x16 DungeonTileset II" (CC0). Served from public/ — see CREDITS.md.
-const ATLAS_URL = "/assets/0x72/dungeon.json";
-
-let sheetPromise: Promise<Spritesheet> | null = null;
+// Generated art packs mirror the same TexturePacker atlas shape.
+const sheetPromises = new Map<string, Promise<Spritesheet>>();
 
 /** Load the dungeon atlas once. Pixels are kept crisp (nearest-neighbour). */
 export function loadAtlas(): Promise<Spritesheet> {
+  const { json } = resolveCurrentArtPackAtlasUrls();
+  let sheetPromise = sheetPromises.get(json);
   if (!sheetPromise) {
-    sheetPromise = Assets.load<Spritesheet>(ATLAS_URL).then((sheet) => {
+    sheetPromise = Assets.load<Spritesheet>(json).then((sheet) => {
       // Every frame shares one source — flip it to nearest so scaled-up
       // pixel art stays sharp instead of bilinear-blurred.
       const first = Object.values(sheet.textures)[0];
       if (first) first.source.scaleMode = "nearest";
       return sheet;
     });
+    sheetPromises.set(json, sheetPromise);
   }
   return sheetPromise;
 }
@@ -69,5 +72,5 @@ export function atlasErrorText(e: unknown): string {
  * Call before retry in the error overlay.
  */
 export function resetAtlas(): void {
-  sheetPromise = null;
+  sheetPromises.clear();
 }

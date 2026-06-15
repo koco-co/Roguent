@@ -17,6 +17,7 @@ import {
 } from "react";
 import type { Agent } from "../../shared/domain";
 import { ORCHESTRATOR_HERO, roleToHero } from "../../shared/mapping";
+import { ARTPACK_CHANGE_EVENT } from "../hud/artpack";
 import { useSettingsStore } from "../settings-store";
 import { STAGE_H, STAGE_W } from "../stage-scale";
 import { useRoomStore } from "../store";
@@ -198,19 +199,10 @@ export function Room() {
   const [atlasError, setAtlasError] = useState<string | null>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
 
-  const retryAtlas = () => {
+  const loadCurrentAtlas = useCallback((reset = false) => {
     setAtlasError(null);
     setSheet(null);
-    resetAtlas();
-    loadAtlas()
-      .then(setSheet)
-      .catch((e: unknown) => {
-        console.error("[atlas] load failed", e);
-        setAtlasError(atlasErrorText(e));
-      });
-  };
-
-  useEffect(() => {
+    if (reset) resetAtlas();
     loadAtlas()
       .then(setSheet)
       .catch((e: unknown) => {
@@ -218,6 +210,19 @@ export function Room() {
         setAtlasError(atlasErrorText(e));
       });
   }, []);
+
+  const retryAtlas = () => {
+    loadCurrentAtlas(true);
+  };
+
+  useEffect(() => {
+    loadCurrentAtlas();
+    const reload = () => loadCurrentAtlas(true);
+    window.addEventListener(ARTPACK_CHANGE_EVENT, reload);
+    return () => {
+      window.removeEventListener(ARTPACK_CHANGE_EVENT, reload);
+    };
+  }, [loadCurrentAtlas]);
 
   useLayoutEffect(() => {
     const el = hostRef.current;

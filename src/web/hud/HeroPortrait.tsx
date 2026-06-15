@@ -1,12 +1,11 @@
 import { useEffect, useRef } from "react";
+import { resolveCurrentArtPackAtlasUrls } from "../artpack-assets";
 import { sessionHero } from "../overworld/skins";
+import { ARTPACK_CHANGE_EVENT } from "./artpack";
 
 // The HUD lives outside the Pixi <AtlasProvider>, so it can't reach the loaded
 // Spritesheet. Load the atlas JSON + PNG once on our own (browser-cached) and
 // crop hero idle frames into a <canvas> for DOM portraits.
-const ATLAS_JSON_URL = "/assets/0x72/dungeon.json";
-const ATLAS_IMAGE_URL = "/assets/0x72/dungeon.png";
-
 interface FrameRect {
   x: number;
   y: number;
@@ -19,11 +18,14 @@ interface AtlasData {
 }
 
 let atlasDataPromise: Promise<AtlasData> | null = null;
+let atlasDataPromiseJsonUrl: string | null = null;
 
 function loadAtlasData(): Promise<AtlasData> {
-  if (!atlasDataPromise) {
+  const urls = resolveCurrentArtPackAtlasUrls();
+  if (!atlasDataPromise || atlasDataPromiseJsonUrl !== urls.json) {
+    atlasDataPromiseJsonUrl = urls.json;
     atlasDataPromise = (async () => {
-      const res = await fetch(ATLAS_JSON_URL);
+      const res = await fetch(urls.json);
       const json = (await res.json()) as {
         frames: Record<string, { frame: FrameRect }>;
       };
@@ -31,13 +33,14 @@ function loadAtlasData(): Promise<AtlasData> {
         const img = new Image();
         img.onload = () => resolve(img);
         img.onerror = reject;
-        img.src = ATLAS_IMAGE_URL;
+        img.src = urls.image;
       });
       return { frames: json.frames, image };
     })().catch((e) => {
       // Don't cache a rejected promise — clear it so a later mount can retry
       // instead of being stuck on the dark fallback until a full reload.
       atlasDataPromise = null;
+      atlasDataPromiseJsonUrl = null;
       throw e;
     });
   }
@@ -76,36 +79,42 @@ export function HeroPortrait({
   const base = hero ?? sessionHero(sessionId);
   useEffect(() => {
     let cancelled = false;
-    loadAtlasData()
-      .then(({ frames, image }) => {
-        if (cancelled) return;
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext("2d");
-        if (!canvas || !ctx) return;
-        const f = frames[`${base}_idle_anim_f0.png`]?.frame;
-        if (!f) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.imageSmoothingEnabled = false; // keep pixels crisp
-        const scale = Math.min(canvas.width / f.w, canvas.height / f.h);
-        const dw = f.w * scale;
-        const dh = f.h * scale;
-        ctx.drawImage(
-          image,
-          f.x,
-          f.y,
-          f.w,
-          f.h,
-          (canvas.width - dw) / 2,
-          (canvas.height - dh) / 2,
-          dw,
-          dh,
-        );
-      })
-      .catch(() => {
-        /* leave the fallback box */
-      });
+    const repaint = () => {
+      loadAtlasData()
+        .then(({ frames, image }) => {
+          if (cancelled) return;
+          const canvas = canvasRef.current;
+          const ctx = canvas?.getContext("2d");
+          if (!canvas || !ctx) return;
+          const f = frames[`${base}_idle_anim_f0.png`]?.frame;
+          if (!f) return;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.imageSmoothingEnabled = false; // keep pixels crisp
+          const scale = Math.min(canvas.width / f.w, canvas.height / f.h);
+          const dw = f.w * scale;
+          const dh = f.h * scale;
+          ctx.drawImage(
+            image,
+            f.x,
+            f.y,
+            f.w,
+            f.h,
+            (canvas.width - dw) / 2,
+            (canvas.height - dh) / 2,
+            dw,
+            dh,
+          );
+        })
+        .catch(() => {
+          /* leave the fallback box */
+        });
+    };
+
+    repaint();
+    window.addEventListener(ARTPACK_CHANGE_EVENT, repaint);
     return () => {
       cancelled = true;
+      window.removeEventListener(ARTPACK_CHANGE_EVENT, repaint);
     };
   }, [base]);
 

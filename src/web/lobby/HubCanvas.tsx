@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { ARTPACK_CHANGE_EVENT } from "../hud/artpack";
 import { loadAtlasDom } from "./atlas-dom";
 import { loadAtlasImage } from "./atlas-image";
 import { paintHub } from "./hub-paint";
@@ -10,25 +11,31 @@ export function HubCanvas() {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     let dead = false;
-    Promise.all([loadAtlasImage(), loadAtlasDom()])
-      .then(([, atlas]) => {
-        if (dead) return;
-        const ctx = ref.current?.getContext("2d");
-        if (ctx) paintHub(ctx, atlas);
-      })
-      .catch((err) => {
-        // 加载失败不许静默黑屏:保底铺草色,结构/小人(DOM 层)仍可见。
-        console.error("HubCanvas: atlas 加载失败,回落纯色地面", err);
-        if (dead) return;
-        const canvas = ref.current;
-        const ctx = canvas?.getContext("2d");
-        if (canvas && ctx) {
-          ctx.fillStyle = "#2c4d24";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-      });
+    const repaint = () => {
+      Promise.all([loadAtlasImage(), loadAtlasDom()])
+        .then(([, atlas]) => {
+          if (dead) return;
+          const ctx = ref.current?.getContext("2d");
+          if (ctx) paintHub(ctx, atlas);
+        })
+        .catch((err) => {
+          // 加载失败不许静默黑屏:保底铺草色,结构/小人(DOM 层)仍可见。
+          console.error("HubCanvas: atlas 加载失败,回落纯色地面", err);
+          if (dead) return;
+          const canvas = ref.current;
+          const ctx = canvas?.getContext("2d");
+          if (canvas && ctx) {
+            ctx.fillStyle = "#2c4d24";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+        });
+    };
+
+    repaint();
+    window.addEventListener(ARTPACK_CHANGE_EVENT, repaint);
     return () => {
       dead = true;
+      window.removeEventListener(ARTPACK_CHANGE_EVENT, repaint);
     };
   }, []);
   return <canvas ref={ref} width={1920} height={1120} className="hub-canvas" />;

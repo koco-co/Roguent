@@ -632,6 +632,8 @@ export const DICT: Record<string, string> = {
   "美术风格 Art Style": "Art Style",
   "选择一款美术风格包后会进入预览，确认无误再应用——届时大厅场景、内景、NPC 与道具的全部贴图都会替换（自动保存）。素材由你自备，未导入对应风格时回退到占位图。":
     "Pick an art-style pack to preview it, then apply once it looks right — that swaps every texture across the lobby scene, rooms, NPCs and props (saved automatically). You bring your own assets; styles without imported art fall back to placeholders.",
+  "选择一款美术风格包后会进入预览，确认无误再应用——大厅、内景、NPC 与道具会切换到对应素材（自动保存）。":
+    "Preview an art pack before applying it. The lobby, interiors, NPCs, and props switch to that asset set and save automatically.",
   像素奇幻: "Pixel Fantasy",
   霓虹终端: "Neon Terminal",
   全息蓝图: "Holo Blueprint",

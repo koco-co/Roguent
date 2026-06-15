@@ -717,7 +717,7 @@ function CompactGroup() {
 }
 
 // 美术风格包切换器(special-rendered,忠实原型 panels2.jsx 的 ArtPackGroup)。
-// 只有 pixel-fantasy 真内置;选其余包只持久化 + 盖 data-artpack(占位,世界仍渲染内置贴图)。
+// 生成素材包会持久化到 localStorage + 盖 data-artpack,并驱动 atlas URL 解析。
 function ArtPackGroup() {
   const t = useT();
   const tl = useTL();
@@ -747,7 +747,7 @@ function ArtPackGroup() {
         <Icon name="scene" size={20} />
         <span>
           {t(
-            "选择一款美术风格包后会进入预览，确认无误再应用——届时大厅场景、内景、NPC 与道具的全部贴图都会替换（自动保存）。素材由你自备，未导入对应风格时回退到占位图。",
+            "选择一款美术风格包后会进入预览，确认无误再应用——大厅、内景、NPC 与道具会切换到对应素材（自动保存）。",
           )}
         </span>
       </div>
@@ -761,8 +761,20 @@ function ArtPackGroup() {
             data-pk={p.id}
             onClick={() => open(p.id)}
           >
-            <div className="artpack-prev" data-pk={p.id}>
-              <span className="artpack-stripe" />
+            <div
+              className="artpack-prev"
+              data-pk={p.id}
+              style={
+                p.previews
+                  ? ({
+                      backgroundImage: `linear-gradient(rgba(0,0,0,.1), rgba(0,0,0,.35)), url(${p.previews.lobby})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    } as React.CSSProperties)
+                  : undefined
+              }
+            >
+              {!p.previews && <span className="artpack-stripe" />}
               <span className="artpack-prev-tag">
                 {p.ready ? "art pack" : "drop assets"}
               </span>
@@ -786,7 +798,10 @@ function ArtPackGroup() {
         <Icon name={curPack.ready ? "done" : "import"} size={14} />
         <span>
           {curPack.ready
-            ? t("当前使用内置「像素奇幻」素材，开箱即用。")
+            ? tl(
+                `当前使用「${curPack.name}」素材包。`,
+                `Using the "${curPack.en}" art pack.`,
+              )
             : tl(
                 `当前生效:「${curPack.name}」。把该风格的场景 / NPC / 道具贴图导入素材目录后即可全局生效。`,
                 `Active: "${curPack.en}". Import this pack's scene / NPC / prop textures into the assets directory to apply globally.`,
@@ -845,13 +860,28 @@ function ArtPackPreview({
             ✕
           </button>
         </div>
-        <div className="apv-scene">
-          <span className="apv-sky" />
-          <span className="apv-grid" />
-          <span className="apv-ridge" />
-          <span className="apv-sun" />
+        <div
+          className="apv-scene"
+          style={
+            pack.previews
+              ? ({
+                  backgroundImage: `linear-gradient(rgba(0,0,0,.05), rgba(0,0,0,.45)), url(${pack.previews.interior})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                } as React.CSSProperties)
+              : undefined
+          }
+        >
+          {!pack.previews && (
+            <>
+              <span className="apv-sky" />
+              <span className="apv-grid" />
+              <span className="apv-ridge" />
+              <span className="apv-sun" />
+            </>
+          )}
           <span className="apv-scene-lbl">{t("SCENE / 场景")}</span>
-          <span className="apv-hero" />
+          {!pack.previews && <span className="apv-hero" />}
         </div>
         <div className="apv-strip">
           {NPCS.map((n) => (

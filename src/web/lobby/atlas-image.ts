@@ -1,27 +1,33 @@
+import { resolveCurrentArtPackAtlasUrls } from "../artpack-assets";
 import type { AtlasFrame } from "./atlas-dom";
 
 // canvas 绘制(HubCanvas/paintHub)需要 HTMLImageElement 做 drawImage 源;atlas-dom 只有
 // URL/帧坐标(CSS 切片路径),这里补 img 单例 + drawFrame(对照原型 sprites.jsx:73-88)。
 
-const ATLAS_IMAGE_URL = "/assets/0x72/dungeon.png";
-
 let atlasImg: HTMLImageElement | null = null;
+let atlasImgUrl: string | null = null;
 let promise: Promise<HTMLImageElement> | null = null;
+let promiseUrl: string | null = null;
 
 /** 模块级单例加载 atlas 整图;失败不缓存 rejected promise,后续 mount 可重试。 */
 export function loadAtlasImage(): Promise<HTMLImageElement> {
-  if (!promise) {
+  const { image } = resolveCurrentArtPackAtlasUrls();
+  if (atlasImg && atlasImgUrl === image) return Promise.resolve(atlasImg);
+  if (!promise || promiseUrl !== image) {
+    promiseUrl = image;
     promise = new Promise((resolve, reject) => {
       const im = new Image();
       im.onload = () => {
         atlasImg = im;
+        atlasImgUrl = image;
         resolve(im);
       };
       im.onerror = () => {
         promise = null;
-        reject(new Error(`atlas image load failed: ${ATLAS_IMAGE_URL}`));
+        promiseUrl = null;
+        reject(new Error(`atlas image load failed: ${image}`));
       };
-      im.src = ATLAS_IMAGE_URL;
+      im.src = image;
     });
   }
   return promise;
