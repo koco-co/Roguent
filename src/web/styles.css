@@ -6335,3 +6335,397 @@ img {
 .about-ver:hover {
   color: var(--cyan);
 }
+
+/* ============================================================
+   ART STYLE PACK SWITCHER (settings → 美术风格)
+   2026-06-15 handoff 增量;.artpack-* / .apv-* 照搬原型 extra.css。
+   ============================================================ */
+.artpack-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.artpack-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+.artpack-card {
+  --ac: #f2c84b;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  text-align: left;
+  background: rgba(11, 10, 18, 0.42);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  padding: 11px;
+  cursor: pointer;
+  transition: transform .1s, box-shadow .1s, background .1s;
+  font-family: var(--font-cjk);
+}
+.artpack-card:hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ac) 60%, transparent);
+}
+.artpack-card.on {
+  box-shadow: inset 0 0 0 2px var(--ac), 0 0 12px
+    color-mix(in srgb, var(--ac) 40%, transparent);
+  background: color-mix(in srgb, var(--ac) 9%, rgba(11, 10, 18, 0.42));
+}
+.artpack-prev {
+  position: relative;
+  width: 74px;
+  height: 54px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: #0b0a12;
+  box-shadow: inset 0 0 0 2px #15100a;
+  display: grid;
+  place-items: center;
+}
+.artpack-stripe {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--ac) 22%, transparent) 0 6px,
+    transparent 6px 12px
+  );
+}
+.artpack-prev::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 38%;
+  background: color-mix(in srgb, var(--ac) 30%, transparent);
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--ac) 60%, transparent);
+}
+.artpack-prev-tag {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-px);
+  font-size: 7px;
+  letter-spacing: .5px;
+  color: var(--ink-faint);
+  background: rgba(8, 8, 14, 0.72);
+  padding: 2px 4px;
+}
+.artpack-meta {
+  flex: 1;
+  min-width: 0;
+}
+.artpack-name {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+.artpack-name > span:first-child {
+  font-size: 13px;
+  color: var(--ink);
+}
+.artpack-en {
+  font-family: var(--font-px);
+  font-size: 8px;
+  color: var(--ink-faint);
+  letter-spacing: .5px;
+}
+.artpack-desc {
+  font-size: 11px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+  margin-top: 5px;
+  text-wrap: pretty;
+}
+.artpack-badge {
+  flex-shrink: 0;
+  align-self: center;
+  font-family: var(--font-px);
+  font-size: 8px;
+  color: var(--ink-faint);
+  padding: 5px 8px;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px var(--panel-edge);
+}
+.artpack-card.on .artpack-badge.on {
+  color: color-mix(in srgb, var(--ac) 85%, #fff);
+  box-shadow: inset 0 0 0 1px var(--ac);
+}
+.artpack-note {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  padding: 11px 14px;
+  background: rgba(8, 10, 16, 0.5);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  font-size: 11px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+/* --- art pack PREVIEW overlay (confirm before global swap) --- */
+.apv-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(4, 4, 8, 0.72);
+  backdrop-filter: blur(2px);
+  animation: apvFade .14s ease-out;
+}
+@keyframes apvFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.apv-panel {
+  --ac: #f2c84b;
+  width: min(560px, 92%);
+  max-height: 88%;
+  overflow: auto;
+  background: #0c0b14;
+  box-shadow: inset 0 0 0 2px var(--ac), 0 0 0 2px #050409, 0 14px 40px
+    rgba(0, 0, 0, 0.6);
+  padding: 16px;
+  font-family: var(--font-cjk);
+  animation: apvPop .16s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes apvPop {
+  from {
+    transform: translateY(10px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.apv-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.apv-title {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+.apv-cn {
+  font-size: 16px;
+  color: var(--ink);
+}
+.apv-en {
+  font-family: var(--font-px);
+  font-size: 9px;
+  letter-spacing: .5px;
+  color: var(--ac);
+}
+.apv-x {
+  background: none;
+  border: 0;
+  color: var(--ink-faint);
+  font-size: 15px;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+}
+.apv-x:hover {
+  color: var(--ink);
+}
+.apv-scene {
+  position: relative;
+  height: 184px;
+  overflow: hidden;
+  background: #05060b;
+  box-shadow: inset 0 0 0 2px #15100a;
+  image-rendering: pixelated;
+}
+.apv-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ac) 26%, #070710) 0%,
+    #06060d 70%
+  );
+}
+.apv-sun {
+  position: absolute;
+  left: 50%;
+  top: 30px;
+  width: 64px;
+  height: 64px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--ac) 88%, #fff) 0%,
+    color-mix(in srgb, var(--ac) 60%, transparent) 60%,
+    transparent 70%
+  );
+}
+.apv-grid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 50%;
+  background: repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--ac) 38%, transparent) 0 2px,
+      transparent 2px 34px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--ac) 34%, transparent) 0 2px,
+      transparent 2px 22px
+    );
+  transform: perspective(120px) rotateX(58deg);
+  transform-origin: bottom;
+  opacity: 0.7;
+}
+.apv-ridge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 46%;
+  height: 4px;
+  background: var(--ac);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ac) 70%, transparent);
+}
+.apv-hero {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  width: 26px;
+  height: 40px;
+  transform: translateX(-50%);
+  background: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--ac) 70%, #fff) 0 4px,
+    color-mix(in srgb, var(--ac) 40%, #000) 4px 8px
+  );
+  box-shadow: inset 0 0 0 2px #050409;
+}
+.apv-scene-lbl {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 3;
+  font-family: var(--font-px);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--ink-faint);
+  background: rgba(5, 5, 11, 0.7);
+  padding: 3px 5px;
+}
+.apv-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+.apv-npc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 4px;
+  background: rgba(11, 10, 18, 0.5);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+}
+.apv-npc-sprite {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  background: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--ac) 16%, transparent) 0 5px,
+    transparent 5px 10px
+  );
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ac) 45%, transparent);
+}
+.apv-npc-l {
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+.apv-props {
+  display: flex;
+  gap: 7px;
+  margin-top: 8px;
+}
+.apv-prop {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 8, 14, 0.5);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ac) 35%, transparent);
+}
+.apv-metaline {
+  margin-top: 11px;
+  font-size: 11px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.apv-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  box-shadow: inset 0 2px 0 -1px var(--panel-edge);
+}
+.apv-hint {
+  flex: 1;
+  font-size: 10px;
+  color: var(--ink-faint);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+.apv-btns {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.apv-btn {
+  font-family: var(--font-px);
+  font-size: 9px;
+  letter-spacing: .5px;
+  padding: 9px 14px;
+  cursor: pointer;
+  border: 0;
+  color: var(--ink);
+  background: rgba(20, 18, 28, 0.8);
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+}
+.apv-btn.ghost:hover {
+  box-shadow: inset 0 0 0 2px var(--ink-faint);
+}
+.apv-btn.go {
+  color: #080608;
+  background: var(--ac);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ac) 70%, #fff), 0 0 12px
+    color-mix(in srgb, var(--ac) 45%, transparent);
+}
+.apv-btn.go:hover {
+  filter: brightness(1.1);
+}
+.apv-btn.go:disabled {
+  opacity: 0.4;
+  cursor: default;
+  filter: none;
+  box-shadow: inset 0 0 0 2px var(--panel-edge);
+  background: rgba(20, 18, 28, 0.8);
+  color: var(--ink-faint);
+}
