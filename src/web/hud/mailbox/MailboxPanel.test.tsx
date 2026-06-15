@@ -124,15 +124,18 @@ test("mailbox panel filters real items and shows connector configuration state",
     screen.getAllByText("GitHub workflow failed").length,
   ).toBeGreaterThanOrEqual(1);
   expect(screen.getAllByText("X mention").length).toBeGreaterThanOrEqual(1);
-  expect(screen.getAllByText("configuration-required")).toHaveLength(2);
-  expect(screen.getByText("webhook entitlement missing")).toBeTruthy();
 
-  await userEvent.click(screen.getByRole("tab", { name: "GitHub" }));
+  await userEvent.click(screen.getByRole("button", { name: /GitHub 监控/ }));
 
   expect(
     screen.getAllByText("GitHub workflow failed").length,
   ).toBeGreaterThanOrEqual(1);
   expect(screen.queryByText("X mention")).toBeNull();
+
+  await userEvent.click(screen.getByRole("button", { name: "订阅源管理" }));
+
+  expect(screen.getAllByText("configuration-required")).toHaveLength(2);
+  expect(screen.getByText("webhook entitlement missing")).toBeTruthy();
 });
 
 test("mailbox row actions send archive, mark read, resend, open source, and open session", async () => {
@@ -214,7 +217,7 @@ test("open source only enables safe http urls and supports url fallback", async 
   expect(opened).toEqual(["https://github.example/fallback"]);
 });
 
-test("reader renders meta code block only when raw payload exists, and forward stays disabled", async () => {
+test("reader keeps raw payload collapsed by default, and forward stays disabled", async () => {
   useSettingsStore.setState({ uiLang: "en" });
   seedMailbox([
     item({
@@ -236,7 +239,9 @@ test("reader renders meta code block only when raw payload exists, and forward s
 
   render(<MailboxPanel />);
 
-  // 默认选中第一项(ts 降序 → with-raw):渲染 meta code 块。
+  // 默认选中第一项(ts 降序 → with-raw):raw payload 不直接铺在主阅读区。
+  expect(screen.queryByText(/"event": "push"/)).toBeNull();
+  await userEvent.click(screen.getByText("Raw Payload"));
   expect(screen.getByText(/"event": "push"/)).toBeTruthy();
 
   // 转发按钮恒置灰(无单条转发命令)。
