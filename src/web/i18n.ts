@@ -322,7 +322,7 @@ export const DICT: Record<string, string> = {
   "订阅 · 用量": "Plan · usage",
   "真实里程碑 · event / ledger 驱动": "Real milestones · event / ledger driven",
   "扭蛋抽卡 · 真实 gem 余额驱动": "Gacha pulls · real gem balance",
-  "真实 inbox · IM / GitHub / X / runtime":
+  "真实信箱 · IM / GitHub / X / runtime":
     "Real inbox · IM / GitHub / X / runtime",
   "今日公告板 · 未读告警": "Today's board · unread alerts",
   "扫码 · 微信 / 飞书消息互转": "Scan to pair · WeChat / Feishu relay",
@@ -421,6 +421,9 @@ export const DICT: Record<string, string> = {
   // MailboxPanel
   "外部平台未配置时只显示 configuration state，不填充样例消息。":
     "When external platforms aren't configured, only the configuration state shows — no sample messages.",
+  暂无信件: "No mailbox items",
+  重发: "Resend",
+  标记已读: "Mark read",
   // AchievementsPanel
   "创建 Codex 会话后，真实 runtime 事件会推进成就。":
     "Once you create a Codex session, real runtime events advance achievements.",

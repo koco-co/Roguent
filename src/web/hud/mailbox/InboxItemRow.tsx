@@ -1,4 +1,5 @@
 import type { MailboxItem, MailboxSource } from "../../../shared/events";
+import { useT } from "../../i18n";
 import { sendCommand } from "../../ws-client";
 import { Icon, type IconName } from "../icons";
 
@@ -67,6 +68,7 @@ export function InboxItemRow({
   compact?: boolean;
   onOpenSession?: (sessionId: string) => void;
 }) {
+  const t = useT();
   const url = sourceUrl(item);
   const unread = item.status === "unread";
   const archived = item.status === "archived";
@@ -96,27 +98,27 @@ export function InboxItemRow({
         <div className="inbox-actions">
           <button
             type="button"
-            className="pxbtn sm"
+            className="pxbtn sm cjk"
             disabled={!url}
             onClick={() => {
               if (url) globalThis.open?.(url, "_blank", "noopener,noreferrer");
             }}
           >
-            Open Source
+            {t("打开原文")}
           </button>
           <button
             type="button"
-            className="pxbtn sm"
+            className="pxbtn sm cjk"
             disabled={!canOpenSession}
             onClick={() => {
               if (item.sessionId) onOpenSession?.(item.sessionId);
             }}
           >
-            Open Session
+            {t("进入会话")}
           </button>
           <button
             type="button"
-            className="pxbtn sm"
+            className="pxbtn sm cjk"
             onClick={() =>
               sendCommand({
                 cmd: "mailbox",
@@ -126,11 +128,11 @@ export function InboxItemRow({
               })
             }
           >
-            Resend
+            {t("重发")}
           </button>
           <button
             type="button"
-            className="pxbtn sm"
+            className="pxbtn sm cjk"
             disabled={item.status !== "unread"}
             onClick={() =>
               sendCommand({
@@ -140,11 +142,11 @@ export function InboxItemRow({
               })
             }
           >
-            Mark Read
+            {t("标记已读")}
           </button>
           <button
             type="button"
-            className="pxbtn sm danger"
+            className="pxbtn sm danger cjk"
             disabled={archived}
             onClick={() =>
               sendCommand({
@@ -154,7 +156,7 @@ export function InboxItemRow({
               })
             }
           >
-            Archive
+            {t("归档")}
           </button>
         </div>
       ) : null}
