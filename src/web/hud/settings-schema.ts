@@ -253,6 +253,13 @@ export const SETTINGS_GROUPS: SettingGroup[] = [
     icon: "compact",
     items: [],
   },
+  // artpack 组 items 为空,由 ArtPackGroup 特殊渲染(美术风格切换器)。
+  {
+    id: "artpack",
+    name: "美术风格 Art Style",
+    icon: "scene",
+    items: [],
+  },
   {
     id: "perm",
     name: "权限 Permissions",
