@@ -361,6 +361,21 @@ const ICON_ART_DATA = {
     r(7, 7, 2, 2, C.cyan),
   ],
 
+  // ---- art-style: framed scene (sun + ridge + hill) ----
+  scene: [
+    ...box(1, 2, 14, 11, "#163a45", O),
+    r(3, 4, 2, 2, C.gold),
+    r(3, 4, 2, 1, C.goldH),
+    r(2, 8, 4, 1, C.cyanD),
+    r(6, 7, 3, 1, C.cyanD),
+    r(9, 8, 4, 1, C.cyanD),
+    r(2, 9, 3, 3, C.green),
+    r(5, 10, 4, 2, C.green),
+    r(9, 9, 4, 3, C.green),
+    r(2, 9, 3, 1, C.greenH),
+    r(9, 9, 4, 1, C.greenH),
+  ],
+
   // ---- menu rune bars ----
   menu: [
     ...box(2, 3, 12, 2, C.gold, O),

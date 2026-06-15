@@ -611,6 +611,41 @@ export const DICT: Record<string, string> = {
   "config.toml 中配置的 MCP 服务器。": "MCP servers configured in config.toml.",
   "Roguent 保存的 Codex MCP 配置 profile。":
     "Codex MCP config profile saved by Roguent.",
+  // ── art-style pack(美术风格切换器,2026-06-15 handoff 增量)──────
+  "美术风格 Art Style": "Art Style",
+  "选择一款美术风格包后会进入预览，确认无误再应用——届时大厅场景、内景、NPC 与道具的全部贴图都会替换（自动保存）。素材由你自备，未导入对应风格时回退到占位图。":
+    "Pick an art-style pack to preview it, then apply once it looks right — that swaps every texture across the lobby scene, rooms, NPCs and props (saved automatically). You bring your own assets; styles without imported art fall back to placeholders.",
+  像素奇幻: "Pixel Fantasy",
+  霓虹终端: "Neon Terminal",
+  全息蓝图: "Holo Blueprint",
+  深空舰桥: "Deep-Space Bridge",
+  合成波: "Synthwave Grid",
+  "当前内置风格 · 地牢羊皮卷 · 暖棕木质 HUD":
+    "Built-in style · dungeon parchment · warm-wood HUD",
+  "CRT 扫描线 · 磷光青绿 · 赛博命令行界面":
+    "CRT scanlines · phosphor cyan · cyber command line",
+  "线框全息投影 · 坐标网格 · 半透冷蓝":
+    "Wireframe hologram · coordinate grid · translucent cold blue",
+  "星舰指挥桥 · 深空星野 · 暗物质金属":
+    "Starship bridge · deep-space starfield · dark-matter metal",
+  "80s 落日网格 · 品红/青渐隐 · 矢量霓虹":
+    "80s sunset grid · magenta/cyan fade · vector neon",
+  "✓ 使用中": "✓ In use",
+  预览: "Preview",
+  "当前使用内置「像素奇幻」素材，开箱即用。":
+    'Using the built-in "Pixel Fantasy" assets — ready out of the box.',
+  审查官: "Reviewer",
+  商人: "Merchant",
+  向导: "Guide",
+  "该风格已在使用中。": "This style is already in use.",
+  "内置素材，确认后立即生效。":
+    "Built-in assets — applies immediately on confirm.",
+  "确认后将切换至此风格；缺失的贴图会显示占位图，导入素材后自动补全。":
+    "On confirm, switches to this style; missing textures show placeholders and fill in once you import the assets.",
+  取消: "Cancel",
+  确认切换: "Confirm switch",
+  当前风格: "Current style",
+  "SCENE / 场景": "SCENE / Scene",
 };
 
 export function translate(s: string, lang: Lang): string {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { RoguentSettings } from "../../shared/events";
 import type {
   CodexApprovalPolicy,
@@ -8,7 +8,7 @@ import type {
   SandboxMode,
 } from "../../shared/runtime";
 import { defaultRuntimeConfig } from "../../shared/runtime";
-import { useT } from "../i18n";
+import { useT, useTL } from "../i18n";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { sendCommand } from "../ws-client";
@@ -16,7 +16,8 @@ import { ClaudeSettings } from "./ClaudeSettings";
 import { CodexSettings } from "./CodexSettings";
 import { IntegrationSettings } from "./IntegrationSettings";
 import { Modal } from "./Modal";
-import { Icon } from "./icons";
+import { ART_PACKS, type ArtPack, applyArtPack, loadArtPack } from "./artpack";
+import { Icon, type IconName } from "./icons";
 import {
   CODEX_SETTINGS_GROUPS,
   COMPACT_MODELS,
@@ -664,6 +665,190 @@ function CompactGroup() {
   );
 }
 
+// 美术风格包切换器(special-rendered,忠实原型 panels2.jsx 的 ArtPackGroup)。
+// 只有 pixel-fantasy 真内置;选其余包只持久化 + 盖 data-artpack(占位,世界仍渲染内置贴图)。
+function ArtPackGroup() {
+  const t = useT();
+  const tl = useTL();
+  const [cur, setCur] = useState<string>(loadArtPack);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  // 挂载时盖一次 data-artpack(与持久值同步)。
+  useEffect(() => {
+    applyArtPack(loadArtPack());
+  }, []);
+
+  const apply = (id: string) => {
+    setCur(id);
+    applyArtPack(id);
+    setPreview(null);
+  };
+  const open = (id: string) => {
+    if (id !== cur) setPreview(id);
+  };
+  const curPack = ART_PACKS.find((p) => p.id === cur) ?? ART_PACKS[0];
+  const pvPack = ART_PACKS.find((p) => p.id === preview) ?? null;
+  if (!curPack) return null;
+
+  return (
+    <div className="artpack-group">
+      <div className="comp-intro">
+        <Icon name="scene" size={20} />
+        <span>
+          {t(
+            "选择一款美术风格包后会进入预览，确认无误再应用——届时大厅场景、内景、NPC 与道具的全部贴图都会替换（自动保存）。素材由你自备，未导入对应风格时回退到占位图。",
+          )}
+        </span>
+      </div>
+      <div className="artpack-grid">
+        {ART_PACKS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            className={`artpack-card${cur === p.id ? " on" : ""}`}
+            style={{ "--ac": p.ac } as React.CSSProperties}
+            data-pk={p.id}
+            onClick={() => open(p.id)}
+          >
+            <div className="artpack-prev" data-pk={p.id}>
+              <span className="artpack-stripe" />
+              <span className="artpack-prev-tag">
+                {p.ready ? "art pack" : "drop assets"}
+              </span>
+            </div>
+            <div className="artpack-meta">
+              <div className="artpack-name">
+                <span>{t(p.name)}</span>
+                {t(p.name) !== p.en && (
+                  <span className="artpack-en">{p.en}</span>
+                )}
+              </div>
+              <div className="artpack-desc">{t(p.desc)}</div>
+            </div>
+            <div className={`artpack-badge${cur === p.id ? " on" : ""}`}>
+              {cur === p.id ? t("✓ 使用中") : t("预览")}
+            </div>
+          </button>
+        ))}
+      </div>
+      <div className="artpack-note">
+        <Icon name={curPack.ready ? "done" : "import"} size={14} />
+        <span>
+          {curPack.ready
+            ? t("当前使用内置「像素奇幻」素材，开箱即用。")
+            : tl(
+                `当前生效:「${curPack.name}」。把该风格的场景 / NPC / 道具贴图导入素材目录后即可全局生效。`,
+                `Active: "${curPack.en}". Import this pack's scene / NPC / prop textures into the assets directory to apply globally.`,
+              )}
+        </span>
+      </div>
+      {pvPack && (
+        <ArtPackPreview
+          pack={pvPack}
+          isCur={pvPack.id === cur}
+          onCancel={() => setPreview(null)}
+          onConfirm={() => apply(pvPack.id)}
+        />
+      )}
+    </div>
+  );
+}
+
+// 切换前全屏确认浮层 — mock 场景 + NPC 条 + 道具行(忠实原型 ArtPackPreview)。
+function ArtPackPreview({
+  pack,
+  isCur,
+  onCancel,
+  onConfirm,
+}: {
+  pack: ArtPack;
+  isCur: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const t = useT();
+  const NPCS: { k: string; cn: string; ic: IconName }[] = [
+    { k: "reviewer", cn: "审查官", ic: "search" },
+    { k: "merchant", cn: "商人", ic: "shop" },
+    { k: "guide", cn: "向导", ic: "account" },
+  ];
+  const PROPS: IconName[] = ["scene", "coins", "crystal", "trophy", "quest"];
+  return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: scrim 是模态遮罩,点击空白处取消;键盘关闭由 App 的 Esc 集中处理
+    <div className="apv-scrim" onClick={onCancel}>
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: 内层吞冒泡,防点面板误触 scrim 取消 */}
+      <div
+        className="apv-panel"
+        data-pk={pack.id}
+        style={{ "--ac": pack.ac } as React.CSSProperties}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="apv-head">
+          <div className="apv-title">
+            <span className="apv-cn">{t(pack.name)}</span>
+            {t(pack.name) !== pack.en && (
+              <span className="apv-en">{pack.en}</span>
+            )}
+          </div>
+          <button type="button" className="apv-x" onClick={onCancel}>
+            ✕
+          </button>
+        </div>
+        <div className="apv-scene">
+          <span className="apv-sky" />
+          <span className="apv-grid" />
+          <span className="apv-ridge" />
+          <span className="apv-sun" />
+          <span className="apv-scene-lbl">{t("SCENE / 场景")}</span>
+          <span className="apv-hero" />
+        </div>
+        <div className="apv-strip">
+          {NPCS.map((n) => (
+            <div key={n.k} className="apv-npc">
+              <div className="apv-npc-sprite">
+                <Icon name={n.ic} size={22} />
+              </div>
+              <div className="apv-npc-l">{t(n.cn)}</div>
+            </div>
+          ))}
+        </div>
+        <div className="apv-props">
+          {PROPS.map((ic) => (
+            <div key={ic} className="apv-prop">
+              <Icon name={ic} size={16} />
+            </div>
+          ))}
+        </div>
+        <div className="apv-metaline">{t(pack.desc)}</div>
+        <div className="apv-foot">
+          <span className="apv-hint">
+            {isCur
+              ? t("该风格已在使用中。")
+              : pack.ready
+                ? t("内置素材，确认后立即生效。")
+                : t(
+                    "确认后将切换至此风格；缺失的贴图会显示占位图，导入素材后自动补全。",
+                  )}
+          </span>
+          <div className="apv-btns">
+            <button type="button" className="apv-btn ghost" onClick={onCancel}>
+              {t("取消")}
+            </button>
+            <button
+              type="button"
+              className="apv-btn go"
+              disabled={isCur}
+              onClick={onConfirm}
+            >
+              {isCur ? t("当前风格") : t("确认切换")}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Settings() {
   const t = useT();
   const active = useUiStore((s) => s.activePanel === "settings");
@@ -792,6 +977,8 @@ export function Settings() {
             )}
             {grp === "compact" ? (
               <CompactGroup />
+            ) : grp === "artpack" ? (
+              <ArtPackGroup />
             ) : (
               <>
                 {g.items.map((it) => (
