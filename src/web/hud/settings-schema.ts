@@ -95,6 +95,13 @@ const INTEGRATION_SETTINGS_GROUP: SettingGroup = {
       tip: "敏感字段,保存时只写入 SecretStore 引用。",
     },
     {
+      k: "public_webhook_base_url",
+      label: "Webhook base URL",
+      type: "text",
+      val: "",
+      tip: "公开 HTTPS webhook 根地址,例如 https://example.com,不要带 /webhooks 路径。",
+    },
+    {
       k: "github_enabled",
       label: "GitHub 订阅",
       type: "toggle",
@@ -107,6 +114,13 @@ const INTEGRATION_SETTINGS_GROUP: SettingGroup = {
       type: "text",
       val: "",
       tip: "订阅仓库,格式 owner/repo。",
+    },
+    {
+      k: "github_token",
+      label: "GitHub token",
+      type: "text",
+      val: "",
+      tip: "GitHub fine-grained PAT,需要目标仓库 Webhooks Read and write 权限,保存时只写 SecretStore 引用。",
     },
     {
       k: "github_webhook_secret",

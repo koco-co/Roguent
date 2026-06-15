@@ -24,7 +24,8 @@ export interface SettingsService {
   load(scope: SettingsScope): Promise<RoguentSettings | null>;
 }
 
-const SENSITIVE_KEY = /(token|secret|password|private.?key|access.?key)/i;
+const SENSITIVE_KEY =
+  /(token|secret|password|private.?key|access.?key|consumer.?key|api.?key)/i;
 
 export function createSettingsService(
   db: Database,
@@ -100,6 +101,7 @@ async function sanitizeSettings(
     );
   }
   if (value === null || typeof value !== "object") return value;
+  if (isSecretRefObject(value)) return value;
 
   const output: Record<string, unknown> = {};
   for (const [key, entry] of Object.entries(value)) {
@@ -143,4 +145,13 @@ function collectSecretRefs(value: unknown, refs: Set<string>): void {
     refs.add((value as { secretRef: string }).secretRef);
   }
   for (const entry of Object.values(value)) collectSecretRefs(entry, refs);
+}
+
+function isSecretRefObject(value: object): value is { secretRef: string } {
+  return (
+    !Array.isArray(value) &&
+    Object.keys(value).length === 1 &&
+    "secretRef" in value &&
+    typeof (value as { secretRef?: unknown }).secretRef === "string"
+  );
 }

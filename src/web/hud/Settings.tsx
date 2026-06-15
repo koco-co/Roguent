@@ -299,6 +299,12 @@ function settingsFieldValues(
   }
 
   const integrations = settings?.integrations;
+  const globalMeta = metadataRecord(settings?.metadata);
+  const webhookBaseUrl =
+    stringMetadata(globalMeta?.webhookBaseUrl) ??
+    stringMetadata(globalMeta?.publicWebhookBaseUrl) ??
+    stringMetadata(integrations?.github?.metadata?.webhookBaseUrl);
+  if (webhookBaseUrl) values.public_webhook_base_url = webhookBaseUrl;
   if (integrations?.wechat)
     values.im_wechat_enabled = integrations.wechat.enabled;
   if (integrations?.feishu) {
@@ -313,8 +319,10 @@ function settingsFieldValues(
     values.github_enabled = integrations.github.enabled;
     const meta = integrations.github.metadata;
     const repo = stringMetadata(meta?.repo);
+    const token = stringMetadata(meta?.token);
     const webhookSecret = stringMetadata(meta?.webhookSecret);
     if (repo) values.github_repo = repo;
+    if (token) values.github_token = token;
     if (webhookSecret) values.github_webhook_secret = webhookSecret;
   }
   if (integrations?.x) {
@@ -433,6 +441,11 @@ function integrationSettings(
           "github_repo",
           saved?.github?.metadata?.repo,
         ),
+        token: metadataField(
+          overrides,
+          "github_token",
+          saved?.github?.metadata?.token,
+        ),
         webhookSecret: metadataField(
           overrides,
           "github_webhook_secret",
@@ -473,6 +486,19 @@ function integrationSettings(
   };
 }
 
+function webhookMetadata(
+  overrides: Record<string, SettingValue>,
+  savedSettings: RoguentSettings | null | undefined,
+): Record<string, unknown> {
+  const savedMeta = metadataRecord(savedSettings?.metadata);
+  const webhookBaseUrl = metadataField(
+    overrides,
+    "public_webhook_base_url",
+    savedMeta?.webhookBaseUrl ?? savedMeta?.publicWebhookBaseUrl,
+  );
+  return webhookBaseUrl ? { webhookBaseUrl } : {};
+}
+
 function buildSettings(
   rt: "claude" | "codex",
   vals: Record<string, SettingValue>,
@@ -484,6 +510,7 @@ function buildSettings(
       runtime: runtimeSettings(rt, vals),
       integrations: integrationSettings(vals, overrides, savedSettings),
       metadata: {
+        ...webhookMetadata(overrides, savedSettings),
         codex: {
           provider: stringField(
             vals,
@@ -505,6 +532,7 @@ function buildSettings(
   return {
     runtime: runtimeSettings(rt, vals),
     integrations: integrationSettings(vals, overrides, savedSettings),
+    metadata: webhookMetadata(overrides, savedSettings),
     ui: Object.fromEntries(Object.entries(vals)),
   };
 }

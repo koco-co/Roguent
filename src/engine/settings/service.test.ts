@@ -47,6 +47,7 @@ test("settings service stores sensitive values in SecretStore and only secret re
         enabled: false,
         metadata: {
           bearerToken: "x-token-value",
+          consumerKey: "x-consumer-key-value",
         },
       },
     },
@@ -61,6 +62,11 @@ test("settings service stores sensitive values in SecretStore and only secret re
   ).secretRef;
   const xSecretRef = (
     payload.settings.integrations?.x?.metadata?.bearerToken as {
+      secretRef?: string;
+    }
+  ).secretRef;
+  const xConsumerKeyRef = (
+    payload.settings.integrations?.x?.metadata?.consumerKey as {
       secretRef?: string;
     }
   ).secretRef;
@@ -80,17 +86,23 @@ test("settings service stores sensitive values in SecretStore and only secret re
         },
         x: {
           enabled: false,
-          metadata: { bearerToken: { secretRef: expect.any(String) } },
+          metadata: {
+            bearerToken: { secretRef: expect.any(String) },
+            consumerKey: { secretRef: expect.any(String) },
+          },
         },
       },
     },
   });
   expect(githubSecretRef).toBeTruthy();
   expect(xSecretRef).toBeTruthy();
+  expect(xConsumerKeyRef).toBeTruthy();
   expect(await secrets.get(githubSecretRef ?? "")).toBe("github-secret-value");
   expect(await secrets.get(xSecretRef ?? "")).toBe("x-token-value");
+  expect(await secrets.get(xConsumerKeyRef ?? "")).toBe("x-consumer-key-value");
   expect(rawDbText(testDb)).not.toContain("github-secret-value");
   expect(rawDbText(testDb)).not.toContain("x-token-value");
+  expect(rawDbText(testDb)).not.toContain("x-consumer-key-value");
   expect(rawDbText(testDb)).toContain("secretRef");
   expect(await service.load("user")).toEqual(payload.settings);
 });
@@ -128,4 +140,37 @@ test("settings service deletes stale secret refs after a settings overwrite", as
 
   expect(await secrets.get(staleRef ?? "")).toBeUndefined();
   expect(await secrets.listRefs("settings/user")).toEqual([]);
+});
+
+test("settings service preserves existing secret refs without nesting them", async () => {
+  testDb = createTestDatabase();
+  migrate(testDb.db);
+  const secrets = new MemorySecretStore();
+  const service = createSettingsService(testDb.db, secrets, { now: () => 123 });
+
+  const first = await service.update("user", {
+    integrations: {
+      github: {
+        enabled: true,
+        metadata: {
+          token: "github-token-value",
+          webhookSecret: "github-secret-value",
+        },
+      },
+    },
+  });
+  const firstMetadata = first.settings.integrations?.github?.metadata ?? {};
+  const tokenRef = (firstMetadata.token as { secretRef?: string }).secretRef;
+  const webhookSecretRef = (
+    firstMetadata.webhookSecret as {
+      secretRef?: string;
+    }
+  ).secretRef;
+
+  const second = await service.update("user", first.settings);
+
+  expect(second.settings).toEqual(first.settings);
+  expect(await secrets.get(tokenRef ?? "")).toBe("github-token-value");
+  expect(await secrets.get(webhookSecretRef ?? "")).toBe("github-secret-value");
+  expect(rawDbText(testDb)).not.toContain('secretRef":{"secretRef');
 });

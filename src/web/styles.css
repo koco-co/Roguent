@@ -121,6 +121,53 @@ body {
   filter: brightness(0.45);
 }
 
+.announcement-popup {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  z-index: 70;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  max-width: min(620px, calc(100vw - 32px));
+  min-height: 38px;
+  padding: 7px 8px 7px 10px;
+  color: #f7ebc7;
+  background: linear-gradient(180deg, #4b321f, #24170f);
+  border: 2px solid #8f6a38;
+  box-shadow: 0 0 0 2px #120c08, 0 10px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0
+    rgba(255, 255, 255, 0.16);
+  transform: translateX(-50%);
+}
+
+.announcement-kind {
+  min-width: 72px;
+  color: #ffe06d;
+  font-size: 10px;
+  line-height: 1;
+  text-shadow: 1px 1px 0 #120c08;
+}
+
+.announcement-text {
+  min-width: 0;
+  overflow: hidden;
+  color: #f7ebc7;
+  font-size: 13px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  text-shadow: 1px 1px 0 #120c08;
+  white-space: nowrap;
+}
+
+.announcement-dismiss {
+  width: 24px;
+  height: 24px;
+  margin-left: 10px;
+  color: #f7ebc7;
+  background: #7b2f2f;
+  border-color: #d77755;
+}
+
 /* crisp upscaling for any raster the DOM shows */
 img {
   image-rendering: pixelated;
@@ -4914,6 +4961,11 @@ img {
 }
 .board-note {
   position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: #efe2c2;
   color: #3a2a18;
   font-size: 10px;
@@ -4923,9 +4975,13 @@ img {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 150px;
 }
 .board-note-t {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }

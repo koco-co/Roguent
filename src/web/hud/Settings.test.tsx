@@ -85,8 +85,13 @@ test("settings save sends real Codex runtime and MCP profile command", async () 
   await userEvent.click(screen.getByRole("button", { name: /Codex/ }));
   await userEvent.selectOptions(screen.getByLabelText(/模型 model/), "gpt-5");
   await userEvent.click(screen.getByRole("button", { name: /IM \/ 订阅/ }));
+  await userEvent.type(
+    screen.getByLabelText("Webhook base URL"),
+    "https://hooks.example.com",
+  );
   await userEvent.click(screen.getByRole("button", { name: "GitHub 订阅" }));
   await userEvent.type(screen.getByLabelText("GitHub repo"), "poco/roguent");
+  await userEvent.type(screen.getByLabelText("GitHub token"), "ghp_token");
   await userEvent.type(
     screen.getByLabelText("GitHub webhookSecret"),
     "github-secret-value",
@@ -110,6 +115,7 @@ test("settings save sends real Codex runtime and MCP profile command", async () 
         networkAccess: false,
       },
       metadata: {
+        webhookBaseUrl: "https://hooks.example.com",
         codex: {
           provider: "openai",
           mcpServers: ["github-mcp"],
@@ -125,6 +131,7 @@ test("settings save sends real Codex runtime and MCP profile command", async () 
           enabled: true,
           metadata: {
             repo: "poco/roguent",
+            token: "ghp_token",
             webhookSecret: "github-secret-value",
           },
         },
@@ -138,8 +145,10 @@ test("settings save sends real Codex runtime and MCP profile command", async () 
     },
     changedKeys: expect.arrayContaining([
       "cx_model",
+      "public_webhook_base_url",
       "github_enabled",
       "github_repo",
+      "github_token",
       "github_webhook_secret",
       "x_enabled",
       "x_bearer_token",
@@ -169,6 +178,9 @@ test("settings panel hydrates saved Codex settings and preserves secret refs", a
           enabled: true,
           metadata: {
             repo: "poco/roguent",
+            token: {
+              secretRef: "settings/user.integrations.github.metadata.token",
+            },
             webhookSecret: {
               secretRef:
                 "settings/user.integrations.github.metadata.webhookSecret",
@@ -177,6 +189,7 @@ test("settings panel hydrates saved Codex settings and preserves secret refs", a
         },
       },
       metadata: {
+        webhookBaseUrl: "https://hooks.example.com",
         codex: {
           provider: "custom",
           mcpServers: ["github-mcp", "linear-mcp"],
@@ -210,6 +223,7 @@ test("settings panel hydrates saved Codex settings and preserves secret refs", a
         networkAccess: true,
       },
       metadata: {
+        webhookBaseUrl: "https://hooks.example.com",
         codex: {
           provider: "custom",
           mcpServers: ["github-mcp", "linear-mcp"],
@@ -221,6 +235,9 @@ test("settings panel hydrates saved Codex settings and preserves secret refs", a
           enabled: true,
           metadata: {
             repo: "poco/roguent",
+            token: {
+              secretRef: "settings/user.integrations.github.metadata.token",
+            },
             webhookSecret: {
               secretRef:
                 "settings/user.integrations.github.metadata.webhookSecret",

@@ -251,6 +251,159 @@ test("live integrations publish webhook connector statuses on startup", async ()
   }
 });
 
+test("live integrations apply GitHub subscription settings through webhook registration", async () => {
+  const testDb = createTestDatabase();
+  try {
+    migrate(testDb.db);
+    const secretStore = new MemorySecretStore();
+    const sessions = new SessionManager(
+      new CapturingRuntime(),
+      "/tmp/roguent",
+      {
+        auditDb: testDb.db,
+      },
+    );
+    const published: RoomEvent[] = [];
+    const registrations: Array<{
+      owner: string;
+      repo: string;
+      secret: string | undefined;
+      token?: string;
+      webhookUrl: string;
+    }> = [];
+    sessions.subscribe((event) => published.push(event));
+
+    const live = startLiveIntegrations({
+      db: testDb.db,
+      imConnectors: {},
+      secretStore,
+      sessions,
+      subscriptionRegistrars: {
+        registerGitHubWebhook: async (input) => {
+          registrations.push({
+            owner: input.owner,
+            repo: input.repo,
+            secret: await input.secretStore.get(input.secretRef),
+            token: input.token,
+            webhookUrl: input.webhookUrl,
+          });
+          return {
+            hookId: 42,
+            mode: "api",
+            secretRef: input.secretRef,
+            url: "https://api.github.com/repos/koco-co/Roguent/hooks/42",
+          };
+        },
+      },
+    });
+
+    await live.applySubscriptionSettings({
+      integrations: {
+        github: {
+          enabled: true,
+          metadata: {
+            repo: "https://github.com/koco-co/Roguent.git",
+            token: "ghp_token",
+            webhookSecret: "hook-secret",
+          },
+        },
+      },
+      metadata: { webhookBaseUrl: "https://hooks.example.com/base/" },
+    });
+
+    expect(registrations).toEqual([
+      {
+        owner: "koco-co",
+        repo: "Roguent",
+        secret: "hook-secret",
+        token: "ghp_token",
+        webhookUrl: "https://hooks.example.com/base/webhooks/github",
+      },
+    ]);
+    expect(published).toContainEqual(
+      expect.objectContaining({
+        sessionId: "integrations",
+        type: "integration.status",
+        payload: expect.objectContaining({
+          status: expect.objectContaining({
+            account: "koco-co/Roguent",
+            channel: "github",
+            id: "github",
+            metadata: expect.objectContaining({
+              hookId: 42,
+              webhookUrl: "https://hooks.example.com/base/webhooks/github",
+            }),
+            state: "connected",
+          }),
+        }),
+      }),
+    );
+    live.stop();
+  } finally {
+    testDb.cleanup();
+  }
+});
+
+test("subscription events create durable sessions before assigning inbox items", async () => {
+  const testDb = createTestDatabase();
+  try {
+    migrate(testDb.db);
+    const sessions = new SessionManager(
+      new CapturingRuntime(),
+      "/tmp/roguent",
+      {
+        auditDb: testDb.db,
+      },
+    );
+    const published: RoomEvent[] = [];
+    sessions.subscribe((event) => published.push(event));
+    const live = startLiveIntegrations({
+      db: testDb.db,
+      imConnectors: {},
+      sessions,
+    });
+
+    const result = await live.router.route({
+      id: "github:delivery-1",
+      channel: "github",
+      direction: "inbound",
+      deliveryId: "delivery-1",
+      summary: "push to codex/mailbox-smoke",
+      bodyText: "abc1234 smoke commit",
+      receivedAt: 1_717_452_000_000,
+    });
+
+    const repositories = createRepositories(testDb.db);
+    expect(result.sessionId).toBe("integration-github-github-delivery-1");
+    expect(
+      repositories.sessions.get("integration-github-github-delivery-1"),
+    ).toMatchObject({
+      id: "integration-github-github-delivery-1",
+      title: "GitHub · push to codex/mailbox-smoke",
+    });
+    expect(
+      repositories.inboxItems.get("inbox:github:delivery-1"),
+    ).toMatchObject({
+      sessionId: "integration-github-github-delivery-1",
+      title: "push to codex/mailbox-smoke",
+    });
+    expect(published).toContainEqual(
+      expect.objectContaining({
+        sessionId: "integration-github-github-delivery-1",
+        type: "mailbox.item.created",
+        payload: expect.objectContaining({
+          item: expect.objectContaining({
+            sessionId: "integration-github-github-delivery-1",
+          }),
+        }),
+      }),
+    );
+    live.stop();
+  } finally {
+    testDb.cleanup();
+  }
+});
+
 class CapturingRuntime implements RuntimeDriverCreator {
   callbacks: DriverCallbacks | null = null;
   readonly sent: Array<{ sessionId: string; text: string }> = [];

@@ -87,8 +87,8 @@ export function buildKeychainCommand(
         "-a",
         account,
         "-w",
+        passwordArg(input.value),
       ],
-      stdin: promptInput(input.value),
     };
   }
 
@@ -277,11 +277,11 @@ function accountForRef(ref: string): string {
   return `${SECRET_ACCOUNT_PREFIX}${ref}`;
 }
 
-function promptInput(value: string): string {
+function passwordArg(value: string): string {
   if (value.includes("\n") || value.includes("\r")) {
     throw new Error("keychain secret values must not contain line breaks");
   }
-  return `${value}\n${value}\n`;
+  return value;
 }
 
 function stripSecurityLineEnding(value: string): string {
@@ -292,7 +292,7 @@ function stripSecurityLineEnding(value: string): string {
 
 function redactArgs(args: string[]): string[] {
   return args.map((arg, index) =>
-    args[index - 1] === "-a" ? "[redacted]" : arg,
+    args[index - 1] === "-a" || args[index - 1] === "-w" ? "[redacted]" : arg,
   );
 }
 

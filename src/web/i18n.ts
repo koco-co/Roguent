@@ -515,7 +515,10 @@ export const DICT: Record<string, string> = {
   "飞书长连接 Feishu": "Feishu long connection",
   "飞书 App ID": "Feishu App ID",
   "飞书 App Secret": "Feishu App Secret",
+  "Webhook base URL": "Webhook base URL",
   "GitHub 订阅": "GitHub subscription",
+  "GitHub repo": "GitHub repo",
+  "GitHub token": "GitHub token",
   "GitHub webhookSecret": "GitHub webhookSecret",
   "X 订阅": "X subscription",
   "Relay 转发": "Relay forwarding",
@@ -527,9 +530,13 @@ export const DICT: Record<string, string> = {
   "飞书/Lark bot 的 app_id。": "The Feishu/Lark bot app_id.",
   "敏感字段,保存时只写入 SecretStore 引用。":
     "Sensitive field — only a SecretStore reference is written on save.",
+  "公开 HTTPS webhook 根地址,例如 https://example.com,不要带 /webhooks 路径。":
+    "Public HTTPS webhook base URL, for example https://example.com, without the /webhooks path.",
   "接收 GitHub webhook 并路由到邮箱/公告板/会话。":
     "Receive GitHub webhooks and route them to mailbox / board / session.",
   "订阅仓库,格式 owner/repo。": "Subscribed repo, format owner/repo.",
+  "GitHub fine-grained PAT,需要目标仓库 Webhooks Read and write 权限,保存时只写 SecretStore 引用。":
+    "GitHub fine-grained PAT with Webhooks Read and write permission on the target repository — only a SecretStore reference is written on save.",
   "GitHub webhook HMAC secret,保存时只写 SecretStore 引用。":
     "GitHub webhook HMAC secret — only a SecretStore reference is written on save.",
   "启用 X webhook/订阅事件接入。":

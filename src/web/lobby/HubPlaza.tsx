@@ -1,5 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { MailboxItem } from "../../shared/events";
 import { type RuntimeKind, defaultRuntimeConfig } from "../../shared/runtime";
 import { MimicChest } from "../easter/MimicChest";
 import { PetActor } from "../easter/PetActor";
@@ -27,6 +28,9 @@ import { useSpriteTick } from "./sprite-tick";
 
 const VW = 1920;
 const VH = 1080;
+const BOARD_NOTE_LIMIT = 3;
+const BOARD_NOTE_SOURCE_LIMIT = 12;
+const BOARD_NOTE_TITLE_MAX = 34;
 
 type PanelAction = Extract<
   PanelId,
@@ -57,6 +61,28 @@ interface Interactable {
   action: InteractAction;
   icon: IconName;
   accent: string;
+}
+
+export function boardNoteTitle(title: string): string {
+  const normalized = title.replace(/\s+/g, " ").trim();
+  if (normalized.length <= BOARD_NOTE_TITLE_MAX) return normalized;
+  return `${normalized.slice(0, BOARD_NOTE_TITLE_MAX - 3)}...`;
+}
+
+export function uniqueBoardNotes(
+  items: MailboxItem[],
+  limit = BOARD_NOTE_LIMIT,
+): MailboxItem[] {
+  const seen = new Set<string>();
+  const notes: MailboxItem[] = [];
+  for (const item of items) {
+    const key = `${item.source}:${item.title}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    notes.push(item);
+    if (notes.length >= limit) break;
+  }
+  return notes;
 }
 
 const INTERACT: Interactable[] = [
@@ -261,7 +287,13 @@ function Structure({
   const unread = mailbox ? selectMailboxUnreadCount(mailbox) : 0;
   const boardNotes = useMemo(
     () =>
-      mailbox ? selectMailboxBoardItemsFromMailbox(mailbox, { limit: 3 }) : [],
+      mailbox
+        ? uniqueBoardNotes(
+            selectMailboxBoardItemsFromMailbox(mailbox, {
+              limit: BOARD_NOTE_SOURCE_LIMIT,
+            }),
+          )
+        : [],
     [mailbox],
   );
   const float = Math.sin(tick / 3) * 4;
@@ -363,7 +395,9 @@ function Structure({
               }
             >
               <span className="board-pin" />
-              <span className="board-note-t">{note.title}</span>
+              <span className="board-note-t" title={note.title}>
+                {boardNoteTitle(note.title)}
+              </span>
             </div>
           ))}
         </div>

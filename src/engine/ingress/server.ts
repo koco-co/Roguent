@@ -26,6 +26,7 @@ export interface IngressServerOptions {
   currentSessionId?: () => string | null | undefined;
   db: Database;
   env?: Record<string, string | undefined>;
+  githubWebhookSecretRef?: () => string | null | undefined;
   port?: number | null;
   router: Pick<IntegrationRouter, "route">;
   secretStore?: SecretStore;
@@ -232,7 +233,9 @@ async function resolveWebhookSecret(
   options: IngressServerOptions,
   env: Record<string, string | undefined>,
 ): Promise<string | undefined> {
-  const ref = env.ROGUENT_GITHUB_WEBHOOK_SECRET_REF?.trim();
+  const ref =
+    env.ROGUENT_GITHUB_WEBHOOK_SECRET_REF?.trim() ||
+    options.githubWebhookSecretRef?.()?.trim();
   if (ref) {
     return options.secretStore
       ? resolveGitHubWebhookSecret(options.secretStore, ref)

@@ -1,4 +1,5 @@
 import { WebSocketServer } from "ws";
+import type { RoguentSettings } from "../shared/events";
 import { readOauthCredentials } from "./credentials";
 import { cliPathFromEnv } from "./driver";
 import { resolveIngressPort, startIngressServer } from "./ingress/server";
@@ -59,20 +60,46 @@ if (replayFixture) {
   const secretStore = new KeychainSecretStore();
   const mgr = new SessionManager(undefined, process.cwd(), { auditDb: db });
   const scheduler = createSchedulerService(db);
+  const settingsService = createSettingsService(db, secretStore);
   const pluginsService = createPluginsService({
     configDir: claudeConfigDir(),
     // dev 回落 PATH 上的 claude(可能与 SDK 内置 CLI 版本不同);Tauri 下走 ROGUENT_CLI_PATH。
     cliPath: cliPathFromEnv(process.env) ?? "claude",
   });
+  const integrations = startLiveIntegrations({
+    db,
+    secretStore,
+    sessions: mgr,
+  });
+  let activeGithubWebhookSecretRef: string | null = null;
+  void settingsService
+    .load("user")
+    .then((settings) => {
+      if (!settings) return undefined;
+      activeGithubWebhookSecretRef =
+        githubWebhookSecretRefFromSettings(settings);
+      return integrations.applySubscriptionSettings(settings);
+    })
+    .catch((error) => {
+      console.warn(
+        "[server] saved subscription settings apply failed:",
+        error instanceof Error ? error.message : String(error),
+      );
+    });
   const gateway = new WsGateway(port, mgr, (p) => console.log(`PORT=${p}`), {
     mailbox: createMailboxService(db),
     scheduler,
-    settings: createSettingsService(db, secretStore),
+    settings: settingsService,
+    onSettingsUpdated(payload) {
+      activeGithubWebhookSecretRef = githubWebhookSecretRefFromSettings(
+        payload.settings,
+      );
+      return integrations.applySubscriptionSettings(payload.settings);
+    },
     plugins: pluginsService,
   });
   const schedulerRunner = createSchedulerRunner({ db, sessions: mgr });
   schedulerRunner.start();
-  const integrations = startLiveIntegrations({ db, sessions: mgr });
   const ingressPort = resolveIngressPort(process.env);
   if (ingressPort !== null && ingressPort === port && port !== 0) {
     console.warn(
@@ -81,6 +108,7 @@ if (replayFixture) {
   } else {
     const ingress = startIngressServer({
       db,
+      githubWebhookSecretRef: () => activeGithubWebhookSecretRef,
       port: ingressPort,
       router: integrations.router,
       secretStore,
@@ -107,4 +135,13 @@ if (replayFixture) {
   // 启动即读一次真实插件目录并广播(连入的客户端经 lastPlugins 重放)。
   gateway.pushPlugins(pluginsService.snapshot(), []);
   console.log("[server] LIVE");
+}
+
+function githubWebhookSecretRefFromSettings(
+  settings: RoguentSettings,
+): string | null {
+  const value = settings.integrations?.github?.metadata?.webhookSecret;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const ref = (value as { secretRef?: unknown }).secretRef;
+  return typeof ref === "string" && ref.trim() ? ref.trim() : null;
 }

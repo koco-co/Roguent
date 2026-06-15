@@ -8,7 +8,7 @@ export interface Announcement {
   id: string;
   text: string;
   /** Source hint for styling. */
-  kind: "mailbox" | "achievement" | "ledger" | "settings";
+  kind: "mailbox" | "achievement" | "ledger";
 }
 
 /**
@@ -17,7 +17,6 @@ export interface Announcement {
  *  1. Most recent unread high-priority / alert mailbox item.
  *  2. Most recently completed achievement (not yet claimed).
  *  3. Most recent ledger reward entry.
- *  4. Settings updated (if settings are present).
  *
  * Returns null when nothing announcement-worthy is found.
  */
@@ -25,7 +24,6 @@ function deriveAnnouncement(
   mailboxItems: ReturnType<typeof useRoomStore.getState>["mailbox"],
   achievements: ReturnType<typeof useRoomStore.getState>["achievements"],
   ledger: ReturnType<typeof useRoomStore.getState>["ledger"],
-  settings: ReturnType<typeof useRoomStore.getState>["settings"],
 ): Announcement | null {
   // 1. High-priority / alert unread mailbox item
   const urgentMailbox = mailboxItems.order
@@ -75,15 +73,6 @@ function deriveAnnouncement(
     };
   }
 
-  // 4. Settings present — low-priority, only show once on initial load
-  if (settings) {
-    return {
-      id: "settings:loaded",
-      text: "Settings loaded",
-      kind: "settings",
-    };
-  }
-
   return null;
 }
 
@@ -91,7 +80,6 @@ const KIND_LABELS: Record<Announcement["kind"], string> = {
   mailbox: "ALERT",
   achievement: "ACHIEVEMENT",
   ledger: "REWARD",
-  settings: "SETTINGS",
 };
 
 /**
@@ -105,15 +93,14 @@ export function AnnouncementPopup() {
   const mailbox = useRoomStore((s) => s.mailbox);
   const achievements = useRoomStore((s) => s.achievements);
   const ledger = useRoomStore((s) => s.ledger);
-  const settings = useRoomStore((s) => s.settings);
 
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [visible, setVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const announcement = useMemo(
-    () => deriveAnnouncement(mailbox, achievements, ledger, settings),
-    [mailbox, achievements, ledger, settings],
+    () => deriveAnnouncement(mailbox, achievements, ledger),
+    [mailbox, achievements, ledger],
   );
   const announcementId = announcement?.id ?? null;
   const isNewAnnouncement =

@@ -7,7 +7,12 @@ import { DEFAULT_SETTINGS, useSettingsStore } from "../settings-store";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { type RoomConnection, connectRoom } from "../ws-client";
-import { HubPlaza, LobbyView } from "./HubPlaza";
+import {
+  HubPlaza,
+  LobbyView,
+  boardNoteTitle,
+  uniqueBoardNotes,
+} from "./HubPlaza";
 
 const originalWebSocket = globalThis.WebSocket;
 let connection: RoomConnection | null = null;
@@ -130,6 +135,43 @@ test("mailbox structure renders a real unread badge from store state", () => {
   const badge = container.querySelector(".mailbox-count");
   expect(badge).toBeTruthy();
   expect(badge?.textContent).toBe("2");
+});
+
+test("board notes use short deduped titles for lobby rendering", () => {
+  const longTitle =
+    "push to codex/main-mailbox-smoke-fixed-1781511437 in koco-co/Roguent by koco-co";
+  const shortTitle = boardNoteTitle(longTitle);
+  expect(shortTitle.length).toBeLessThanOrEqual(34);
+  expect(shortTitle.endsWith("...")).toBe(true);
+
+  const notes = uniqueBoardNotes([
+    {
+      id: "a",
+      source: "github",
+      title: longTitle,
+      summary: "x",
+      ts: 3,
+      status: "unread",
+    },
+    {
+      id: "b",
+      source: "github",
+      title: longTitle,
+      summary: "x",
+      ts: 2,
+      status: "unread",
+    },
+    {
+      id: "c",
+      source: "github",
+      title: "workflow_run failed",
+      summary: "x",
+      ts: 1,
+      status: "unread",
+    },
+  ]);
+
+  expect(notes.map((note) => note.id)).toEqual(["a", "c"]);
 });
 
 test("clicking Codex and Claude doors sends runtime-specific newSession commands", async () => {

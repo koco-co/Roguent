@@ -154,6 +154,44 @@ test("POST /webhooks/github resolves webhook secret through SecretStore ref", as
   }
 });
 
+test("POST /webhooks/github resolves webhook secret through settings ref", async () => {
+  const rawBody = JSON.stringify({
+    repository: { full_name: "poco/roguent" },
+  });
+  const secretStore = new MemorySecretStore();
+  await secretStore.put(
+    "settings/user.integrations.github.metadata.webhookSecret",
+    "hook-secret",
+  );
+  const harness = createHarness({
+    githubWebhookSecretRef: () =>
+      "settings/user.integrations.github.metadata.webhookSecret",
+    secretStore,
+  });
+  try {
+    const response = await harness.fetch(
+      "http://ingress.test/webhooks/github",
+      {
+        method: "POST",
+        headers: {
+          "x-github-delivery": "delivery-settings-ref-ok",
+          "x-github-event": "push",
+          "x-hub-signature-256": githubSignature("hook-secret", rawBody),
+        },
+        body: rawBody,
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(harness.routed.at(-1)?.event).toMatchObject({
+      channel: "github",
+      deliveryId: "delivery-settings-ref-ok",
+    });
+  } finally {
+    harness.cleanup();
+  }
+});
+
 test("relay endpoint validates bearer token and forwards signed requested channel", async () => {
   const rawBody = JSON.stringify({
     repository: {
@@ -397,6 +435,7 @@ function createHarness(
   options: {
     currentSessionId?: () => string | null | undefined;
     env?: Record<string, string | undefined>;
+    githubWebhookSecretRef?: () => string | null | undefined;
     secretStore?: MemorySecretStore;
   } = {},
 ) {
@@ -410,6 +449,7 @@ function createHarness(
     currentSessionId: options.currentSessionId,
     db: testDb.db,
     env: options.env ?? {},
+    githubWebhookSecretRef: options.githubWebhookSecretRef,
     router: {
       async route(event, routeOptions) {
         routed.push({ event, options: routeOptions ?? {} });

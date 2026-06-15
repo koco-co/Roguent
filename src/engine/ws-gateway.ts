@@ -5,6 +5,7 @@ import type {
   AccountLimits,
   AchievementUpdatedPayload,
   EconomyLedgerAppendedPayload,
+  IntegrationStatusPayload,
   InventoryUpdatedPayload,
   LimitsMessage,
   MailboxItem,
@@ -26,6 +27,7 @@ import { listLocalSessions } from "./local-sessions";
 import type { SessionManager } from "./session";
 
 export interface GatewayMailboxService {
+  list?(limit?: number): MailboxItem[];
   markRead(itemId: string): MailboxItem;
   archive(itemId: string): MailboxItem;
   resend(
@@ -92,6 +94,7 @@ export interface WsGatewayOptions {
   settings?: GatewaySettingsService;
   achievements?: GatewayAchievementsService;
   gacha?: GatewayGachaService;
+  onSettingsUpdated?: (payload: SettingsUpdatedPayload) => void | Promise<void>;
   plugins?: GatewayPluginsService;
   /**
    * Returns the initial value for the pull sequence counter. Called lazily on
@@ -117,6 +120,10 @@ export class WsGateway {
   private pullSeq: number | null = null;
   private lastLimits: LimitsMessage | null = null;
   private lastPlugins: PluginsMessage | null = null;
+  private readonly lastIntegrationStatuses = new Map<
+    string,
+    RoomEvent<IntegrationStatusPayload>
+  >();
 
   constructor(
     port: number,
@@ -133,6 +140,7 @@ export class WsGateway {
     }
     this.wss.on("connection", (ws) => this.handleConnection(ws));
     mgr.subscribe((e) => {
+      this.rememberReplayableEvent(e);
       this.broadcast(e);
       this.publishAchievementUpdatesFor(e);
     });
@@ -148,9 +156,27 @@ export class WsGateway {
       type: "roster",
       sessionIds: this.mgr.sessionIds(),
     });
+    this.replayIntegrationStatuses(ws);
     void this.publishSavedSettings();
+    this.publishMailboxSnapshot();
     ws.on("message", (data) => void this.onCommand(String(data), ws));
     ws.on("close", () => this.clients.delete(ws));
+  }
+
+  private rememberReplayableEvent(event: RoomEvent): void {
+    if (event.type !== "integration.status") return;
+    const payload = event.payload as IntegrationStatusPayload;
+    const status = payload.status;
+    this.lastIntegrationStatuses.set(
+      `${status.channel}:${status.id}`,
+      event as RoomEvent<IntegrationStatusPayload>,
+    );
+  }
+
+  private replayIntegrationStatuses(ws: WebSocket): void {
+    for (const event of this.lastIntegrationStatuses.values()) {
+      if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(event));
+    }
   }
 
   private async publishSavedSettings(): Promise<void> {
@@ -172,6 +198,24 @@ export class WsGateway {
     } catch {
       // Settings hydration is best-effort on reconnect; explicit save commands
       // still surface errors to the active client.
+    }
+  }
+
+  private publishMailboxSnapshot(): void {
+    const mailbox = this.options.mailbox;
+    if (!mailbox?.list) return;
+    try {
+      for (const item of mailbox.list(100).reverse()) {
+        this.mgr.publishIntegrationEvent({
+          ts: Date.now(),
+          sessionId: item.sessionId ?? "__mailbox__",
+          type: "mailbox.item.created",
+          payload: { item },
+        });
+      }
+    } catch {
+      // Mailbox hydration is best-effort; explicit mailbox commands still
+      // surface errors to the active client.
     }
   }
 
@@ -455,6 +499,14 @@ export class WsGateway {
         type: "settings.updated",
         payload,
       });
+      try {
+        await this.options.onSettingsUpdated?.(payload);
+      } catch (error) {
+        console.warn(
+          "[gateway] settings update side effect failed:",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
     } catch (error) {
       this.replyCommandError(
         ws,

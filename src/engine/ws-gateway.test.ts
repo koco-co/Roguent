@@ -447,6 +447,7 @@ test("WsGateway handles settings commands through SettingsService and publishes 
   const sent: string[] = [];
   const published: unknown[] = [];
   const settingsCalls: unknown[] = [];
+  const settingsSideEffects: unknown[] = [];
   const ws = {
     OPEN: 1,
     readyState: 1,
@@ -471,7 +472,12 @@ test("WsGateway handles settings commands through SettingsService and publishes 
     subscribe: () => () => {},
     publishIntegrationEvent: (event: unknown) => published.push(event),
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr, undefined, { settings });
+  const gateway = new WsGateway(0, mgr, undefined, {
+    settings,
+    onSettingsUpdated(payload) {
+      settingsSideEffects.push(payload);
+    },
+  });
   try {
     invokeOnCommand(
       gateway,
@@ -510,6 +516,14 @@ test("WsGateway handles settings commands through SettingsService and publishes 
         changedKeys: ["scheduler.enabled"],
         metadata: { source: "settings-panel" },
       },
+    },
+  ]);
+  expect(settingsSideEffects).toEqual([
+    {
+      scope: "user",
+      settings: { scheduler: { enabled: true, timezone: "UTC" } },
+      changedKeys: ["scheduler.enabled"],
+      metadata: { source: "settings-panel" },
     },
   ]);
 });
@@ -692,6 +706,88 @@ test("WsGateway handles mailbox commands through MailboxService and publishes up
       payload: { item },
     },
   ]);
+});
+
+test("WsGateway hydrates mailbox items and replays connector statuses on connection", async () => {
+  const sent: unknown[] = [];
+  const item: MailboxItem = {
+    id: "mail-1",
+    source: "github",
+    title: "push to codex/smoke",
+    summary: "push summary",
+    ts: 100,
+    status: "unread",
+    sessionId: "s1",
+  };
+  let seq = 0;
+  let subscriber: (event: unknown) => void = () => {};
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(JSON.parse(msg)),
+    on: () => {},
+  };
+  const mailbox: GatewayMailboxService = {
+    list: () => [item],
+    markRead: () => item,
+    archive: () => item,
+    resend: () => ({ item, targetSessionId: "s1", text: "resend text" }),
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe(cb: (event: unknown) => void) {
+      subscriber = cb;
+      return () => {};
+    },
+    publishIntegrationEvent(event: unknown) {
+      subscriber({ seq: ++seq, ...(event as Record<string, unknown>) });
+    },
+  } as unknown as SessionManager;
+  const gateway = new WsGateway(0, mgr, undefined, { mailbox });
+  try {
+    subscriber({
+      seq: ++seq,
+      ts: 1,
+      sessionId: "__integration__",
+      type: "integration.status",
+      payload: {
+        status: {
+          id: "github",
+          channel: "github",
+          state: "connected",
+          label: "GitHub webhooks",
+        },
+      },
+    });
+
+    invokeHandleConnection(gateway, ws);
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(sent).toContainEqual({
+    kind: "control",
+    type: "roster",
+    sessionIds: [],
+  });
+  expect(sent).toContainEqual(
+    expect.objectContaining({
+      type: "integration.status",
+      payload: {
+        status: expect.objectContaining({
+          channel: "github",
+          id: "github",
+          state: "connected",
+        }),
+      },
+    }),
+  );
+  expect(sent).toContainEqual(
+    expect.objectContaining({
+      type: "mailbox.item.created",
+      payload: { item },
+    }),
+  );
 });
 
 test("WsGateway handles scheduler commands through SchedulerService and publishes updates", async () => {

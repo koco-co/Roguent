@@ -21,25 +21,13 @@ function accountArg(command: { args: string[] }): string {
   return command.args[index + 1] ?? "";
 }
 
-function promptValue(command: { stdin?: string }): string {
-  expect(command.stdin).toBeString();
-  const lines = command.stdin?.split("\n");
-  expect(lines).toHaveLength(3);
-  expect(lines?.[0]).toBe(lines?.[1]);
-  expect(lines?.[2]).toBe("");
-  return lines?.[0] ?? "";
+function passwordArg(command: { args: string[] }): string {
+  const index = command.args.indexOf("-w");
+  if (index === -1) throw new Error("missing password arg");
+  return command.args[index + 1] ?? "";
 }
 
-function legacyOrPromptValue(command: { stdin?: string }): string {
-  const lines = command.stdin?.split("\n") ?? [];
-  if (lines.length === 3 && lines[0] === lines[1] && lines[2] === "") {
-    return lines[0] ?? "";
-  }
-  if (lines.length === 2 && lines[1] === "") return lines[0] ?? "";
-  throw new Error("invalid stdin prompt");
-}
-
-test("put command passes password and retype through stdin and not command args", () => {
+test("put command passes password non-interactively and redacts safe descriptors", () => {
   const command = buildKeychainCommand({
     operation: "put",
     service: "Roguent Test Secrets",
@@ -49,11 +37,11 @@ test("put command passes password and retype through stdin and not command args"
 
   expect(command.path).toBe("/usr/bin/security");
   expect(command.args).toContain("add-generic-password");
-  expect(command.args.at(-1)).toBe("-w");
-  const password = promptValue(command);
+  expect(command.args.at(-2)).toBe("-w");
+  const password = passwordArg(command);
   expect(password.length).toBe(SECRET.length);
   expect(digest(password)).toBe(digest(SECRET));
-  expect(JSON.stringify(command.args)).not.toContain(SECRET);
+  expect(command.stdin).toBeUndefined();
 
   const safeDescriptor = describeKeychainCommand(command);
   expect(JSON.stringify(safeDescriptor)).not.toContain(SECRET);
@@ -68,9 +56,10 @@ test("put command passes password and retype through stdin and not command args"
         "-a",
         "[redacted]",
         "-w",
+        "[redacted]",
       ],
       "path": "/usr/bin/security",
-      "stdin": "present",
+      "stdin": "none",
     }
   `);
 });
@@ -128,7 +117,7 @@ test("store uses injected runner and never accesses the system keychain in tests
         return `${value}\n`;
       }
       if (command.args[0] === "add-generic-password") {
-        stored.set(account, promptValue(command));
+        stored.set(account, passwordArg(command));
         return "";
       }
       if (command.args[0] === "delete-generic-password") {
@@ -182,7 +171,7 @@ test("concurrent puts preserve both refs in the keychain index", async () => {
         return `${snapshot}\n`;
       }
       if (command.args[0] === "add-generic-password") {
-        stored.set(account, legacyOrPromptValue(command));
+        stored.set(account, passwordArg(command));
         return "";
       }
       if (command.args[0] === "delete-generic-password") {
@@ -214,7 +203,7 @@ test("concurrent puts across store instances preserve both refs for the same ser
       return `${snapshot}\n`;
     }
     if (command.args[0] === "add-generic-password") {
-      stored.set(account, legacyOrPromptValue(command));
+      stored.set(account, passwordArg(command));
       return "";
     }
     if (command.args[0] === "delete-generic-password") {
