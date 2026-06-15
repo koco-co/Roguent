@@ -419,7 +419,9 @@ export const DICT: Record<string, string> = {
     "Today's key events and unread alerts get pinned here automatically.",
   "暂无今日关键事件或未读告警。": "No key events or unread alerts today.",
   // MailboxPanel
-  "外部平台未配置时只显示 configuration state，不填充样例消息。":
+  "管理真实订阅源状态。未配置的外部平台只显示配置状态，不填充样例消息。":
+    "Manage real subscription sources. Unconfigured external platforms show only the configuration state — no sample messages.",
+  "外部平台未配置时只显示配置状态，不填充样例消息。":
     "When external platforms aren't configured, only the configuration state shows — no sample messages.",
   暂无信件: "No mailbox items",
   重发: "Resend",

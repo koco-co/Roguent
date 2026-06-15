@@ -138,6 +138,40 @@ test("mailbox panel filters real items and shows connector configuration state",
   expect(screen.getByText("webhook entitlement missing")).toBeTruthy();
 });
 
+test("empty state and subs header localize to EN without Chinese leak", async () => {
+  useSettingsStore.setState({ uiLang: "en" });
+  useRoomStore.setState({
+    sessions: {},
+    currentSessionId: null,
+    mailbox: { items: {}, order: [] },
+    connectorStatus: {},
+  });
+  useUiStore.setState({ activePanel: "mailbox" });
+
+  render(<MailboxPanel />);
+
+  // 空状态(all 过滤、无信件)→ 英文,prose 不夹 configuration state 之外的中文。
+  expect(screen.getByText("No mailbox items")).toBeTruthy();
+  expect(
+    screen.getByText(
+      "When external platforms aren't configured, only the configuration state shows — no sample messages.",
+    ),
+  ).toBeTruthy();
+
+  // 切到订阅源管理(Subscriptions)→ 表头英文,无中文泄漏(该串原本没进 DICT)。
+  await userEvent.click(screen.getByRole("button", { name: /Subscriptions/ }));
+  expect(
+    screen.getByText(
+      "Manage real subscription sources. Unconfigured external platforms show only the configuration state — no sample messages.",
+    ),
+  ).toBeTruthy();
+
+  // 面板内不再出现中文 prose。
+  expect(
+    screen.queryByText(/配置状态|管理真实订阅源|外部平台|不填充样例消息/),
+  ).toBeNull();
+});
+
 test("folders, subtitle and reader actions localize to EN with no Chinese leak", async () => {
   useSettingsStore.setState({ uiLang: "en" });
   seedMailbox([
