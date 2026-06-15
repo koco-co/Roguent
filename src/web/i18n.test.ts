@@ -47,3 +47,14 @@ test("sweep B 关键串 en 翻译", () => {
     "Local Claude Code projects found:",
   );
 });
+
+test("artpack 组关键串 en 翻译", () => {
+  expect(translate("美术风格 Art Style", "en")).toBe("Art Style");
+  expect(translate("像素奇幻", "en")).toBe("Pixel Fantasy");
+  expect(translate("合成波", "en")).toBe("Synthwave Grid");
+  expect(translate("✓ 使用中", "en")).toBe("✓ In use");
+  expect(translate("确认切换", "en")).toBe("Confirm switch");
+  expect(translate("CRT 扫描线 · 磷光青绿 · 赛博命令行界面", "en")).toBe(
+    "CRT scanlines · phosphor cyan · cyber command line",
+  );
+});
