@@ -250,6 +250,24 @@ status: living-doc
 
 ---
 
+## 3.8 美术风格切换器(Art Style Pack,2026-06-15 handoff 增量)
+
+> 用户刷新 handoff(`Roguent-handoff.zip`,2026-06-15)。相对已落地的 2026-06-11 版,**唯一新增** = Settings(CONFIG)面板里的「美术风格 / Art Style」分组(原型 `data.js`/`icons.jsx`/`panels2.jsx`/`extra.css` 4 文件 diff 的全部)。用户两条决策(AskUserQuestion):① 本轮只实现该增量;② 真/假边界**忠实占位、按原型 1:1**。设计/计划见 [spec](superpowers/specs/2026-06-15-art-style-pack-design.md) / [plan](superpowers/plans/2026-06-15-art-style-pack.md)。纯前端(`src/web`),**不动 engine / 事件协议 / domain**。
+
+| 内容 | 真 / 假边界 |
+| --- | --- |
+| Settings 新增 special-rendered 组 `artpack`(`compact` 之后、`perm` 之前;真实 app 无 `ambiance` 组故紧邻 perm 的相对次序与原型一致)+ 新 `scene` 图标 | — |
+| `ArtPackGroup`:5 卡网格 —— `pixel-fantasy`(像素奇幻)**真内置素材**;`neon-terminal`/`holo-blueprint`/`deep-space`/`synthwave` 四包 **占位(`drop assets`,自备素材,未导入回退占位图)** | **仅 pixel-fantasy 真**;其余 4 包**显著占位标注**,不造数据、不假装切换成功 |
+| `ArtPackPreview`:切换前全屏确认浮层(mock 场景 sky/sun/ridge/grid/hero + 3 占位 NPC + 道具行 + 取消/确认切换) | **纯装饰预览**(不声称数据;`--ac` 按包强调色染色) |
+| 持久化:`localStorage['roguent_artpack']` + `<html data-artpack>`(挂载时盖一次;选择时写回)——**忠实原型**,不接 `settings-store`、不与 `skin`(dungeon/holo)互联 | **真**(选择持久化);data-artpack 仅在 ArtPackGroup 挂载时盖(同原型) |
+| i18n:组名 + intro + 5 包名/描述 + 徽标 + 预览 hint/按钮全量入 DICT;插值 note 用 `useTL` | **真**(中/EN 双语);卡片英文副标题 EN 模式 `t(name)===en` 时隐藏避免重复 |
+
+**真假边界一句话**:`pixel-fantasy` **真内置**;另 4 包 **占位(drop assets / 回退占位图)**;预览浮层 / mock 场景 / NPC·道具 **纯装饰**;选择 **真持久化(localStorage + data-artpack)**;**不接 settings-store、不互联 skin、不动 engine**。
+
+**门禁**:worktree 内 `bun test` **830 pass** + `bunx tsc --noEmit` 0 + `bun run check` 0 + `bun run build` 成功(纯前端;新增 `artpack.ts` 纯函数单测 + i18n EN 断言 + icon-names 36)。**浏览器 e2e(强约束,已过)**:isolated vite(5180)+ replay engine(8788),空 store → 选 Orc → dock 设置 → 美术风格 → 5 卡网格(pixel-fantasy ✓ 使用中 + 4 占位 drop assets)→ 点 合成波 → 预览浮层(场景/NPC/道具/synthwave 强调色)→ 确认切换 → 合成波 ✓ 使用中 + `localStorage roguent_artpack=synthwave` + `<html data-artpack=synthwave>` → 切 EN 全英文**零中文泄漏** → reload 后选择持久、挂载时 data-artpack 重新盖上;中/EN 截图 + DOM 断言齐。涉及 `src/web/hud/{artpack.ts,Settings.tsx,settings-schema.ts,icons.tsx}`、`src/web/styles.css`、`src/web/i18n.ts`。
+
+---
+
 ## 4. Phase 2 —— 原愿景未实现功能(后续,先不展开)
 
 > Phase 1 收口后再排。多数有独立 spec 设想(见 `overworld-hub-design.md` §"明确不在本 spec")。
@@ -278,3 +296,4 @@ status: living-doc
 - 2026-06-12:**设计稿 v2 增量落地**(`Roguent.html` 2026-06-11 修订 vs 已合入的 06-07 版,merge 见 git log 顶部)。13-task(走 subagent-driven-development:逐 task 实现 + 规格/质量双复核 + 提交):① 全局 i18n(中→英字典 + `useT/useTL` + `uiLang` 持久化 + HUD `LangToggle`,产品术语不入典)② 场景皮肤 holo(`settings.skin` + `SkinSwitch` + PixiJS 全息地板 + 青玻璃/扫描线/大厅深蓝滤镜)③ 内景指挥大屏 `BrowserScreen`(接真 `Session.timeline` 最近 tool 流,无源不造数据)④ Shop 拆 Market + 装饰 Shop(余额/已拥有真)+ 挂载真实 GachaPanel(Market 初期 mock,随后 MARKET-real Task 8–9 接真:本机插件目录 + CLI 操作,`SHOP_PLUGINS` mock 退役)⑤ SessionGrid v2(多级过滤/排序/置灰/相对时间,**修硬编码 Claude chip bug**)⑥ Hotbar/Dock 重排 + 大厅 market 摊位 ⑦ 固定文案改名(Context/Weekly 等)。门禁 723 单测 + tsc + check + typecheck:e2e + build 全绿;附带把设计稿 `Prototype/` 加入 biome ignore(此前恒红的 `bun run check` 转为如实校验真实 src)。详见 §3.6。无源功能(events 弹窗 / git banner / Codex 真接入)按真假分明明确不做;`settings-schema.ts` ~85 条 mock 面板字段文案留待后续 schema 翻译轮。
 - 2026-06-12:**充实 demo fixtures 的 slash 命令列表 + 订正一次误诊**。现象:SKILLS 法术书/`/` 菜单只显示 3 条命令(`/code-review /deep-research /frontend-design`)。① **先误诊**(fix `d54c568`,已 revert `413d216`):轻信 `sample-run.jsonl` 的 3 条 + SDK 类型把 init 拆 `slash_commands`/`skills` 两字段,判为「normalize 漏接 skills」,沿 slashCommands 同构补了 skills 全链路。② **探针实测纠正**:忠实复制 driver 配置抓真实 `system:init`,`slash_commands` **本就返回 ~60 条**(含 superpowers:* / deep-research / codex:* / update-config 等全部),`skills`(~38)是其**子集**(`skills ⊆ slash_commands`)——live 下现有代码本就显示全部;截图里只有 3 条是因为看的是 `sample-run.jsonl` 的 replay(cwd `/work/kata` 是假路径)。故 skills 改动**冗余、回退**。③ **真正修法**:把所有 committed fixture 的 `session.created` slashCommands 充实成探针实测的代表性子集(~25 条 bare 名 + 前导 /),让 replay 演示也反映 live 真实。CLI 内建命令(/add-dir /agents 等)是 REPL 专属、SDK 从不上报,不纳入。门禁 744 单测 + tsc + check 全绿。**教训**:fixture 是陈旧快照,下结论前先用探针/真会话核对 live SDK 实际上报。
 - 2026-06-13:**原型全面还原**(prototype-parity-restore,对照 `Roguent-handoff.zip` / `Prototype/roguent/` 全面差异盘点)。8-task(走 subagent-driven-development:逐 task 实现 + 规格/质量双复核 + 提交):① 大厅地面 canvas(port `paintHub`:草坪/石板广场/北城墙+三挂旗/道具/程序化花草,替换 CSS 渐变 div)② 大厅环境装饰(阳光/embers/leaves/fireflies/旋转符文环/火把×5/雕像×2,确定性 + reduced-motion 停)③ 结构物坐标全回原型 + 特化造型(tower 喷泉/door 旗/gacha 穹顶/board 便签/mailbox 红旗/stall 摊位)④ 内景布局还原(地毯/中央指挥台+12 辐条符文圈/泉水回北墙 col11/全量 16 件道具/墙幅 col4&19/floor 变体)⑤ HUD 徽标 + Hotbar 键位字 + 成就 medal 图标 ⑥ 彩蛋四件套(撸猫/宝箱怪/许愿池/台词气泡)⑦ 翻案三面板做 mock 标注版(UpdateModal/LoginEvents/Tasks 邮箱区)⑧ 面板细节(成就三页签/Mailbox 阅读器+转发置灰/Market 计数/quick replies/gacha lucky 保底)。**真假分明**:邮箱徽标 / 公告便签 / Market 计数 / quick replies / 成就页签**接真**;UpdateModal / LoginEvents / Tasks 邮箱区**三重标注 mock**;火把 / 雕像 / 符文 / 粒子 / 喷泉**纯装饰**;转发按钮**置灰(无真命令)**;彩蛋**localStorage 纯交互、不声称业务数据**。三条用户决策推翻 §3.6/§3.5 旧取舍(坐标全回原型 / LoginEvents·UpdateModal·Tasks 邮箱区翻案 mock / 彩蛋·扭蛋保底全还原),旧表述已加注。门禁 **824 单测** + tsc + check + build 全绿;纯前端,不动 engine。详见 §3.7。
+- 2026-06-15:**美术风格切换器(Art Style Pack)落地**(`Roguent-handoff.zip` 刷新到 2026-06-15;相对 06-11 唯一新增)。用户拍板:只实现该增量、忠实占位按原型 1:1。Settings 新增 special-rendered `artpack` 组(`compact` 之后)+ `scene` 图标 + `ArtPackGroup`(5 卡:仅 `pixel-fantasy` 真内置,其余 4 包 `drop assets` 占位)+ `ArtPackPreview`(切换前全屏确认浮层,mock 场景/NPC/道具,`--ac` 按包染色)+ `.artpack-*`/`.apv-*` CSS。持久化忠实原型(`localStorage roguent_artpack` + `<html data-artpack>`,不接 settings-store、不互联 skin);i18n 全量入 DICT,插值 note 用 `useTL`,卡片英文副标题 EN 模式去重。新纯模块 `artpack.ts`(packs + load/apply)单测钉死。门禁 **830 单测** + tsc 0 + check 0 + build 成功(纯前端,不动 engine/事件协议/domain)。浏览器 e2e(isolated vite 5180 + replay 8788)走通登录→大厅→设置→美术风格→预览→确认→持久化→EN 零泄漏→reload 持久全链路 + 中/EN 截图。详见 §3.8。走 brainstorming→spec→writing-plans→inline 实现(detached worktree),非 Workflow 批量。
