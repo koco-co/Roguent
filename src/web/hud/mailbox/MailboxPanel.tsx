@@ -378,7 +378,7 @@ export function MailboxPanel() {
           <div className="mbx-subs scroll">
             <div className="mbx-subs-h">
               {t(
-                "管理真实订阅源状态。未配置的外部平台只显示 configuration state，不填充样例消息。",
+                "管理真实订阅源状态。未配置的外部平台只显示配置状态，不填充样例消息。",
               )}
             </div>
             {CONFIG_CHANNELS.map((source) => {
@@ -416,9 +416,7 @@ export function MailboxPanel() {
                 <div className="empty-center">
                   <div className="empty-title">{t("暂无信件")}</div>
                   <div className="empty-sub">
-                    {t(
-                      "外部平台未配置时只显示 configuration state，不填充样例消息。",
-                    )}
+                    {t("外部平台未配置时只显示配置状态，不填充样例消息。")}
                   </div>
                 </div>
               ) : (
