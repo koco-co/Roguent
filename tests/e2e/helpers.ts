@@ -49,6 +49,14 @@ export type ReplayHandle = {
   cleanup: () => void;
 };
 
+export type OpenReplayOptions = {
+  /**
+   * Local settings JSON to seed before the app boots.
+   * Pass null to exercise the first-run login/hero gate from an empty store.
+   */
+  settings?: string | null;
+};
+
 /**
  * Spawn a dedicated engine process replaying `fixture`, wait for it to be
  * ready, then navigate `page` to `/?engine=ws://127.0.0.1:<port>`.
@@ -58,6 +66,7 @@ export type ReplayHandle = {
 export async function openReplay(
   page: Page,
   fixture: string,
+  options: OpenReplayOptions = {},
 ): Promise<ReplayHandle> {
   const fixturePath = resolveFixture(fixture);
 
@@ -98,9 +107,13 @@ export async function openReplay(
   // Navigate with the engine override in the query string.
   // addInitScript runs before any page JS, so the query-param read in
   // resolveEngineUrl() will see it on the first navigation.
-  await page.addInitScript((settings) => {
-    localStorage.setItem("roguent:settings", settings);
-  }, DEFAULT_SETTINGS);
+  const settings =
+    options.settings === undefined ? DEFAULT_SETTINGS : options.settings;
+  if (settings !== null) {
+    await page.addInitScript((value) => {
+      localStorage.setItem("roguent:settings", value);
+    }, settings);
+  }
 
   await page.goto(`/?engine=ws://127.0.0.1:${port}`);
 
