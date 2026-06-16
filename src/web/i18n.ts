@@ -475,6 +475,10 @@ export const DICT: Record<string, string> = {
   // Timeline
   选一个会话: "Pick a session",
   "还没有消息,发一条开始…": "No messages yet — send one to start…",
+  // Timeline message search (B3)
+  搜索消息: "Search messages",
+  清除搜索: "Clear search",
+  没有匹配的消息: "No matching messages",
   // PromptCard
   "✓ 已回答": "✓ Answered",
   "✕ 已忽略": "✕ Dismissed",

@@ -3457,6 +3457,32 @@ img {
   margin-top: 5px;
   letter-spacing: 0.05em;
 }
+.cdrawer-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 15px 0;
+}
+.cdrawer-search .pxinput {
+  flex: 1;
+  font-size: 11px;
+}
+.cdrawer-search-count {
+  font-size: 9px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.cdrawer-search-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-faint);
+  font-size: 11px;
+  padding: 0 4px;
+}
+.cdrawer-search-clear:hover {
+  color: var(--text);
+}
 .cdrawer-thread {
   flex: 1;
   display: flex;
