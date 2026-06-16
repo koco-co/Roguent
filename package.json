@@ -22,6 +22,7 @@
     "@pixi/react": "^8.0.5",
     "pixi-filters": "^6",
     "pixi.js": "^8.2.6",
+    "qrcode.react": "^4.2.0",
     "react": "^19",
     "react-dom": "^19",
     "ws": "^8",
