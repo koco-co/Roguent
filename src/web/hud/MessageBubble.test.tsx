@@ -6,7 +6,34 @@ import {
   createAgent,
   createSession,
 } from "../../shared/domain";
+import { type RoomConnection, connectRoom } from "../ws-client";
 import { MessageBubble } from "./MessageBubble";
+
+const originalWebSocket = globalThis.WebSocket;
+let connection: RoomConnection | null = null;
+
+class FakeWebSocket {
+  static instances: FakeWebSocket[] = [];
+  readonly OPEN = 1;
+  readyState = 1;
+  sent: string[] = [];
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  onopen: ((event: Event) => void) | null = null;
+  onclose: ((event: CloseEvent) => void) | null = null;
+
+  constructor(readonly url: string) {
+    FakeWebSocket.instances.push(this);
+  }
+
+  send(raw: string): void {
+    this.sent.push(raw);
+  }
+
+  close(): void {
+    this.readyState = 3;
+    this.onclose?.(new CloseEvent("close"));
+  }
+}
 
 function agentMessage(
   overrides: Partial<TimelineMessageItem> = {},
@@ -25,6 +52,9 @@ function agentMessage(
 }
 
 afterEach(() => {
+  connection?.close();
+  connection = null;
+  globalThis.WebSocket = originalWebSocket;
   cleanup();
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
@@ -55,7 +85,7 @@ test("copies fenced code blocks independently from the whole message", async () 
     status: "final",
   };
 
-  render(<MessageBubble item={item} session={session} />);
+  render(<MessageBubble item={item} session={session} sessionId="s1" />);
 
   await userEvent.click(screen.getByRole("button", { name: "复制代码" }));
 
@@ -75,7 +105,9 @@ test("copy buttons tolerate unavailable or rejected clipboard writes", async () 
     status: "final",
   };
 
-  const { rerender } = render(<MessageBubble item={item} session={session} />);
+  const { rerender } = render(
+    <MessageBubble item={item} session={session} sessionId="s1" />,
+  );
 
   await userEvent.click(screen.getByTitle("复制消息"));
   await userEvent.click(screen.getByRole("button", { name: "复制代码" }));
@@ -88,7 +120,13 @@ test("copy buttons tolerate unavailable or rejected clipboard writes", async () 
       },
     },
   });
-  rerender(<MessageBubble item={{ ...item, id: "m2" }} session={session} />);
+  rerender(
+    <MessageBubble
+      item={{ ...item, id: "m2" }}
+      session={session}
+      sessionId="s1"
+    />,
+  );
 
   await userEvent.click(screen.getByTitle("复制消息"));
   await userEvent.click(screen.getByRole("button", { name: "复制代码" }));
@@ -99,7 +137,9 @@ test("orchestrator message shows Title Case name plus a 主控 role badge", () =
   // orchestrator agent already seeded by createSession under ORCHESTRATOR_ID.
   const item = agentMessage({ agentId: "orchestrator" });
 
-  const { container } = render(<MessageBubble item={item} session={session} />);
+  const { container } = render(
+    <MessageBubble item={item} session={session} sessionId="s1" />,
+  );
 
   expect(screen.getByText("Orchestrator")).toBeTruthy();
   const badge = container.querySelector(".cmsg-role");
@@ -115,7 +155,9 @@ test("subagent message derives name from role and shows a 分身 badge", () => {
   });
   const item = agentMessage({ agentId: "a1" });
 
-  const { container } = render(<MessageBubble item={item} session={session} />);
+  const { container } = render(
+    <MessageBubble item={item} session={session} sessionId="s1" />,
+  );
 
   expect(screen.getByText("Code Review")).toBeTruthy();
   const badge = container.querySelector(".cmsg-role");
@@ -126,8 +168,41 @@ test("user message shows 你 and no role badge", () => {
   const session = createSession({ id: "s1", title: "t", model: "m" });
   const item = agentMessage({ role: "user", text: "hello" });
 
-  const { container } = render(<MessageBubble item={item} session={session} />);
+  const { container } = render(
+    <MessageBubble item={item} session={session} sessionId="s1" />,
+  );
 
   expect(screen.getByText("你")).toBeTruthy();
   expect(container.querySelector(".cmsg-role")).toBeNull();
+});
+
+test("user message exposes a 重发 button that sends retryFrom with the bubble id", async () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  connection = connectRoom("ws://roguent.test");
+
+  const session = createSession({ id: "s1", title: "t", model: "m" });
+  const item = agentMessage({ id: "42", role: "user", text: "redo this" });
+
+  render(<MessageBubble item={item} session={session} sessionId="s1" />);
+
+  await userEvent.click(screen.getByRole("button", { name: "重发" }));
+
+  const sent = FakeWebSocket.instances[0]?.sent.map((raw) =>
+    JSON.parse(raw),
+  ) as Array<Record<string, unknown>>;
+  expect(sent.at(-1)).toMatchObject({
+    cmd: "retryFrom",
+    sessionId: "s1",
+    timelineItemId: "42",
+  });
+});
+
+test("assistant message has no 重发 button", () => {
+  const session = createSession({ id: "s1", title: "t", model: "m" });
+  const item = agentMessage({ id: "43", role: "assistant", text: "an answer" });
+
+  render(<MessageBubble item={item} session={session} sessionId="s1" />);
+
+  expect(screen.queryByRole("button", { name: "重发" })).toBeNull();
 });

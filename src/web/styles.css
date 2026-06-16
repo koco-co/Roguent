@@ -3704,6 +3704,45 @@ img {
   color: var(--cyan);
   text-decoration: underline;
 }
+/* GFM 表格 / 任务清单 / 删除线 / 图片(markdown B1 扩展;类名对齐 mdToHtml 输出) */
+.md-table {
+  border-collapse: collapse;
+  margin: 0 0 9px;
+  font-size: 12px;
+}
+.md-table th,
+.md-table td {
+  padding: 4px 9px;
+  text-align: left;
+  box-shadow: inset 0 0 0 1px var(--panel-edge);
+}
+.md-table th {
+  font-family: var(--font-px);
+  color: var(--gold);
+  background: rgba(0, 0, 0, 0.32);
+}
+.md-task {
+  list-style: none;
+}
+.md-task::before {
+  content: none;
+}
+.md-task input {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.md del {
+  opacity: 0.65;
+}
+.md-img {
+  max-width: 100%;
+  height: auto;
+  margin: 2px 0;
+  box-shadow: inset 0 0 0 1px var(--panel-edge);
+}
+.md-pre code[class^="language-"] {
+  color: #bfe9c4;
+}
 
 /* 账号面板 Account(T3.11)。来源:设计原型 layout.css 第 321~325 行(.account-wrap
    /.acct-plan/.acct-usage/.acct-row/.acct-row .sr-label)。复用已有:.barframe/.barfill

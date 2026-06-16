@@ -2,11 +2,13 @@ import { useState } from "react";
 import type { Session, TimelineMessageItem } from "../../shared/domain";
 import { titleCase } from "../../shared/strings";
 import { useT } from "../i18n";
+import { sendCommand } from "../ws-client";
 import { mdToHtml } from "./markdown";
 
 interface Props {
   item: TimelineMessageItem;
   session: Session;
+  sessionId: string;
 }
 
 // 作者 = 名(role 的 Title Case)+ role 徽(agent kind 派生)。
@@ -33,11 +35,17 @@ const formatTime = (ts: number) =>
     minute: "2-digit",
   });
 
-export function MessageBubble({ item, session }: Props) {
+export function MessageBubble({ item, session, sessionId }: Props) {
   const t = useT();
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const { name, roleTag } = author(item, session, t);
+  // 只有 user 消息可重发:engine 的 retryFrom 按同一 String(seq)=item.id 检索原文回放。
+  const canRetry = item.role === "user";
+
+  const retry = () => {
+    sendCommand({ cmd: "retryFrom", sessionId, timelineItemId: item.id });
+  };
 
   const copy = () => {
     void copyText(item.text).then((ok) => {
@@ -95,6 +103,25 @@ export function MessageBubble({ item, session }: Props) {
         >
           {copied ? "✓" : "⎘"}
         </button>
+        {canRetry && (
+          <button
+            type="button"
+            onClick={retry}
+            title={t("重发")}
+            aria-label={t("重发")}
+            style={{
+              fontSize: 10,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--text)",
+              opacity: 0.6,
+              padding: 0,
+            }}
+          >
+            ↻
+          </button>
+        )}
       </div>
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: markdown HTML is inert; code-copy button clicks are delegated from this container, keyboard activation on the real button still emits click */}
       <div
