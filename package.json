@@ -20,7 +20,6 @@
     "@fontsource/press-start-2p": "^5.2.7",
     "@larksuiteoapi/node-sdk": "^1.66.1",
     "@pixi/react": "^8.0.5",
-    "@wechatbot/wechatbot": "^2.1.1",
     "pixi-filters": "^6",
     "pixi.js": "^8.2.6",
     "react": "^19",
