@@ -493,6 +493,9 @@ export const DICT: Record<string, string> = {
   "单个会话绑定,新绑定覆盖旧绑定":
     "One binding per session — a new binding replaces the old one",
   "生成 QR": "Generate QR",
+  输入手机微信显示的数字: "Enter the digits shown in WeChat on your phone",
+  验证码: "Verify code",
+  提交验证码: "Submit verify code",
   // BindingList
   已绑定: "Bound",
   扫码完成后会出现在这里: "Appears here once scanning completes",

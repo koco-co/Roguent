@@ -140,6 +140,144 @@ test("toggling forwarding sends updatePairing command", async () => {
   });
 });
 
+test("renders a scannable QR (svg) from qr.url, not plain url text", () => {
+  useRoomStore.setState({
+    currentSessionId: "s1",
+    sessions: {
+      s1: createSession({ id: "s1", title: "Pairing target" }),
+    },
+    pairings: {
+      qrByChannel: {
+        wechat: {
+          id: "qr-wechat",
+          channel: "wechat",
+          status: "pending",
+          url: "https://login.weixin.qq.com/l/abc123",
+        },
+      },
+      byId: {},
+      byExternalKey: {},
+    },
+  });
+
+  const { container } = render(
+    <PairingPanel sessionId="s1" onClose={() => {}} />,
+  );
+
+  // QRCodeSVG renders an <svg> inside the qr box (scannable image),
+  // and the raw url is NOT dumped as the old plain-text .pair-qr-url node.
+  const box = container.querySelector(".pair-qr-box");
+  expect(box).toBeTruthy();
+  expect(box?.querySelector("svg")).toBeTruthy();
+  expect(container.querySelector(".pair-qr-url")).toBeNull();
+});
+
+test("with metadata.needVerifyCode, a verify-code input + submit appear and send submitVerifyCode", async () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  connection = connectRoom("ws://roguent.test");
+  useRoomStore.setState({
+    currentSessionId: "s1",
+    sessions: {
+      s1: createSession({ id: "s1", title: "Pairing target" }),
+    },
+    pairings: {
+      qrByChannel: {
+        wechat: {
+          id: "qr-wechat",
+          channel: "wechat",
+          status: "pending",
+          url: "https://login.weixin.qq.com/l/abc123",
+          metadata: { needVerifyCode: true, ilinkStatus: "need_verifycode" },
+        },
+      },
+      byId: {},
+      byExternalKey: {},
+    },
+  });
+
+  render(<PairingPanel sessionId="s1" onClose={() => {}} />);
+
+  const input = screen.getByRole("textbox", { name: /验证码|verify/i });
+  expect(input).toBeTruthy();
+  await userEvent.type(input, "1234");
+  await userEvent.click(
+    screen.getByRole("button", { name: /提交验证码|submit/i }),
+  );
+
+  const sent = FakeWebSocket.instances[0]?.sent.map((raw) =>
+    JSON.parse(raw),
+  ) as Array<Record<string, unknown>>;
+  expect(sent.at(-1)).toMatchObject({
+    cmd: "pairing",
+    action: "submitVerifyCode",
+    sessionId: "s1",
+    channel: "wechat",
+    code: "1234",
+  });
+});
+
+test("verify-code input is hidden when needVerifyCode is absent", () => {
+  useRoomStore.setState({
+    currentSessionId: "s1",
+    sessions: {
+      s1: createSession({ id: "s1", title: "Pairing target" }),
+    },
+    pairings: {
+      qrByChannel: {
+        wechat: {
+          id: "qr-wechat",
+          channel: "wechat",
+          status: "pending",
+          url: "https://login.weixin.qq.com/l/abc123",
+        },
+      },
+      byId: {},
+      byExternalKey: {},
+    },
+  });
+
+  render(<PairingPanel sessionId="s1" onClose={() => {}} />);
+  expect(screen.queryByRole("textbox", { name: /验证码|verify/i })).toBeNull();
+});
+
+test("cancel button on a pending QR sends cancelQr", async () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  connection = connectRoom("ws://roguent.test");
+  useRoomStore.setState({
+    currentSessionId: "s1",
+    sessions: {
+      s1: createSession({ id: "s1", title: "Pairing target" }),
+    },
+    pairings: {
+      qrByChannel: {
+        wechat: {
+          id: "qr-wechat",
+          channel: "wechat",
+          status: "pending",
+          url: "https://login.weixin.qq.com/l/abc123",
+        },
+      },
+      byId: {},
+      byExternalKey: {},
+    },
+  });
+
+  render(<PairingPanel sessionId="s1" onClose={() => {}} />);
+  await userEvent.click(screen.getByRole("button", { name: "取消" }));
+
+  const sent = FakeWebSocket.instances[0]?.sent.map((raw) =>
+    JSON.parse(raw),
+  ) as Array<Record<string, unknown>>;
+  expect(sent.at(-1)).toMatchObject({
+    cmd: "pairing",
+    action: "cancelQr",
+    sessionId: "s1",
+    channel: "wechat",
+  });
+});
+
 test("creating QR and unpairing send real pairing commands", async () => {
   FakeWebSocket.instances = [];
   globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;

@@ -51,6 +51,27 @@ export function PairingPanel({
     });
   };
 
+  // 微信 iLink 在扫码后可能要求输入手机端显示的数字验证码;A2 连接器把这一步
+  // surface 成 qr.status==="pending" + metadata.needVerifyCode,UI 据此弹输入框。
+  const submitVerifyCode = (code: string) => {
+    sendCommand({
+      cmd: "pairing",
+      action: "submitVerifyCode",
+      sessionId,
+      channel,
+      code,
+    });
+  };
+
+  const cancelQr = () => {
+    sendCommand({
+      cmd: "pairing",
+      action: "cancelQr",
+      sessionId,
+      channel,
+    });
+  };
+
   return (
     <Modal
       title="PAIRING"
@@ -76,7 +97,13 @@ export function PairingPanel({
         </div>
 
         <div className="pair-grid">
-          <PairingQr channel={channel} qr={qr} onCreate={generateQr} />
+          <PairingQr
+            channel={channel}
+            qr={qr}
+            onCreate={generateQr}
+            onSubmitVerifyCode={submitVerifyCode}
+            onCancel={cancelQr}
+          />
           <div className="pair-side">
             <div className="pair-session-card">
               <div className="px pair-card-title">{t("当前会话")}</div>
