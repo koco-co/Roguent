@@ -4,6 +4,7 @@ import type {
   MailboxItem,
   NormalizedIntegrationEvent,
   PairingBinding,
+  PairingQr,
 } from "../../shared/integrations";
 import type {
   IntegrationEvent,
@@ -111,6 +112,31 @@ export class IntegrationRouter {
       type: "integration.event.received",
       payload: this.normalizeEvent(event),
       ts: event.receivedAt,
+    });
+  }
+
+  async publishPairingQr(
+    qr: PairingQr | null,
+    options: { sessionId: string },
+  ): Promise<void> {
+    await this.deps.publish({
+      sessionId: options.sessionId,
+      type: "pairing.qr.updated",
+      payload: { qr },
+      ts: Date.now(),
+    });
+  }
+
+  async publishPairingBinding(
+    binding: PairingBinding,
+    action: "created" | "updated" | "revoked",
+    options: { sessionId: string },
+  ): Promise<void> {
+    await this.deps.publish({
+      sessionId: options.sessionId,
+      type: "pairing.binding.updated",
+      payload: { binding, action },
+      ts: Date.now(),
     });
   }
 

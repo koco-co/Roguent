@@ -1,5 +1,8 @@
 import type { RoomEvent } from "../../shared/events";
-import type { IntegrationChannel } from "../../shared/integrations";
+import type {
+  IntegrationChannel,
+  PairingBinding,
+} from "../../shared/integrations";
 import type { IntegrationRouter } from "./router";
 import type { IntegrationEvent } from "./types";
 import type {
@@ -9,10 +12,19 @@ import type {
   OutboundImTarget,
 } from "./wechat-types";
 
+export interface PairingScanned {
+  channel: IntegrationChannel;
+  sessionId: string;
+  externalChatId: string;
+  externalUserId?: string;
+  displayName?: string;
+}
+
 export interface IntegrationManagerOptions {
   imConnectors?: Partial<Record<IntegrationChannel, ImConnector>>;
   router: IntegrationRouter;
   currentSessionId?: () => string | null | undefined;
+  pairingBind?: (scanned: PairingScanned) => Promise<PairingBinding>;
 }
 
 export class IntegrationManager {
@@ -52,6 +64,74 @@ export class IntegrationManager {
     }
     for (const connector of Object.values(this.options.imConnectors ?? {})) {
       void connector?.stop?.().catch(() => {});
+    }
+  }
+
+  async startPairing(
+    channel: IntegrationChannel,
+    sessionId: string,
+  ): Promise<void> {
+    const connector = this.options.imConnectors?.[channel];
+    if (!connector) {
+      await this.publishPairingUnavailable(channel, sessionId);
+      return;
+    }
+    try {
+      await connector.startPairing(sessionId);
+    } catch (error) {
+      await this.publishPairingDegraded(channel, sessionId, error).catch(
+        () => {},
+      );
+    }
+  }
+
+  async cancelPairing(
+    channel: IntegrationChannel,
+    sessionId: string,
+  ): Promise<void> {
+    const connector = this.options.imConnectors?.[channel];
+    if (!connector) {
+      await this.publishPairingUnavailable(channel, sessionId);
+      return;
+    }
+    try {
+      await connector.stopPairing(sessionId);
+    } catch (error) {
+      await this.publishPairingDegraded(channel, sessionId, error).catch(
+        () => {},
+      );
+    }
+  }
+
+  async submitVerifyCode(
+    channel: IntegrationChannel,
+    sessionId: string,
+    code: string,
+  ): Promise<void> {
+    const connector = this.options.imConnectors?.[channel];
+    if (!connector) {
+      await this.publishPairingUnavailable(channel, sessionId);
+      return;
+    }
+    const submit = (
+      connector as {
+        submitVerifyCode?: (sessionId: string, code: string) => Promise<void>;
+      }
+    ).submitVerifyCode;
+    if (typeof submit !== "function") {
+      await this.publishPairingDegraded(
+        channel,
+        sessionId,
+        new Error(`${channel} connector does not support verify codes`),
+      ).catch(() => {});
+      return;
+    }
+    try {
+      await submit.call(connector, sessionId, code);
+    } catch (error) {
+      await this.publishPairingDegraded(channel, sessionId, error).catch(
+        () => {},
+      );
     }
   }
 
@@ -133,7 +213,36 @@ export class IntegrationManager {
       await this.options.router.publishStatus(event.status, {
         currentSessionId: this.options.currentSessionId?.() ?? null,
       });
+      return;
     }
+    if (event.type === "pairing.qr") {
+      await this.options.router.publishPairingQr(event.qr, {
+        sessionId: event.qr.sessionId,
+      });
+      return;
+    }
+    if (event.type === "pairing.scanned") {
+      if (!this.options.pairingBind) return;
+      const binding = await this.options.pairingBind({
+        channel: event.channel,
+        sessionId: event.sessionId,
+        externalChatId: event.externalChatId,
+        externalUserId: event.externalUserId,
+        displayName: event.displayName,
+      });
+      await this.options.router.publishPairingBinding(binding, "created", {
+        sessionId: event.sessionId,
+      });
+      return;
+    }
+    if (event.type === "pairing.expired") {
+      await this.options.router.publishPairingQr(
+        { ...event.qr, status: "expired" },
+        { sessionId: event.qr.sessionId },
+      );
+      return;
+    }
+    // outbound.ack is intentionally ignored here.
   }
 
   private async publishStartupFailure(
@@ -177,6 +286,51 @@ export class IntegrationManager {
       {
         currentSessionId: this.options.currentSessionId?.() ?? null,
       },
+    );
+  }
+
+  private async publishPairingUnavailable(
+    channel: IntegrationChannel,
+    sessionId: string,
+  ): Promise<void> {
+    await this.options.router
+      .publishStatus(
+        {
+          id: `${channel}-pairing`,
+          channel,
+          state: "error",
+          label: `${channel} connector`,
+          error: `No ${channel} connector configured for pairing`,
+          lastEventAt: Date.now(),
+          metadata: {
+            code: "pairing-connector-unavailable",
+            sessionId,
+          },
+        },
+        { currentSessionId: this.options.currentSessionId?.() ?? null },
+      )
+      .catch(() => {});
+  }
+
+  private async publishPairingDegraded(
+    channel: IntegrationChannel,
+    sessionId: string,
+    error: unknown,
+  ): Promise<void> {
+    await this.options.router.publishStatus(
+      {
+        id: `${channel}-pairing`,
+        channel,
+        state: "degraded",
+        label: `${channel} connector`,
+        error: errorMessage(error),
+        lastEventAt: Date.now(),
+        metadata: {
+          code: "pairing-failed",
+          sessionId,
+        },
+      },
+      { currentSessionId: this.options.currentSessionId?.() ?? null },
     );
   }
 
