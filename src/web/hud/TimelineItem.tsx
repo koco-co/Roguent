@@ -12,7 +12,9 @@ interface Props {
 
 export function TimelineItem({ item, session, sessionId }: Props) {
   if (item.kind === "message")
-    return <MessageBubble item={item} session={session} />;
+    return (
+      <MessageBubble item={item} session={session} sessionId={sessionId} />
+    );
   if (item.kind === "thinking") return <ThinkingBlock item={item} />;
   if (item.kind === "tool") return <ToolCard item={item} />;
   if (item.kind === "prompt")
