@@ -499,6 +499,15 @@ export function createRepositories(db: Database) {
           .get(channel, externalChatId);
         return row ? mapPairingBinding(row) : null;
       },
+
+      getById(id: string): StoredPairingBinding | null {
+        const row = db
+          .query<PairingBindingRow, [string]>(
+            "SELECT * FROM pairing_bindings WHERE id = ? LIMIT 1",
+          )
+          .get(id);
+        return row ? mapPairingBinding(row) : null;
+      },
     },
 
     auditRecords: {

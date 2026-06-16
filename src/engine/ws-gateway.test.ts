@@ -9,6 +9,7 @@ import type { SchedulerTask } from "../shared/scheduler";
 import type { SessionManager } from "./session";
 import {
   type GatewayMailboxService,
+  type GatewayPairingService,
   type GatewayPluginsService,
   type GatewaySchedulerService,
   type GatewaySettingsService,
@@ -1278,5 +1279,246 @@ test("plugins: connect-time replay lastPlugins + command triggers busy→fresh b
     expect(freshFrame?.plugins[0]?.installed).toBe(true);
   } finally {
     await closeGateway(gateway);
+  }
+});
+
+type PairingCall =
+  | { kind: "generateQr"; sessionId: string; channel: string }
+  | { kind: "cancelQr"; sessionId: string; channel: string }
+  | {
+      kind: "submitVerifyCode";
+      sessionId: string;
+      channel: string;
+      code: string;
+    }
+  | { kind: "createBinding"; input: unknown }
+  | { kind: "updateBinding"; bindingId: string; changes: unknown };
+
+function recordingPairingService(calls: PairingCall[]): GatewayPairingService {
+  return {
+    generateQr(sessionId, channel) {
+      calls.push({ kind: "generateQr", sessionId, channel });
+    },
+    cancelQr(sessionId, channel) {
+      calls.push({ kind: "cancelQr", sessionId, channel });
+    },
+    submitVerifyCode(sessionId, channel, code) {
+      calls.push({ kind: "submitVerifyCode", sessionId, channel, code });
+    },
+    createBinding(input) {
+      calls.push({ kind: "createBinding", input });
+    },
+    updateBinding(bindingId, changes) {
+      calls.push({ kind: "updateBinding", bindingId, changes });
+    },
+  };
+}
+
+test("WsGateway routes pairing generateQr/cancelQr/submitVerifyCode to the pairing service", async () => {
+  const sent: string[] = [];
+  const calls: PairingCall[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+  } as unknown as SessionManager;
+  const gateway = createTestGateway(mgr, {
+    pairing: recordingPairingService(calls),
+  });
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "pairing",
+        action: "generateQr",
+        sessionId: "s1",
+        channel: "wechat",
+      }),
+      ws,
+    );
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "pairing",
+        action: "cancelQr",
+        sessionId: "s1",
+        channel: "wechat",
+      }),
+      ws,
+    );
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "pairing",
+        action: "submitVerifyCode",
+        sessionId: "s1",
+        channel: "wechat",
+        code: "123456",
+      }),
+      ws,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(sent).toEqual([]);
+  expect(calls).toEqual([
+    { kind: "generateQr", sessionId: "s1", channel: "wechat" },
+    { kind: "cancelQr", sessionId: "s1", channel: "wechat" },
+    {
+      kind: "submitVerifyCode",
+      sessionId: "s1",
+      channel: "wechat",
+      code: "123456",
+    },
+  ]);
+});
+
+test("WsGateway routes createPairing to pairing.createBinding", async () => {
+  const sent: string[] = [];
+  const calls: PairingCall[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+  } as unknown as SessionManager;
+  const gateway = createTestGateway(mgr, {
+    pairing: recordingPairingService(calls),
+  });
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "createPairing",
+        sessionId: "s1",
+        channel: "feishu",
+        externalChatId: "chat-1",
+        forwardingEnabled: true,
+      }),
+      ws,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(sent).toEqual([]);
+  expect(calls).toEqual([
+    {
+      kind: "createBinding",
+      input: {
+        channel: "feishu",
+        externalChatId: "chat-1",
+        sessionId: "s1",
+        forwardingEnabled: true,
+      },
+    },
+  ]);
+});
+
+test("WsGateway routes updatePairing to pairing.updateBinding", async () => {
+  const sent: string[] = [];
+  const calls: PairingCall[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+  } as unknown as SessionManager;
+  const gateway = createTestGateway(mgr, {
+    pairing: recordingPairingService(calls),
+  });
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "updatePairing",
+        bindingId: "binding-1",
+        status: "revoked",
+        forwardingEnabled: false,
+      }),
+      ws,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(sent).toEqual([]);
+  expect(calls).toEqual([
+    {
+      kind: "updateBinding",
+      bindingId: "binding-1",
+      changes: { status: "revoked", forwardingEnabled: false },
+    },
+  ]);
+});
+
+test("WsGateway replies with error when pairing service is unavailable", async () => {
+  const sent: string[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+  } as unknown as SessionManager;
+  // No pairing service wired → should reply with an error, not silently drop.
+  const gateway = createTestGateway(mgr);
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "pairing",
+        action: "generateQr",
+        sessionId: "s1",
+        channel: "wechat",
+      }),
+      ws,
+    );
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "createPairing",
+        sessionId: "s1",
+        channel: "wechat",
+        externalChatId: "chat-1",
+      }),
+      ws,
+    );
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "updatePairing",
+        bindingId: "binding-1",
+        forwardingEnabled: false,
+      }),
+      ws,
+    );
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(sent).toHaveLength(3);
+  for (const raw of sent) {
+    expect(JSON.parse(raw) as ControlMessage).toMatchObject({
+      kind: "control",
+      type: "commandError",
+      reason: "Pairing service unavailable",
+    });
   }
 });

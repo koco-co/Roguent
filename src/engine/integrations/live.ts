@@ -10,6 +10,7 @@ import { createRepositories } from "../persistence/repositories";
 import { KeychainSecretStore } from "../secrets/keychain";
 import type { SecretStore } from "../secrets/types";
 import type { SessionManager } from "../session";
+import type { GatewayPairingService } from "../ws-gateway";
 import { FeishuConnector } from "./feishu";
 import { IntegrationManager } from "./manager";
 import { PairingService } from "./pairing";
@@ -27,6 +28,7 @@ export interface LiveIntegrationRuntime {
   applySubscriptionSettings(settings: RoguentSettings): Promise<void>;
   manager: IntegrationManager;
   router: IntegrationRouter;
+  pairing: GatewayPairingService;
   stop(): void;
 }
 
@@ -47,12 +49,29 @@ export function startLiveIntegrations(
 ): LiveIntegrationRuntime {
   const env = options.env ?? Bun.env;
   const secretStore = options.secretStore ?? new KeychainSecretStore();
-  const router = createLiveIntegrationRouter(options.db, options.sessions);
+  const pairing = new PairingService(options.db);
+  const router = createLiveIntegrationRouter(
+    options.db,
+    options.sessions,
+    pairing,
+  );
   const manager = new IntegrationManager({
     imConnectors:
       options.imConnectors ??
       createDefaultImConnectors(options.db, env, secretStore),
     router,
+    pairingBind: (scanned) =>
+      pairing.bind({
+        channel: scanned.channel,
+        externalChatId: scanned.externalChatId,
+        sessionId: scanned.sessionId,
+        ...(scanned.externalUserId !== undefined
+          ? { externalUserId: scanned.externalUserId }
+          : {}),
+        ...(scanned.displayName !== undefined
+          ? { displayName: scanned.displayName }
+          : {}),
+      }),
   });
   const unsubscribe = options.sessions.subscribe((event) => {
     void manager.handleRoomEventSafely(event);
@@ -72,10 +91,59 @@ export function startLiveIntegrations(
     });
   };
 
+  const pairingService: GatewayPairingService = {
+    generateQr: (sessionId, channel) =>
+      manager.startPairing(channel, sessionId),
+    cancelQr: (sessionId, channel) => manager.cancelPairing(channel, sessionId),
+    submitVerifyCode: (sessionId, channel, code) =>
+      manager.submitVerifyCode(channel, sessionId, code),
+    async createBinding(input) {
+      // A1 no-op-safe stub: createPairing may carry no chat id yet (manual bind
+      // before a chat is known). Skip persisting until there is a real chat id.
+      if (!input.externalChatId.trim()) return;
+      const binding = await pairing.bind({
+        channel: input.channel,
+        externalChatId: input.externalChatId,
+        sessionId: input.sessionId,
+        ...(input.forwardingEnabled !== undefined
+          ? { forwardingEnabled: input.forwardingEnabled }
+          : {}),
+      });
+      await router.publishPairingBinding(binding, "created", {
+        sessionId: input.sessionId,
+      });
+    },
+    async updateBinding(bindingId, changes) {
+      if (changes.status === "revoked") {
+        const binding = await pairing.revoke(bindingId);
+        if (binding) {
+          await router.publishPairingBinding(binding, "revoked", {
+            sessionId: binding.sessionId,
+          });
+        }
+        return;
+      }
+      if (changes.forwardingEnabled === undefined) return;
+      const existing = await pairing.getById(bindingId);
+      if (!existing) return;
+      const binding = await pairing.setForwarding(
+        existing.channel,
+        existing.externalChatId,
+        changes.forwardingEnabled,
+      );
+      if (binding) {
+        await router.publishPairingBinding(binding, "updated", {
+          sessionId: binding.sessionId,
+        });
+      }
+    },
+  };
+
   return {
     applySubscriptionSettings,
     manager,
     router,
+    pairing: pairingService,
     stop() {
       unsubscribe();
       manager.stop();
@@ -95,8 +163,8 @@ async function publishWebhookConnectorStatuses(
 export function createLiveIntegrationRouter(
   db: Database,
   sessions: SessionManager,
+  pairing: PairingService = new PairingService(db),
 ) {
-  const pairing = new PairingService(db);
   const repositories = createRepositories(db);
   return new IntegrationRouter({
     pairingBindings: {
