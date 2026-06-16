@@ -206,3 +206,81 @@ test("assistant message has no 重发 button", () => {
 
   expect(screen.queryByRole("button", { name: "重发" })).toBeNull();
 });
+
+test("editing a user message resends retryFrom with the edited text", async () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  connection = connectRoom("ws://roguent.test");
+
+  const session = createSession({ id: "s1", title: "t", model: "m" });
+  const item = agentMessage({ id: "42", role: "user", text: "redo this" });
+
+  render(<MessageBubble item={item} session={session} sessionId="s1" />);
+
+  await userEvent.click(screen.getByRole("button", { name: "编辑" }));
+
+  const textarea = screen.getByRole("textbox");
+  expect((textarea as HTMLTextAreaElement).value).toBe("redo this");
+
+  await userEvent.clear(textarea);
+  await userEvent.type(textarea, "do it differently");
+  await userEvent.click(screen.getByRole("button", { name: "保存" }));
+
+  const sent = FakeWebSocket.instances[0]?.sent.map((raw) =>
+    JSON.parse(raw),
+  ) as Array<Record<string, unknown>>;
+  expect(sent.at(-1)).toMatchObject({
+    cmd: "retryFrom",
+    sessionId: "s1",
+    timelineItemId: "42",
+    text: "do it differently",
+  });
+  // exits edit mode after save
+  expect(screen.queryByRole("textbox")).toBeNull();
+});
+
+test("cancelling an edit sends nothing and restores the view", async () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  connection = connectRoom("ws://roguent.test");
+
+  const session = createSession({ id: "s1", title: "t", model: "m" });
+  const item = agentMessage({ id: "42", role: "user", text: "redo this" });
+
+  render(<MessageBubble item={item} session={session} sessionId="s1" />);
+
+  await userEvent.click(screen.getByRole("button", { name: "编辑" }));
+  await userEvent.type(screen.getByRole("textbox"), " extra");
+  await userEvent.click(screen.getByRole("button", { name: "取消" }));
+
+  expect(screen.queryByRole("textbox")).toBeNull();
+  const sent = FakeWebSocket.instances[0]?.sent ?? [];
+  expect(sent).toEqual([]);
+});
+
+test("saving an unchanged edit sends nothing and exits edit mode", async () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  connection = connectRoom("ws://roguent.test");
+
+  const session = createSession({ id: "s1", title: "t", model: "m" });
+  const item = agentMessage({ id: "42", role: "user", text: "redo this" });
+
+  render(<MessageBubble item={item} session={session} sessionId="s1" />);
+
+  await userEvent.click(screen.getByRole("button", { name: "编辑" }));
+  await userEvent.click(screen.getByRole("button", { name: "保存" }));
+
+  expect(screen.queryByRole("textbox")).toBeNull();
+  const sent = FakeWebSocket.instances[0]?.sent ?? [];
+  expect(sent).toEqual([]);
+});
+
+test("assistant message has no 编辑 button", () => {
+  const session = createSession({ id: "s1", title: "t", model: "m" });
+  const item = agentMessage({ id: "43", role: "assistant", text: "an answer" });
+
+  render(<MessageBubble item={item} session={session} sessionId="s1" />);
+
+  expect(screen.queryByRole("button", { name: "编辑" })).toBeNull();
+});
