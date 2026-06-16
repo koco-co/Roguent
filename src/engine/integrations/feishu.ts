@@ -1,5 +1,13 @@
 import * as Lark from "@larksuiteoapi/node-sdk";
 import type { SecretStore } from "../secrets/types";
+import {
+  type FeishuRegistrationOptions,
+  type PollRegistrationResult,
+  type RegistrationDomain,
+  type StartRegistrationResult,
+  pollRegistration,
+  startRegistration,
+} from "./feishu-registration";
 import type {
   FakeFeishuInboundMessage,
   FeishuMessageMeta,
@@ -16,6 +24,24 @@ export interface FeishuConnectorConfig {
   appIdSecretRef: string;
   appSecretRef: string;
   botName?: string;
+  /** Whether this connector mints credentials on the Lark international base. */
+  isLark?: boolean;
+}
+
+/**
+ * Indirection over the device-code registration module so tests can script the
+ * begin/poll turns without touching the network. Defaults to the real
+ * accounts-domain flow in `feishu-registration.ts`.
+ */
+export interface FeishuRegistrationDriver {
+  start(
+    opts: FeishuRegistrationOptions & { isLark?: boolean },
+  ): Promise<StartRegistrationResult>;
+  poll(
+    deviceCode: string,
+    domain: RegistrationDomain,
+    opts: FeishuRegistrationOptions,
+  ): Promise<PollRegistrationResult>;
 }
 
 export interface FeishuConnectorOptions {
@@ -24,6 +50,12 @@ export interface FeishuConnectorOptions {
   sdkFactory?: FeishuSdkFactory;
   now?: () => number;
   readyTimeoutMs?: number;
+  /** Device-code registration driver (injectable for tests). */
+  registration?: FeishuRegistrationDriver;
+  /** Injected delay between polls; tests pass a no-op to skip real timers. */
+  sleep?: (ms: number) => Promise<void>;
+  /** fetch passed to the default registration driver. */
+  fetchImpl?: typeof fetch;
 }
 
 export interface FeishuCredentials {
@@ -137,6 +169,9 @@ export class FeishuConnector implements ImConnector {
   private readonly sdkFactory: FeishuSdkFactory;
   private readonly now: () => number;
   private readonly readyTimeoutMs: number;
+  private readonly registration: FeishuRegistrationDriver;
+  private readonly sleep: (ms: number) => Promise<void>;
+  private readonly fetchImpl?: typeof fetch;
   private readonly lastInboundByChat = new Map<string, FeishuMessageMeta>();
   private client: FeishuClientLike | null = null;
   private wsClient: FeishuWsClientLike | null = null;
@@ -145,13 +180,26 @@ export class FeishuConnector implements ImConnector {
   private rejectPendingStart: ((error: Error) => void) | null = null;
   private startGeneration = 0;
   private counter = 0;
+  private readonly pairings = new Map<string, FeishuPairingState>();
 
   constructor(private readonly options: FeishuConnectorOptions) {
     this.sdkFactory = options.sdkFactory ?? defaultFeishuSdkFactory;
     this.now = options.now ?? Date.now;
     this.readyTimeoutMs = options.readyTimeoutMs ?? 10_000;
+    this.registration = options.registration ?? defaultRegistrationDriver;
+    this.sleep =
+      options.sleep ??
+      ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
+    this.fetchImpl = options.fetchImpl;
   }
 
+  /**
+   * Bring up the Lark long connection. If no app credentials are configured
+   * yet this is a clean no-op (device-code pairing populates them later) — we
+   * emit a benign "configuration-required" status rather than throwing, so the
+   * manager's boot-time `start()` does not surface a connector error before the
+   * user has paired.
+   */
   async start(): Promise<void> {
     if (this.started) return;
     if (this.startPromise) return this.startPromise;
@@ -163,7 +211,20 @@ export class FeishuConnector implements ImConnector {
   }
 
   private async startAttempt(generation: number): Promise<void> {
-    const credentials = await this.readCredentials();
+    const credentials = await this.tryReadCredentials();
+    if (!credentials) {
+      // No creds yet (device-code pairing has not run): clean no-op. Emit a
+      // benign configuration-required status — not an error — so the manager's
+      // boot-time start does not flag the connector as broken before pairing.
+      if (this.startGeneration === generation) {
+        await this.emitStatus(
+          "disconnected",
+          "Feishu app credentials are not configured",
+          { code: "configuration-required" },
+        );
+      }
+      return;
+    }
     let resolveReady: () => void = () => {};
     let rejectReady: (error: Error) => void = () => {};
     const ready = new Promise<void>((resolve, reject) => {
@@ -254,23 +315,174 @@ export class FeishuConnector implements ImConnector {
     });
   }
 
+  /**
+   * Drive the device-code app-registration flow: begin a grant, emit a
+   * scannable QR (`verification_uri_complete`), then background-poll until a
+   * `client_id`/`client_secret` pair is minted. On success the creds are
+   * persisted, the Lark long connection is (re)started, and a `pairing.scanned`
+   * event records that the app is connected. The per-chat binding forms later,
+   * on the first inbound message routed through the IntegrationRouter.
+   */
   async startPairing(sessionId: string): Promise<PairingQrState> {
-    const qr: PairingQrState = {
-      id: `feishu-config-${slug(sessionId)}-${++this.counter}`,
-      channel: "feishu",
+    // Cancel any prior in-flight pairing for this session before re-arming.
+    this.pairings.get(sessionId)?.cancel();
+
+    const begin = await this.registration.start({
+      ...(this.fetchImpl ? { fetchImpl: this.fetchImpl } : {}),
+      now: this.now,
+      ...(this.options.config.isLark ? { isLark: true } : {}),
+    });
+
+    if (!begin.ok) {
+      const errored: PairingQrState = {
+        id: `feishu-qr-${slug(sessionId)}-${++this.counter}`,
+        channel: "feishu",
+        sessionId,
+        status: "error",
+        error: begin.message,
+        metadata: { code: "registration-failed" },
+      };
+      this.pairings.delete(sessionId);
+      await this.emit({ type: "pairing.qr", qr: errored });
+      return errored;
+    }
+
+    const pairing: FeishuPairingState = {
       sessionId,
-      status: "error",
-      error:
-        "Feishu uses app credentials and long connection; configure the bot instead of QR pairing",
-      metadata: {
-        code: "configuration-required",
+      deviceCode: begin.deviceCode,
+      domain: begin.domain,
+      intervalMs: begin.interval * 1000,
+      url: begin.url,
+      cancelled: false,
+      cancel() {
+        this.cancelled = true;
       },
     };
+    this.pairings.set(sessionId, pairing);
+
+    const qr: PairingQrState = {
+      id: `feishu-qr-${slug(sessionId)}-${++this.counter}`,
+      channel: "feishu",
+      sessionId,
+      status: "pending",
+      url: begin.url,
+      expiresAt: this.now() + begin.expireIn * 1000,
+      metadata: { userCode: begin.userCode },
+    };
     await this.emit({ type: "pairing.qr", qr });
+
+    const deadline = this.now() + begin.expireIn * 1000;
+    void this.pollLoop(pairing, deadline).catch(() => {});
     return qr;
   }
 
-  async stopPairing(): Promise<void> {}
+  async stopPairing(sessionId: string): Promise<void> {
+    const pairing = this.pairings.get(sessionId);
+    pairing?.cancel();
+    this.pairings.delete(sessionId);
+  }
+
+  /** Feishu device-code pairing carries no verify code; this is a no-op. */
+  async submitVerifyCode(_sessionId: string, _code: string): Promise<void> {}
+
+  private async pollLoop(
+    pairing: FeishuPairingState,
+    deadline: number,
+  ): Promise<void> {
+    while (!pairing.cancelled && this.now() < deadline) {
+      await this.sleep(pairing.intervalMs);
+      if (
+        pairing.cancelled ||
+        this.pairings.get(pairing.sessionId) !== pairing
+      ) {
+        return;
+      }
+
+      const result = await this.registration.poll(
+        pairing.deviceCode,
+        pairing.domain,
+        {
+          ...(this.fetchImpl ? { fetchImpl: this.fetchImpl } : {}),
+          now: this.now,
+        },
+      );
+
+      if (result.done) {
+        await this.completePairing(pairing, result.appId, result.appSecret);
+        return;
+      }
+      if (result.switchTo === "lark") {
+        pairing.domain = "lark";
+        continue;
+      }
+      if (result.pending) continue;
+      if (result.error) {
+        await this.expirePairing(pairing, result.error);
+        return;
+      }
+    }
+    if (!pairing.cancelled) {
+      await this.expirePairing(pairing, "Feishu pairing expired");
+    }
+  }
+
+  private async completePairing(
+    pairing: FeishuPairingState,
+    appId: string,
+    appSecret: string,
+  ): Promise<void> {
+    this.pairings.delete(pairing.sessionId);
+    await this.options.secretStore.put(
+      this.options.config.appIdSecretRef,
+      appId,
+    );
+    await this.options.secretStore.put(
+      this.options.config.appSecretRef,
+      appSecret,
+    );
+    // Point the long connection at the freshly-stored refs and (re)start it.
+    // A WS bring-up failure here already surfaces via emitStatus("error"); the
+    // app is still paired (creds persisted), so we record the scan regardless.
+    await this.restartLongConnection().catch(() => {});
+    await this.emit({
+      type: "pairing.scanned",
+      channel: "feishu",
+      sessionId: pairing.sessionId,
+      externalChatId: `feishu-app:${appId}`,
+      displayName: "飞书机器人",
+      scannedAt: this.now(),
+    });
+  }
+
+  private async expirePairing(
+    pairing: FeishuPairingState,
+    error: string,
+  ): Promise<void> {
+    this.pairings.delete(pairing.sessionId);
+    await this.emit({
+      type: "pairing.expired",
+      qr: {
+        id: `feishu-qr-${slug(pairing.sessionId)}-${++this.counter}`,
+        channel: "feishu",
+        sessionId: pairing.sessionId,
+        status: "expired",
+        url: pairing.url,
+        error,
+      },
+    });
+  }
+
+  /** Tear down any existing long connection and start a fresh one. */
+  private async restartLongConnection(): Promise<void> {
+    this.startGeneration++;
+    this.rejectPendingStart?.(new Error("Feishu long connection restarting"));
+    this.rejectPendingStart = null;
+    this.startPromise = null;
+    this.started = false;
+    this.wsClient?.close?.({ force: true });
+    this.wsClient = null;
+    await this.start();
+  }
 
   async sendMessage(
     target: OutboundImTarget,
@@ -323,22 +535,15 @@ export class FeishuConnector implements ImConnector {
     return () => this.handlers.delete(handler);
   }
 
-  private async readCredentials(): Promise<FeishuCredentials> {
+  /** Read configured creds, or `null` when not yet provisioned/paired. */
+  private async tryReadCredentials(): Promise<FeishuCredentials | null> {
     const appId = await this.options.secretStore.get(
       this.options.config.appIdSecretRef,
     );
     const appSecret = await this.options.secretStore.get(
       this.options.config.appSecretRef,
     );
-    if (!appId || !appSecret) {
-      const message = "Feishu app credentials are not configured";
-      await this.emitStatus("error", message, {
-        code: "configuration-required",
-        appIdSecretRef: this.options.config.appIdSecretRef,
-        appSecretSecretRef: this.options.config.appSecretRef,
-      });
-      throw new FeishuConnectorError("configuration-required", message);
-    }
+    if (!appId || !appSecret) return null;
     return { appId, appSecret };
   }
 
@@ -399,6 +604,22 @@ export class FeishuConnector implements ImConnector {
     }
   }
 }
+
+interface FeishuPairingState {
+  sessionId: string;
+  deviceCode: string;
+  domain: RegistrationDomain;
+  intervalMs: number;
+  url: string;
+  cancelled: boolean;
+  cancel(): void;
+}
+
+/** Real device-code driver, delegating to the accounts-domain HTTP flow. */
+export const defaultRegistrationDriver: FeishuRegistrationDriver = {
+  start: startRegistration,
+  poll: pollRegistration,
+};
 
 export const defaultFeishuSdkFactory: FeishuSdkFactory = {
   createClient(credentials) {
