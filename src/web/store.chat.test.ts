@@ -151,6 +151,60 @@ test("message final appends deterministically when no assistant delta exists", (
   });
 });
 
+test("message final carries display attachments onto the user timeline item (B4)", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 14,
+      ts: 140,
+      type: "message.final",
+      payload: {
+        role: "user",
+        text: "look at this",
+        attachments: [
+          { name: "a.png", mediaType: "image/png" },
+          { name: "b.jpg", mediaType: "image/jpeg" },
+        ],
+      },
+    }),
+  );
+
+  const item = st.sessions.s1?.timeline[0];
+  expect(item).toMatchObject({
+    kind: "message",
+    role: "user",
+    text: "look at this",
+    status: "final",
+  });
+  expect((item as TimelineMessageItem).attachments).toEqual([
+    { name: "a.png", mediaType: "image/png" },
+    { name: "b.jpg", mediaType: "image/jpeg" },
+  ]);
+});
+
+test("message final without attachments leaves the timeline item attachments undefined", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      seq: 15,
+      ts: 150,
+      type: "message.final",
+      payload: { role: "user", text: "plain message" },
+    }),
+  );
+
+  const item = st.sessions.s1?.timeline[0] as TimelineMessageItem | undefined;
+  expect(item?.attachments).toBeUndefined();
+});
+
 test("assistant final after final appends instead of replacing prior final answer", () => {
   let st = reduce(
     empty,
