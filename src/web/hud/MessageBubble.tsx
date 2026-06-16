@@ -1,9 +1,14 @@
 import { useState } from "react";
-import type { Session, TimelineMessageItem } from "../../shared/domain";
+import type {
+  Session,
+  TimelineMessageAttachment,
+  TimelineMessageItem,
+} from "../../shared/domain";
 import { titleCase } from "../../shared/strings";
 import { useT } from "../i18n";
 import { selectPinnedIds, usePinnedStore } from "../pinned-store";
 import { sendCommand } from "../ws-client";
+import { attachmentDataUrl, isAllowedImageType } from "./attachments";
 import { mdToHtml } from "./markdown";
 
 interface Props {
@@ -231,7 +236,46 @@ export function MessageBubble({ item, session, sessionId }: Props) {
           }}
         />
       )}
+      {item.attachments && item.attachments.length > 0 && (
+        <div className="cmsg-attachments" aria-label="Attachments">
+          {item.attachments.map((att, i) => (
+            <AttachmentChip key={`${att.name}-${i}`} attachment={att} />
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+// 安全渲染:只有 4 类已知图片类型 + 带 base64 时才注入内联 <img>(data: URL);
+// 否则降级为「图片图标 + 文件名」chip,绝不把任意 data: URL 塞进 HTML。
+function AttachmentChip({
+  attachment,
+}: {
+  attachment: TimelineMessageAttachment;
+}) {
+  const canPreview =
+    isAllowedImageType(attachment.mediaType) &&
+    typeof attachment.dataBase64 === "string" &&
+    attachment.dataBase64.length > 0;
+  return (
+    <span className="cmsg-attach">
+      {canPreview ? (
+        <img
+          className="cmsg-attach-thumb"
+          src={attachmentDataUrl({
+            mediaType: attachment.mediaType,
+            dataBase64: attachment.dataBase64 ?? "",
+          })}
+          alt={attachment.name}
+        />
+      ) : (
+        <span className="cmsg-attach-icon" aria-hidden="true">
+          🖼
+        </span>
+      )}
+      <span className="cmsg-attach-name cjk">{attachment.name}</span>
+    </span>
   );
 }
 

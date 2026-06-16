@@ -1540,3 +1540,70 @@ test("WsGateway replies with error when pairing service is unavailable", async (
     });
   }
 });
+
+test("WsGateway forwards sendMessage attachments to SessionManager", async () => {
+  const calls: Array<{ id: string; text: string; attachments: unknown }> = [];
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    sendMessage: (id: string, text: string, attachments: unknown) =>
+      calls.push({ id, text, attachments }),
+  } as unknown as SessionManager;
+  const gateway = createTestGateway(mgr);
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "sendMessage",
+        sessionId: "s1",
+        text: "look",
+        attachments: [
+          {
+            kind: "image",
+            name: "a.png",
+            mediaType: "image/png",
+            dataBase64: "AAAA",
+          },
+        ],
+      }),
+    );
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(calls).toEqual([
+    {
+      id: "s1",
+      text: "look",
+      attachments: [
+        {
+          kind: "image",
+          name: "a.png",
+          mediaType: "image/png",
+          dataBase64: "AAAA",
+        },
+      ],
+    },
+  ]);
+});
+
+test("WsGateway forwards plain sendMessage with undefined attachments", async () => {
+  const calls: Array<{ id: string; text: string; attachments: unknown }> = [];
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    sendMessage: (id: string, text: string, attachments: unknown) =>
+      calls.push({ id, text, attachments }),
+  } as unknown as SessionManager;
+  const gateway = createTestGateway(mgr);
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({ cmd: "sendMessage", sessionId: "s1", text: "hi" }),
+    );
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(calls).toEqual([{ id: "s1", text: "hi", attachments: undefined }]);
+});

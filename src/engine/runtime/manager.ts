@@ -21,7 +21,7 @@ import {
 import { CodexAppServerDriver } from "./codex-app-server";
 import type { CodexCapabilities } from "./codex-capabilities";
 import { CodexExecFallbackDriver } from "./codex-exec-fallback";
-import type { RuntimeSendMeta } from "./types";
+import type { RuntimeSendContent, RuntimeSendMeta } from "./types";
 
 export interface RuntimeDriverConfigInput {
   runtime?: RuntimeKind;
@@ -159,7 +159,7 @@ class CodexStubDriver implements IDriver {
     );
   }
 
-  send(_text: string, _meta?: RuntimeSendMeta): void {}
+  send(_content: RuntimeSendContent, _meta?: RuntimeSendMeta): void {}
 
   async setModel(model: string): Promise<void> {
     this.config = { ...this.config, model };

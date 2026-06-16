@@ -111,6 +111,20 @@ export interface TimelineOutboundDelivery {
 export type TimelineMessageStatus = "streaming" | "final";
 export type TimelineThinkingStatus = "streaming" | "final";
 
+/**
+ * Display-only image attachment descriptor on a user message (B4). `name` +
+ * `mediaType` are always present so a chip can render. `dataBase64` is OPTIONAL
+ * raw base64 (NO `data:` prefix): the engine echo omits it to keep the event
+ * payload light (chip = name + image icon), while the client's optimistic local
+ * echo can include it to render a real inline thumbnail. Only the 4 known image
+ * media types are ever rendered as an `<img>` — see MessageBubble.
+ */
+export interface TimelineMessageAttachment {
+  name: string;
+  mediaType: string;
+  dataBase64?: string;
+}
+
 export interface TimelineMessageItem {
   kind: "message";
   id: string;
@@ -122,6 +136,8 @@ export interface TimelineMessageItem {
   runtime: RuntimeKind;
   status: TimelineMessageStatus;
   delivery?: TimelineOutboundDelivery;
+  /** Image attachment chips for a user message (B4); absent for plain messages. */
+  attachments?: TimelineMessageAttachment[];
 }
 
 export interface TimelineThinkingItem {

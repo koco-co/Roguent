@@ -1183,6 +1183,11 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
       const p = e.payload as {
         text: string;
         role?: "user" | "assistant" | "system";
+        attachments?: {
+          name: string;
+          mediaType: string;
+          dataBase64?: string;
+        }[];
       };
       const role = p.role ?? "assistant";
       if (!p.text) break;
@@ -1223,6 +1228,10 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
           ts: e.ts,
           ...desktopTimelineMeta(s),
           status,
+          // B4: carry display-only image attachment chips on a user message.
+          ...(p.attachments && p.attachments.length > 0
+            ? { attachments: p.attachments }
+            : {}),
         };
         s.timeline = [...s.timeline, item];
       }

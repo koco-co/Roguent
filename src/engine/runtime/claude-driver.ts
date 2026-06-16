@@ -18,7 +18,11 @@ import {
   summarizeToolInput,
 } from "../normalize";
 import { readMacSystemProxy, resolveProxyEnv } from "../proxy";
-import type { RuntimeDriver, RuntimeSendMeta } from "./types";
+import type {
+  RuntimeDriver,
+  RuntimeSendContent,
+  RuntimeSendMeta,
+} from "./types";
 
 export function stripSubscriptionEnv(
   env: Record<string, string | undefined>,
@@ -180,10 +184,13 @@ export class ClaudeDriver implements IDriver {
     }
   }
 
-  send(text: string, meta?: RuntimeSendMeta): void {
+  // content is either a plain string (legacy text-only) or an array of SDK
+  // content blocks (text + image, B4). SDKUserMessage.message.content accepts
+  // both, so we forward as-is — no per-block transformation here.
+  send(content: RuntimeSendContent, meta?: RuntimeSendMeta): void {
     this.queue.push({
       type: "user",
-      message: { role: "user", content: text },
+      message: { role: "user", content },
       parent_tool_use_id: meta?.parentToolUseId ?? null,
     });
     this.resolveNext?.();

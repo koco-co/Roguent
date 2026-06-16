@@ -767,3 +767,167 @@ test("plugins command: 缺少 pluginId 被拒", () => {
   const r = parseClientCommand({ cmd: "plugins", action: "enable" });
   expect(r.ok).toBe(false);
 });
+
+// --- B4: image attachments on sendMessage ---
+
+const FAKE_B64 = "AAAA"; // zero-credit placeholder base64
+
+test("sendMessage: 不带 attachments 仍向后兼容（plain text）", () => {
+  const r = parseClientCommand({
+    cmd: "sendMessage",
+    sessionId: "s1",
+    text: "hi",
+  });
+  expect(r).toEqual({
+    ok: true,
+    command: { cmd: "sendMessage", sessionId: "s1", text: "hi" },
+  });
+});
+
+test("sendMessage: 接受合法图片 attachments", () => {
+  const r = parseClientCommand({
+    cmd: "sendMessage",
+    sessionId: "s1",
+    text: "look",
+    attachments: [
+      {
+        kind: "image",
+        name: "a.png",
+        mediaType: "image/png",
+        dataBase64: FAKE_B64,
+      },
+      {
+        kind: "image",
+        name: "b.jpg",
+        mediaType: "image/jpeg",
+        dataBase64: FAKE_B64,
+      },
+    ],
+  });
+  expect(r.ok).toBe(true);
+  if (r.ok && r.command.cmd === "sendMessage") {
+    expect(r.command.attachments).toHaveLength(2);
+    expect(r.command.attachments?.[0]).toEqual({
+      kind: "image",
+      name: "a.png",
+      mediaType: "image/png",
+      dataBase64: FAKE_B64,
+    });
+  }
+});
+
+test("sendMessage: text 为空但有 attachments → 允许", () => {
+  const r = parseClientCommand({
+    cmd: "sendMessage",
+    sessionId: "s1",
+    text: "",
+    attachments: [
+      {
+        kind: "image",
+        name: "a.png",
+        mediaType: "image/png",
+        dataBase64: FAKE_B64,
+      },
+    ],
+  });
+  expect(r.ok).toBe(true);
+});
+
+test("sendMessage: text 与 attachments 同时为空 → 拒绝", () => {
+  const r = parseClientCommand({
+    cmd: "sendMessage",
+    sessionId: "s1",
+    text: "   ",
+    attachments: [],
+  });
+  expect(r.ok).toBe(false);
+});
+
+test("sendMessage: 未知 mediaType 被拒", () => {
+  const r = parseClientCommand({
+    cmd: "sendMessage",
+    sessionId: "s1",
+    text: "x",
+    attachments: [
+      {
+        kind: "image",
+        name: "a.bmp",
+        mediaType: "image/bmp",
+        dataBase64: FAKE_B64,
+      },
+    ],
+  });
+  expect(r.ok).toBe(false);
+});
+
+test("sendMessage: 非 image kind 被拒", () => {
+  const r = parseClientCommand({
+    cmd: "sendMessage",
+    sessionId: "s1",
+    text: "x",
+    attachments: [
+      {
+        kind: "file",
+        name: "a.png",
+        mediaType: "image/png",
+        dataBase64: FAKE_B64,
+      },
+    ],
+  });
+  expect(r.ok).toBe(false);
+});
+
+test("sendMessage: 空 dataBase64 被拒", () => {
+  const r = parseClientCommand({
+    cmd: "sendMessage",
+    sessionId: "s1",
+    text: "x",
+    attachments: [
+      { kind: "image", name: "a.png", mediaType: "image/png", dataBase64: "" },
+    ],
+  });
+  expect(r.ok).toBe(false);
+});
+
+test("sendMessage: 非 base64 字符的 dataBase64 被拒", () => {
+  const r = parseClientCommand({
+    cmd: "sendMessage",
+    sessionId: "s1",
+    text: "x",
+    attachments: [
+      {
+        kind: "image",
+        name: "a.png",
+        mediaType: "image/png",
+        dataBase64: "no spaces!!",
+      },
+    ],
+  });
+  expect(r.ok).toBe(false);
+});
+
+test("sendMessage: 超过 4 个附件被拒", () => {
+  const one = {
+    kind: "image" as const,
+    name: "x.png",
+    mediaType: "image/png" as const,
+    dataBase64: FAKE_B64,
+  };
+  const r = parseClientCommand({
+    cmd: "sendMessage",
+    sessionId: "s1",
+    text: "x",
+    attachments: [one, one, one, one, one],
+  });
+  expect(r.ok).toBe(false);
+});
+
+test("sendMessage: attachments 非数组被拒", () => {
+  const r = parseClientCommand({
+    cmd: "sendMessage",
+    sessionId: "s1",
+    text: "x",
+    attachments: { kind: "image" },
+  });
+  expect(r.ok).toBe(false);
+});

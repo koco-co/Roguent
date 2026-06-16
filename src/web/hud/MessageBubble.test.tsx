@@ -336,3 +336,80 @@ test("a pre-pinned message renders the 取消置顶 affordance and the pinned cl
   expect(screen.getByRole("button", { name: "取消置顶" })).toBeTruthy();
   expect(container.querySelector(".cmsg.pinned")).toBeTruthy();
 });
+
+test("a user message with attachments renders a chip per attachment", () => {
+  const session = createSession({ id: "s1", title: "t", model: "m" });
+  const item = agentMessage({
+    id: "9",
+    role: "user",
+    text: "see these",
+    attachments: [
+      { name: "a.png", mediaType: "image/png" },
+      { name: "b.jpg", mediaType: "image/jpeg" },
+    ],
+  });
+
+  const { container } = render(
+    <MessageBubble item={item} session={session} sessionId="s1" />,
+  );
+
+  const chips = container.querySelectorAll(".cmsg-attach");
+  expect(chips.length).toBe(2);
+  expect(screen.getByText("a.png")).toBeTruthy();
+  expect(screen.getByText("b.jpg")).toBeTruthy();
+});
+
+test("an attachment chip renders an inline image preview only for known media types via a data: URL", () => {
+  const session = createSession({ id: "s1", title: "t", model: "m" });
+  const item = agentMessage({
+    id: "9",
+    role: "user",
+    text: "",
+    attachments: [
+      { name: "a.png", mediaType: "image/png", dataBase64: "QUJD" },
+    ],
+  });
+
+  const { container } = render(
+    <MessageBubble item={item} session={session} sessionId="s1" />,
+  );
+
+  const img = container.querySelector(".cmsg-attach img") as HTMLImageElement;
+  expect(img).toBeTruthy();
+  expect(img.getAttribute("src")).toBe("data:image/png;base64,QUJD");
+});
+
+test("an attachment with an unknown media type never produces an img/data URL", () => {
+  const session = createSession({ id: "s1", title: "t", model: "m" });
+  const item = agentMessage({
+    id: "9",
+    role: "user",
+    text: "",
+    attachments: [
+      {
+        name: "evil.svg",
+        mediaType: "image/svg+xml",
+        dataBase64: "PHN2Zz4=",
+      },
+    ],
+  });
+
+  const { container } = render(
+    <MessageBubble item={item} session={session} sessionId="s1" />,
+  );
+
+  // Chip still shows the name, but no <img> / data: URL is injected.
+  expect(screen.getByText("evil.svg")).toBeTruthy();
+  expect(container.querySelector(".cmsg-attach img")).toBeNull();
+});
+
+test("a message without attachments renders no attachment chips", () => {
+  const session = createSession({ id: "s1", title: "t", model: "m" });
+  const item = agentMessage({ id: "9", role: "user", text: "plain" });
+
+  const { container } = render(
+    <MessageBubble item={item} session={session} sessionId="s1" />,
+  );
+
+  expect(container.querySelector(".cmsg-attach")).toBeNull();
+});

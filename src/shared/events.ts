@@ -171,12 +171,24 @@ export interface LootPayload {
   label: string;
   sourceRef: string;
 }
+/**
+ * Lightweight attachment descriptor carried on a user message for DISPLAY only
+ * (B4). Deliberately NO base64 here — the broadcast event stays small; the UI
+ * renders a chip from {name, mediaType}. The full base64 only ever travels
+ * up in the SendMessageCommand and into the SDK content blocks, never back down.
+ */
+export interface MessageAttachmentRef {
+  name: string;
+  mediaType: string;
+}
 export interface MessagePayload {
   text: string;
   // 说话方:导入历史会话时,用户轮次与助手轮次都进聊天抽屉。
   // system 用于引擎生成的审计/控制记录。可选 → LIVE/REPLAY 的助手 delta 不带则默认
   // "assistant"(向后兼容)。
   role?: "user" | "assistant" | "system";
+  // 用户消息带的图片附件(仅展示用:name + mediaType,不含 base64)。B4。
+  attachments?: MessageAttachmentRef[];
 }
 export interface RollbackPayload {
   checkpointId: string;

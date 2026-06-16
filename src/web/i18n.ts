@@ -467,6 +467,12 @@ export const DICT: Record<string, string> = {
   "输入消息… (Enter 发送, Shift+Enter 换行)":
     "Type a message… (Enter to send, Shift+Enter for newline)",
   停止: "Stop",
+  // Composer image attachments (B4)
+  添加图片: "Add image",
+  移除: "Remove",
+  "最多 4 张图片": "Up to 4 images",
+  "图片过大(上限 4MB)": "Image too large (4MB max)",
+  不支持的图片类型: "Unsupported image type",
   // Composer quick replies
   继续: "Continue",
   先跑测试再合并: "Run tests before merging",

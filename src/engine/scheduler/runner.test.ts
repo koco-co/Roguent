@@ -9,6 +9,7 @@ import type {
   RuntimeDriverConfigInput,
   RuntimeDriverCreator,
 } from "../runtime/manager";
+import { sendContentToText } from "../runtime/types";
 import { type CreateSessionOptions, SessionManager } from "../session";
 import { createSchedulerRunner } from "./runner";
 import { createSchedulerService } from "./service";
@@ -89,8 +90,8 @@ function fakeRuntimeManager(captured: {
     createDriver(_, config) {
       captured.configs.push(config);
       return driverStub({
-        send(text) {
-          captured.sent.push(text);
+        send(content) {
+          captured.sent.push(sendContentToText(content));
         },
       });
     },
