@@ -286,6 +286,23 @@ status: living-doc
 
 ---
 
+## 3.10 聊天 Claude-Desktop 级可交互性(2026-06-16)
+
+> 体检(§gap-report B)发现聊天缺编辑/重发按钮、附件、搜索、置顶,markdown 缺表格/高亮/图片等;`retryFrom`/`rollback` 引擎已实现却无前端入口(重发近乎白送)。按 spec [chat-interactivity-design](superpowers/specs/2026-06-16-chat-interactivity-design.md) 分 B1–B4 实现;每阶段 Workflow(实现切片 → 集成门禁 → 3 路对抗校验)+ detached worktree 合入 + 主仓复跑门禁。用户决策(AskUserQuestion):补**编辑/重发 + 附件(图片/文件)+ 搜索/置顶**。
+
+| 阶段 | 内容 | 状态 |
+| --- | --- | --- |
+| **B1** 重发 + markdown 增强 | `MessageBubble` user 消息「重发」→ 现成 `retryFrom`(零引擎改动);`markdown.ts` 加表格/任务列表/删除线/图片(仅 http(s)/data:image)/嵌套列表/代码语言 class,全 XSS-safe 零依赖 | ✅ 合 main + **真实应用截图 + DOM 断言**(表格/任务 checkbox/图片/code-lang/重发按钮;危险链接降级、无 script 注入) |
+| **B2** 编辑消息 | `retryFrom` 加可选 `text` 覆盖(commands/gateway/session 三处)+ `MessageBubble` 行内编辑 → 保存发新文本(edit-and-resend) | ✅ 合 main + 单测(编辑/取消/未改/assistant 无按钮)+ 对抗校验 |
+| **B3** 搜索 + 置顶 | 当前会话消息搜索(纯函数 `filterTimelineByQuery` + `TimelineSearchBar`,过滤/高亮)+ **客户端本地**置顶(`pinned-store` localStorage,per-session,冻结 EMPTY 防 selector 坑,显式标注非引擎源)+ 「仅看置顶」 | ✅ 合 main + 单测 + 对抗校验(搜索正确性/渲染安全/隔离) |
+| **B4** 图片附件 | `ImageAttachment` + `SendMessageCommand.attachments`(校验:4 类型/≤4 张/base64 正则)→ `session.buildSendContent` 构 SDK 多模态 content blocks(text + image)→ `driver.send(string\|ContentBlockParam[])`;Composer 上传(选择/拖拽/粘贴 + 缩略图 + 类型/大小校验)+ MessageBubble 安全 img 块(仅允许类型)+ 轻量显示字段(广播不含 base64) | ✅ 合 main + 单测(假 base64,零额度)+ 对抗校验(集成自查修 1 真 bug:store 把附件 chip 带上 timeline) |
+
+**真/假边界**:重发/编辑/搜索/附件**接真**(真命令、真 SDK 多模态);置顶**客户端本地**(标注、不伪造引擎源);markdown 增强纯渲染 + XSS 安全。**门禁**:`bun test` **1010 pass** + tsc 0 + biome 0 + `typecheck:e2e` 0 + EN i18n 零泄漏(每阶段合入后复跑)。SDK 多模态:`@anthropic-ai/sdk` `MessageParam.content` 接受 `ContentBlockParam[]`,0.3.161 即支持、无需升级。
+
+**剩余小尾巴**:① **B4 真图冒烟**(真发一张图给 Claude,花少量额度,需 user-aware);② **纯图片消息(空文本)的 chip 在 timeline 回显不渲染**(store reducer 短路空文本 message.final;图片仍正常发给 Claude,仅回显 chip 缺)——小修(并入 D 或聊天收尾);③ **整合浏览器走查**受 headless rAF 内景过场限制未在此环境完成(B1 已在真实应用证明聊天可用;B2–B4 交互挂同组件 + 单测/对抗校验覆盖),用户本机 dev app 可见。
+
+---
+
 ## 4. Phase 2 —— 原愿景未实现功能(后续,先不展开)
 
 > Phase 1 收口后再排。多数有独立 spec 设想(见 `overworld-hub-design.md` §"明确不在本 spec")。
