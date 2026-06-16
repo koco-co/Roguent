@@ -268,6 +268,24 @@ status: living-doc
 
 ---
 
+## 3.9 微信 / 飞书扫码配对端到端打通(2026-06-16)
+
+> 全功能 e2e 体检(`docs/2026-06-16-e2e-verification-gap-report.md`)发现:配对子系统脚手架齐全但**端到端断裂**(无 `generateQr` 命令、`createPairing`/`updatePairing` 网关无处理器=静默丢弃、连接器配对事件被 `IntegrationManager` 忽略、微信用非官方且 Bun 不兼容的 `@wechatbot/wechatbot`)。本轮按 spec [wechat-feishu-pairing-design](superpowers/specs/2026-06-16-wechat-feishu-pairing-design.md) 分 A1–A5 打通;走 Workflow 编排(每阶段 实现切片 → 集成门禁 → **3 路对抗式校验** refute-by-default)+ detached worktree 逐阶段合入 + 每阶段亲自复跑门禁。用户决策:微信**精简自实现官方 iLink 协议**(不装连带 openclaw≈85MB 的官方包);飞书**真扫码**(device-code,参照 Kun)。
+
+| 阶段 | 内容 | 状态 |
+| --- | --- | --- |
+| **A1** 命令/事件/编排骨架 | 新增 `pairing` 命令(generateQr/cancelQr/submitVerifyCode)+ 网关 `pairing`/`createPairing`/`updatePairing` 处理器 + `IntegrationManager.startPairing`/`cancelPairing`/`submitVerifyCode` + `handleConnectorEvent` 发射 `pairing.qr.updated`/`pairing.binding.updated`(此前被忽略)+ `router.publishPairingQr/publishPairingBinding`;fake connector 端到端。**修一个对抗校验抓到的阻断**:UI「生成 QR」原发 `createPairing`(短路)→ 改发 `pairing/generateQr` | ✅ 合 main(`423074b`)+ 双渠道浏览器 e2e |
+| **A2** 微信 iLink 真连接器 | 新 `wechat-ilink.ts`:纯 Bun `fetch` 重实现官方 iLink 协议(`get_bot_qrcode`→轮询 `get_qrcode_status` 全 8 状态机→`getupdates`/`sendmessage`,网关 `ilinkai.weixin.qq.com`),`bot_token` 进 keychain;**删** `@wechatbot/wechatbot` + `wechat.ts` + `wechat-node-host.{ts,mjs}` + 2 smoke 脚本,零子进程 | ✅ 合 main(`fea0f81`)+ 11 注入式状态机单测 |
+| **A3** UI 出码 | `PairingQr` 用 `qrcode.react` 的 `QRCodeSVG` 把 `qr.url` 渲染成**真·可扫二维码**(替换纯文本);`need_verifycode` 输入框(A2 用 `metadata.needVerifyCode` 透出)+ `cancelQr`;i18n 全量入 DICT | ✅ 合 main(`b685d51`)+ **真二维码浏览器 e2e 截图**(微信 37×37 模块 + 验证码区) |
+| **A4** 飞书 device-code | 新 `feishu-registration.ts`:官方 device-code 应用自注册(`accounts.feishu.cn/oauth/v1/app/registration`,`action:begin/poll`,`archetype:PersonalAgent`,tenant_brand 切 Lark,`client_id/client_secret`→appId/appSecret);`FeishuConnector.startPairing` 驱动它 → 落 keychain → 起 Lark 长连接 → emit `pairing.scanned`;`live` 改为**总创建** FeishuConnector(`ROGUENT_FEISHU_DISABLED` 门控),无预置凭据也能跑扫码;手动填凭据降级保留 | ✅ 合 main(`425c340`)+ device-code 状态机单测 |
+| **A5** 真连冒烟 | 真用手机微信扫码 + 飞书扫码授权各走一条,互发文本 | ⏳ **需用户真实账号操作**(纯前/后端单测 + 对抗校验已覆盖逻辑,真扫码须人工) |
+
+**真/假边界**:微信/飞书扫码 → 绑定 → 收发**全接真**(真官方网关、真 keychain 凭据、真事件链);二维码用 `qrcode.react` 真编码可扫;无源不造数据。**门禁**:`bun test` 904 pass + `bunx tsc --noEmit` 0 + `bun run check` 0(每阶段合入后主仓复跑)。**对抗校验**:A1 抓到 1 个阻断(UI 发错命令)已修;A2/A3/A4 各 0 阻断。
+
+**剩余小尾巴**:① **A5 真连冒烟**(见上,需用户账号);② **信箱「转发到配对 IM」** 仍置灰——现连接器已有 `sendMessage`,可补一个单条转发命令激活(留作配对收尾或并入死路径清理 D)。
+
+---
+
 ## 4. Phase 2 —— 原愿景未实现功能(后续,先不展开)
 
 > Phase 1 收口后再排。多数有独立 spec 设想(见 `overworld-hub-design.md` §"明确不在本 spec")。
