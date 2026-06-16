@@ -200,6 +200,76 @@ test("retryFrom reuses user text and appends a persistent audit record", () => {
   }
 });
 
+test("retryFrom with a text override resends the new text and audits it", () => {
+  const testDb = createTestDatabase();
+  const sent: string[] = [];
+  const captured: { cb?: DriverCallbacks; driver?: IDriver } = {
+    driver: driverStub({
+      send(text: string) {
+        sent.push(text);
+      },
+    }),
+  };
+  try {
+    migrate(testDb.db);
+    const mgr = new SessionManager(fakeRuntimeManager(captured), "/tmp", {
+      auditDb: testDb.db,
+    });
+    const got: RoomEvent[] = [];
+    mgr.subscribe((event) => got.push(event));
+    mgr.createSession("s1", { title: "Task", model: "m" });
+    mgr.sendMessage("s1", "original text");
+
+    mgr.retryFrom("s1", "2", "edited text");
+
+    // Override wins: the new text is resent, not the stored original.
+    expect(sent).toEqual(["original text", "edited text"]);
+    expect(got.at(-1)).toMatchObject({
+      sessionId: "s1",
+      type: "message.final",
+      payload: {
+        role: "system",
+        text: "Audit: retryFrom resent timeline item 2 in session s1",
+      },
+    });
+    const auditRows = testDb.db
+      .query<AuditActionRow, []>(
+        "SELECT source, action, session_id, summary FROM audit_records",
+      )
+      .all();
+    expect(auditRows).toEqual([
+      {
+        source: "runtime",
+        action: "retry_from",
+        session_id: "s1",
+        summary: "retryFrom resent timeline item 2",
+      },
+    ]);
+  } finally {
+    testDb.cleanup();
+  }
+});
+
+test("retryFrom without a text override still resends the stored original", () => {
+  const sent: string[] = [];
+  const captured: { cb?: DriverCallbacks; driver?: IDriver } = {
+    driver: driverStub({
+      send(text: string) {
+        sent.push(text);
+      },
+    }),
+  };
+  const mgr = new SessionManager(fakeRuntimeManager(captured), "/tmp");
+  const got: RoomEvent[] = [];
+  mgr.subscribe((event) => got.push(event));
+  mgr.createSession("s1", { title: "Task", model: "m" });
+  mgr.sendMessage("s1", "original text");
+
+  mgr.retryFrom("s1", "2");
+
+  expect(sent).toEqual(["original text", "original text"]);
+});
+
 test("retryFrom refuses assistant timeline items", () => {
   const sent: string[] = [];
   const captured: { cb?: DriverCallbacks; driver?: IDriver } = {
