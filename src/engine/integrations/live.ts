@@ -20,7 +20,7 @@ import {
   type ApplySubscriptionSettingsOptions,
   applySubscriptionSettings as applySubscriptionSettingsToConnectors,
 } from "./subscriptions";
-import { createWeChatConnector } from "./wechat-node-host";
+import { createWeChatConnector } from "./wechat-ilink";
 import type { ImConnector } from "./wechat-types";
 import { xConnectorStatus } from "./x";
 
