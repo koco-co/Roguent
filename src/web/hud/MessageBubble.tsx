@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Session, TimelineMessageItem } from "../../shared/domain";
 import { titleCase } from "../../shared/strings";
 import { useT } from "../i18n";
+import { selectPinnedIds, usePinnedStore } from "../pinned-store";
 import { sendCommand } from "../ws-client";
 import { mdToHtml } from "./markdown";
 
@@ -45,6 +46,12 @@ export function MessageBubble({ item, session, sessionId }: Props) {
   const { name, roleTag } = author(item, session, t);
   // 只有 user 消息可重发/编辑:engine 的 retryFrom 按同一 String(seq)=item.id 检索原文回放。
   const canRetry = item.role === "user";
+
+  // 置顶:客户端本地 UI 状态(不入引擎,见 pinned-store.ts)。取稳定的 id 数组引用
+  // (守 zustand 铁律,绝不在 selector 里造新数组),再在组件里派生布尔与回调。
+  const pinnedIds = usePinnedStore((s) => selectPinnedIds(s, sessionId));
+  const togglePin = usePinnedStore((s) => s.togglePin);
+  const pinned = pinnedIds.includes(item.id);
 
   const retry = () => {
     sendCommand({ cmd: "retryFrom", sessionId, timelineItemId: item.id });
@@ -98,7 +105,9 @@ export function MessageBubble({ item, session, sessionId }: Props) {
 
   return (
     <div
-      className={`cmsg ${item.role === "user" ? "me" : "agent"}`}
+      className={`cmsg ${item.role === "user" ? "me" : "agent"}${
+        pinned ? " pinned" : ""
+      }`}
       style={{ position: "relative" }}
     >
       <div
@@ -129,6 +138,25 @@ export function MessageBubble({ item, session, sessionId }: Props) {
           }}
         >
           {copied ? "✓" : "⎘"}
+        </button>
+        {/* 置顶切换:user 与 assistant 消息都可置顶(客户端本地,见 pinned-store.ts)。 */}
+        <button
+          type="button"
+          onClick={() => togglePin(sessionId, item.id)}
+          title={pinned ? t("取消置顶") : t("置顶")}
+          aria-label={pinned ? t("取消置顶") : t("置顶")}
+          aria-pressed={pinned}
+          style={{
+            fontSize: 10,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: pinned ? "var(--gold, #e0b000)" : "var(--text)",
+            opacity: pinned ? 0.9 : 0.6,
+            padding: 0,
+          }}
+        >
+          📌
         </button>
         {canRetry && (
           <button
