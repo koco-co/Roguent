@@ -513,6 +513,11 @@ def character_frames(prefix: str, source_cell: int, include_hit: bool = True) ->
             "category": "characters",
             "sourceSheet": "characters/npcs.png",
             "sourceCell": source_cell,
+            # npcs.png is a 4-col x 3-row sheet (12 characters). The default
+            # 4x4 grid sliced two half-characters per cell — declare the real
+            # grid so each cell lands on a single complete character.
+            "sourceCols": 4,
+            "sourceRows": 3,
             "frame": frame,
         }
         for frame in frames
@@ -1010,7 +1015,10 @@ def fitted_cell(
         max(1, min(target_w, round(subject.width * scale))),
         max(1, min(target_h, round(subject.height * scale))),
     )
-    resized = subject.resize(new_size, Image.Resampling.NEAREST)
+    # Source sheets are smooth high-res GPT-image art (~300px subjects) being
+    # reduced into tiny atlas frames (~16-28px). NEAREST aliased that downscale
+    # into noise; LANCZOS area-resampling keeps the miniature legible.
+    resized = subject.resize(new_size, Image.Resampling.LANCZOS)
     out = Image.new("RGBA", target_size, (0, 0, 0, 0))
     out.alpha_composite(
         resized,
