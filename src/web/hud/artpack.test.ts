@@ -47,6 +47,28 @@ test("生成美术包暴露真实 lobby/interior 预览图", () => {
   }
 });
 
+test("生成美术包暴露真实 UI/button kit 源图", () => {
+  for (const p of ART_PACKS.filter((pack) => pack.id !== DEFAULT_ARTPACK)) {
+    expect(p.ui).toEqual({
+      buttons: `/assets/artpacks/${p.id}/ui/buttons.png`,
+    });
+  }
+});
+
+test("生成美术包暴露 NPC、地块、道具、结构件、HUD、彩蛋与 UI sheet 资源", () => {
+  for (const p of ART_PACKS.filter((pack) => pack.id !== DEFAULT_ARTPACK)) {
+    expect(p.sourceSheets).toEqual({
+      characters: `/assets/artpacks/${p.id}/characters/npcs.png`,
+      environment: `/assets/artpacks/${p.id}/tiles/environment.png`,
+      props: `/assets/artpacks/${p.id}/items/props.png`,
+      structures: `/assets/artpacks/${p.id}/structures/source-sheet.png`,
+      hud: `/assets/artpacks/${p.id}/hud/icons.png`,
+      easter: `/assets/artpacks/${p.id}/easter/sprites.png`,
+      ui: `/assets/artpacks/${p.id}/ui/buttons.png`,
+    });
+  }
+});
+
 test("loadArtPack:空→默认;读已存值", () => {
   expect(loadArtPack()).toBe("pixel-fantasy");
   localStorage.setItem(ARTPACK_KEY, "synthwave");

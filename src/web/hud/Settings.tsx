@@ -747,7 +747,7 @@ function ArtPackGroup() {
         <Icon name="scene" size={20} />
         <span>
           {t(
-            "选择一款美术风格包后会进入预览，确认无误再应用——大厅、内景、NPC 与道具会切换到对应素材（自动保存）。",
+            "选择一款美术风格包后会进入预览，确认无误再应用——大厅、内景、NPC、道具与按钮 UI 会切换到对应素材（自动保存）。",
           )}
         </span>
       </div>
@@ -839,6 +839,37 @@ function ArtPackPreview({
     { k: "guide", cn: "向导", ic: "account" },
   ];
   const PROPS: IconName[] = ["scene", "coins", "crystal", "trophy", "quest"];
+  const sheetPreviews = pack.sourceSheets
+    ? [
+        {
+          key: "characters",
+          label: "NPCS / 角色",
+          src: pack.sourceSheets.characters,
+        },
+        {
+          key: "environment",
+          label: "TILES / 地块",
+          src: pack.sourceSheets.environment,
+        },
+        {
+          key: "props",
+          label: "PROPS / 道具",
+          src: pack.sourceSheets.props,
+        },
+        {
+          key: "structures",
+          label: "STRUCTURES / 结构",
+          src: pack.sourceSheets.structures,
+        },
+        { key: "hud", label: "HUD / 图标", src: pack.sourceSheets.hud },
+        {
+          key: "easter",
+          label: "EASTER / 彩蛋",
+          src: pack.sourceSheets.easter,
+        },
+        { key: "ui", label: "BUTTON UI / 按钮", src: pack.sourceSheets.ui },
+      ]
+    : [];
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: scrim 是模态遮罩,点击空白处取消;键盘关闭由 App 的 Esc 集中处理
     <div className="apv-scrim" onClick={onCancel}>
@@ -900,6 +931,36 @@ function ArtPackPreview({
             </div>
           ))}
         </div>
+        {pack.ui && (
+          <div
+            className="apv-ui-kit"
+            style={
+              {
+                backgroundImage: `linear-gradient(rgba(0,0,0,.08), rgba(0,0,0,.42)), url(${pack.ui.buttons})`,
+              } as React.CSSProperties
+            }
+          >
+            <span>{t("BUTTON UI / 按钮")}</span>
+          </div>
+        )}
+        {sheetPreviews.length > 0 && (
+          <div className="apv-sheets" aria-label={t("SOURCE SHEETS / 素材")}>
+            {sheetPreviews.map((sheet) => (
+              <div
+                key={sheet.key}
+                className="apv-sheet"
+                data-sheet={sheet.key}
+                style={
+                  {
+                    backgroundImage: `linear-gradient(rgba(0,0,0,.08), rgba(0,0,0,.42)), url(${sheet.src})`,
+                  } as React.CSSProperties
+                }
+              >
+                <span>{t(sheet.label)}</span>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="apv-metaline">{t(pack.desc)}</div>
         <div className="apv-foot">
           <span className="apv-hint">

@@ -5,6 +5,7 @@ import { KonamiListener } from "./easter/KonamiListener";
 import { resolveEngineUrl } from "./engine-url";
 import { Hud } from "./hud/Hud";
 import { NpcCard } from "./hud/NpcCard";
+import { applyArtPack, loadArtPack } from "./hud/artpack";
 import { AnnouncementPopup } from "./hud/mailbox/AnnouncementPopup";
 import { useT } from "./i18n";
 import { LobbyView } from "./lobby/HubPlaza";
@@ -63,6 +64,10 @@ export function App() {
 
   const viewportRef = useRef<HTMLDivElement>(null);
   useStageScale(viewportRef);
+
+  useEffect(() => {
+    applyArtPack(loadArtPack());
+  }, []);
 
   // 进入内景后该会话被 LRU 归档 / 删除 → 自动回落大厅,避免困在幽灵内景
   // (spec §架构: 双层缩放;§生命周期: ≤10/LRU 软归档)。

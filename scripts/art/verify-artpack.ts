@@ -5,8 +5,19 @@ export const REQUIRED_ARTPACK_FILES = [
   "manifest.json",
   "atlas/dungeon.png",
   "atlas/dungeon.json",
+  "atlas/gpt-image-overrides.json",
   "previews/lobby.png",
   "previews/interior.png",
+  "characters/npcs.png",
+  "enemies/enemies-16x16.png",
+  "enemies/enemies-16x23.png",
+  "enemies/bosses-32x36.png",
+  "items/props.png",
+  "tiles/environment.png",
+  "structures/source-sheet.png",
+  "hud/icons.png",
+  "easter/sprites.png",
+  "ui/buttons.png",
 ] as const;
 
 export interface Size {
@@ -32,6 +43,16 @@ export type ArtPackIssue =
       expected: Size;
       actual: Size;
       message: "Atlas frame size differs from reference atlas";
+    }
+  | {
+      kind: "missing-gpt-image-override-frame";
+      frame: string;
+      message: "GPT-image override references a missing atlas frame";
+    }
+  | {
+      kind: "missing-gpt-image-override-source";
+      path: string;
+      message: "GPT-image override references a missing source sheet";
     };
 
 export interface VerifyResult {
@@ -75,6 +96,15 @@ interface TexturePackerFrame {
 
 interface TexturePackerAtlas {
   frames?: Record<string, TexturePackerFrame>;
+}
+
+interface GptImageOverrideEntry {
+  frame?: unknown;
+  sourceSheet?: unknown;
+}
+
+interface GptImageOverrideReport {
+  coveredFrames?: unknown;
 }
 
 export function parseAtlasFrameSizes(
@@ -129,6 +159,48 @@ export function verifyAtlasFrameSizes({
   return { ok: issues.length === 0, issues };
 }
 
+interface VerifyGptImageOverridesInput {
+  packRoot: string;
+  files: ReadonlySet<string>;
+  candidate: ReadonlyMap<string, Size>;
+  report: GptImageOverrideReport;
+}
+
+export function verifyGptImageOverrides({
+  packRoot,
+  files,
+  candidate,
+  report,
+}: VerifyGptImageOverridesInput): VerifyResult {
+  const issues: ArtPackIssue[] = [];
+  const root = packRoot.replace(/\/+$/, "");
+  const coveredFrames = Array.isArray(report.coveredFrames)
+    ? (report.coveredFrames as GptImageOverrideEntry[])
+    : [];
+
+  for (const entry of coveredFrames) {
+    if (typeof entry.frame === "string" && !candidate.has(entry.frame)) {
+      issues.push({
+        kind: "missing-gpt-image-override-frame",
+        frame: entry.frame,
+        message: "GPT-image override references a missing atlas frame",
+      });
+    }
+    if (typeof entry.sourceSheet === "string") {
+      const sourcePath = join(root, entry.sourceSheet);
+      if (!files.has(sourcePath)) {
+        issues.push({
+          kind: "missing-gpt-image-override-source",
+          path: sourcePath,
+          message: "GPT-image override references a missing source sheet",
+        });
+      }
+    }
+  }
+
+  return { ok: issues.length === 0, issues };
+}
+
 interface VerifyArtPackOnDiskInput {
   packRoot: string;
   referenceAtlasPath?: string;
@@ -151,6 +223,12 @@ async function readAtlas(path: string): Promise<TexturePackerAtlas> {
   return JSON.parse(await readFile(path, "utf8")) as TexturePackerAtlas;
 }
 
+async function readGptImageOverrideReport(
+  path: string,
+): Promise<GptImageOverrideReport> {
+  return JSON.parse(await readFile(path, "utf8")) as GptImageOverrideReport;
+}
+
 export async function verifyArtPackOnDisk({
   packRoot,
   referenceAtlasPath = "public/assets/0x72/dungeon.json",
@@ -163,7 +241,20 @@ export async function verifyArtPackOnDisk({
   const reference = parseAtlasFrameSizes(await readAtlas(referenceAtlasPath));
   const candidate = parseAtlasFrameSizes(await readAtlas(candidateAtlasPath));
   const atlasResult = verifyAtlasFrameSizes({ reference, candidate });
-  const issues = [...fileResult.issues, ...atlasResult.issues];
+  const reportPath = join(packRoot, "atlas", "gpt-image-overrides.json");
+  const reportResult = files.has(reportPath)
+    ? verifyGptImageOverrides({
+        packRoot,
+        files,
+        candidate,
+        report: await readGptImageOverrideReport(reportPath),
+      })
+    : { ok: true, issues: [] };
+  const issues = [
+    ...fileResult.issues,
+    ...atlasResult.issues,
+    ...reportResult.issues,
+  ];
 
   return { ok: issues.length === 0, issues };
 }

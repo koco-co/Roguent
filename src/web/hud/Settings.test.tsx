@@ -35,6 +35,7 @@ class FakeWebSocket {
 afterEach(() => {
   connection?.close();
   connection = null;
+  localStorage.clear();
   globalThis.WebSocket = originalWebSocket;
   FakeWebSocket.instances = [];
   cleanup();
@@ -294,4 +295,78 @@ test("settings panel hydrates saved Codex settings and preserves secret refs", a
     },
     changedKeys: [],
   });
+});
+
+test("art style preview shows generated UI button kit art", async () => {
+  useUiStore.setState({ activePanel: "settings" });
+
+  const { container } = render(<Settings />);
+
+  await userEvent.click(
+    screen.getByRole("button", { name: /美术风格 Art Style/ }),
+  );
+  await userEvent.click(
+    container.querySelector(
+      '.artpack-card[data-pk="neon-terminal"]',
+    ) as HTMLElement,
+  );
+
+  const kit = container.querySelector(".apv-ui-kit") as HTMLElement | null;
+  expect(kit).toBeTruthy();
+  expect(kit?.style.backgroundImage).toContain(
+    "/assets/artpacks/neon-terminal/ui/buttons.png",
+  );
+  expect(screen.getAllByText("BUTTON UI / 按钮").length).toBeGreaterThanOrEqual(
+    1,
+  );
+});
+
+test("art style preview shows generated NPC tiles props structure HUD easter and UI sheets", async () => {
+  useUiStore.setState({ activePanel: "settings" });
+
+  const { container } = render(<Settings />);
+
+  await userEvent.click(
+    screen.getByRole("button", { name: /美术风格 Art Style/ }),
+  );
+  await userEvent.click(
+    container.querySelector(
+      '.artpack-card[data-pk="holo-blueprint"]',
+    ) as HTMLElement,
+  );
+
+  const sheets = Array.from(
+    container.querySelectorAll(".apv-sheet"),
+  ) as HTMLElement[];
+  expect(sheets).toHaveLength(7);
+  expect(sheets.map((el) => el.dataset.sheet)).toEqual([
+    "characters",
+    "environment",
+    "props",
+    "structures",
+    "hud",
+    "easter",
+    "ui",
+  ]);
+  expect(sheets[0]?.style.backgroundImage).toContain(
+    "/assets/artpacks/holo-blueprint/characters/npcs.png",
+  );
+  expect(sheets[1]?.style.backgroundImage).toContain(
+    "/assets/artpacks/holo-blueprint/tiles/environment.png",
+  );
+  expect(sheets[2]?.style.backgroundImage).toContain(
+    "/assets/artpacks/holo-blueprint/items/props.png",
+  );
+  expect(sheets[3]?.style.backgroundImage).toContain(
+    "/assets/artpacks/holo-blueprint/structures/source-sheet.png",
+  );
+  expect(sheets[4]?.style.backgroundImage).toContain(
+    "/assets/artpacks/holo-blueprint/hud/icons.png",
+  );
+  expect(sheets[5]?.style.backgroundImage).toContain(
+    "/assets/artpacks/holo-blueprint/easter/sprites.png",
+  );
+  expect(sheets[6]?.style.backgroundImage).toContain(
+    "/assets/artpacks/holo-blueprint/ui/buttons.png",
+  );
 });

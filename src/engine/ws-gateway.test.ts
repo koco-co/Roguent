@@ -13,6 +13,7 @@ import {
   type GatewaySchedulerService,
   type GatewaySettingsService,
   WsGateway,
+  type WsGatewayOptions,
 } from "./ws-gateway";
 
 type TestWebSocketServer = {
@@ -35,12 +36,30 @@ function closeGateway(gateway: WsGateway): Promise<void> {
     };
     const close = () => wss.close(finish);
 
-    if (wss.address()) close();
+    let isListening = false;
+    try {
+      isListening = Boolean(wss.address());
+    } catch {
+      isListening = false;
+    }
+
+    if (isListening) close();
     else {
-      wss.once("listening", close);
-      wss.once("error", finish);
+      try {
+        close();
+      } catch {
+        wss.once("listening", close);
+        wss.once("error", finish);
+      }
     }
   });
+}
+
+function createTestGateway(
+  mgr: SessionManager,
+  options: WsGatewayOptions = {},
+): WsGateway {
+  return new WsGateway(0, mgr, undefined, { ...options, listen: false });
 }
 
 function invokeOnCommand(
@@ -63,6 +82,31 @@ function invokeHandleConnection(gateway: WsGateway, ws: unknown): void {
   ).handleConnection(ws);
 }
 
+test("WsGateway can run command-only tests without binding a network port", async () => {
+  const calls: unknown[] = [];
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    createSession: (id: string) => calls.push(id),
+  } as unknown as SessionManager;
+  const gateway = createTestGateway(mgr);
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "newSession",
+        sessionId: "s-test",
+        title: "No port",
+        model: "m",
+      }),
+    );
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(calls).toEqual(["s-test"]);
+});
+
 test("WsGateway passes newSession runtime config through to SessionManager", async () => {
   const calls: Array<{ id: string; opts: unknown }> = [];
   const mgr = {
@@ -70,7 +114,7 @@ test("WsGateway passes newSession runtime config through to SessionManager", asy
     subscribe: () => () => {},
     createSession: (id: string, opts: unknown) => calls.push({ id, opts }),
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr);
+  const gateway = createTestGateway(mgr);
   try {
     invokeOnCommand(
       gateway,
@@ -121,7 +165,7 @@ test("WsGateway replies with commandError control when command parsing fails", a
     sessionIds: () => [],
     subscribe: () => () => {},
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr);
+  const gateway = createTestGateway(mgr);
   try {
     invokeOnCommand(
       gateway,
@@ -186,7 +230,7 @@ test("WsGateway handles economy claimAchievement through achievement service and
     subscribe: () => () => {},
     publishIntegrationEvent: (event: unknown) => published.push(event),
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr, undefined, { achievements });
+  const gateway = createTestGateway(mgr, { achievements });
   try {
     invokeOnCommand(
       gateway,
@@ -239,7 +283,7 @@ test("WsGateway purchaseItem replies with error when gacha service is unavailabl
     subscribe: () => () => {},
   } as unknown as SessionManager;
   // No gacha service wired → should reply with an error, not crash.
-  const gateway = new WsGateway(0, mgr);
+  const gateway = createTestGateway(mgr);
   try {
     invokeOnCommand(
       gateway,
@@ -272,7 +316,7 @@ test("WsGateway keeps equipItem/unequipItem economy actions explicit (not implem
     sessionIds: () => [],
     subscribe: () => () => {},
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr);
+  const gateway = createTestGateway(mgr);
   try {
     invokeOnCommand(
       gateway,
@@ -334,7 +378,7 @@ test("WsGateway purchaseItem with sufficient balance emits ledger and inventory 
     subscribe: () => () => {},
     publishIntegrationEvent: (event: unknown) => published.push(event),
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr, undefined, { gacha });
+  const gateway = createTestGateway(mgr, { gacha });
   try {
     invokeOnCommand(
       gateway,
@@ -382,7 +426,7 @@ test("WsGateway purchaseItem with insufficient balance replies with error withou
     subscribe: () => () => {},
     publishIntegrationEvent: (event: unknown) => published.push(event),
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr, undefined, { gacha });
+  const gateway = createTestGateway(mgr, { gacha });
   try {
     invokeOnCommand(
       gateway,
@@ -422,7 +466,7 @@ test("WsGateway purchaseItem seed increments per pull (successive pulls get diff
     subscribe: () => () => {},
     publishIntegrationEvent: () => {},
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr, undefined, { gacha });
+  const gateway = createTestGateway(mgr, { gacha });
   try {
     for (let i = 0; i < 3; i++) {
       invokeOnCommand(
@@ -473,7 +517,7 @@ test("WsGateway handles settings commands through SettingsService and publishes 
     subscribe: () => () => {},
     publishIntegrationEvent: (event: unknown) => published.push(event),
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr, undefined, {
+  const gateway = createTestGateway(mgr, {
     settings,
     onSettingsUpdated(payload) {
       settingsSideEffects.push(payload);
@@ -562,7 +606,7 @@ test("WsGateway publishes saved settings when a client connects", async () => {
     subscribe: () => () => {},
     publishIntegrationEvent: (event: unknown) => published.push(event),
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr, undefined, { settings });
+  const gateway = createTestGateway(mgr, { settings });
   try {
     invokeHandleConnection(gateway, ws);
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -643,7 +687,7 @@ test("WsGateway handles mailbox commands through MailboxService and publishes up
       runtimeMessages.push({ sessionId, text }),
     publishIntegrationEvent: (event: unknown) => published.push(event),
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr, undefined, { mailbox });
+  const gateway = createTestGateway(mgr, { mailbox });
   try {
     invokeOnCommand(
       gateway,
@@ -744,7 +788,7 @@ test("WsGateway hydrates mailbox items and replays connector statuses on connect
       subscriber({ seq: ++seq, ...(event as Record<string, unknown>) });
     },
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr, undefined, { mailbox });
+  const gateway = createTestGateway(mgr, { mailbox });
   try {
     subscriber({
       seq: ++seq,
@@ -849,7 +893,7 @@ test("WsGateway handles scheduler commands through SchedulerService and publishe
     subscribe: () => () => {},
     publishIntegrationEvent: (event: unknown) => published.push(event),
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr, undefined, { scheduler });
+  const gateway = createTestGateway(mgr, { scheduler });
   try {
     invokeOnCommand(
       gateway,
@@ -931,7 +975,7 @@ test("WsGateway passes setRuntimeConfig through to SessionManager", async () => 
     setRuntimeConfig: (sessionId: string, config: unknown) =>
       calls.push({ sessionId, config }),
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr);
+  const gateway = createTestGateway(mgr);
   try {
     invokeOnCommand(
       gateway,
@@ -987,7 +1031,7 @@ test("WsGateway dispatches rollback and retryFrom commands to SessionManager", a
     retryFrom: (sessionId: string, timelineItemId: string) =>
       calls.push({ cmd: "retryFrom", sessionId, timelineItemId }),
   } as unknown as SessionManager;
-  const gateway = new WsGateway(0, mgr);
+  const gateway = createTestGateway(mgr);
   try {
     invokeOnCommand(
       gateway,
@@ -1069,7 +1113,7 @@ test("plugins: runAction failure broadcasts snapshot() catalog, not stale pre-ac
     subscribe: () => () => {},
   } as unknown as SessionManager;
 
-  const gateway = new WsGateway(0, mgr, undefined, { plugins: svc });
+  const gateway = createTestGateway(mgr, { plugins: svc });
 
   // Pre-seed lastPlugins with stale data (installed: false).
   gateway.pushPlugins([staleEntry], []);
@@ -1172,7 +1216,7 @@ test("plugins: connect-time replay lastPlugins + command triggers busy→fresh b
     subscribe: () => () => {},
   } as unknown as SessionManager;
 
-  const gateway = new WsGateway(0, mgr, undefined, { plugins: svc });
+  const gateway = createTestGateway(mgr, { plugins: svc });
 
   // Pre-seed lastPlugins via pushPlugins before client connects.
   gateway.pushPlugins(svc.snapshot(), []);

@@ -4,13 +4,15 @@
   "name": "Deep-Space Bridge",
   "accent": "#a06cd5",
   "status": "runtime_atlas_ready",
-  "generatedWith": "built-in image_gen for source sheets; local palette mapping for frame-contract runtime atlas",
+  "generatedWith": "built-in image_gen for source sheets; local palette mapping for frame-contract runtime atlas; GPT-image source-sheet overrides for characters/enemies/bosses/props/environment/easter/HUD/UI frames",
   "generatedAt": "2026-06-15",
   "atlas": {
     "json": "atlas/dungeon.json",
     "image": "atlas/dungeon.png",
+    "gptImageOverrides": "atlas/gpt-image-overrides.json",
     "referenceFrameContract": "/assets/0x72/dungeon.json",
-    "frameCount": 381
+    "frameCount": 381,
+    "gptImageOverrideFrameCount": 381
   },
   "previews": {
     "lobby": "previews/lobby.png",
@@ -18,12 +20,17 @@
   },
   "sourceSheets": {
     "gptImageSources": "docs/art-previews/2026-06-15/sources/deep-space",
+    "characters": "characters/npcs.png",
+    "environment": "tiles/environment.png",
+    "props": "items/props.png",
     "structures": "structures/source-sheet.png",
     "hud": "hud/icons.png",
-    "easter": "easter/sprites.png"
+    "easter": "easter/sprites.png",
+    "ui": "ui/buttons.png"
   },
   "notes": [
     "Generated GPT-image source sheets plus palette-mapped runtime atlas preserving 0x72 frame contract.",
-    "Runtime atlas is complete and layout-compatible; fine-grained GPT-image sheet slicing remains available as a later fidelity pass."
+    "All 381 runtime atlas frames are now represented by fitted GPT-image source-sheet cells.",
+    "Fine-grained frame-specific GPT-image slicing remains available as a later fidelity pass for higher per-frame animation fidelity."
   ]
 }

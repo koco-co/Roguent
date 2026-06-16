@@ -52,16 +52,24 @@ test("artpack 组关键串 en 翻译", () => {
   expect(translate("美术风格 Art Style", "en")).toBe("Art Style");
   expect(
     translate(
-      "选择一款美术风格包后会进入预览，确认无误再应用——大厅、内景、NPC 与道具会切换到对应素材（自动保存）。",
+      "选择一款美术风格包后会进入预览，确认无误再应用——大厅、内景、NPC、道具与按钮 UI 会切换到对应素材（自动保存）。",
       "en",
     ),
   ).toBe(
-    "Preview an art pack before applying it. The lobby, interiors, NPCs, and props switch to that asset set and save automatically.",
+    "Preview an art pack before applying it. The lobby, interiors, NPCs, props, and button UI switch to that asset set and save automatically.",
   );
   expect(translate("像素奇幻", "en")).toBe("Pixel Fantasy");
   expect(translate("合成波", "en")).toBe("Synthwave Grid");
   expect(translate("✓ 使用中", "en")).toBe("✓ In use");
   expect(translate("确认切换", "en")).toBe("Confirm switch");
+  expect(translate("SOURCE SHEETS / 素材", "en")).toBe("SOURCE SHEETS");
+  expect(translate("NPCS / 角色", "en")).toBe("NPCS");
+  expect(translate("TILES / 地块", "en")).toBe("TILES");
+  expect(translate("PROPS / 道具", "en")).toBe("PROPS");
+  expect(translate("STRUCTURES / 结构", "en")).toBe("STRUCTURES");
+  expect(translate("HUD / 图标", "en")).toBe("HUD");
+  expect(translate("EASTER / 彩蛋", "en")).toBe("EASTER");
+  expect(translate("BUTTON UI / 按钮", "en")).toBe("BUTTON UI");
   expect(translate("CRT 扫描线 · 磷光青绿 · 赛博命令行界面", "en")).toBe(
     "CRT scanlines · phosphor cyan · cyber command line",
   );

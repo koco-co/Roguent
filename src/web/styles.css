@@ -6932,6 +6932,55 @@ img {
   background: rgba(8, 8, 14, 0.5);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ac) 35%, transparent);
 }
+.apv-ui-kit {
+  position: relative;
+  height: 76px;
+  margin-top: 8px;
+  overflow: hidden;
+  background-color: rgba(8, 8, 14, 0.5);
+  background-size: cover;
+  background-position: center;
+  image-rendering: pixelated;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ac) 45%, transparent);
+}
+.apv-ui-kit > span {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  font-family: var(--font-px);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--ink-faint);
+  background: rgba(5, 5, 11, 0.72);
+  padding: 3px 5px;
+}
+.apv-sheets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.apv-sheet {
+  position: relative;
+  min-height: 72px;
+  overflow: hidden;
+  background-color: rgba(8, 8, 14, 0.5);
+  background-size: cover;
+  background-position: center;
+  image-rendering: pixelated;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ac) 45%, transparent);
+}
+.apv-sheet > span {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  font-family: var(--font-px);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--ink-faint);
+  background: rgba(5, 5, 11, 0.72);
+  padding: 3px 5px;
+}
 .apv-metaline {
   margin-top: 11px;
   font-size: 11px;

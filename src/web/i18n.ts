@@ -634,6 +634,8 @@ export const DICT: Record<string, string> = {
     "Pick an art-style pack to preview it, then apply once it looks right — that swaps every texture across the lobby scene, rooms, NPCs and props (saved automatically). You bring your own assets; styles without imported art fall back to placeholders.",
   "选择一款美术风格包后会进入预览，确认无误再应用——大厅、内景、NPC 与道具会切换到对应素材（自动保存）。":
     "Preview an art pack before applying it. The lobby, interiors, NPCs, and props switch to that asset set and save automatically.",
+  "选择一款美术风格包后会进入预览，确认无误再应用——大厅、内景、NPC、道具与按钮 UI 会切换到对应素材（自动保存）。":
+    "Preview an art pack before applying it. The lobby, interiors, NPCs, props, and button UI switch to that asset set and save automatically.",
   像素奇幻: "Pixel Fantasy",
   霓虹终端: "Neon Terminal",
   全息蓝图: "Holo Blueprint",
@@ -665,6 +667,14 @@ export const DICT: Record<string, string> = {
   确认切换: "Confirm switch",
   当前风格: "Current style",
   "SCENE / 场景": "SCENE / Scene",
+  "SOURCE SHEETS / 素材": "SOURCE SHEETS",
+  "NPCS / 角色": "NPCS",
+  "TILES / 地块": "TILES",
+  "PROPS / 道具": "PROPS",
+  "STRUCTURES / 结构": "STRUCTURES",
+  "HUD / 图标": "HUD",
+  "EASTER / 彩蛋": "EASTER",
+  "BUTTON UI / 按钮": "BUTTON UI",
 };
 
 export function translate(s: string, lang: Lang): string {

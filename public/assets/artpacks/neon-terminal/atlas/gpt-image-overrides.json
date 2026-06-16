@@ -1,0 +1,4650 @@
+{
+  "schemaVersion": 1,
+  "packId": "neon-terminal",
+  "generatedAt": "2026-06-16T06:18:09+00:00",
+  "method": "source-sheet-cell-fit",
+  "sourceSheets": [
+    "characters/npcs.png",
+    "easter/sprites.png",
+    "enemies/bosses-32x36.png",
+    "enemies/enemies-16x16.png",
+    "enemies/enemies-16x23.png",
+    "hud/icons.png",
+    "items/props.png",
+    "tiles/environment.png",
+    "ui/buttons.png"
+  ],
+  "atlasFrameCount": 381,
+  "coveredFrameCount": 381,
+  "coveredFramesByCategory": {
+    "characters": 106,
+    "enemies": 108,
+    "bosses": 24,
+    "props": 52,
+    "environment": 81,
+    "easter": 3,
+    "hud": 3,
+    "ui": 4
+  },
+  "coveredFrames": [
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 11,
+      "frame": "knight_m_hit_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 11,
+      "frame": "knight_m_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 11,
+      "frame": "knight_m_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 11,
+      "frame": "knight_m_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 11,
+      "frame": "knight_m_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 11,
+      "frame": "knight_m_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 11,
+      "frame": "knight_m_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 11,
+      "frame": "knight_m_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 11,
+      "frame": "knight_m_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 1,
+      "frame": "knight_f_hit_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 1,
+      "frame": "knight_f_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 1,
+      "frame": "knight_f_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 1,
+      "frame": "knight_f_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 1,
+      "frame": "knight_f_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 1,
+      "frame": "knight_f_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 1,
+      "frame": "knight_f_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 1,
+      "frame": "knight_f_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 1,
+      "frame": "knight_f_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 4,
+      "frame": "wizzard_m_hit_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 4,
+      "frame": "wizzard_m_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 4,
+      "frame": "wizzard_m_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 4,
+      "frame": "wizzard_m_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 4,
+      "frame": "wizzard_m_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 4,
+      "frame": "wizzard_m_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 4,
+      "frame": "wizzard_m_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 4,
+      "frame": "wizzard_m_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 4,
+      "frame": "wizzard_m_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 3,
+      "frame": "wizzard_f_hit_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 3,
+      "frame": "wizzard_f_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 3,
+      "frame": "wizzard_f_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 3,
+      "frame": "wizzard_f_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 3,
+      "frame": "wizzard_f_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 3,
+      "frame": "wizzard_f_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 3,
+      "frame": "wizzard_f_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 3,
+      "frame": "wizzard_f_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 3,
+      "frame": "wizzard_f_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 5,
+      "frame": "elf_m_hit_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 5,
+      "frame": "elf_m_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 5,
+      "frame": "elf_m_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 5,
+      "frame": "elf_m_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 5,
+      "frame": "elf_m_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 5,
+      "frame": "elf_m_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 5,
+      "frame": "elf_m_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 5,
+      "frame": "elf_m_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 5,
+      "frame": "elf_m_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "elf_f_hit_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "elf_f_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "elf_f_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "elf_f_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "elf_f_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "elf_f_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "elf_f_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "elf_f_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "elf_f_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 7,
+      "frame": "dwarf_m_hit_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 7,
+      "frame": "dwarf_m_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 7,
+      "frame": "dwarf_m_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 7,
+      "frame": "dwarf_m_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 7,
+      "frame": "dwarf_m_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 7,
+      "frame": "dwarf_m_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 7,
+      "frame": "dwarf_m_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 7,
+      "frame": "dwarf_m_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 7,
+      "frame": "dwarf_m_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 9,
+      "frame": "dwarf_f_hit_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 9,
+      "frame": "dwarf_f_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 9,
+      "frame": "dwarf_f_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 9,
+      "frame": "dwarf_f_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 9,
+      "frame": "dwarf_f_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 9,
+      "frame": "dwarf_f_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 9,
+      "frame": "dwarf_f_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 9,
+      "frame": "dwarf_f_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 9,
+      "frame": "dwarf_f_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "lizard_m_hit_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "lizard_m_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "lizard_m_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "lizard_m_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "lizard_m_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "lizard_m_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "lizard_m_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "lizard_m_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "lizard_m_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 8,
+      "frame": "lizard_f_hit_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 8,
+      "frame": "lizard_f_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 8,
+      "frame": "lizard_f_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 8,
+      "frame": "lizard_f_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 8,
+      "frame": "lizard_f_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 8,
+      "frame": "lizard_f_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 8,
+      "frame": "lizard_f_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 8,
+      "frame": "lizard_f_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 8,
+      "frame": "lizard_f_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 28
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "goblin_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "goblin_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "goblin_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "goblin_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "goblin_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "goblin_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "goblin_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 10,
+      "frame": "goblin_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "doc_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "doc_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "doc_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "doc_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "doc_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "doc_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "doc_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "characters",
+      "sourceSheet": "characters/npcs.png",
+      "sourceCell": 6,
+      "frame": "doc_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 0,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "imp_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 1,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "imp_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 2,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "imp_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 3,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "imp_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 4,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "imp_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 5,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "imp_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 6,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "imp_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 7,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "imp_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 8,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "angel_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 9,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "angel_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 10,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "angel_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 11,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "angel_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 12,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "angel_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 13,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "angel_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 14,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "angel_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 15,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "angel_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 16,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "ice_zombie_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 17,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "ice_zombie_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 18,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "ice_zombie_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 19,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "ice_zombie_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 24,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "muddy_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 25,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "muddy_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 26,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "muddy_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 27,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "muddy_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 0,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "chort_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 1,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "chort_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 2,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "chort_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 3,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "chort_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 4,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "chort_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 5,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "chort_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 6,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "chort_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 6,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "chort_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 7,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "masked_orc_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 8,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "masked_orc_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 9,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "masked_orc_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 10,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "masked_orc_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 11,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "masked_orc_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 12,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "masked_orc_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 13,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "masked_orc_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 13,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "masked_orc_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 14,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_shaman_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 15,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_shaman_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 16,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_shaman_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 17,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_shaman_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 18,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_shaman_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 19,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_shaman_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 20,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_shaman_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 20,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_shaman_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 21,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_warrior_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 22,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_warrior_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 23,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_warrior_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 24,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_warrior_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 25,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_warrior_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 26,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_warrior_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 27,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_warrior_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 27,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "orc_warrior_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 28,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "necromancer_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 29,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "necromancer_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 30,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "necromancer_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 31,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "necromancer_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 35,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "swampy_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 36,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "swampy_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 37,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "swampy_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 38,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "swampy_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 42,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "zombie_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 43,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "zombie_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 44,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "zombie_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 45,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "zombie_anim_f10",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 49,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "skelet_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 50,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "skelet_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 51,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "skelet_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 52,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "skelet_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 53,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "skelet_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 54,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "skelet_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 55,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "skelet_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 55,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "skelet_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 7,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "pumpkin_dude_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 8,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "pumpkin_dude_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 9,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "pumpkin_dude_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 10,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "pumpkin_dude_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 11,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "pumpkin_dude_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 12,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "pumpkin_dude_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 13,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "pumpkin_dude_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 13,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "pumpkin_dude_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 24,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "slug_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 25,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "slug_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 26,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "slug_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 27,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "slug_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 24,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "tiny_slug_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 25,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "tiny_slug_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 26,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "tiny_slug_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 27,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "tiny_slug_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 16,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "tiny_zombie_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 17,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "tiny_zombie_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 18,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "tiny_zombie_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 19,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "tiny_zombie_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 20,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "tiny_zombie_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 21,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "tiny_zombie_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 22,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "tiny_zombie_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x16.png",
+      "sourceCell": 23,
+      "sourceCols": 8,
+      "sourceRows": 4,
+      "cleanup": "dark-grid",
+      "frame": "tiny_zombie_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 49,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "wogol_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 50,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "wogol_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 51,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "wogol_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 52,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "wogol_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 53,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "wogol_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 54,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "wogol_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 55,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "wogol_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "enemies",
+      "sourceSheet": "enemies/enemies-16x23.png",
+      "sourceCell": 55,
+      "sourceCols": 7,
+      "sourceRows": 8,
+      "cleanup": "dark-grid",
+      "frame": "wogol_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 23
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 0,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_demon_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 1,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_demon_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 2,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_demon_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 3,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_demon_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 4,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_demon_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 5,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_demon_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 6,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_demon_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 6,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_demon_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 7,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_zombie_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 8,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_zombie_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 9,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_zombie_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 10,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_zombie_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 11,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_zombie_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 12,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_zombie_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 13,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_zombie_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 13,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "big_zombie_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 14,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "ogre_idle_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 15,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "ogre_idle_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 16,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "ogre_idle_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 17,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "ogre_idle_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 18,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "ogre_run_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 19,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "ogre_run_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 20,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "ogre_run_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "bosses",
+      "sourceSheet": "enemies/bosses-32x36.png",
+      "sourceCell": 20,
+      "sourceCols": 7,
+      "sourceRows": 3,
+      "cleanup": "dark-grid",
+      "frame": "ogre_run_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 36
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 0,
+      "frame": "coin_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 6,
+        "h": 7
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 0,
+      "frame": "coin_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 6,
+        "h": 7
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 0,
+      "frame": "coin_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 6,
+        "h": 7
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 0,
+      "frame": "coin_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 6,
+        "h": 7
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 1,
+      "frame": "flask_blue",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 2,
+      "frame": "flask_green",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 3,
+      "frame": "flask_red",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 11,
+      "frame": "flask_yellow",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 4,
+      "frame": "chest_full_open_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 5,
+      "frame": "chest_full_open_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 5,
+      "frame": "chest_full_open_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 7,
+      "frame": "bomb_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 7,
+      "frame": "bomb_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 7,
+      "frame": "bomb_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_knight_sword",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 10,
+        "h": 29
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_regular_sword",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 10,
+        "h": 21
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 9,
+      "frame": "crate",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 24
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 10,
+      "frame": "skull",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 4,
+      "frame": "chest_empty_open_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 5,
+      "frame": "chest_empty_open_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 5,
+      "frame": "chest_empty_open_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 1,
+      "frame": "flask_big_blue",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 2,
+      "frame": "flask_big_green",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 3,
+      "frame": "flask_big_red",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 11,
+      "frame": "flask_big_yellow",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 15,
+      "frame": "lever_left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 15,
+      "variant": "flip-x",
+      "frame": "lever_right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_anime_sword",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 12,
+        "h": 30
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_arrow",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 7,
+        "h": 21
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_axe",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 9,
+        "h": 21
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_baton_with_spikes",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 10,
+        "h": 22
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_big_hammer",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 10,
+        "h": 37
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_bow",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 14,
+        "h": 26
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_bow_2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 14,
+        "h": 26
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_cleaver",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 9,
+        "h": 19
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_double_axe",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 24
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_duel_sword",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 9,
+        "h": 30
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_golden_sword",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 10,
+        "h": 22
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_green_magic_staff",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 8,
+        "h": 30
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_hammer",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 10,
+        "h": 24
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_katana",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 6,
+        "h": 29
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_knife",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 6,
+        "h": 13
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_lavish_sword",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 10,
+        "h": 30
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_mace",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 10,
+        "h": 24
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_machete",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 5,
+        "h": 22
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_red_gem_sword",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 10,
+        "h": 21
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_red_magic_staff",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 8,
+        "h": 30
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_rusty_sword",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 10,
+        "h": 21
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_saw_sword",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 10,
+        "h": 25
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_spear",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 6,
+        "h": 30
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_throwing_axe",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 10,
+        "h": 14
+      }
+    },
+    {
+      "category": "props",
+      "sourceSheet": "items/props.png",
+      "sourceCell": 8,
+      "frame": "weapon_waraxe",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 12,
+        "h": 23
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 0,
+      "frame": "floor_1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 1,
+      "frame": "floor_2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 2,
+      "frame": "grass",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 2,
+      "frame": "grass2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_mid",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_top_mid",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 4,
+      "frame": "wall_banner_blue",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 4,
+      "frame": "wall_banner_green",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 4,
+      "frame": "wall_banner_red",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 4,
+      "frame": "wall_banner_yellow",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 6,
+      "frame": "wall_fountain_top_1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 6,
+      "frame": "wall_fountain_mid_blue_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 6,
+      "frame": "wall_fountain_mid_blue_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 6,
+      "frame": "wall_fountain_mid_blue_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 8,
+      "frame": "wall_fountain_basin_blue_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 8,
+      "frame": "wall_fountain_basin_blue_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 8,
+      "frame": "wall_fountain_basin_blue_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 9,
+      "frame": "doors_leaf_closed",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 32
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 10,
+      "frame": "doors_leaf_open",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 32
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 11,
+      "frame": "column",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 48
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 11,
+      "frame": "column_wall",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 48
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 13,
+      "frame": "floor_ladder",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 14,
+      "frame": "floor_spikes_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 14,
+      "frame": "floor_spikes_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 14,
+      "frame": "floor_spikes_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 14,
+      "frame": "floor_spikes_anim_f3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 15,
+      "frame": "floor_3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 15,
+      "frame": "floor_4",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 0,
+      "frame": "floor_5",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 1,
+      "frame": "floor_6",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 15,
+      "frame": "floor_7",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 0,
+      "frame": "floor_8",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 13,
+      "frame": "floor_stairs",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 2,
+      "frame": "ground",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 10,
+      "frame": "hole",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 10,
+      "frame": "doors_frame_left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 32
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 10,
+      "frame": "doors_frame_right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 32
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 10,
+      "frame": "doors_frame_top",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 32,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 0,
+      "frame": "edge-bl",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 0,
+      "frame": "edge-bottom",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 0,
+      "frame": "edge-br",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 0,
+      "frame": "edge-left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 0,
+      "frame": "edge-right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 0,
+      "frame": "edge-tl",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 0,
+      "frame": "edge-top",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 0,
+      "frame": "edge-tr",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 0,
+      "frame": "edge_down",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_edge_bottom_left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_edge_bottom_right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_edge_left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_edge_mid_left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_edge_mid_right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_edge_right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_edge_top_left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_edge_top_right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_edge_tshape_bottom_left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_edge_tshape_bottom_right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_edge_tshape_left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_edge_tshape_right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 7,
+      "frame": "wall_fountain_top_2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 7,
+      "frame": "wall_fountain_top_3",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 6,
+      "frame": "wall_fountain_mid_red_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 6,
+      "frame": "wall_fountain_mid_red_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 6,
+      "frame": "wall_fountain_mid_red_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 8,
+      "frame": "wall_fountain_basin_red_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 8,
+      "frame": "wall_fountain_basin_red_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 8,
+      "frame": "wall_fountain_basin_red_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 2,
+      "frame": "wall_goo",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 2,
+      "frame": "wall_goo_base",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 10,
+      "frame": "wall_hole_1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 10,
+      "frame": "wall_hole_2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_top_left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 3,
+      "frame": "wall_top_right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 12,
+      "frame": "wall_outer_front_left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 12,
+      "frame": "wall_outer_front_right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 12,
+      "frame": "wall_outer_mid_left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 12,
+      "frame": "wall_outer_mid_right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 12,
+      "frame": "wall_outer_top_left",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "environment",
+      "sourceSheet": "tiles/environment.png",
+      "sourceCell": 12,
+      "frame": "wall_outer_top_right",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "easter",
+      "sourceSheet": "easter/sprites.png",
+      "sourceCell": 4,
+      "sourceCols": 4,
+      "sourceRows": 2,
+      "cleanup": "light-bg+largest-alpha",
+      "frame": "chest_mimic_open_anim_f0",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "easter",
+      "sourceSheet": "easter/sprites.png",
+      "sourceCell": 5,
+      "sourceCols": 4,
+      "sourceRows": 2,
+      "cleanup": "light-bg+largest-alpha",
+      "frame": "chest_mimic_open_anim_f1",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "easter",
+      "sourceSheet": "easter/sprites.png",
+      "sourceCell": 6,
+      "sourceCols": 4,
+      "sourceRows": 2,
+      "cleanup": "light-bg+largest-alpha",
+      "frame": "chest_mimic_open_anim_f2",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "hud",
+      "sourceSheet": "hud/icons.png",
+      "sourceCell": 0,
+      "sourceCols": 8,
+      "sourceRows": 5,
+      "cleanup": "light-bg+largest-alpha",
+      "frame": "ui_heart_full",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 13,
+        "h": 12
+      }
+    },
+    {
+      "category": "hud",
+      "sourceSheet": "hud/icons.png",
+      "sourceCell": 0,
+      "sourceCols": 8,
+      "sourceRows": 5,
+      "cleanup": "light-bg+largest-alpha",
+      "variant": "heart-half",
+      "frame": "ui_heart_half",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 13,
+        "h": 12
+      }
+    },
+    {
+      "category": "hud",
+      "sourceSheet": "hud/icons.png",
+      "sourceCell": 0,
+      "sourceCols": 8,
+      "sourceRows": 5,
+      "cleanup": "light-bg+largest-alpha",
+      "variant": "heart-empty",
+      "frame": "ui_heart_empty",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 13,
+        "h": 12
+      }
+    },
+    {
+      "category": "ui",
+      "sourceSheet": "ui/buttons.png",
+      "sourceCell": 2,
+      "cleanup": "largest-alpha",
+      "frame": "button_blue_up",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "ui",
+      "sourceSheet": "ui/buttons.png",
+      "sourceCell": 2,
+      "cleanup": "largest-alpha",
+      "variant": "button-pressed",
+      "frame": "button_blue_down",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "ui",
+      "sourceSheet": "ui/buttons.png",
+      "sourceCell": 7,
+      "cleanup": "largest-alpha",
+      "frame": "button_red_up",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    {
+      "category": "ui",
+      "sourceSheet": "ui/buttons.png",
+      "sourceCell": 7,
+      "cleanup": "largest-alpha",
+      "variant": "button-pressed",
+      "frame": "button_red_down",
+      "method": "source-sheet-cell-fit",
+      "targetSize": {
+        "w": 16,
+        "h": 16
+      }
+    }
+  ],
+  "notes": [
+    "Generated source sheets remain the art direction source of truth.",
+    "All runtime atlas frames are represented by fitted GPT-image source-sheet cells.",
+    "No runtime atlas frames remain on the compatible palette-mapped fallback."
+  ]
+}

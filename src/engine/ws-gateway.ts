@@ -89,6 +89,8 @@ export interface GatewayPluginsService {
 }
 
 export interface WsGatewayOptions {
+  /** Test/embedding mode: construct the gateway without binding a TCP port. */
+  listen?: boolean;
   mailbox?: GatewayMailboxService;
   scheduler?: GatewaySchedulerService;
   settings?: GatewaySettingsService;
@@ -131,8 +133,11 @@ export class WsGateway {
     onListening?: (port: number) => void,
     private readonly options: WsGatewayOptions = {},
   ) {
-    this.wss = new WebSocketServer({ port });
-    if (onListening) {
+    this.wss =
+      options.listen === false
+        ? new WebSocketServer({ noServer: true })
+        : new WebSocketServer({ port });
+    if (onListening && options.listen !== false) {
       this.wss.on("listening", () => {
         const addr = this.wss.address();
         if (addr && typeof addr === "object") onListening(addr.port);

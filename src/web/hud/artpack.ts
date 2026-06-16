@@ -14,6 +14,18 @@ export interface ArtPack {
     lobby: string;
     interior: string;
   };
+  ui?: {
+    buttons: string;
+  };
+  sourceSheets?: {
+    characters: string;
+    environment: string;
+    props: string;
+    structures: string;
+    hud: string;
+    easter: string;
+    ui: string;
+  };
 }
 
 export const ARTPACK_KEY = "roguent_artpack";
@@ -40,6 +52,18 @@ export const ART_PACKS: ArtPack[] = [
       lobby: "/assets/artpacks/neon-terminal/previews/lobby.png",
       interior: "/assets/artpacks/neon-terminal/previews/interior.png",
     },
+    ui: {
+      buttons: "/assets/artpacks/neon-terminal/ui/buttons.png",
+    },
+    sourceSheets: {
+      characters: "/assets/artpacks/neon-terminal/characters/npcs.png",
+      environment: "/assets/artpacks/neon-terminal/tiles/environment.png",
+      props: "/assets/artpacks/neon-terminal/items/props.png",
+      structures: "/assets/artpacks/neon-terminal/structures/source-sheet.png",
+      hud: "/assets/artpacks/neon-terminal/hud/icons.png",
+      easter: "/assets/artpacks/neon-terminal/easter/sprites.png",
+      ui: "/assets/artpacks/neon-terminal/ui/buttons.png",
+    },
   },
   {
     id: "holo-blueprint",
@@ -51,6 +75,18 @@ export const ART_PACKS: ArtPack[] = [
     previews: {
       lobby: "/assets/artpacks/holo-blueprint/previews/lobby.png",
       interior: "/assets/artpacks/holo-blueprint/previews/interior.png",
+    },
+    ui: {
+      buttons: "/assets/artpacks/holo-blueprint/ui/buttons.png",
+    },
+    sourceSheets: {
+      characters: "/assets/artpacks/holo-blueprint/characters/npcs.png",
+      environment: "/assets/artpacks/holo-blueprint/tiles/environment.png",
+      props: "/assets/artpacks/holo-blueprint/items/props.png",
+      structures: "/assets/artpacks/holo-blueprint/structures/source-sheet.png",
+      hud: "/assets/artpacks/holo-blueprint/hud/icons.png",
+      easter: "/assets/artpacks/holo-blueprint/easter/sprites.png",
+      ui: "/assets/artpacks/holo-blueprint/ui/buttons.png",
     },
   },
   {
@@ -64,6 +100,18 @@ export const ART_PACKS: ArtPack[] = [
       lobby: "/assets/artpacks/deep-space/previews/lobby.png",
       interior: "/assets/artpacks/deep-space/previews/interior.png",
     },
+    ui: {
+      buttons: "/assets/artpacks/deep-space/ui/buttons.png",
+    },
+    sourceSheets: {
+      characters: "/assets/artpacks/deep-space/characters/npcs.png",
+      environment: "/assets/artpacks/deep-space/tiles/environment.png",
+      props: "/assets/artpacks/deep-space/items/props.png",
+      structures: "/assets/artpacks/deep-space/structures/source-sheet.png",
+      hud: "/assets/artpacks/deep-space/hud/icons.png",
+      easter: "/assets/artpacks/deep-space/easter/sprites.png",
+      ui: "/assets/artpacks/deep-space/ui/buttons.png",
+    },
   },
   {
     id: "synthwave",
@@ -75,6 +123,18 @@ export const ART_PACKS: ArtPack[] = [
     previews: {
       lobby: "/assets/artpacks/synthwave/previews/lobby.png",
       interior: "/assets/artpacks/synthwave/previews/interior.png",
+    },
+    ui: {
+      buttons: "/assets/artpacks/synthwave/ui/buttons.png",
+    },
+    sourceSheets: {
+      characters: "/assets/artpacks/synthwave/characters/npcs.png",
+      environment: "/assets/artpacks/synthwave/tiles/environment.png",
+      props: "/assets/artpacks/synthwave/items/props.png",
+      structures: "/assets/artpacks/synthwave/structures/source-sheet.png",
+      hud: "/assets/artpacks/synthwave/hud/icons.png",
+      easter: "/assets/artpacks/synthwave/easter/sprites.png",
+      ui: "/assets/artpacks/synthwave/ui/buttons.png",
     },
   },
 ];

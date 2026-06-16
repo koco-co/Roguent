@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../App";
+import { ARTPACK_KEY } from "../hud/artpack";
 import { DEFAULT_SETTINGS, useSettingsStore } from "../settings-store";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
@@ -34,6 +35,8 @@ class FakeWebSocket {
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
+  document.documentElement.removeAttribute("data-artpack");
   globalThis.WebSocket = originalWebSocket;
   FakeWebSocket.instances = [];
   useSettingsStore.setState({ ...DEFAULT_SETTINGS });
@@ -65,4 +68,17 @@ test("start gate chooses a hero, persists it, enters lobby, and does not block e
 
   expect(useSettingsStore.getState().avatarHero).toBe("orc_warrior");
   expect(screen.getByTestId("lobby-view")).toBeTruthy();
+});
+
+test("startup reapplies the persisted art pack to the document root", async () => {
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  localStorage.setItem(ARTPACK_KEY, "synthwave");
+
+  render(<App />);
+
+  await waitFor(() =>
+    expect(document.documentElement.getAttribute("data-artpack")).toBe(
+      "synthwave",
+    ),
+  );
 });
