@@ -2,6 +2,7 @@ import { WebSocketServer } from "ws";
 import type { RoguentSettings } from "../shared/events";
 import { readOauthCredentials } from "./credentials";
 import { cliPathFromEnv } from "./driver";
+import { wireEconomyServices } from "./economy/wiring";
 import { resolveIngressPort, startIngressServer } from "./ingress/server";
 import { startLiveIntegrations } from "./integrations/live";
 import { createMailboxService } from "./mailbox/service";
@@ -66,6 +67,10 @@ if (replayFixture) {
     // dev 回落 PATH 上的 claude(可能与 SDK 内置 CLI 版本不同);Tauri 下走 ROGUENT_CLI_PATH。
     cliPath: cliPathFromEnv(process.env) ?? "claude",
   });
+  // 真实宝石经济:账本 + 扭蛋 + 成就,接同一个生产 DB。
+  // wireEconomyServices 会一次性发放 welcome_bonus(幂等,重启不重复发),
+  // 让新用户真有宝石可花;成就奖励(claim → 账本入账)是第二个真实宝石来源。
+  const economy = wireEconomyServices(db);
   const integrations = startLiveIntegrations({
     db,
     secretStore,
@@ -98,6 +103,11 @@ if (replayFixture) {
     },
     plugins: pluginsService,
     pairing: integrations.pairing,
+    // 宝石经济上线:扭蛋(purchaseItem)+ 成就(claimAchievement / 运行时进度)。
+    // initialPullSeq 用 null-session 账本条目数,扭蛋种子重启后仍唯一。
+    gacha: economy.gacha,
+    achievements: economy.achievements,
+    initialPullSeq: economy.initialPullSeq,
   });
   const schedulerRunner = createSchedulerRunner({ db, sessions: mgr });
   schedulerRunner.start();
