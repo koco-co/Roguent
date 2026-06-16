@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { selectPinnedIds, usePinnedStore } from "../pinned-store";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { ChatHeader } from "./ChatHeader";
@@ -32,11 +33,16 @@ export function ChatDrawer({ sessionId }: { sessionId?: string } = {}) {
   const currentId = sessionId ?? currentSessionId ?? "";
   const session = useRoomStore((s) => s.sessions[currentId]);
   const [query, setQuery] = useState("");
+  // 「仅看置顶」过滤开关(客户端本地 UI 状态,非引擎)。
+  const [pinnedOnly, setPinnedOnly] = useState(false);
+  // 当前会话已置顶 id 的稳定引用(守 zustand 铁律,不在 selector 里造新值)。
+  const pinnedIds = usePinnedStore((s) => selectPinnedIds(s, currentId));
 
-  // 切会话时清空搜索,免得旧 query 把新会话的消息都过滤没了。
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 仅在 currentId 变时重置 query,setQuery 稳定无需入 deps
+  // 切会话时清空搜索 + 关闭「仅看置顶」,免得旧筛选把新会话的消息都过滤没了。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 仅在 currentId 变时重置,setter 稳定无需入 deps
   useEffect(() => {
     setQuery("");
+    setPinnedOnly(false);
   }, [currentId]);
 
   // 计数用纯函数算(在 useMemo 里,不在 selector);Timeline 再次过滤同一 timeline——
@@ -61,9 +67,12 @@ export function ChatDrawer({ sessionId }: { sessionId?: string } = {}) {
             query={query}
             matchCount={matchCount}
             onChange={setQuery}
+            pinnedOnly={pinnedOnly}
+            pinnedCount={pinnedIds.length}
+            onTogglePinnedOnly={() => setPinnedOnly((v) => !v)}
           />
         )}
-        <Timeline sessionId={currentId} query={query} />
+        <Timeline sessionId={currentId} query={query} pinnedOnly={pinnedOnly} />
         <Composer sessionId={currentId} />
       </div>
     </div>

@@ -479,6 +479,11 @@ export const DICT: Record<string, string> = {
   搜索消息: "Search messages",
   清除搜索: "Clear search",
   没有匹配的消息: "No matching messages",
+  // Timeline message pin (B3, client-local UI state — not an engine event)
+  置顶: "Pin",
+  取消置顶: "Unpin",
+  仅看置顶: "Pinned only",
+  暂无置顶消息: "No pinned messages",
   // PromptCard
   "✓ 已回答": "✓ Answered",
   "✕ 已忽略": "✕ Dismissed",

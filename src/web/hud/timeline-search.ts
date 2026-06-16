@@ -41,3 +41,19 @@ export function filterTimelineByQuery(
   );
   return { items: matches, matchCount: matches.length, normalized };
 }
+
+/**
+ * 「仅看置顶」过滤(B3,客户端本地 UI)。只保留 id 落在 pinnedIds 里的 **message** 项,
+ * 顺序沿 timeline 原序(不按 pin 时间)。pinnedIds 为空 → 返回 []。
+ *
+ * 与搜索独立、不重复计数:UI 上「仅看置顶」与「搜索」择一/可叠加,各自是 timeline 上
+ * 的一道过滤,本函数只管置顶这一维。
+ */
+export function filterTimelineByPinned(
+  items: TimelineItem[],
+  pinnedIds: readonly string[],
+): TimelineItem[] {
+  if (pinnedIds.length === 0) return [];
+  const set = new Set(pinnedIds);
+  return items.filter((item) => item.kind === "message" && set.has(item.id));
+}

@@ -3483,6 +3483,22 @@ img {
 .cdrawer-search-clear:hover {
   color: var(--text);
 }
+/* 「仅看置顶」开关(B3,客户端本地查看辅助)。 */
+.cdrawer-pin-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-faint);
+  font-size: 11px;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+.cdrawer-pin-toggle:hover {
+  color: var(--text);
+}
+.cdrawer-pin-toggle.on {
+  color: var(--gold, #e0b000);
+}
 .cdrawer-thread {
   flex: 1;
   display: flex;
@@ -3524,6 +3540,14 @@ img {
 .cmsg.me .cmsg-bubble {
   background: linear-gradient(180deg, #1f6d80, #15505e);
   box-shadow: inset 0 0 0 2px #36c5e0;
+}
+/* 已置顶气泡:金色左描边(客户端本地标记,B3)。 */
+.cmsg.pinned .cmsg-bubble {
+  box-shadow: inset 0 0 0 2px var(--panel-edge), inset 3px 0 0 0
+    var(--gold, #e0b000);
+}
+.cmsg.me.pinned .cmsg-bubble {
+  box-shadow: inset 0 0 0 2px #36c5e0, inset 3px 0 0 0 var(--gold, #e0b000);
 }
 /* inline edit-and-resend on user message bubbles (B2). */
 .cmsg-edit {

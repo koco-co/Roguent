@@ -53,6 +53,13 @@ test("MessageBubble markdown 代码块复制按钮标签 en 翻译", () => {
   expect(translate("复制代码", "en")).toBe("Copy code");
 });
 
+test("消息置顶(B3)关键串 en 翻译,EN 无中文泄漏", () => {
+  expect(translate("置顶", "en")).toBe("Pin");
+  expect(translate("取消置顶", "en")).toBe("Unpin");
+  expect(translate("仅看置顶", "en")).toBe("Pinned only");
+  expect(translate("暂无置顶消息", "en")).toBe("No pinned messages");
+});
+
 test("artpack 组关键串 en 翻译", () => {
   expect(translate("美术风格 Art Style", "en")).toBe("Art Style");
   expect(

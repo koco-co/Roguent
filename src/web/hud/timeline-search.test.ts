@@ -5,7 +5,10 @@ import type {
   TimelineThinkingItem,
   TimelineToolItem,
 } from "../../shared/domain";
-import { filterTimelineByQuery } from "./timeline-search";
+import {
+  filterTimelineByPinned,
+  filterTimelineByQuery,
+} from "./timeline-search";
 
 function msg(
   id: string,
@@ -96,4 +99,22 @@ test("no match returns an empty list", () => {
 test("matches user and assistant messages alike", () => {
   const result = filterTimelineByQuery(sample, "run");
   expect(result.items.map((i) => i.id)).toEqual(["1"]);
+});
+
+// ── pinned-only filter (B3) ────────────────────────────────────────────────
+test("filterTimelineByPinned: empty pinned set returns []", () => {
+  expect(filterTimelineByPinned(sample, [])).toEqual([]);
+});
+
+test("filterTimelineByPinned: keeps only pinned message items, in timeline order", () => {
+  // pin ids out of order; result follows original timeline order, not pin order
+  const result = filterTimelineByPinned(sample, ["5", "1"]);
+  expect(result.map((i) => i.id)).toEqual(["1", "5"]);
+  expect(result.every((i) => i.kind === "message")).toBe(true);
+});
+
+test("filterTimelineByPinned: never returns non-message items even if id matches", () => {
+  // "3" is the Bash tool item; pinning by that id must not surface a tool card
+  const result = filterTimelineByPinned(sample, ["3", "4"]);
+  expect(result.map((i) => i.id)).toEqual(["4"]);
 });

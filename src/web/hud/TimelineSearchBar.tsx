@@ -11,10 +11,18 @@ export function TimelineSearchBar({
   query,
   matchCount,
   onChange,
+  pinnedOnly,
+  pinnedCount,
+  onTogglePinnedOnly,
 }: {
   query: string;
   matchCount: number;
   onChange: (next: string) => void;
+  /** 「仅看置顶」过滤是否开启(客户端本地 UI 状态,非引擎)。 */
+  pinnedOnly: boolean;
+  /** 当前会话已置顶消息数,用于按钮角标。 */
+  pinnedCount: number;
+  onTogglePinnedOnly: () => void;
 }) {
   const t = useT();
   const tl = useTL();
@@ -49,6 +57,17 @@ export function TimelineSearchBar({
           ✕
         </button>
       )}
+      {/* 「仅看置顶」开关:把 timeline 过滤到当前会话已置顶的消息(客户端本地)。 */}
+      <button
+        type="button"
+        className={`cdrawer-pin-toggle px${pinnedOnly ? " on" : ""}`}
+        onClick={onTogglePinnedOnly}
+        title={t("仅看置顶")}
+        aria-label={t("仅看置顶")}
+        aria-pressed={pinnedOnly}
+      >
+        📌{pinnedCount > 0 ? ` ${pinnedCount}` : ""}
+      </button>
     </div>
   );
 }

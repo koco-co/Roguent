@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, beforeEach, expect, test } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
@@ -6,6 +6,7 @@ import {
   createAgent,
   createSession,
 } from "../../shared/domain";
+import { usePinnedStore } from "../pinned-store";
 import { type RoomConnection, connectRoom } from "../ws-client";
 import { MessageBubble } from "./MessageBubble";
 
@@ -51,11 +52,16 @@ function agentMessage(
   };
 }
 
+beforeEach(() => {
+  usePinnedStore.setState({ pinnedBySession: {} });
+});
+
 afterEach(() => {
   connection?.close();
   connection = null;
   globalThis.WebSocket = originalWebSocket;
   cleanup();
+  usePinnedStore.setState({ pinnedBySession: {} });
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
     value: undefined,
@@ -283,4 +289,50 @@ test("assistant message has no 编辑 button", () => {
   render(<MessageBubble item={item} session={session} sessionId="s1" />);
 
   expect(screen.queryByRole("button", { name: "编辑" })).toBeNull();
+});
+
+test("clicking 置顶 pins the message in the per-session store; toggling off unpins", async () => {
+  const session = createSession({ id: "s1", title: "t", model: "m" });
+  const item = agentMessage({ id: "42", role: "assistant", text: "keep me" });
+
+  render(<MessageBubble item={item} session={session} sessionId="s1" />);
+
+  // initially unpinned: button reads 置顶, store empty
+  const pinBtn = screen.getByRole("button", { name: "置顶" });
+  expect(usePinnedStore.getState().pinnedBySession).toEqual({});
+
+  await userEvent.click(pinBtn);
+  expect(usePinnedStore.getState().pinnedBySession).toEqual({ s1: ["42"] });
+  // button flips to 取消置顶 and is pressed
+  const unpinBtn = screen.getByRole("button", { name: "取消置顶" });
+  expect(unpinBtn.getAttribute("aria-pressed")).toBe("true");
+
+  await userEvent.click(unpinBtn);
+  expect(usePinnedStore.getState().pinnedBySession).toEqual({});
+  expect(
+    screen.getByRole("button", { name: "置顶" }).getAttribute("aria-pressed"),
+  ).toBe("false");
+});
+
+test("user messages can also be pinned (pin available on both roles)", async () => {
+  const session = createSession({ id: "s1", title: "t", model: "m" });
+  const item = agentMessage({ id: "7", role: "user", text: "my question" });
+
+  render(<MessageBubble item={item} session={session} sessionId="s1" />);
+
+  await userEvent.click(screen.getByRole("button", { name: "置顶" }));
+  expect(usePinnedStore.getState().pinnedBySession).toEqual({ s1: ["7"] });
+});
+
+test("a pre-pinned message renders the 取消置顶 affordance and the pinned class", () => {
+  usePinnedStore.setState({ pinnedBySession: { s1: ["42"] } });
+  const session = createSession({ id: "s1", title: "t", model: "m" });
+  const item = agentMessage({ id: "42", role: "assistant", text: "kept" });
+
+  const { container } = render(
+    <MessageBubble item={item} session={session} sessionId="s1" />,
+  );
+
+  expect(screen.getByRole("button", { name: "取消置顶" })).toBeTruthy();
+  expect(container.querySelector(".cmsg.pinned")).toBeTruthy();
 });
