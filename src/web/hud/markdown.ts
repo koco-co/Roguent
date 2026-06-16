@@ -79,7 +79,15 @@ function splitRow(ln: string): string[] {
     .map((c) => c.trim());
 }
 
-export function mdToHtml(src: string): string {
+/** mdToHtml 选项。本模块是纯字符串函数,拿不到 React 的 useT() hook,故由调用方
+ *  (MessageBubble,持有 useT())把已翻译的 UI 文案注入进来,避免硬编码中文泄漏到 EN。 */
+export interface MdOptions {
+  /** 代码块复制按钮的 aria-label + title;缺省中文「复制代码」。 */
+  copyLabel?: string;
+}
+
+export function mdToHtml(src: string, opts: MdOptions = {}): string {
+  const copyLabel = opts.copyLabel ?? "复制代码";
   const lines = (src || "").split("\n");
   let out = "";
   let i = 0;
@@ -111,7 +119,7 @@ export function mdToHtml(src: string): string {
       const langClass = /^[A-Za-z0-9_+-]+$/.test(lang)
         ? ` class="language-${lang}"`
         : "";
-      out += `<div class="md-codeblock"><button type="button" class="md-codecopy" data-code="${escAttr(codeText)}" aria-label="复制代码" title="复制代码">⎘</button><pre class="md-pre"><code${langClass}>${escHtml(codeText)}</code></pre></div>`;
+      out += `<div class="md-codeblock"><button type="button" class="md-codecopy" data-code="${escAttr(codeText)}" aria-label="${escAttr(copyLabel)}" title="${escAttr(copyLabel)}">⎘</button><pre class="md-pre"><code${langClass}>${escHtml(codeText)}</code></pre></div>`;
       continue;
     }
 

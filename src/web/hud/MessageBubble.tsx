@@ -129,7 +129,9 @@ export function MessageBubble({ item, session, sessionId }: Props) {
         onClick={copyCode}
         data-code-copied={copiedCode ? "true" : "false"}
         // biome-ignore lint/security/noDangerouslySetInnerHtml: mdToHtml 先 escHtml 再渲染
-        dangerouslySetInnerHTML={{ __html: mdToHtml(item.text) }}
+        dangerouslySetInnerHTML={{
+          __html: mdToHtml(item.text, { copyLabel: t("复制代码") }),
+        }}
       />
     </div>
   );
