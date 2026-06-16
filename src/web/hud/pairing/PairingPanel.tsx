@@ -40,12 +40,14 @@ export function PairingPanel({
     .filter(isVisibleBinding(sessionId, channel))
     .sort((a, b) => (b.updatedAt ?? b.boundAt) - (a.updatedAt ?? a.boundAt));
 
-  const createPairing = () => {
+  // 「生成 QR」启动连接器配对流(微信 iLink / 飞书 device-code)——发 pairing/generateQr,
+  // 不发 createPairing(后者是「已知 externalChatId 时手动绑定」,出码阶段还没有 chatId)。
+  const generateQr = () => {
     sendCommand({
-      cmd: "createPairing",
+      cmd: "pairing",
+      action: "generateQr",
       sessionId,
       channel,
-      forwardingEnabled: true,
     });
   };
 
@@ -74,7 +76,7 @@ export function PairingPanel({
         </div>
 
         <div className="pair-grid">
-          <PairingQr channel={channel} qr={qr} onCreate={createPairing} />
+          <PairingQr channel={channel} qr={qr} onCreate={generateQr} />
           <div className="pair-side">
             <div className="pair-session-card">
               <div className="px pair-card-title">{t("当前会话")}</div>

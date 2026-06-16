@@ -175,10 +175,10 @@ test("creating QR and unpairing send real pairing commands", async () => {
     JSON.parse(raw),
   ) as Array<Record<string, unknown>>;
   expect(sent.at(-2)).toMatchObject({
-    cmd: "createPairing",
+    cmd: "pairing",
+    action: "generateQr",
     sessionId: "s1",
     channel: "wechat",
-    forwardingEnabled: true,
   });
   expect(sent.at(-1)).toMatchObject({
     cmd: "updatePairing",
