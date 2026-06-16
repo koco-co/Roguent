@@ -48,6 +48,11 @@ test("sweep B 关键串 en 翻译", () => {
   );
 });
 
+test("MessageBubble markdown 代码块复制按钮标签 en 翻译", () => {
+  // markdown.ts 的代码块复制按钮 aria-label/title,经 useT() 注入译文,EN 不应泄漏中文。
+  expect(translate("复制代码", "en")).toBe("Copy code");
+});
+
 test("artpack 组关键串 en 翻译", () => {
   expect(translate("美术风格 Art Style", "en")).toBe("Art Style");
   expect(

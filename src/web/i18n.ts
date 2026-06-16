@@ -482,6 +482,7 @@ export const DICT: Record<string, string> = {
   // MessageBubble
   你: "You",
   复制消息: "Copy message",
+  复制代码: "Copy code",
   // ThinkingBlock
   思考过程: "Reasoning",
   // PairingQr

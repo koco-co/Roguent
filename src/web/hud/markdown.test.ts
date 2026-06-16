@@ -40,6 +40,24 @@ test("escapes fenced code copied data attribute", () => {
   );
 });
 
+test("threads an i18n copy-button label into code blocks", () => {
+  expect(mdToHtml("```\nx\n```", { copyLabel: "Copy code" })).toBe(
+    '<div class="md-codeblock"><button type="button" class="md-codecopy" data-code="x" aria-label="Copy code" title="Copy code">⎘</button><pre class="md-pre"><code>x</code></pre></div>',
+  );
+});
+
+test("defaults the code-copy label to 复制代码 without opts", () => {
+  expect(mdToHtml("```\nx\n```")).toBe(
+    '<div class="md-codeblock"><button type="button" class="md-codecopy" data-code="x" aria-label="复制代码" title="复制代码">⎘</button><pre class="md-pre"><code>x</code></pre></div>',
+  );
+});
+
+test("escapes the injected copy-button label as an attribute", () => {
+  expect(mdToHtml("```\nx\n```", { copyLabel: 'a"<b' })).toBe(
+    '<div class="md-codeblock"><button type="button" class="md-codecopy" data-code="x" aria-label="a&quot;&lt;b" title="a&quot;&lt;b">⎘</button><pre class="md-pre"><code>x</code></pre></div>',
+  );
+});
+
 test("renders blockquote", () => {
   expect(mdToHtml("> quoted")).toBe(
     '<blockquote class="md-bq">quoted</blockquote>',
