@@ -9,7 +9,6 @@
         "@fontsource/press-start-2p": "^5.2.7",
         "@larksuiteoapi/node-sdk": "^1.66.1",
         "@pixi/react": "^8.0.5",
-        "@wechatbot/wechatbot": "^2.1.1",
         "pixi-filters": "^6",
         "pixi.js": "^8.2.6",
         "react": "^19",
@@ -324,8 +323,6 @@
     "@vitejs/plugin-react": ["@vitejs/plugin-react@4.7.0", "https://registry.npmmirror.com/@vitejs/plugin-react/-/plugin-react-4.7.0.tgz", { "dependencies": { "@babel/core": "^7.28.0", "@babel/plugin-transform-react-jsx-self": "^7.27.1", "@babel/plugin-transform-react-jsx-source": "^7.27.1", "@rolldown/pluginutils": "1.0.0-beta.27", "@types/babel__core": "^7.20.5", "react-refresh": "^0.17.0" }, "peerDependencies": { "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" } }, "sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA=="],
 
     "@webgpu/types": ["@webgpu/types@0.1.70", "https://registry.npmmirror.com/@webgpu/types/-/types-0.1.70.tgz", {}, "sha512-LFiNHHKMvmAEvwVew3JLJmTdShhbdwRFSImUshGhE2mGE8ybQzIo63l5uRp+YKnNx+8Qno8Kf6gN+DKMreIJCA=="],
-
-    "@wechatbot/wechatbot": ["@wechatbot/wechatbot@2.1.1", "https://registry.npmmirror.com/@wechatbot/wechatbot/-/wechatbot-2.1.1.tgz", {}, "sha512-94H1HrfksPB46HZdnQ2Ifebaz8eg6cy8SCIr1siFa0HsyPT9S+Hf6e3jAFtpC9ky9TF0JIXAv4rlcABmgvZhrA=="],
 
     "@xmldom/xmldom": ["@xmldom/xmldom@0.8.13", "https://registry.npmmirror.com/@xmldom/xmldom/-/xmldom-0.8.13.tgz", {}, "sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw=="],
 
