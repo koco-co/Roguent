@@ -311,7 +311,7 @@ export class WsGateway {
     else if (c.cmd === "rollback")
       void this.mgr.rollback(c.sessionId, c.checkpointId);
     else if (c.cmd === "retryFrom")
-      this.mgr.retryFrom(c.sessionId, c.timelineItemId);
+      this.mgr.retryFrom(c.sessionId, c.timelineItemId, c.text);
     else if (c.cmd === "deleteSession") this.mgr.deleteSession(c.sessionId);
     else if (c.cmd === "listLocalSessions")
       this.reply(ws, {

@@ -173,6 +173,49 @@ test("parseClientCommand accepts existing session and prompt commands", () => {
   expect(parseClientCommand({ cmd: "retryFrom", sessionId: "s1" }).ok).toBe(
     false,
   );
+  // B2: optional text override round-trips when present.
+  expect(
+    parseClientCommand({
+      cmd: "retryFrom",
+      sessionId: "s1",
+      timelineItemId: "item-1",
+      text: "edited text",
+    }),
+  ).toEqual({
+    ok: true,
+    command: {
+      cmd: "retryFrom",
+      sessionId: "s1",
+      timelineItemId: "item-1",
+      text: "edited text",
+    },
+  });
+  // Empty / whitespace-only text override is rejected.
+  expect(
+    parseClientCommand({
+      cmd: "retryFrom",
+      sessionId: "s1",
+      timelineItemId: "item-1",
+      text: "",
+    }).ok,
+  ).toBe(false);
+  expect(
+    parseClientCommand({
+      cmd: "retryFrom",
+      sessionId: "s1",
+      timelineItemId: "item-1",
+      text: "   ",
+    }).ok,
+  ).toBe(false);
+  // Non-string text override is rejected.
+  expect(
+    parseClientCommand({
+      cmd: "retryFrom",
+      sessionId: "s1",
+      timelineItemId: "item-1",
+      text: 42,
+    }).ok,
+  ).toBe(false);
   expect(parseClientCommand({ cmd: "deleteSession", sessionId: "s1" })).toEqual(
     {
       ok: true,

@@ -66,6 +66,12 @@ export interface RetryFromCommand {
   cmd: "retryFrom";
   sessionId: string;
   timelineItemId: string;
+  /**
+   * Optional edited text (B2). When present the engine resends THIS text
+   * instead of the stored original (edit-and-resend). When absent, retryFrom
+   * resends the message originally stored for `timelineItemId`.
+   */
+  text?: string;
 }
 
 export interface DeleteSessionCommand {
@@ -345,9 +351,7 @@ export function parseClientCommand(raw: unknown): ParseClientCommandResult {
         cmd: "rollback",
       });
     case "retryFrom":
-      return parseStringFields(o, ["sessionId", "timelineItemId"], {
-        cmd: "retryFrom",
-      });
+      return parseRetryFromCommand(o);
     case "deleteSession":
       return parseStringFields(o, ["sessionId"], { cmd: "deleteSession" });
     case "listLocalSessions":
@@ -442,6 +446,30 @@ function parseNewSessionCommand(
       ...(o.networkAccess !== undefined
         ? { networkAccess: o.networkAccess }
         : {}),
+    },
+  };
+}
+
+function parseRetryFromCommand(
+  o: Record<string, unknown>,
+): ParseClientCommandResult {
+  if (typeof o.sessionId !== "string" || typeof o.timelineItemId !== "string") {
+    return fail("Invalid retryFrom command", sessionIdOf(o));
+  }
+  // Optional text override (B2): if present it must be a non-empty, non-blank
+  // string; absent is fine (resend stored original).
+  if (o.text !== undefined) {
+    if (typeof o.text !== "string" || o.text.trim().length === 0) {
+      return fail("Invalid retryFrom command", sessionIdOf(o));
+    }
+  }
+  return {
+    ok: true,
+    command: {
+      cmd: "retryFrom",
+      sessionId: o.sessionId,
+      timelineItemId: o.timelineItemId,
+      ...(o.text !== undefined ? { text: o.text } : {}),
     },
   };
 }

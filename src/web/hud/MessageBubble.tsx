@@ -39,12 +39,39 @@ export function MessageBubble({ item, session, sessionId }: Props) {
   const t = useT();
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  // 编辑态:本地草稿,不改 store item;保存时把新文本作为 retryFrom 的 text 覆盖回放。
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(item.text);
   const { name, roleTag } = author(item, session, t);
-  // 只有 user 消息可重发:engine 的 retryFrom 按同一 String(seq)=item.id 检索原文回放。
+  // 只有 user 消息可重发/编辑:engine 的 retryFrom 按同一 String(seq)=item.id 检索原文回放。
   const canRetry = item.role === "user";
 
   const retry = () => {
     sendCommand({ cmd: "retryFrom", sessionId, timelineItemId: item.id });
+  };
+
+  const startEdit = () => {
+    setDraft(item.text);
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setDraft(item.text);
+  };
+
+  const saveEdit = () => {
+    const next = draft.trim();
+    // 仅在非空且与原文不同的情况下才发命令;否则等同取消。
+    if (next.length > 0 && next !== item.text) {
+      sendCommand({
+        cmd: "retryFrom",
+        sessionId,
+        timelineItemId: item.id,
+        text: next,
+      });
+    }
+    setEditing(false);
   };
 
   const copy = () => {
@@ -122,17 +149,60 @@ export function MessageBubble({ item, session, sessionId }: Props) {
             ↻
           </button>
         )}
+        {canRetry && !editing && (
+          <button
+            type="button"
+            onClick={startEdit}
+            title={t("编辑")}
+            aria-label={t("编辑")}
+            style={{
+              fontSize: 10,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--text)",
+              opacity: 0.6,
+              padding: 0,
+            }}
+          >
+            ✎
+          </button>
+        )}
       </div>
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: markdown HTML is inert; code-copy button clicks are delegated from this container, keyboard activation on the real button still emits click */}
-      <div
-        className="cmsg-bubble md"
-        onClick={copyCode}
-        data-code-copied={copiedCode ? "true" : "false"}
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: mdToHtml 先 escHtml 再渲染
-        dangerouslySetInnerHTML={{
-          __html: mdToHtml(item.text, { copyLabel: t("复制代码") }),
-        }}
-      />
+      {editing ? (
+        <div className="cmsg-edit">
+          <textarea
+            className="cmsg-edit-input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            // biome-ignore lint/a11y/noAutofocus: focus the editor the user just opened
+            autoFocus
+          />
+          <div className="cmsg-edit-actions">
+            <button type="button" className="cmsg-edit-btn" onClick={saveEdit}>
+              {t("保存")}
+            </button>
+            <button
+              type="button"
+              className="cmsg-edit-btn"
+              onClick={cancelEdit}
+            >
+              {t("取消")}
+            </button>
+          </div>
+        </div>
+      ) : (
+        // biome-ignore lint/a11y/useKeyWithClickEvents: markdown HTML is inert; code-copy button clicks are delegated from this container, keyboard activation on the real button still emits click
+        <div
+          className="cmsg-bubble md"
+          onClick={copyCode}
+          data-code-copied={copiedCode ? "true" : "false"}
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: mdToHtml 先 escHtml 再渲染
+          dangerouslySetInnerHTML={{
+            __html: mdToHtml(item.text, { copyLabel: t("复制代码") }),
+          }}
+        />
+      )}
     </div>
   );
 }

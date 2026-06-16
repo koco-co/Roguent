@@ -304,15 +304,22 @@ export class SessionManager {
     );
   }
 
-  retryFrom(id: string, timelineItemId: string): void {
-    const text = this.retryTextByTimelineItem.get(id)?.get(timelineItemId);
-    if (!text) {
+  // B2: `override` is the optional edited text (edit-and-resend). When a
+  // non-empty override is given we resend THAT text instead of the stored
+  // original; absent/blank falls back to the message originally stored for
+  // `timelineItemId`. The timeline item must still be a known user message
+  // (we never invent a new turn from thin air).
+  retryFrom(id: string, timelineItemId: string, override?: string): void {
+    const stored = this.retryTextByTimelineItem.get(id)?.get(timelineItemId);
+    if (!stored) {
       this.emitSessionError(
         id,
         `Cannot retry from unknown or non-message timeline item: ${timelineItemId}`,
       );
       return;
     }
+    const trimmedOverride = override?.trim();
+    const text = trimmedOverride ? override! : stored;
     const driver = this.drivers.get(id);
     if (!driver || !this.knownSessions.has(id)) {
       this.emitSessionError(
@@ -327,6 +334,13 @@ export class SessionManager {
     } catch (error) {
       this.emitSessionError(id, `Retry failed: ${errorMessage(error)}`);
       return;
+    }
+
+    // Persist an edited override back onto the timeline item so a follow-up
+    // retry of the same item resends the latest edited text, not the stale
+    // original. No-op when no override was provided.
+    if (trimmedOverride) {
+      this.retryTextByTimelineItem.get(id)?.set(timelineItemId, override!);
     }
 
     this.appendRetryAudit(id, timelineItemId, text);

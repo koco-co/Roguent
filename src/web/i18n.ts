@@ -36,6 +36,7 @@ export const DICT: Record<string, string> = {
   "查看 diff": "View diff",
   拉取到本地: "Pull local",
   导入: "Import",
+  编辑: "Edit",
   保存: "Save",
   发送: "Send",
   返回: "Back",

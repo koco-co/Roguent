@@ -1029,8 +1029,8 @@ test("WsGateway dispatches rollback and retryFrom commands to SessionManager", a
     subscribe: () => () => {},
     rollback: (sessionId: string, checkpointId: string) =>
       calls.push({ cmd: "rollback", sessionId, checkpointId }),
-    retryFrom: (sessionId: string, timelineItemId: string) =>
-      calls.push({ cmd: "retryFrom", sessionId, timelineItemId }),
+    retryFrom: (sessionId: string, timelineItemId: string, text?: string) =>
+      calls.push({ cmd: "retryFrom", sessionId, timelineItemId, text }),
   } as unknown as SessionManager;
   const gateway = createTestGateway(mgr);
   try {
@@ -1052,6 +1052,17 @@ test("WsGateway dispatches rollback and retryFrom commands to SessionManager", a
       }),
       ws,
     );
+    // B2: optional text override is forwarded to SessionManager.retryFrom.
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "retryFrom",
+        sessionId: "s1",
+        timelineItemId: "item-2",
+        text: "edited text",
+      }),
+      ws,
+    );
   } finally {
     await closeGateway(gateway);
   }
@@ -1067,6 +1078,13 @@ test("WsGateway dispatches rollback and retryFrom commands to SessionManager", a
       cmd: "retryFrom",
       sessionId: "s1",
       timelineItemId: "item-1",
+      text: undefined,
+    },
+    {
+      cmd: "retryFrom",
+      sessionId: "s1",
+      timelineItemId: "item-2",
+      text: "edited text",
     },
   ]);
 });
