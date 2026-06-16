@@ -39,10 +39,46 @@ export interface NewSessionCommand {
   networkAccess?: boolean;
 }
 
+/**
+ * The 4 image media types we support for multimodal attachments (B4). Mirrors
+ * the SDK `ImageBlockParam.source.media_type` base64 subset. GIF/WEBP included
+ * for the image-only MVP; documents/PDF are explicitly out of scope.
+ */
+export const IMAGE_ATTACHMENT_MEDIA_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+] as const;
+
+export type ImageAttachmentMediaType =
+  (typeof IMAGE_ATTACHMENT_MEDIA_TYPES)[number];
+
+/** Max number of image attachments per message (keeps payload + SDK turn sane). */
+export const MAX_IMAGE_ATTACHMENTS = 4;
+
+/**
+ * A single image attachment sent with a chat message (B4). `dataBase64` is RAW
+ * base64 — NO `data:` prefix — so the engine can drop it straight into an SDK
+ * `ImageBlockParam` base64 source.
+ */
+export interface ImageAttachment {
+  kind: "image";
+  name: string;
+  mediaType: ImageAttachmentMediaType;
+  dataBase64: string;
+}
+
 export interface SendMessageCommand {
   cmd: "sendMessage";
   sessionId: string;
   text: string;
+  /**
+   * Optional image attachments (B4). When present they become SDK multimodal
+   * content blocks. `text` may be empty when at least one attachment is given,
+   * but text + attachments must not BOTH be empty.
+   */
+  attachments?: ImageAttachment[];
 }
 
 export interface SetModelCommand {
@@ -327,6 +363,12 @@ const RECURRENCE_MONTHLY_KEYS = [
   "timezone",
 ] as const;
 const RESERVED_SCHEDULER_METADATA_KEYS = ["__targetSessionId"] as const;
+const IMAGE_ATTACHMENT_KEYS = [
+  "kind",
+  "name",
+  "mediaType",
+  "dataBase64",
+] as const;
 
 export function parseClientCommand(raw: unknown): ParseClientCommandResult {
   const parsed = parseRawCommand(raw);
@@ -337,9 +379,7 @@ export function parseClientCommand(raw: unknown): ParseClientCommandResult {
     case "newSession":
       return parseNewSessionCommand(o);
     case "sendMessage":
-      return parseStringFields(o, ["sessionId", "text"], {
-        cmd: "sendMessage",
-      });
+      return parseSendMessageCommand(o);
     case "setModel":
       return parseStringFields(o, ["sessionId", "model"], {
         cmd: "setModel",
@@ -448,6 +488,83 @@ function parseNewSessionCommand(
         : {}),
     },
   };
+}
+
+function parseSendMessageCommand(
+  o: Record<string, unknown>,
+): ParseClientCommandResult {
+  if (typeof o.sessionId !== "string" || typeof o.text !== "string") {
+    return fail("Invalid sendMessage command", sessionIdOf(o));
+  }
+  const attachments = parseImageAttachments(o.attachments);
+  if (attachments === null) {
+    return fail("Invalid sendMessage command", sessionIdOf(o));
+  }
+  // text + attachments must not BOTH be empty (blank text counts as empty).
+  if (o.text.trim().length === 0 && attachments.length === 0) {
+    return fail("Invalid sendMessage command", sessionIdOf(o));
+  }
+  return {
+    ok: true,
+    command: {
+      cmd: "sendMessage",
+      sessionId: o.sessionId,
+      text: o.text,
+      ...(attachments.length > 0 ? { attachments } : {}),
+    },
+  };
+}
+
+// Returns the validated attachment list, [] when absent, or null when malformed.
+function parseImageAttachments(value: unknown): ImageAttachment[] | null {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) return null;
+  if (value.length > MAX_IMAGE_ATTACHMENTS) return null;
+  const out: ImageAttachment[] = [];
+  for (const item of value) {
+    const att = parseImageAttachment(item);
+    if (att === null) return null;
+    out.push(att);
+  }
+  return out;
+}
+
+function parseImageAttachment(value: unknown): ImageAttachment | null {
+  if (!isRecord(value)) return null;
+  if (!hasOnlyKeys(value, IMAGE_ATTACHMENT_KEYS)) return null;
+  if (
+    value.kind !== "image" ||
+    typeof value.name !== "string" ||
+    value.name.length === 0 ||
+    !isImageAttachmentMediaType(value.mediaType) ||
+    typeof value.dataBase64 !== "string" ||
+    !isLikelyBase64(value.dataBase64)
+  ) {
+    return null;
+  }
+  return {
+    kind: "image",
+    name: value.name,
+    mediaType: value.mediaType,
+    dataBase64: value.dataBase64,
+  };
+}
+
+function isImageAttachmentMediaType(
+  value: unknown,
+): value is ImageAttachmentMediaType {
+  return (
+    typeof value === "string" &&
+    (IMAGE_ATTACHMENT_MEDIA_TYPES as readonly string[]).includes(value)
+  );
+}
+
+// Loose, security-minded base64 shape check: non-empty and only standard base64
+// alphabet (A–Z a–z 0–9 + / =). Rejects whitespace / data: prefixes / arbitrary
+// junk before we ever hand it to the SDK or render it. Not a strict length check.
+const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
+function isLikelyBase64(value: string): boolean {
+  return value.length > 0 && BASE64_RE.test(value);
 }
 
 function parseRetryFromCommand(

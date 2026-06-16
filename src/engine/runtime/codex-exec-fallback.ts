@@ -12,7 +12,13 @@ import {
 import { redactAuditText } from "../audit/log";
 import type { DriverCallbacks } from "./claude-driver";
 import { resolveCodexCliPath } from "./codex-capabilities";
-import type { DraftEvent, RuntimeDriver, RuntimeSendMeta } from "./types";
+import {
+  type DraftEvent,
+  type RuntimeDriver,
+  type RuntimeSendContent,
+  type RuntimeSendMeta,
+  sendContentToText,
+} from "./types";
 
 export interface CodexExecSpawnOptions {
   cwd?: string;
@@ -77,8 +83,10 @@ export class CodexExecFallbackDriver implements RuntimeDriver {
     });
   }
 
-  send(text: string, _meta?: RuntimeSendMeta): void {
+  send(content: RuntimeSendContent, _meta?: RuntimeSendMeta): void {
     if (this.ended) return;
+    // Codex exec has no multimodal input — flatten to the text portion.
+    const text = sendContentToText(content);
     if (this.activeChild && !this.activeChild.killed) {
       this.killActiveChild();
     }

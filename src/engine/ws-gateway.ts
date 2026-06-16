@@ -305,7 +305,8 @@ export class WsGateway {
         reasoningEffort: c.reasoningEffort,
         networkAccess: c.networkAccess,
       });
-    else if (c.cmd === "sendMessage") this.mgr.sendMessage(c.sessionId, c.text);
+    else if (c.cmd === "sendMessage")
+      this.mgr.sendMessage(c.sessionId, c.text, c.attachments);
     else if (c.cmd === "setModel") void this.mgr.setModel(c.sessionId, c.model);
     else if (c.cmd === "interrupt") void this.mgr.interrupt(c.sessionId);
     else if (c.cmd === "rollback")

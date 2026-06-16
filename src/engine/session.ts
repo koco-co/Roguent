@@ -1,7 +1,9 @@
 import type { Database } from "bun:sqlite";
 import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
+import type { ImageAttachment } from "../shared/commands";
 import type {
   AccountLimits,
+  MessagePayload,
   PromptRequestedPayload,
   PromptResolvedPayload,
   RoomEvent,
@@ -32,6 +34,7 @@ import {
   RuntimeManager,
   resolveRuntimeDriverConfig,
 } from "./runtime/manager";
+import type { RuntimeSendContent } from "./runtime/types";
 import { Sequencer } from "./sequencer";
 import { normalizeTranscript } from "./transcript";
 
@@ -251,18 +254,36 @@ export class SessionManager {
     return [...this.knownSessions];
   }
 
-  sendMessage(id: string, text: string): boolean {
+  // B4: optional image attachments become SDK multimodal content blocks. With
+  // no attachments we send a plain string (backward compatible). With
+  // attachments we send a content-block array: an optional leading text block
+  // (only when text is non-blank) followed by one image block per attachment.
+  // The broadcast message.final carries a LIGHT display descriptor (name +
+  // mediaType only — NO base64) so the UI can render chips without bloating the
+  // event stream.
+  sendMessage(
+    id: string,
+    text: string,
+    attachments?: ImageAttachment[],
+  ): boolean {
     const driver = this.drivers.get(id);
     if (!driver || !this.knownSessions.has(id)) return false;
+    const content = buildSendContent(text, attachments);
     try {
-      driver.send(text);
+      driver.send(content);
     } catch (error) {
       this.emitSessionError(id, `Send failed: ${errorMessage(error)}`);
       return false;
     }
-    this.emit(
-      this.seq.stamp(id, "message.final", { role: "user", text }, Date.now()),
-    );
+    const displayAttachments = (attachments ?? []).map((a) => ({
+      name: a.name,
+      mediaType: a.mediaType,
+    }));
+    const payload: MessagePayload = { role: "user", text };
+    if (displayAttachments.length > 0) {
+      payload.attachments = displayAttachments;
+    }
+    this.emit(this.seq.stamp(id, "message.final", payload, Date.now()));
     return true;
   }
 
@@ -738,6 +759,29 @@ export class SessionManager {
 
     textByItem.set(String(e.seq), p.text);
   }
+}
+
+// Build the runtime send content for a user message. No attachments → a plain
+// string (legacy path). With attachments → an SDK content-block array: an
+// optional leading text block (only when text is non-blank) followed by one
+// base64 image block per attachment (B4). `dataBase64` is raw base64 (no
+// `data:` prefix), exactly what ImageBlockParam.source expects.
+function buildSendContent(
+  text: string,
+  attachments?: ImageAttachment[],
+): RuntimeSendContent {
+  if (!attachments || attachments.length === 0) return text;
+  const blocks: RuntimeSendContent = [];
+  if (text.trim().length > 0) {
+    blocks.push({ type: "text", text });
+  }
+  for (const a of attachments) {
+    blocks.push({
+      type: "image",
+      source: { type: "base64", media_type: a.mediaType, data: a.dataBase64 },
+    });
+  }
+  return blocks;
 }
 
 function timelineCheckpointId(e: RoomEvent): string | null {

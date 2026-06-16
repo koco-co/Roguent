@@ -3,6 +3,7 @@ import type { PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import type { TimelinePromptItem } from "../shared/domain";
 import type { RoomEvent } from "../shared/events";
 import type { DriverCallbacks, IDriver } from "./driver";
+import { sendContentToText } from "./runtime/types";
 import { SessionManager } from "./session";
 
 function driverStub(overrides: Partial<IDriver> = {}): IDriver {
@@ -194,8 +195,8 @@ test("respondQuestion uses driver prompt response when available and only once",
   const sent: string[] = [];
   const driver = {
     ...driverStub({
-      send(text) {
-        sent.push(text);
+      send(content) {
+        sent.push(sendContentToText(content));
       },
     }),
     respondQuestion(promptId: string, selectedLabels: string[]) {
@@ -264,8 +265,8 @@ test("respondQuestion falls back to a user message and local resolution once", (
   let callbacks: DriverCallbacks | undefined;
   const sent: string[] = [];
   const driver = driverStub({
-    send(text) {
-      sent.push(text);
+    send(content) {
+      sent.push(sendContentToText(content));
     },
   });
   const manager = new SessionManager(

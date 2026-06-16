@@ -40,7 +40,11 @@ import {
   isCodexNotification,
   parseCodexProtocolLine,
 } from "./codex-protocol";
-import type { RuntimeSendMeta } from "./types";
+import {
+  type RuntimeSendContent,
+  type RuntimeSendMeta,
+  sendContentToText,
+} from "./types";
 
 const APP_SERVER_ARGS = ["app-server", "--listen", "stdio://"] as const;
 const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
@@ -111,8 +115,10 @@ export class CodexAppServerDriver implements IDriver {
     void this.ensureClient().catch(() => {});
   }
 
-  send(text: string, _meta?: RuntimeSendMeta): void {
+  send(content: RuntimeSendContent, _meta?: RuntimeSendMeta): void {
     if (this.ended) return;
+    // Codex app-server turns are text-only here — flatten to the text portion.
+    const text = sendContentToText(content);
     void this.ensureClient()
       .then((client) =>
         client.send(text, {

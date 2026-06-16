@@ -111,6 +111,12 @@ export interface TimelineOutboundDelivery {
 export type TimelineMessageStatus = "streaming" | "final";
 export type TimelineThinkingStatus = "streaming" | "final";
 
+/** Display-only image attachment descriptor on a user message (B4, no base64). */
+export interface TimelineMessageAttachment {
+  name: string;
+  mediaType: string;
+}
+
 export interface TimelineMessageItem {
   kind: "message";
   id: string;
@@ -122,6 +128,8 @@ export interface TimelineMessageItem {
   runtime: RuntimeKind;
   status: TimelineMessageStatus;
   delivery?: TimelineOutboundDelivery;
+  /** Image attachment chips for a user message (B4); absent for plain messages. */
+  attachments?: TimelineMessageAttachment[];
 }
 
 export interface TimelineThinkingItem {

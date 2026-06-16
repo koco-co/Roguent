@@ -470,3 +470,127 @@ test("setRuntimeConfig forwards changed fields and emits runtime config update",
     changedKeys: ["model", "approvalPolicy", "sandboxMode", "reasoningEffort"],
   });
 });
+
+// --- B4: image attachments → SDK content blocks + display echo ---
+
+import type { ImageAttachment } from "../shared/commands";
+
+function captureSendManager() {
+  const sent: unknown[] = [];
+  const captured: { cb?: DriverCallbacks } = {};
+  const mgr = new SessionManager(
+    {
+      createDriver(cb: DriverCallbacks): IDriver {
+        captured.cb = cb;
+        return driverStub({
+          send(content: unknown) {
+            sent.push(content);
+          },
+        });
+      },
+    },
+    "/tmp",
+  );
+  return { mgr, sent };
+}
+
+test("sendMessage without attachments forwards a plain string to the driver", () => {
+  const { mgr, sent } = captureSendManager();
+  mgr.createSession("s1", { title: "t", model: "m" });
+  const ok = mgr.sendMessage("s1", "hello");
+  expect(ok).toBe(true);
+  expect(sent).toEqual(["hello"]);
+});
+
+test("sendMessage with text + 1 image builds [textBlock, imageBlock]", () => {
+  const { mgr, sent } = captureSendManager();
+  mgr.createSession("s1", { title: "t", model: "m" });
+  const attachments: ImageAttachment[] = [
+    {
+      kind: "image",
+      name: "a.png",
+      mediaType: "image/png",
+      dataBase64: "AAAA",
+    },
+  ];
+  mgr.sendMessage("s1", "look at this", attachments);
+  expect(sent).toHaveLength(1);
+  expect(sent[0]).toEqual([
+    { type: "text", text: "look at this" },
+    {
+      type: "image",
+      source: { type: "base64", media_type: "image/png", data: "AAAA" },
+    },
+  ]);
+});
+
+test("sendMessage with empty text + image omits the text block", () => {
+  const { mgr, sent } = captureSendManager();
+  mgr.createSession("s1", { title: "t", model: "m" });
+  const attachments: ImageAttachment[] = [
+    {
+      kind: "image",
+      name: "a.jpg",
+      mediaType: "image/jpeg",
+      dataBase64: "BBBB",
+    },
+  ];
+  mgr.sendMessage("s1", "   ", attachments);
+  expect(sent[0]).toEqual([
+    {
+      type: "image",
+      source: { type: "base64", media_type: "image/jpeg", data: "BBBB" },
+    },
+  ]);
+});
+
+test("sendMessage echoes display attachments (name+mediaType, no base64) on message.final", () => {
+  const { mgr } = captureSendManager();
+  const events: RoomEvent[] = [];
+  mgr.subscribe((e) => events.push(e));
+  mgr.createSession("s1", { title: "t", model: "m" });
+  mgr.sendMessage("s1", "hi", [
+    {
+      kind: "image",
+      name: "a.png",
+      mediaType: "image/png",
+      dataBase64: "AAAA",
+    },
+    {
+      kind: "image",
+      name: "b.webp",
+      mediaType: "image/webp",
+      dataBase64: "CCCC",
+    },
+  ]);
+  const final = events.find(
+    (e) =>
+      e.type === "message.final" &&
+      (e.payload as { role?: string }).role === "user",
+  );
+  expect(final).toBeDefined();
+  const p = final?.payload as {
+    text: string;
+    role: string;
+    attachments?: { name: string; mediaType: string }[];
+  };
+  expect(p.text).toBe("hi");
+  expect(p.attachments).toEqual([
+    { name: "a.png", mediaType: "image/png" },
+    { name: "b.webp", mediaType: "image/webp" },
+  ]);
+  // base64 must NOT leak into the broadcast payload
+  expect(JSON.stringify(final)).not.toContain("AAAA");
+  expect(JSON.stringify(final)).not.toContain("CCCC");
+});
+
+test("sendMessage without attachments emits message.final with no attachments field", () => {
+  const { mgr } = captureSendManager();
+  const events: RoomEvent[] = [];
+  mgr.subscribe((e) => events.push(e));
+  mgr.createSession("s1", { title: "t", model: "m" });
+  mgr.sendMessage("s1", "plain");
+  const final = events.find((e) => e.type === "message.final");
+  const p = final?.payload as { attachments?: unknown };
+  expect(p.attachments).toBeUndefined();
+});
