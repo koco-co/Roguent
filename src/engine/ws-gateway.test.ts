@@ -1,5 +1,10 @@
 import { expect, test } from "bun:test";
 import type {
+  AchievementProgress,
+  EconomyLedgerAppendedPayload,
+  EconomyLedgerEntry,
+} from "../shared/economy";
+import type {
   InventoryItemKind,
   MailboxItem,
   PluginEntry,
@@ -832,6 +837,163 @@ test("WsGateway hydrates mailbox items and replays connector statuses on connect
     expect.objectContaining({
       type: "mailbox.item.created",
       payload: { item },
+    }),
+  );
+});
+
+test("WsGateway hydrates economy ledger + achievements to the newly-connected client only", async () => {
+  const ledgerEntries: EconomyLedgerEntry[] = [
+    {
+      id: "ledger-welcome",
+      ts: 1,
+      reason: "welcome_bonus",
+      amount: 500,
+      currency: "gem",
+      delta: { gem: 500 },
+      balance: { gem: 500 },
+      sourceEventId: "economy:welcome-bonus:v1",
+    },
+    {
+      id: "ledger-pull",
+      ts: 2,
+      reason: "gacha.pull",
+      amount: -100,
+      currency: "gem",
+      delta: { gem: -100 },
+      balance: { gem: 400 },
+      sourceEventId: "gacha.pull:gacha.hero:1",
+    },
+  ];
+  const achievements: AchievementProgress[] = [
+    {
+      id: "first-codex-session",
+      title: "First Codex Session",
+      progress: 1,
+      target: 1,
+      completed: true,
+      claimed: false,
+      updatedAt: 3,
+    },
+  ];
+
+  const firstSent: unknown[] = [];
+  const firstWs = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => firstSent.push(JSON.parse(msg)),
+    on: () => undefined,
+  };
+  const secondSent: unknown[] = [];
+  const secondWs = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => secondSent.push(JSON.parse(msg)),
+    on: () => undefined,
+  };
+
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+  } as unknown as SessionManager;
+  const gateway = createTestGateway(mgr, {
+    economy: {
+      ledgerEntries: () => ledgerEntries,
+      achievements: () => achievements,
+    },
+  });
+  try {
+    // First client connects and gets the snapshot.
+    invokeHandleConnection(gateway, firstWs);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Drain the first client's frames before the second connects so we can
+    // assert the second connect does NOT re-deliver to the first client.
+    firstSent.length = 0;
+
+    // Second client connects later.
+    invokeHandleConnection(gateway, secondWs);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  // The second (newly-connected) client receives a ledger frame per entry and
+  // an achievement frame, rebuilding the live balance.
+  const ledgerFrames = secondSent.filter(
+    (f) => (f as { type?: string }).type === "economy.ledger.appended",
+  ) as Array<{ payload: EconomyLedgerAppendedPayload }>;
+  expect(ledgerFrames).toHaveLength(2);
+  expect(ledgerFrames.map((f) => f.payload.entry.id)).toEqual([
+    "ledger-welcome",
+    "ledger-pull",
+  ]);
+  // Replaying both deltas (+500, -100) rebuilds the 400 balance.
+  const rebuilt = ledgerFrames.reduce(
+    (sum, f) => sum + f.payload.entry.amount,
+    0,
+  );
+  expect(rebuilt).toBe(400);
+
+  const achievementFrames = secondSent.filter(
+    (f) => (f as { type?: string }).type === "achievement.updated",
+  ) as Array<{ payload: { achievement: AchievementProgress } }>;
+  expect(achievementFrames).toHaveLength(1);
+  expect(achievementFrames[0]?.payload.achievement.id).toBe(
+    "first-codex-session",
+  );
+
+  // The already-connected first client receives NO duplicate economy frames
+  // when the second client connects (per-connection send, not broadcast) —
+  // otherwise its ledger fold would double-count.
+  expect(
+    firstSent.filter(
+      (f) =>
+        (f as { type?: string }).type === "economy.ledger.appended" ||
+        (f as { type?: string }).type === "achievement.updated",
+    ),
+  ).toEqual([]);
+});
+
+test("WsGateway hydrates economy ledger + achievements to the newly-connected client only (first connect proof)", async () => {
+  const ledgerEntries: EconomyLedgerEntry[] = [
+    {
+      id: "ledger-welcome",
+      ts: 1,
+      reason: "welcome_bonus",
+      amount: 500,
+      currency: "gem",
+      delta: { gem: 500 },
+      balance: { gem: 500 },
+      sourceEventId: "economy:welcome-bonus:v1",
+    },
+  ];
+  const sent: unknown[] = [];
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(JSON.parse(msg)),
+    on: () => undefined,
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+  } as unknown as SessionManager;
+  const gateway = createTestGateway(mgr, {
+    economy: {
+      ledgerEntries: () => ledgerEntries,
+      achievements: () => [],
+    },
+  });
+  try {
+    invokeHandleConnection(gateway, ws);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(sent).toContainEqual(
+    expect.objectContaining({
+      type: "economy.ledger.appended",
+      payload: { entry: expect.objectContaining({ id: "ledger-welcome" }) },
     }),
   );
 });

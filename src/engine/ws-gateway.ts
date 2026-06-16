@@ -2,6 +2,10 @@ import { basename } from "node:path";
 import { type WebSocket, WebSocketServer } from "ws";
 import { type ClientCommand, parseClientCommand } from "../shared/commands";
 import type {
+  AchievementProgress,
+  EconomyLedgerEntry,
+} from "../shared/economy";
+import type {
   AccountLimits,
   AchievementUpdatedPayload,
   EconomyLedgerAppendedPayload,
@@ -69,6 +73,24 @@ export interface GatewayAchievementsService {
     | { ok: false; reason: string; detail?: string };
 }
 
+/**
+ * Read-only snapshot of the live gem economy used to hydrate a freshly-connected
+ * client. Without this, a new browser page shows balance 0 until new activity
+ * occurs, because the ledger / achievement state already accrued server-side is
+ * never replayed.
+ *
+ * The connection handler sends these AS per-connection frames to the NEW socket
+ * only (never broadcast): the store's ledger fold is append-only and does NOT
+ * dedupe by entry id, so re-delivering entries to an already-connected client
+ * would double-count its balance.
+ */
+export interface GatewayEconomyService {
+  /** All ledger entries (use ledger.entries(null) for the global account). */
+  ledgerEntries(): EconomyLedgerEntry[];
+  /** Achievements that have accrued progress (achievements.list()). */
+  achievements(): AchievementProgress[];
+}
+
 export interface GatewayGachaService {
   pull(
     sku: string,
@@ -128,6 +150,8 @@ export interface WsGatewayOptions {
   scheduler?: GatewaySchedulerService;
   settings?: GatewaySettingsService;
   achievements?: GatewayAchievementsService;
+  /** Read-only economy snapshot replayed to each newly-connected client. */
+  economy?: GatewayEconomyService;
   gacha?: GatewayGachaService;
   onSettingsUpdated?: (payload: SettingsUpdatedPayload) => void | Promise<void>;
   plugins?: GatewayPluginsService;
@@ -196,6 +220,7 @@ export class WsGateway {
       sessionIds: this.mgr.sessionIds(),
     });
     this.replayIntegrationStatuses(ws);
+    this.replayEconomySnapshot(ws);
     void this.publishSavedSettings();
     this.publishMailboxSnapshot();
     ws.on("message", (data) => void this.onCommand(String(data), ws));
@@ -215,6 +240,47 @@ export class WsGateway {
   private replayIntegrationStatuses(ws: WebSocket): void {
     for (const event of this.lastIntegrationStatuses.values()) {
       if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(event));
+    }
+  }
+
+  /**
+   * Hydrate the live gem economy onto a single newly-connected client so its
+   * gem balance / achievements appear immediately (instead of 0 until new
+   * activity occurs).
+   *
+   * Sends per-connection to THIS ws only — mirroring how lastPlugins is sent in
+   * handleConnection — NOT a broadcast. The store's ledger fold appends entries
+   * without de-duplicating by id, so re-delivering them to an already-connected
+   * client would double-count its balance. A fresh socket has no entries yet,
+   * so a strictly per-new-ws send is safe.
+   *
+   * Reuses the existing `economy.ledger.appended` / `achievement.updated`
+   * frames (no new event type): replaying the full entry list reconstructs the
+   * balance + inventory via the same reducer that handles live appends.
+   */
+  private replayEconomySnapshot(ws: WebSocket): void {
+    const economy = this.options.economy;
+    if (!economy) return;
+    if (ws.readyState !== ws.OPEN) return;
+    for (const entry of economy.ledgerEntries()) {
+      ws.send(
+        JSON.stringify({
+          ts: Date.now(),
+          sessionId: "__economy__",
+          type: "economy.ledger.appended",
+          payload: { entry } satisfies EconomyLedgerAppendedPayload,
+        }),
+      );
+    }
+    for (const achievement of economy.achievements()) {
+      ws.send(
+        JSON.stringify({
+          ts: Date.now(),
+          sessionId: "__economy__",
+          type: "achievement.updated",
+          payload: { achievement } satisfies AchievementUpdatedPayload,
+        }),
+      );
     }
   }
 
