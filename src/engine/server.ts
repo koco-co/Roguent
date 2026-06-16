@@ -108,6 +108,12 @@ if (replayFixture) {
     gacha: economy.gacha,
     achievements: economy.achievements,
     initialPullSeq: economy.initialPullSeq,
+    // 新连入的客户端按连接私发账本 + 成就快照(非广播),
+    // 让真实宝石余额立刻可见,而不是等到有新活动才从 0 跳起。
+    economy: {
+      ledgerEntries: () => economy.ledger.entries(null),
+      achievements: () => economy.achievements.list(),
+    },
   });
   const schedulerRunner = createSchedulerRunner({ db, sessions: mgr });
   schedulerRunner.start();
