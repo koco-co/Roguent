@@ -78,6 +78,25 @@ export class PairingService {
     return stored ? toPairingBinding(stored) : null;
   }
 
+  async getById(id: string): Promise<PairingBinding | null> {
+    const stored = createRepositories(this.db).pairingBindings.getById(id);
+    return stored ? toPairingBinding(stored) : null;
+  }
+
+  async revoke(id: string): Promise<PairingBinding | null> {
+    const repositories = createRepositories(this.db);
+    const previous = repositories.pairingBindings.getById(id);
+    if (!previous) return null;
+    const updated: StoredPairingBinding = {
+      ...previous,
+      status: "revoked",
+      forwardingEnabled: false,
+      updatedAt: Date.now(),
+    };
+    repositories.pairingBindings.upsert(updated);
+    return toPairingBinding(updated);
+  }
+
   async setForwarding(
     channel: IntegrationChannel,
     externalChatId: string,

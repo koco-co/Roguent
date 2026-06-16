@@ -5,10 +5,12 @@ import type {
   AccountLimits,
   AchievementUpdatedPayload,
   EconomyLedgerAppendedPayload,
+  IntegrationChannel,
   IntegrationStatusPayload,
   InventoryUpdatedPayload,
   LimitsMessage,
   MailboxItem,
+  PairingBindingStatus,
   PluginActionPhase,
   PluginEntry,
   PluginsMessage,
@@ -88,6 +90,37 @@ export interface GatewayPluginsService {
   ): Promise<PluginEntry[]>;
 }
 
+export interface GatewayPairingService {
+  /** Start a QR pairing flow for the channel (delegates to connector.startPairing). */
+  generateQr(
+    sessionId: string,
+    channel: IntegrationChannel,
+  ): Promise<void> | void;
+  /** Cancel an in-flight pairing flow (delegates to connector.stopPairing). */
+  cancelQr(
+    sessionId: string,
+    channel: IntegrationChannel,
+  ): Promise<void> | void;
+  /** Submit a verification code for channels that need one (e.g. WeChat iLink). */
+  submitVerifyCode(
+    sessionId: string,
+    channel: IntegrationChannel,
+    code: string,
+  ): Promise<void> | void;
+  /** Persist a binding directly (manual bind / scanned chat → session). */
+  createBinding(input: {
+    channel: IntegrationChannel;
+    externalChatId: string;
+    sessionId: string;
+    forwardingEnabled?: boolean;
+  }): Promise<void> | void;
+  /** Toggle forwarding or revoke an existing binding. */
+  updateBinding(
+    bindingId: string,
+    changes: { status?: PairingBindingStatus; forwardingEnabled?: boolean },
+  ): Promise<void> | void;
+}
+
 export interface WsGatewayOptions {
   /** Test/embedding mode: construct the gateway without binding a TCP port. */
   listen?: boolean;
@@ -98,6 +131,7 @@ export interface WsGatewayOptions {
   gacha?: GatewayGachaService;
   onSettingsUpdated?: (payload: SettingsUpdatedPayload) => void | Promise<void>;
   plugins?: GatewayPluginsService;
+  pairing?: GatewayPairingService;
   /**
    * Returns the initial value for the pull sequence counter. Called lazily on
    * the first pull so the gateway does not need to be async.
@@ -329,11 +363,104 @@ export class WsGateway {
       this.handleEconomyCommand(c, ws);
     } else if (c.cmd === "plugins") {
       void this.handlePluginsCommand(c, ws);
+    } else if (c.cmd === "pairing") {
+      void this.handlePairingCommand(c, ws);
+    } else if (c.cmd === "createPairing") {
+      void this.handleCreatePairingCommand(c, ws);
+    } else if (c.cmd === "updatePairing") {
+      void this.handleUpdatePairingCommand(c, ws);
     } else {
       this.replyCommandError(
         ws,
         commandSessionId(c),
         `Command not implemented: ${commandLabel(c)}`,
+      );
+    }
+  }
+
+  private async handlePairingCommand(
+    c: Extract<ClientCommand, { cmd: "pairing" }>,
+    ws: WebSocket,
+  ): Promise<void> {
+    const pairing = this.options.pairing;
+    if (!pairing) {
+      this.replyCommandError(ws, c.sessionId, "Pairing service unavailable");
+      return;
+    }
+    try {
+      if (c.action === "generateQr") {
+        await pairing.generateQr(c.sessionId, c.channel);
+      } else if (c.action === "cancelQr") {
+        await pairing.cancelQr(c.sessionId, c.channel);
+      } else if (c.action === "submitVerifyCode") {
+        await pairing.submitVerifyCode(c.sessionId, c.channel, c.code ?? "");
+      } else {
+        this.replyCommandError(
+          ws,
+          c.sessionId,
+          `Unsupported pairing action: ${commandLabel(c)}`,
+        );
+      }
+    } catch (error) {
+      this.replyCommandError(
+        ws,
+        c.sessionId,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  private async handleCreatePairingCommand(
+    c: Extract<ClientCommand, { cmd: "createPairing" }>,
+    ws: WebSocket,
+  ): Promise<void> {
+    const pairing = this.options.pairing;
+    if (!pairing) {
+      this.replyCommandError(ws, c.sessionId, "Pairing service unavailable");
+      return;
+    }
+    try {
+      // NOTE: createPairing may omit externalChatId (the command shape marks it
+      // optional). In A1 a binding without a chat id is a no-op-safe stub — the
+      // service receives "" and can skip persisting until a real chat arrives.
+      await pairing.createBinding({
+        channel: c.channel,
+        externalChatId: c.externalChatId ?? "",
+        sessionId: c.sessionId,
+        ...(c.forwardingEnabled !== undefined
+          ? { forwardingEnabled: c.forwardingEnabled }
+          : {}),
+      });
+    } catch (error) {
+      this.replyCommandError(
+        ws,
+        c.sessionId,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  private async handleUpdatePairingCommand(
+    c: Extract<ClientCommand, { cmd: "updatePairing" }>,
+    ws: WebSocket,
+  ): Promise<void> {
+    const pairing = this.options.pairing;
+    if (!pairing) {
+      this.replyCommandError(ws, c.sessionId, "Pairing service unavailable");
+      return;
+    }
+    try {
+      await pairing.updateBinding(c.bindingId, {
+        ...(c.status !== undefined ? { status: c.status } : {}),
+        ...(c.forwardingEnabled !== undefined
+          ? { forwardingEnabled: c.forwardingEnabled }
+          : {}),
+      });
+    } catch (error) {
+      this.replyCommandError(
+        ws,
+        c.sessionId,
+        error instanceof Error ? error.message : String(error),
       );
     }
   }

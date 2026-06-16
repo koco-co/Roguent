@@ -97,6 +97,7 @@ if (replayFixture) {
       return integrations.applySubscriptionSettings(payload.settings);
     },
     plugins: pluginsService,
+    pairing: integrations.pairing,
   });
   const schedulerRunner = createSchedulerRunner({ db, sessions: mgr });
   schedulerRunner.start();

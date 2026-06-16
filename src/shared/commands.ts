@@ -134,6 +134,14 @@ export interface UpdatePairingCommand {
   metadata?: Record<string, unknown>;
 }
 
+export interface PairingCommand {
+  cmd: "pairing";
+  action: "generateQr" | "cancelQr" | "submitVerifyCode";
+  sessionId: string;
+  channel: IntegrationChannel;
+  code?: string;
+}
+
 export type SchedulerCommand =
   | {
       cmd: "scheduler";
@@ -228,6 +236,7 @@ export type ClientCommand =
   | SetRuntimeConfigCommand
   | CreatePairingCommand
   | UpdatePairingCommand
+  | PairingCommand
   | SchedulerCommand
   | MailboxCommand
   | EconomyCommand
@@ -357,6 +366,8 @@ export function parseClientCommand(raw: unknown): ParseClientCommandResult {
       return parseCreatePairingCommand(o);
     case "updatePairing":
       return parseUpdatePairingCommand(o);
+    case "pairing":
+      return parsePairingCommand(o);
     case "scheduler":
       return parseSchedulerCommand(o);
     case "mailbox":
@@ -587,6 +598,44 @@ function parseUpdatePairingCommand(
         ? { forwardingEnabled: o.forwardingEnabled }
         : {}),
       ...(o.metadata !== undefined ? { metadata: o.metadata } : {}),
+    },
+  };
+}
+
+function parsePairingCommand(
+  o: Record<string, unknown>,
+): ParseClientCommandResult {
+  if (
+    typeof o.sessionId !== "string" ||
+    !isIntegrationChannel(o.channel) ||
+    (o.action !== "generateQr" &&
+      o.action !== "cancelQr" &&
+      o.action !== "submitVerifyCode")
+  ) {
+    return fail("Invalid pairing command", sessionIdOf(o));
+  }
+  if (o.action === "submitVerifyCode") {
+    if (typeof o.code !== "string" || o.code.trim().length === 0) {
+      return fail("Invalid pairing command", sessionIdOf(o));
+    }
+    return {
+      ok: true,
+      command: {
+        cmd: "pairing",
+        action: o.action,
+        sessionId: o.sessionId,
+        channel: o.channel,
+        code: o.code,
+      },
+    };
+  }
+  return {
+    ok: true,
+    command: {
+      cmd: "pairing",
+      action: o.action,
+      sessionId: o.sessionId,
+      channel: o.channel,
     },
   };
 }

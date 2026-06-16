@@ -547,6 +547,132 @@ test("parseClientCommand rejects non-conservative prototype payloads", () => {
   ).toBe(false);
 });
 
+test("parseClientCommand accepts pairing generateQr/cancelQr and rejects missing channel", () => {
+  const generate = parseClientCommand({
+    cmd: "pairing",
+    action: "generateQr",
+    sessionId: "s1",
+    channel: "wechat",
+  });
+  expect(generate).toEqual({
+    ok: true,
+    command: {
+      cmd: "pairing",
+      action: "generateQr",
+      sessionId: "s1",
+      channel: "wechat",
+    },
+  });
+
+  const cancel = parseClientCommand({
+    cmd: "pairing",
+    action: "cancelQr",
+    sessionId: "s1",
+    channel: "feishu",
+  });
+  expect(cancel).toEqual({
+    ok: true,
+    command: {
+      cmd: "pairing",
+      action: "cancelQr",
+      sessionId: "s1",
+      channel: "feishu",
+    },
+  });
+
+  // missing channel
+  expect(
+    parseClientCommand({
+      cmd: "pairing",
+      action: "generateQr",
+      sessionId: "s1",
+    }).ok,
+  ).toBe(false);
+  // bad channel
+  expect(
+    parseClientCommand({
+      cmd: "pairing",
+      action: "generateQr",
+      sessionId: "s1",
+      channel: "discord",
+    }).ok,
+  ).toBe(false);
+  // missing sessionId
+  expect(
+    parseClientCommand({
+      cmd: "pairing",
+      action: "generateQr",
+      channel: "wechat",
+    }).ok,
+  ).toBe(false);
+  // unknown action
+  expect(
+    parseClientCommand({
+      cmd: "pairing",
+      action: "teleport",
+      sessionId: "s1",
+      channel: "wechat",
+    }).ok,
+  ).toBe(false);
+});
+
+test("parseClientCommand pairing submitVerifyCode requires a non-empty code", () => {
+  const submit = parseClientCommand({
+    cmd: "pairing",
+    action: "submitVerifyCode",
+    sessionId: "s1",
+    channel: "wechat",
+    code: "123456",
+  });
+  expect(submit).toEqual({
+    ok: true,
+    command: {
+      cmd: "pairing",
+      action: "submitVerifyCode",
+      sessionId: "s1",
+      channel: "wechat",
+      code: "123456",
+    },
+  });
+
+  // missing code
+  expect(
+    parseClientCommand({
+      cmd: "pairing",
+      action: "submitVerifyCode",
+      sessionId: "s1",
+      channel: "wechat",
+    }).ok,
+  ).toBe(false);
+  // empty / whitespace-only code
+  expect(
+    parseClientCommand({
+      cmd: "pairing",
+      action: "submitVerifyCode",
+      sessionId: "s1",
+      channel: "wechat",
+      code: "   ",
+    }).ok,
+  ).toBe(false);
+  // generateQr should ignore code (still valid without it)
+  const generateWithStrayCode = parseClientCommand({
+    cmd: "pairing",
+    action: "generateQr",
+    sessionId: "s1",
+    channel: "wechat",
+    code: "ignored",
+  });
+  expect(generateWithStrayCode.ok).toBe(true);
+  if (generateWithStrayCode.ok) {
+    expect(generateWithStrayCode.command).toEqual({
+      cmd: "pairing",
+      action: "generateQr",
+      sessionId: "s1",
+      channel: "wechat",
+    });
+  }
+});
+
 test("plugins command: 合法 install 解析通过", () => {
   const r = parseClientCommand(
     JSON.stringify({

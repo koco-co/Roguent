@@ -16,6 +16,8 @@ import type {
   MailboxItemUpdatedPayload,
   NormalizedIntegrationEvent,
   PairingBinding,
+  PairingBindingUpdatedPayload,
+  PairingQrUpdatedPayload,
 } from "../../shared/integrations";
 
 export interface IntegrationEvent {
@@ -119,6 +121,18 @@ export type IntegrationRouterEvent =
       sessionId: string;
       type: "integration.status";
       payload: IntegrationStatusPayload;
+      ts: number;
+    }
+  | {
+      sessionId: string;
+      type: "pairing.qr.updated";
+      payload: PairingQrUpdatedPayload;
+      ts: number;
+    }
+  | {
+      sessionId: string;
+      type: "pairing.binding.updated";
+      payload: PairingBindingUpdatedPayload;
       ts: number;
     }
   | {
