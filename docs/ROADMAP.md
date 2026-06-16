@@ -303,6 +303,21 @@ status: living-doc
 
 ---
 
+## 3.11 经济系统接线为 live(2026-06-16)
+
+> 体检发现:抽卡/成就/宝石**服务已实现 + 有单测,但 server.ts 从未实例化接入** → 生产环境抽卡回「Gacha service unavailable」、成就永不推进、宝石余额恒 0(过度声称为「live」)。用户决策:**经济真跑**(接服务,非维持 mock)。分 C/C2 实现(Workflow + 对抗校验)。
+
+| 阶段 | 内容 | 状态 |
+| --- | --- | --- |
+| **C** 接线 | 新 `economy/wiring.ts` `wireEconomyServices(db)` = ledger + gacha + achievements;`server.ts` 传 `gacha/achievements/initialPullSeq` 入 `WsGateway`;`achievements.applyEvent` 已被 gateway 的 `publishAchievementUpdatesFor` 在每条广播事件上调用(运行时活动推进成就);**幂等欢迎金 500**(`ledger.append` reason `welcome_bonus`,固定 `sourceEventId` 防重启重复)+ 成就奖励入账为第二宝石源 | ✅ 合 main · **真连验证**(8787 fresh DB:抽卡→余额 400、领成就→+20→420、无「unavailable」)· 1014 单测 |
+| **C2** 可见化 | `WsGateway.handleConnection` 连接时**仅向新客户端**重放 `economy.ledger.appended`(逐 entry)+ `achievement.updated`(仿 lastPlugins,非广播 → store fold 无 dedup 故必须 per-ws 避免重复计)→ 新开页面能看到真实余额;`Currency.tsx` 顶栏改读真实 `store.ledger.balances.gem`(删 `MOCK_GEMS=1280`) | ✅ 合 main · **真浏览器验证**(顶栏显示 400、无 mock 徽标、截图+DOM)· 1020 单测 |
+
+**真/假边界**:抽卡/成就/宝石/欢迎金/成就奖励**全接真**(真 ledger SQLite mutation、真广播事件、真余额);顶栏 gem 真;无 fabricated balance。**门禁**:`bun test` **1020 pass** + tsc 0 + biome 0(每阶段对抗校验 0 阻断)。
+
+**剩余**:`Currency` 旁的其它 mock 计数(如有)按 ROADMAP 真/假纪律单列;经济相关死命令(`equipItem`/`unequipItem` 无 UI 发/网关无处理)留 D 决定补 UI 还是删。
+
+---
+
 ## 4. Phase 2 —— 原愿景未实现功能(后续,先不展开)
 
 > Phase 1 收口后再排。多数有独立 spec 设想(见 `overworld-hub-design.md` §"明确不在本 spec")。
