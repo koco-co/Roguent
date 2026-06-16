@@ -228,9 +228,15 @@ function createDefaultImConnectors(
   if (env.ROGUENT_WECHAT_DISABLED !== "1") {
     connectors.wechat = createWeChatConnector();
   }
-  const appIdSecretRef = env.ROGUENT_FEISHU_APP_ID_SECRET_REF?.trim();
-  const appSecretRef = env.ROGUENT_FEISHU_APP_SECRET_SECRET_REF?.trim();
-  if (appIdSecretRef && appSecretRef) {
+  // Feishu is always available (unless explicitly disabled): device-code
+  // pairing OBTAINS the credentials, so we cannot gate on pre-set refs. If the
+  // env refs ARE set we honor them (manual / pre-provisioned 降级 path);
+  // otherwise we fall back to fixed default refs that pairing will populate.
+  if (env.ROGUENT_FEISHU_DISABLED !== "1") {
+    const appIdSecretRef =
+      env.ROGUENT_FEISHU_APP_ID_SECRET_REF?.trim() || "feishu:app_id";
+    const appSecretRef =
+      env.ROGUENT_FEISHU_APP_SECRET_SECRET_REF?.trim() || "feishu:app_secret";
     connectors.feishu = new FeishuConnector({
       config: { appIdSecretRef, appSecretRef },
       secretStore,

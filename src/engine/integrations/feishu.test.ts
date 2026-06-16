@@ -3,16 +3,20 @@ import inboundFixture from "../../../fixtures/integrations/feishu-inbound.json";
 import { MemorySecretStore } from "../secrets/memory-store";
 import {
   FeishuConnector,
-  FeishuConnectorError,
   type FeishuEventDispatcherLike,
   type FeishuMessageCreatePayload,
   type FeishuMessageEvent,
+  type FeishuRegistrationDriver,
   type FeishuSdkFactory,
   normalizeFeishuMessage,
 } from "./feishu";
+import type {
+  PollRegistrationResult,
+  StartRegistrationResult,
+} from "./feishu-registration";
 import type { ImConnectorEvent } from "./wechat-types";
 
-test("start emits configuration-required instead of fake success when credentials are missing", async () => {
+test("start is a clean no-op (no fake success, no error throw) when credentials are missing", async () => {
   const sdk = new FakeFeishuSdkFactory();
   const connector = new FeishuConnector({
     config: {
@@ -24,15 +28,24 @@ test("start emits configuration-required instead of fake success when credential
     now: () => 1_717_452_000_000,
   });
 
-  await expect(connector.start()).rejects.toBeInstanceOf(FeishuConnectorError);
+  // No creds yet (device-code pairing has not run): start must not throw and
+  // must not fabricate a connected long connection.
+  await expect(connector.start()).resolves.toBeUndefined();
 
   expect(sdk.clients).toHaveLength(0);
+  expect(connector.observedEvents).not.toContainEqual(
+    expect.objectContaining({
+      type: "status",
+      status: expect.objectContaining({ state: "connected" }),
+    }),
+  );
+  // Surfaces a benign configuration-required status (not an error) so the UI
+  // can prompt for pairing without flagging the connector as broken.
   expect(connector.observedEvents).toContainEqual({
     type: "status",
     status: expect.objectContaining({
       channel: "feishu",
-      state: "error",
-      error: "Feishu app credentials are not configured",
+      state: "disconnected",
       metadata: expect.objectContaining({
         code: "configuration-required",
       }),
@@ -279,11 +292,269 @@ test("normalizeFeishuMessage tolerates non-json content and p2p chat type", () =
   });
 });
 
+test("startPairing drives the device-code flow and emits a scannable pairing.qr", async () => {
+  const sdk = new FakeFeishuSdkFactory({ autoReady: false });
+  const registration = new FakeRegistrationDriver();
+  registration.startResult = {
+    ok: true,
+    url: "https://applink.feishu.cn/client/qrlogin/abc",
+    deviceCode: "dev-code-1",
+    userCode: "USER-1",
+    interval: 5,
+    expireIn: 300,
+    domain: "feishu",
+  };
+  // Authorization is still pending: poll never resolves so the flow stays open.
+  registration.pollResults = [{ done: false, pending: true }];
+  const connector = new FeishuConnector({
+    config: {
+      appIdSecretRef: "feishu:app_id",
+      appSecretRef: "feishu:app_secret",
+    },
+    secretStore: new MemorySecretStore(),
+    sdkFactory: sdk,
+    registration,
+    sleep: async () => {},
+    now: () => 1_717_452_000_000,
+  });
+
+  const qr = await connector.startPairing("session-1");
+
+  expect(qr).toMatchObject({
+    channel: "feishu",
+    sessionId: "session-1",
+    status: "pending",
+    url: "https://applink.feishu.cn/client/qrlogin/abc",
+    expiresAt: 1_717_452_000_000 + 300 * 1000,
+  });
+  expect(connector.observedEvents).toContainEqual({
+    type: "pairing.qr",
+    qr: expect.objectContaining({
+      channel: "feishu",
+      sessionId: "session-1",
+      status: "pending",
+      url: "https://applink.feishu.cn/client/qrlogin/abc",
+    }),
+  });
+
+  await connector.stopPairing("session-1");
+});
+
+test("startPairing failure surfaces as a pairing.qr error without polling", async () => {
+  const registration = new FakeRegistrationDriver();
+  registration.startResult = { ok: false, message: "bad archetype" };
+  const connector = new FeishuConnector({
+    config: {
+      appIdSecretRef: "feishu:app_id",
+      appSecretRef: "feishu:app_secret",
+    },
+    secretStore: new MemorySecretStore(),
+    sdkFactory: new FakeFeishuSdkFactory(),
+    registration,
+    sleep: async () => {},
+    now: () => 1_717_452_000_000,
+  });
+
+  const qr = await connector.startPairing("session-1");
+
+  expect(qr.status).toBe("error");
+  expect(qr.error).toContain("bad archetype");
+  expect(registration.pollCalls).toHaveLength(0);
+});
+
+test("a successful poll persists creds, starts the long connection, and emits pairing.scanned", async () => {
+  const sdk = new FakeFeishuSdkFactory();
+  const secretStore = new MemorySecretStore();
+  const registration = new FakeRegistrationDriver();
+  registration.startResult = {
+    ok: true,
+    url: "https://applink.feishu.cn/client/qrlogin/abc",
+    deviceCode: "dev-code-1",
+    userCode: "USER-1",
+    interval: 5,
+    expireIn: 300,
+    domain: "feishu",
+  };
+  registration.pollResults = [
+    { done: false, pending: true },
+    {
+      done: true,
+      appId: "cli_paired_1",
+      appSecret: "secret_paired_1",
+      domain: "feishu",
+    },
+  ];
+  const connector = new FeishuConnector({
+    config: {
+      appIdSecretRef: "feishu:app_id",
+      appSecretRef: "feishu:app_secret",
+    },
+    secretStore,
+    sdkFactory: sdk,
+    registration,
+    sleep: async () => {},
+    now: () => 1_717_452_000_000,
+  });
+
+  await connector.startPairing("session-1");
+  await waitFor(() =>
+    connector.observedEvents.some((event) => event.type === "pairing.scanned"),
+  );
+
+  expect(await secretStore.get("feishu:app_id")).toBe("cli_paired_1");
+  expect(await secretStore.get("feishu:app_secret")).toBe("secret_paired_1");
+  expect(sdk.credentials).toEqual({
+    appId: "cli_paired_1",
+    appSecret: "secret_paired_1",
+  });
+  expect(connector.observedEvents).toContainEqual({
+    type: "pairing.scanned",
+    channel: "feishu",
+    sessionId: "session-1",
+    externalChatId: "feishu-app:cli_paired_1",
+    displayName: "飞书机器人",
+    scannedAt: 1_717_452_000_000,
+  });
+  expect(connector.observedEvents).toContainEqual({
+    type: "status",
+    status: expect.objectContaining({
+      channel: "feishu",
+      state: "connected",
+    }),
+  });
+});
+
+test("a poll that switches to lark re-polls on the lark domain", async () => {
+  const sdk = new FakeFeishuSdkFactory();
+  const secretStore = new MemorySecretStore();
+  const registration = new FakeRegistrationDriver();
+  registration.startResult = {
+    ok: true,
+    url: "https://applink.feishu.cn/client/qrlogin/abc",
+    deviceCode: "dev-code-1",
+    userCode: "USER-1",
+    interval: 5,
+    expireIn: 300,
+    domain: "feishu",
+  };
+  registration.pollResults = [
+    { done: false, switchTo: "lark" },
+    {
+      done: true,
+      appId: "cli_lark_1",
+      appSecret: "secret_lark_1",
+      domain: "lark",
+    },
+  ];
+  const connector = new FeishuConnector({
+    config: {
+      appIdSecretRef: "feishu:app_id",
+      appSecretRef: "feishu:app_secret",
+    },
+    secretStore,
+    sdkFactory: sdk,
+    registration,
+    sleep: async () => {},
+    now: () => 1_717_452_000_000,
+  });
+
+  await connector.startPairing("session-1");
+  await waitFor(() =>
+    connector.observedEvents.some((event) => event.type === "pairing.scanned"),
+  );
+
+  // First poll on feishu, second poll on lark after the switch.
+  expect(registration.pollCalls.map((call) => call.domain)).toEqual([
+    "feishu",
+    "lark",
+  ]);
+  expect(await secretStore.get("feishu:app_id")).toBe("cli_lark_1");
+});
+
+test("a poll error emits pairing.expired and stops the loop", async () => {
+  const registration = new FakeRegistrationDriver();
+  registration.startResult = {
+    ok: true,
+    url: "https://applink.feishu.cn/client/qrlogin/abc",
+    deviceCode: "dev-code-1",
+    userCode: "USER-1",
+    interval: 5,
+    expireIn: 300,
+    domain: "feishu",
+  };
+  registration.pollResults = [{ done: false, error: "user rejected" }];
+  const connector = new FeishuConnector({
+    config: {
+      appIdSecretRef: "feishu:app_id",
+      appSecretRef: "feishu:app_secret",
+    },
+    secretStore: new MemorySecretStore(),
+    sdkFactory: new FakeFeishuSdkFactory(),
+    registration,
+    sleep: async () => {},
+    now: () => 1_717_452_000_000,
+  });
+
+  await connector.startPairing("session-1");
+  await waitFor(() =>
+    connector.observedEvents.some((event) => event.type === "pairing.expired"),
+  );
+
+  expect(connector.observedEvents).toContainEqual({
+    type: "pairing.expired",
+    qr: expect.objectContaining({
+      channel: "feishu",
+      sessionId: "session-1",
+      status: "expired",
+    }),
+  });
+  expect(
+    connector.observedEvents.some((event) => event.type === "pairing.scanned"),
+  ).toBe(false);
+});
+
+test("submitVerifyCode is a no-op for Feishu", async () => {
+  const connector = new FeishuConnector({
+    config: {
+      appIdSecretRef: "feishu:app_id",
+      appSecretRef: "feishu:app_secret",
+    },
+    secretStore: new MemorySecretStore(),
+    sdkFactory: new FakeFeishuSdkFactory(),
+    now: () => 1_717_452_000_000,
+  });
+
+  await expect(
+    connector.submitVerifyCode("session-1", "1234"),
+  ).resolves.toBeUndefined();
+});
+
 async function configuredSecrets(): Promise<MemorySecretStore> {
   const store = new MemorySecretStore();
   await store.put("feishu:app-id", "cli_a");
   await store.put("feishu:app-secret", "secret_a");
   return store;
+}
+
+class FakeRegistrationDriver implements FeishuRegistrationDriver {
+  startResult: StartRegistrationResult = {
+    ok: false,
+    message: "not configured",
+  };
+  pollResults: PollRegistrationResult[] = [];
+  readonly pollCalls: Array<{ deviceCode: string; domain: string }> = [];
+
+  async start(): Promise<StartRegistrationResult> {
+    return this.startResult;
+  }
+
+  async poll(
+    deviceCode: string,
+    domain: "feishu" | "lark",
+  ): Promise<PollRegistrationResult> {
+    this.pollCalls.push({ deviceCode, domain });
+    return this.pollResults.shift() ?? { done: false, pending: true as const };
+  }
 }
 
 class FakeEventDispatcher implements FeishuEventDispatcherLike {
