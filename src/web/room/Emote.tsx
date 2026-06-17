@@ -2,6 +2,7 @@ import { useTick } from "@pixi/react";
 import type { Container, TextStyle } from "pixi.js";
 import { useRef } from "react";
 import type { AgentStatus } from "../../shared/domain";
+import { HD_SCALE } from "./config";
 
 /**
  * Tiny head-top emote: an occasional "zzz" when idle, "..." when thinking,
@@ -32,14 +33,14 @@ export function Emote({ status }: { status: AgentStatus }) {
   if (!text) return null;
 
   return (
-    <pixiContainer ref={rootRef} y={-26} alpha={0}>
+    <pixiContainer ref={rootRef} y={-26 * HD_SCALE} alpha={0}>
       <pixiText
         text={text}
         anchor={0.5}
         resolution={4}
         style={
           {
-            fontSize: 8,
+            fontSize: 8 * HD_SCALE,
             fill: 0xcfd8ff,
             fontStyle: "italic",
           } as Partial<TextStyle>
