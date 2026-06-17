@@ -13,10 +13,10 @@ afterEach(() => {
   document.documentElement.removeAttribute("data-artpack");
 });
 
-test("ART_PACKS:5 包、id 唯一、字段齐全", () => {
-  expect(ART_PACKS).toHaveLength(5);
+test("ART_PACKS:3 包、id 唯一、字段齐全", () => {
+  expect(ART_PACKS).toHaveLength(3);
   const ids = ART_PACKS.map((p) => p.id);
-  expect(new Set(ids).size).toBe(5);
+  expect(new Set(ids).size).toBe(3);
   for (const p of ART_PACKS) {
     expect(p.id.length).toBeGreaterThan(0);
     expect(p.name.length).toBeGreaterThan(0);
@@ -26,20 +26,13 @@ test("ART_PACKS:5 包、id 唯一、字段齐全", () => {
   }
 });
 
-const GENERATED_ARTPACK_IDS = [
-  "neon-terminal",
-  "holo-blueprint",
-  "deep-space",
-  "synthwave",
-];
+const GENERATED_ARTPACK_IDS = ["neon-terminal", "synthwave"];
 
-test("五个美术包均 ready;默认使用生成的霓虹终端资源", () => {
+test("三个美术包均 ready;默认使用生成的霓虹终端资源", () => {
   const ready = ART_PACKS.filter((p) => p.ready);
   expect(ready.map((p) => p.id)).toEqual([
     "pixel-fantasy",
     "neon-terminal",
-    "holo-blueprint",
-    "deep-space",
     "synthwave",
   ]);
   expect(DEFAULT_ARTPACK).toBe("neon-terminal");
@@ -106,7 +99,7 @@ test("applyArtPack:派发素材包切换事件", () => {
     { once: true },
   );
 
-  applyArtPack("deep-space");
+  applyArtPack("synthwave");
 
-  expect(detail).toEqual({ id: "deep-space" });
+  expect(detail).toEqual({ id: "synthwave" });
 });
