@@ -318,6 +318,33 @@ status: living-doc
 
 ---
 
+## 3.12 死路径清理(2026-06-17)
+
+> 体检发现的死/断路径收尾。用户选做全部 4 项(有意占位的 Account /login·登出、标注 mock 面板保留不动)。Workflow(4 切片 → 集成 → 对抗校验)。
+
+| 项 | 内容 | 状态 |
+| --- | --- | --- |
+| 大厅 atlas 可见错误层 | `HubCanvas` atlas 失败原为 console+绿底静默;改为可见错误覆盖层(原因 + 重试,复用 `atlasErrorText`,对齐 Room) | ✅ |
+| 信箱「转发到配对 IM」激活 | 加 `mailbox/forwardToIm` 命令 + `IntegrationManager.forwardToIm` + `live`/gateway `GatewayForwardService` + server 接线;`MailboxPanel` 按钮在有活跃绑定时启用→单条转发到已配对微信/飞书(**转发正文服务端构造**,客户端不能指定任意外发文本);无绑定时置灰+诚实注脚 | ✅(A 完成后的尾巴) |
+| Konami 彩蛋效果接通 | 新 `KonamiEffect.tsx` 消费 `easter-store.lastEffect`→渲染彩虹覆盖层(一次性、reduced-motion 感知),挂 `App`;此前 `lastEffect` 零消费、彩虹永不显示 | ✅ |
+| 杂项打包 | 纯图消息 chip 回显修(store 不再因空文本短路带附件的 message.final)+ 删死命令 `equipItem`/`unequipItem`/`cancelRun`(无 UI 发、网关无处理)+ 订正 `Hud.tsx` 过时 Market mock 注释 | ✅(含 B4 图 chip 尾巴) |
+
+**门禁**:`bun test` **1035 pass** + tsc 0 + biome 0 + EN 零泄漏;对抗校验 0 阻断,确认有意占位未被误激活。**保留不动**:Account `/login`·登出(引擎不暴露 auth)、标注 mock 面板(UpdateModal/LoginEvents/Tasks 邮箱/Shop 购买/CONFIG)。
+
+---
+
+## 3.13 本轮 `/goal` 收口(2026-06-17)
+
+> 本轮 `/goal`「针对项目所有功能 e2e 验证 + 补齐 github 订阅/微信飞书扫码配对/聊天可交互性等缺口」的实现部分**全部完成并合入 main**:
+> - **体检**:`docs/2026-06-16-e2e-verification-gap-report.md`(证据化缺口报告)。
+> - **A 微信/飞书扫码配对**(§3.9)· **B 聊天 Claude-Desktop 交互**(§3.10)· **C 经济真活**(§3.11)· **D 死路径清理**(§3.12)。
+> - GitHub/X 订阅:体检核实本就 live。
+> - 全程每阶段 = Workflow 实现切片 → 集成门禁 → 3 路对抗式校验;对抗校验抓修 3 个真问题。累计 **1035 单测 / tsc 0 / biome 0 / EN 零泄漏**;A1/A3/B1/C2 + D 附真实应用浏览器证据。
+> - **唯一剩余 = 真连冒烟**(需真实账号+少量额度,AI 代扫不了):见 `docs/2026-06-17-real-connect-smoke-checklist.md`(微信/飞书扫码 + 聊天发图)。
+> - main 领先 origin 较多,**按用户要求未 push**;用户另有美术包 overhaul WIP 在工作树(本轮未动)。
+
+---
+
 ## 4. Phase 2 —— 原愿景未实现功能(后续,先不展开)
 
 > Phase 1 收口后再排。多数有独立 spec 设想(见 `overworld-hub-design.md` §"明确不在本 spec")。
