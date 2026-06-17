@@ -1021,7 +1021,8 @@ def harden_pixel_art(sprite: Image.Image) -> Image.Image:
     for y in range(height):
         for x in range(width):
             r, g, b, a = pix[x, y]
-            if a < 64:
+            # HD bake: cull anti-alias edges below 96 alpha (was 64 at 16px)
+            if a < 96:
                 pix[x, y] = (0, 0, 0, 0)
                 continue
             pix[x, y] = (
@@ -1037,9 +1038,9 @@ def boost_small_sprite_contrast(sprite: Image.Image) -> Image.Image:
     alpha = sprite.getchannel("A")
     rgb = Image.new("RGB", sprite.size, (0, 0, 0))
     rgb.paste(sprite.convert("RGB"), mask=alpha)
-    rgb = ImageEnhance.Contrast(rgb).enhance(1.55)
-    rgb = ImageEnhance.Color(rgb).enhance(1.18)
-    rgb = ImageEnhance.Brightness(rgb).enhance(1.06)
+    rgb = ImageEnhance.Contrast(rgb).enhance(1.25)
+    rgb = ImageEnhance.Color(rgb).enhance(1.12)
+    rgb = ImageEnhance.Brightness(rgb).enhance(1.03)
     out = rgb.convert("RGBA")
     out.putalpha(alpha)
     return out
@@ -1129,12 +1130,13 @@ def mix_toward_average(sprite: Image.Image, amount: float) -> Image.Image:
 
 def reduce_environment_noise(sprite: Image.Image, frame_name: str) -> Image.Image:
     frame = frame_name.removesuffix(".png")
-    out = block_pixel_art(sprite, 2)
+    # HD bake: the source sheets are already high-res, so drop the old
+    # block_pixel_art(2) mean-filter blur and keep mixing only lightly.
     if frame.startswith(("floor", "ground", "grass", "edge")) or frame == "hole":
-        return mix_toward_average(out, 0.46)
+        return mix_toward_average(sprite, 0.10)
     if frame.startswith(("wall", "doors", "column")):
-        return mix_toward_average(out, 0.28)
-    return mix_toward_average(out, 0.18)
+        return mix_toward_average(sprite, 0.08)
+    return mix_toward_average(sprite, 0.06)
 
 
 def stylize_runtime_sprite(
@@ -1177,7 +1179,9 @@ def fitted_cell(
         max(1, min(target_w, round(subject.width * scale))),
         max(1, min(target_h, round(subject.height * scale))),
     )
-    resized = subject.resize(new_size, Image.Resampling.BOX)
+    # HD bake: LANCZOS keeps high-frequency detail when downsampling the
+    # high-res source cell (BOX/area-average collapsed it toward mush).
+    resized = subject.resize(new_size, Image.Resampling.LANCZOS)
     out = Image.new("RGBA", target_size, (0, 0, 0, 0))
     out.alpha_composite(
         resized,
