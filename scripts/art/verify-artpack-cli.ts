@@ -12,6 +12,16 @@ import { type ArtPackIssue, verifyArtPackOnDisk } from "./verify-artpack";
 
 const ARTPACKS_ROOT = "public/assets/artpacks";
 
+// HD bake: re-baked survivor packs carry atlas frames at HD_SCALE(=2.5)× the
+// 0x72 16px reference; legacy 16px packs (to be deleted) verify at scale 1.
+const HD_SCALE = 2.5;
+const HD_PACKS = new Set(["neon-terminal", "synthwave"]);
+
+function scaleForPackRoot(packRoot: string): number {
+  const name = packRoot.replace(/\/+$/, "").split("/").pop() ?? "";
+  return HD_PACKS.has(name) ? HD_SCALE : 1;
+}
+
 /** 列出待校验的包目录:无参时扫描 ARTPACKS_ROOT 下的子目录,有参时按传入路径。 */
 async function resolvePackRoots(argv: string[]): Promise<string[]> {
   if (argv.length > 0) return argv;
@@ -46,7 +56,10 @@ async function main(): Promise<void> {
 
   let failed = 0;
   for (const packRoot of packRoots) {
-    const result = await verifyArtPackOnDisk({ packRoot });
+    const result = await verifyArtPackOnDisk({
+      packRoot,
+      scale: scaleForPackRoot(packRoot),
+    });
     if (result.ok) {
       console.log(`✓ ${packRoot}`);
     } else {

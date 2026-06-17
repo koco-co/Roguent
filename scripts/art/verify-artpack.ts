@@ -126,15 +126,23 @@ export function parseAtlasFrameSizes(
 interface VerifyAtlasFrameSizesInput {
   reference: ReadonlyMap<string, Size>;
   candidate: ReadonlyMap<string, Size>;
+  // HD bake: candidate frames are baked at `scale`× the 16px reference
+  // contract. Default 1 keeps the original strict 1:1 matching (e.g. 0x72).
+  scale?: number;
 }
 
 export function verifyAtlasFrameSizes({
   reference,
   candidate,
+  scale = 1,
 }: VerifyAtlasFrameSizesInput): VerifyResult {
   const issues: ArtPackIssue[] = [];
 
-  for (const [frame, expected] of reference.entries()) {
+  for (const [frame, ref] of reference.entries()) {
+    const expected: Size = {
+      w: Math.round(ref.w * scale),
+      h: Math.round(ref.h * scale),
+    };
     const actual = candidate.get(frame);
     if (!actual) {
       issues.push({
@@ -204,6 +212,9 @@ export function verifyGptImageOverrides({
 interface VerifyArtPackOnDiskInput {
   packRoot: string;
   referenceAtlasPath?: string;
+  // HD bake: atlas frames are `scale`× the 0x72 16px reference. Default 1
+  // keeps strict 1:1 (e.g. native-16px fallback packs).
+  scale?: number;
 }
 
 async function listFilesRecursive(dir: string): Promise<string[]> {
@@ -232,6 +243,7 @@ async function readGptImageOverrideReport(
 export async function verifyArtPackOnDisk({
   packRoot,
   referenceAtlasPath = "public/assets/0x72/dungeon.json",
+  scale = 1,
 }: VerifyArtPackOnDiskInput): Promise<VerifyResult> {
   const files = new Set(await listFilesRecursive(packRoot));
   const fileResult = verifyArtPackFiles({ packRoot, files });
@@ -240,7 +252,7 @@ export async function verifyArtPackOnDisk({
 
   const reference = parseAtlasFrameSizes(await readAtlas(referenceAtlasPath));
   const candidate = parseAtlasFrameSizes(await readAtlas(candidateAtlasPath));
-  const atlasResult = verifyAtlasFrameSizes({ reference, candidate });
+  const atlasResult = verifyAtlasFrameSizes({ reference, candidate, scale });
   const reportPath = join(packRoot, "atlas", "gpt-image-overrides.json");
   const reportResult = files.has(reportPath)
     ? verifyGptImageOverrides({

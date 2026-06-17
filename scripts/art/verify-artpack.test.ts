@@ -338,6 +338,28 @@ describe("verify-artpack", () => {
     ]);
   });
 
+  it("verifyAtlasFrameSizes matches HD candidates against a scaled reference", () => {
+    const reference = new Map([
+      ["floor_1", { w: 16, h: 16 }],
+      ["knight_m_idle_anim_f0", { w: 16, h: 28 }],
+    ]);
+    const candidate = new Map([
+      ["floor_1", { w: 40, h: 40 }],
+      ["knight_m_idle_anim_f0", { w: 40, h: 70 }],
+    ]);
+    const result = verifyAtlasFrameSizes({ reference, candidate, scale: 2.5 });
+    expect(result.ok).toBe(true);
+    expect(result.issues).toEqual([]);
+  });
+
+  it("verifyAtlasFrameSizes flags HD frames off the scaled contract", () => {
+    const reference = new Map([["floor_1", { w: 16, h: 16 }]]);
+    const candidate = new Map([["floor_1", { w: 40, h: 41 }]]); // h wrong
+    const result = verifyAtlasFrameSizes({ reference, candidate, scale: 2.5 });
+    expect(result.ok).toBe(false);
+    expect(result.issues[0]?.kind).toBe("frame-size-mismatch");
+  });
+
   it("verifyArtPackOnDisk reads required files and compares atlas dimensions", async () => {
     const dir = await mkdtemp(join(tmpdir(), "roguent-artpack-"));
     const packRoot = join(dir, "neon");
