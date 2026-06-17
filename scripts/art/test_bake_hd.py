@@ -101,20 +101,43 @@ def test_harden_pixel_art_alpha_threshold_raised():
 
 import json
 import shutil
-import subprocess
 
 
 def _seed_16px_atlas_json(dst: Path) -> None:
-    """Reset the copied pack's dungeon.json to the committed 16px baseline.
+    """Reset the copied pack's dungeon.json to a 16px baseline layout.
 
-    The on-disk pack may already be HD-baked; the bake takes the json's frame
-    sizes as the 16px contract, so we restore the original 16px layout from git
-    to keep this test deterministic regardless of working-tree state.
+    The on-disk pack (and git HEAD) may already be HD-baked, and the bake takes
+    the json's frame sizes as the 16px contract. The permanent 16px source of
+    truth is the 0x72 reference atlas, whose frame *sizes* match every pack's
+    runtime atlas. We build a fresh non-overlapping 16px layout from those sizes
+    so this test stays deterministic regardless of working-tree / HEAD state.
     """
-    head = subprocess.check_output(
-        ["git", "show", "HEAD:public/assets/artpacks/neon-terminal/atlas/dungeon.json"]
+    ref = json.loads(Path("public/assets/0x72/dungeon.json").read_text())
+    new_frames: dict = {}
+    cur_x = 0
+    cur_y = 0
+    row_h = 0
+    for name, entry in ref["frames"].items():
+        w = entry["frame"]["w"]
+        h = entry["frame"]["h"]
+        if cur_x + w > 2048 and cur_x > 0:
+            cur_x = 0
+            cur_y += row_h + 1
+            row_h = 0
+        new_frames[name] = {
+            "frame": {"x": cur_x, "y": cur_y, "w": w, "h": h},
+            "rotated": False,
+            "trimmed": False,
+            "spriteSourceSize": {"x": 0, "y": 0, "w": w, "h": h},
+            "sourceSize": {"w": w, "h": h},
+        }
+        cur_x += w + 1
+        row_h = max(row_h, h)
+    (dst / "atlas" / "dungeon.json").write_text(
+        json.dumps(
+            {"frames": new_frames, "meta": {"size": {"w": 2048, "h": cur_y + row_h}}}
+        )
     )
-    (dst / "atlas" / "dungeon.json").write_bytes(head)
 
 
 def test_apply_pack_emits_hd_atlas(tmp_path, monkeypatch):
