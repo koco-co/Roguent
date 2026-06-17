@@ -200,11 +200,6 @@ export type SchedulerCommand =
       cmd: "scheduler";
       action: "deleteTask" | "runTask";
       taskId: string;
-    }
-  | {
-      cmd: "scheduler";
-      action: "cancelRun";
-      runId: string;
     };
 
 export type MailboxCommand =
@@ -240,11 +235,6 @@ export type EconomyCommand =
       sku: InventoryItem["sku"];
       quantity?: number;
       metadata?: Record<string, unknown>;
-    }
-  | {
-      cmd: "economy";
-      action: "equipItem" | "unequipItem";
-      itemId: InventoryItem["id"];
     };
 
 export interface SettingsCommand {
@@ -828,13 +818,6 @@ function parseSchedulerCommand(
             command: { cmd: "scheduler", action: o.action, taskId: o.taskId },
           }
         : fail("Invalid scheduler command", sessionIdOf(o));
-    case "cancelRun":
-      return typeof o.runId === "string"
-        ? {
-            ok: true,
-            command: { cmd: "scheduler", action: o.action, runId: o.runId },
-          }
-        : fail("Invalid scheduler command", sessionIdOf(o));
     default:
       return fail("Unknown scheduler action", sessionIdOf(o));
   }
@@ -916,14 +899,6 @@ function parseEconomyCommand(
               ...(o.quantity !== undefined ? { quantity: o.quantity } : {}),
               ...(o.metadata !== undefined ? { metadata: o.metadata } : {}),
             },
-          }
-        : fail("Invalid economy command", sessionIdOf(o));
-    case "equipItem":
-    case "unequipItem":
-      return typeof o.itemId === "string"
-        ? {
-            ok: true,
-            command: { cmd: "economy", action: o.action, itemId: o.itemId },
           }
         : fail("Invalid economy command", sessionIdOf(o));
     default:

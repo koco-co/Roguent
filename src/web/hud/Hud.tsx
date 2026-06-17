@@ -164,7 +164,7 @@ export function Hud() {
       <Settings />
       {/* 装饰商店(SHOP)面板(gem 余额/已拥有为真,购买 mock;自带 activePanel gate)*/}
       <Shop />
-      {/* 插件市场(MARKET)面板(整面板 mock + banner,自带 activePanel gate)*/}
+      {/* 插件市场(MARKET)面板(真实本地插件目录,来自引擎 PluginsMessage;安装/启停为真,自带 activePanel gate)*/}
       <Market />
       {/* 扭蛋机(GACHA)面板(真实 gem ledger 驱动,自带 activePanel gate)*/}
       <GachaPanel />

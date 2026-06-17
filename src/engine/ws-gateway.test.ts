@@ -312,7 +312,7 @@ test("WsGateway purchaseItem replies with error when gacha service is unavailabl
   });
 });
 
-test("WsGateway keeps equipItem/unequipItem economy actions explicit (not implemented)", async () => {
+test("WsGateway rejects removed/unknown economy actions (equipItem is dead)", async () => {
   const sent: string[] = [];
   const ws = {
     OPEN: 1,
@@ -325,6 +325,8 @@ test("WsGateway keeps equipItem/unequipItem economy actions explicit (not implem
   } as unknown as SessionManager;
   const gateway = createTestGateway(mgr);
   try {
+    // equipItem/unequipItem were removed (no UI sender, no gateway handler):
+    // the command no longer parses, so it must be rejected, not silently dropped.
     invokeOnCommand(
       gateway,
       JSON.stringify({

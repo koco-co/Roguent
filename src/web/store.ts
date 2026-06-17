@@ -1190,7 +1190,10 @@ export function reduce(state: RoomState, e: RoomEvent): RoomStateWithPrototype {
         }[];
       };
       const role = p.role ?? "assistant";
-      if (!p.text) break;
+      // Drop empty bubbles — EXCEPT an image-only message (empty text +
+      // attachments) must still render so its attachment chip shows (B4 tail).
+      const hasAttachments = (p.attachments?.length ?? 0) > 0;
+      if (!p.text && !hasAttachments) break;
       const status =
         role === "assistant" && e.type === "message.delta"
           ? "streaming"
