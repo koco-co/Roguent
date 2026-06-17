@@ -16,8 +16,21 @@ from typing import Iterable, TypedDict
 from PIL import Image, ImageEnhance
 
 
-PACKS = ("neon-terminal", "holo-blueprint", "deep-space", "synthwave")
+PACKS = ("neon-terminal", "synthwave")
 PACK_ROOT = Path("public/assets/artpacks")
+
+
+# HD bake: runtime atlas frames are baked at HD_SCALE× the 0x72 16px contract
+# so the high-res source sheets keep detail instead of collapsing to 16px mush.
+# The renderer (room/config.ts TILE) is bumped to TILE_PX in the render-2x
+# milestone; here we only emit the higher-resolution atlas.
+TILE_PX = 40
+HD_SCALE = TILE_PX / 16  # 2.5
+
+
+def hd_frame_size(w: int, h: int) -> tuple[int, int]:
+    """Scale a 16px-contract frame size to the HD bake size (per-axis round)."""
+    return (round(w * HD_SCALE), round(h * HD_SCALE))
 
 
 class Override(TypedDict, total=False):
