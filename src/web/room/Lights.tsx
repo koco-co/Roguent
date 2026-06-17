@@ -1,4 +1,4 @@
-import { DOOR_COL, FOUNTAIN_COLS, TILE } from "./config";
+import { DOOR_COL, FOUNTAIN_COLS, HD_SCALE, TILE } from "./config";
 import { glowTexture, vignetteTexture } from "./effects";
 
 interface Light {
@@ -17,6 +17,8 @@ function Glow({ x, y, radius, color, alpha }: Omit<Light, "key">) {
       anchor={0.5}
       x={x}
       y={y}
+      // 分母保持 64(裁决 9):radius 已在 statics 里 ×HD_SCALE,与 128px 纹理配合
+      // 占用 tile 数恒定。改成 128 会让发光池覆盖减半。
       scale={radius / 64}
       tint={color}
       alpha={alpha}
@@ -37,15 +39,15 @@ export function GlowLayer({ enabled = true }: { enabled?: boolean }) {
       key: "door",
       x: DOOR_COL * TILE,
       y: 1.4 * TILE,
-      radius: 36,
+      radius: 36 * HD_SCALE,
       color: 0x6fd8ff,
       alpha: 0.45,
     },
     ...FOUNTAIN_COLS.map((c) => ({
       key: `fountain_${c}`,
-      x: c * TILE + 8,
+      x: c * TILE + 8 * HD_SCALE,
       y: 2.4 * TILE,
-      radius: 22,
+      radius: 22 * HD_SCALE,
       color: 0x4fd6ff,
       alpha: 0.5,
     })),

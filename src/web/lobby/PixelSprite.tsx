@@ -1,10 +1,25 @@
 import type React from "react";
-import { useAtlasDom } from "./atlas-dom";
+import { type AtlasDom, useAtlasDom } from "./atlas-dom";
 import { useSpriteTick } from "./sprite-tick";
 
 // DOM 像素精灵,移植自原型 sprites.jsx 的 PixelSprite:用 CSS background-position 从
-// 0x72 dungeon.png 切片缩放(nearest-neighbor 保脆),几十个共用一个低频 ticker。
+// dungeon.png 切片缩放(nearest-neighbor 保脆),几十个共用一个低频 ticker。
 // 大厅 avatar / 漫步小人 / 门 / 喷泉用它;内景仍走 Pixi。
+//
+// 帧像素随选中 artpack 变(大厅走 `resolveCurrentArtPackAtlasUrls`):pixel-fantasy
+// 16px,neon/synthwave 是 HD(16*HD_SCALE=40px)。`scale` 是相对 16px 契约的 CSS 放大
+// 倍数,call site 都按 16px 帧传(如 scale=4 → 64px)。所以这里按实际帧的 HD 因子
+// 归一:effectiveScale = scale / (帧px/16),让物理视觉大小不随 artpack 改变。
+
+// 16px 契约里 knight/floor 帧宽都是 16;HD 烤出来宽 40。HD 因子 = 实际帧宽 / 16。
+const CONTRACT_TILE_PX = 16;
+
+/** atlas 的 HD 因子(帧px / 16):用稳定参照帧 knight_m_idle_anim_f0 估;缺失退回 1。 */
+function atlasHdFactor(atlas: AtlasDom): number {
+  const ref = atlas.frames.knight_m_idle_anim_f0 ?? atlas.frames.floor_1;
+  if (!ref) return 1;
+  return ref.w / CONTRACT_TILE_PX;
+}
 
 /** 解析角色 base + 动作(idle/run/hit)对应的帧名列表(已去 .png),按数字排序。 */
 function framesFor(
@@ -73,16 +88,19 @@ export function PixelSprite({
   const key = list[idx] ?? list[0];
   const fr = key ? atlas.frames[key] : undefined;
   if (!fr) return null;
+  // 按帧的 HD 因子归一:call site 的 scale 是相对 16px 帧的放大;HD 帧(40px)下
+  // 除以 2.5 抵消,物理视觉大小不随 artpack 改变。
+  const eScale = scale / atlasHdFactor(atlas);
   return (
     <div
       className={`pxsprite${className ? ` ${className}` : ""}`}
       style={{
-        width: fr.w * scale,
-        height: fr.h * scale,
+        width: fr.w * eScale,
+        height: fr.h * eScale,
         backgroundImage: `url(${atlas.imageUrl})`,
         backgroundRepeat: "no-repeat",
-        backgroundPosition: `${-fr.x * scale}px ${-fr.y * scale}px`,
-        backgroundSize: `${atlas.w * scale}px ${atlas.h * scale}px`,
+        backgroundPosition: `${-fr.x * eScale}px ${-fr.y * eScale}px`,
+        backgroundSize: `${atlas.w * eScale}px ${atlas.h * eScale}px`,
         imageRendering: "pixelated",
         transform: flip ? "scaleX(-1)" : undefined,
         filter,

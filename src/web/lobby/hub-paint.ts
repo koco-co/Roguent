@@ -7,9 +7,23 @@ import { drawFrame } from "./atlas-image";
 
 export const COLS = 24;
 export const ROWS = 14;
-const TILE = 16;
-const S = 5;
-const T = TILE * S; // 80px 瓦片
+// 大厅瓦片的物理铺面步进固定 80px(布局坐标全用 T,与帧像素解耦)。原型 T=16*5。
+// 帧的绘制放大倍数(S)不再是常量 5,而在 paintHub 里按「实际加载的帧像素」推导:
+// 大厅走 atlas-dom(`resolveCurrentArtPackAtlasUrls`),帧像素随选中的 artpack 变
+// (pixel-fantasy 16px → S=5;neon/synthwave HD 40px → S=2),要让 `帧px * S == 80`
+// 恒定才不会重叠/缩小。所以这里只保留物理步进 T,绘制放大值现算(见 hubDrawScale)。
+const HUB_PHYS_TILE = 80; // 物理瓦片 px(= 旧 16*5,布局步进基准)
+const T = HUB_PHYS_TILE; // 80px 瓦片(布局坐标步进,与帧像素无关)
+
+/** 一帧的原生瓦片像素(grass 是单 tile 帧;缺失时退回 16px 旧基准)。 */
+function hubTilePx(atlas: AtlasDom): number {
+  return atlas.frames.grass?.w ?? 16;
+}
+
+/** 绘制放大倍数:让 `帧px * S == 物理瓦片(80)` 恒定,自适应 16/40px 帧。 */
+export function hubDrawScale(atlas: AtlasDom): number {
+  return HUB_PHYS_TILE / hubTilePx(atlas);
+}
 
 /** 原型同款逐格伪随机(room.jsx 顶部 hash):确定性,值域 [0,1)。 */
 export function hash(x: number, y: number): number {
@@ -79,6 +93,8 @@ export function paintHub(ctx: CanvasRenderingContext2D, atlas: AtlasDom): void {
   ctx.fillStyle = "#2c4d24"; // 深草底
   ctx.fillRect(0, 0, w, h);
 
+  // 绘制放大倍数按实际帧像素现算(16px→5,40px HD→2),保物理瓦片 80px 恒定。
+  const S = hubDrawScale(atlas);
   const df = (name: string, dx: number, dy: number) =>
     drawFrame(ctx, atlas.frames, name, dx, dy, S);
 

@@ -338,6 +338,38 @@ describe("verify-artpack", () => {
     ]);
   });
 
+  it("verifyAtlasFrameSizes matches HD candidates against a scaled reference", () => {
+    const reference = new Map([
+      ["floor_1", { w: 16, h: 16 }],
+      ["knight_m_idle_anim_f0", { w: 16, h: 28 }],
+    ]);
+    const candidate = new Map([
+      ["floor_1", { w: 40, h: 40 }],
+      ["knight_m_idle_anim_f0", { w: 40, h: 70 }],
+    ]);
+    const result = verifyAtlasFrameSizes({ reference, candidate, scale: 2.5 });
+    expect(result.ok).toBe(true);
+    expect(result.issues).toEqual([]);
+  });
+
+  it("verifyAtlasFrameSizes flags HD frames off the scaled contract", () => {
+    const reference = new Map([["floor_1", { w: 16, h: 16 }]]);
+    const candidate = new Map([["floor_1", { w: 40, h: 41 }]]); // h wrong
+    const result = verifyAtlasFrameSizes({ reference, candidate, scale: 2.5 });
+    expect(result.ok).toBe(false);
+    expect(result.issues[0]?.kind).toBe("frame-size-mismatch");
+  });
+
+  it("verifyAtlasFrameSizes rounds exact .5 half-to-even to match the Python bake", () => {
+    // weapon_axe 9x21 at 2.5: 22.5/52.5. Python round() is half-to-even -> 22/52
+    // (JS Math.round would give 23/53). The candidate is what the bake emits.
+    const reference = new Map([["weapon_axe", { w: 9, h: 21 }]]);
+    const candidate = new Map([["weapon_axe", { w: 22, h: 52 }]]);
+    const result = verifyAtlasFrameSizes({ reference, candidate, scale: 2.5 });
+    expect(result.ok).toBe(true);
+    expect(result.issues).toEqual([]);
+  });
+
   it("verifyArtPackOnDisk reads required files and compares atlas dimensions", async () => {
     const dir = await mkdtemp(join(tmpdir(), "roguent-artpack-"));
     const packRoot = join(dir, "neon");
@@ -485,12 +517,7 @@ describe("verify-artpack", () => {
   });
 
   it("generated artpacks report GPT-image runtime frame coverage", async () => {
-    for (const pack of [
-      "neon-terminal",
-      "holo-blueprint",
-      "deep-space",
-      "synthwave",
-    ]) {
+    for (const pack of ["neon-terminal", "synthwave"]) {
       const report = JSON.parse(
         await readFile(
           `public/assets/artpacks/${pack}/atlas/gpt-image-overrides.json`,
@@ -526,12 +553,7 @@ describe("verify-artpack", () => {
   });
 
   it("generated character frames crop to the main source-sheet body for readability", async () => {
-    for (const pack of [
-      "neon-terminal",
-      "holo-blueprint",
-      "deep-space",
-      "synthwave",
-    ]) {
+    for (const pack of ["neon-terminal", "synthwave"]) {
       const report = JSON.parse(
         await readFile(
           `public/assets/artpacks/${pack}/atlas/gpt-image-overrides.json`,
@@ -553,12 +575,7 @@ describe("verify-artpack", () => {
   });
 
   it("generated runtime atlases keep hard-edged pixel-art pixels", async () => {
-    for (const pack of [
-      "neon-terminal",
-      "holo-blueprint",
-      "deep-space",
-      "synthwave",
-    ]) {
+    for (const pack of ["neon-terminal", "synthwave"]) {
       const stats = parsePngRgbaStats(
         Buffer.from(
           await readFile(`public/assets/artpacks/${pack}/atlas/dungeon.png`),
@@ -571,12 +588,7 @@ describe("verify-artpack", () => {
   });
 
   it("generated environment tiles avoid high-frequency visual noise", async () => {
-    for (const pack of [
-      "neon-terminal",
-      "holo-blueprint",
-      "deep-space",
-      "synthwave",
-    ]) {
+    for (const pack of ["neon-terminal", "synthwave"]) {
       const image = parsePngRgba(
         Buffer.from(
           await readFile(`public/assets/artpacks/${pack}/atlas/dungeon.png`),
@@ -595,9 +607,14 @@ describe("verify-artpack", () => {
         ),
       ) as OverrideReportForTest;
 
+      // HD bake re-baseline: de-blurring (drop block_pixel_art + heavy mix)
+      // intentionally restores edge energy, so the noise score rises. Observed
+      // after HD re-bake: synthwave 59.35 (max), neon-terminal 39.54. Threshold
+      // bumped from 45 to ceil(59.35 * 1.1) = 66 to gate genuine noise, not the
+      // intended deblur. This is a ceiling on per-frame mean neighbor delta.
       expect(
         environmentTileNoiseScore(image, atlas, report),
-      ).toBeLessThanOrEqual(45);
+      ).toBeLessThanOrEqual(66);
     }
   });
 });

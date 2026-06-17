@@ -15,9 +15,30 @@ from typing import Iterable, TypedDict
 
 from PIL import Image, ImageEnhance
 
+import importlib.util as _ilu
 
-PACKS = ("neon-terminal", "holo-blueprint", "deep-space", "synthwave")
+_repack_spec = _ilu.spec_from_file_location(
+    "repack_atlas", Path(__file__).with_name("repack_atlas.py")
+)
+_repack = _ilu.module_from_spec(_repack_spec)
+_repack_spec.loader.exec_module(_repack)
+
+
+PACKS = ("neon-terminal", "synthwave")
 PACK_ROOT = Path("public/assets/artpacks")
+
+
+# HD bake: runtime atlas frames are baked at HD_SCALE× the 0x72 16px contract
+# so the high-res source sheets keep detail instead of collapsing to 16px mush.
+# The renderer (room/config.ts TILE) is bumped to TILE_PX in the render-2x
+# milestone; here we only emit the higher-resolution atlas.
+TILE_PX = 40
+HD_SCALE = TILE_PX / 16  # 2.5
+
+
+def hd_frame_size(w: int, h: int) -> tuple[int, int]:
+    """Scale a 16px-contract frame size to the HD bake size (per-axis round)."""
+    return (round(w * HD_SCALE), round(h * HD_SCALE))
 
 
 class Override(TypedDict, total=False):
@@ -1008,7 +1029,8 @@ def harden_pixel_art(sprite: Image.Image) -> Image.Image:
     for y in range(height):
         for x in range(width):
             r, g, b, a = pix[x, y]
-            if a < 64:
+            # HD bake: cull anti-alias edges below 96 alpha (was 64 at 16px)
+            if a < 96:
                 pix[x, y] = (0, 0, 0, 0)
                 continue
             pix[x, y] = (
@@ -1024,9 +1046,9 @@ def boost_small_sprite_contrast(sprite: Image.Image) -> Image.Image:
     alpha = sprite.getchannel("A")
     rgb = Image.new("RGB", sprite.size, (0, 0, 0))
     rgb.paste(sprite.convert("RGB"), mask=alpha)
-    rgb = ImageEnhance.Contrast(rgb).enhance(1.55)
-    rgb = ImageEnhance.Color(rgb).enhance(1.18)
-    rgb = ImageEnhance.Brightness(rgb).enhance(1.06)
+    rgb = ImageEnhance.Contrast(rgb).enhance(1.25)
+    rgb = ImageEnhance.Color(rgb).enhance(1.12)
+    rgb = ImageEnhance.Brightness(rgb).enhance(1.03)
     out = rgb.convert("RGBA")
     out.putalpha(alpha)
     return out
@@ -1116,12 +1138,13 @@ def mix_toward_average(sprite: Image.Image, amount: float) -> Image.Image:
 
 def reduce_environment_noise(sprite: Image.Image, frame_name: str) -> Image.Image:
     frame = frame_name.removesuffix(".png")
-    out = block_pixel_art(sprite, 2)
+    # HD bake: the source sheets are already high-res, so drop the old
+    # block_pixel_art(2) mean-filter blur and keep mixing only lightly.
     if frame.startswith(("floor", "ground", "grass", "edge")) or frame == "hole":
-        return mix_toward_average(out, 0.46)
+        return mix_toward_average(sprite, 0.10)
     if frame.startswith(("wall", "doors", "column")):
-        return mix_toward_average(out, 0.28)
-    return mix_toward_average(out, 0.18)
+        return mix_toward_average(sprite, 0.08)
+    return mix_toward_average(sprite, 0.06)
 
 
 def stylize_runtime_sprite(
@@ -1164,7 +1187,9 @@ def fitted_cell(
         max(1, min(target_w, round(subject.width * scale))),
         max(1, min(target_h, round(subject.height * scale))),
     )
-    resized = subject.resize(new_size, Image.Resampling.BOX)
+    # HD bake: LANCZOS keeps high-frequency detail when downsampling the
+    # high-res source cell (BOX/area-average collapsed it toward mush).
+    resized = subject.resize(new_size, Image.Resampling.LANCZOS)
     out = Image.new("RGBA", target_size, (0, 0, 0, 0))
     out.alpha_composite(
         resized,
@@ -1192,9 +1217,29 @@ def apply_pack(pack_id: str) -> dict[str, object]:
     atlas_json_path = pack_root / "atlas" / "dungeon.json"
     report_path = pack_root / "atlas" / "gpt-image-overrides.json"
 
-    atlas = Image.open(atlas_path).convert("RGBA")
     atlas_json = json.loads(atlas_json_path.read_text())
     frames = atlas_json["frames"]
+
+    # Idempotency guard: repacking takes the json frame sizes as the 16px
+    # contract and multiplies by HD_SCALE. Re-baking an already-HD atlas would
+    # double-scale (40 -> 100), so refuse if our HD marker is present.
+    if atlas_json.get("meta", {}).get("hdBake", {}).get("scale"):
+        raise SystemExit(
+            f"{pack_id}: atlas already HD-baked "
+            f"(meta.hdBake present); revert dungeon.json to the 16px baseline "
+            f"before re-baking to avoid double-scaling frames."
+        )
+
+    # HD repack: rewrite the TexturePacker layout at HD_SCALE so the high-res
+    # source cells land in larger frame rects, then build a fresh canvas.
+    new_frames, (atlas_w, atlas_h) = _repack.repack_atlas_frames(frames, HD_SCALE)
+    atlas_json["frames"] = new_frames
+    meta = atlas_json.setdefault("meta", {})
+    meta["size"] = {"w": atlas_w, "h": atlas_h}
+    meta["hdBake"] = {"scale": HD_SCALE, "tile": TILE_PX}
+    frames = new_frames
+    atlas = Image.new("RGBA", (atlas_w, atlas_h), (0, 0, 0, 0))
+
     source_cache: dict[str, Image.Image] = {}
     covered: list[dict[str, object]] = []
     missing: list[str] = []
@@ -1229,10 +1274,7 @@ def apply_pack(pack_id: str) -> dict[str, object]:
             override["frame"],
         )
         sprite = finalize_runtime_sprite(sprite, override["category"])
-        atlas.paste(
-            Image.new("RGBA", target_size, (0, 0, 0, 0)),
-            (frame["x"], frame["y"]),
-        )
+        # Fresh HD canvas is already transparent — paste directly, no clear.
         atlas.alpha_composite(sprite, (frame["x"], frame["y"]))
         covered.append(
             {
@@ -1245,6 +1287,7 @@ def apply_pack(pack_id: str) -> dict[str, object]:
     if missing:
         raise SystemExit(f"{pack_id}: missing atlas frames: {', '.join(missing)}")
 
+    atlas_json_path.write_text(json.dumps(atlas_json, indent=2) + "\n")
     atlas.save(atlas_path)
     by_category: dict[str, int] = {}
     for item in covered:

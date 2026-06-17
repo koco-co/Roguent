@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { COLS, ROWS, buildStoneMap } from "./hub-paint";
+import type { AtlasDom, AtlasFrame } from "./atlas-dom";
+import { COLS, ROWS, buildStoneMap, hubDrawScale } from "./hub-paint";
 
 // stone map 是 paintHub 的几何骨架(广场/车道/建筑 pad),逐格钉死防止 port 走样。
 describe("buildStoneMap", () => {
@@ -35,5 +36,32 @@ describe("buildStoneMap", () => {
 
   test("北墙带(行 0-1)不铺石板", () => {
     expect(stone[0]?.every((v) => v === false)).toBe(true);
+  });
+});
+
+// hubDrawScale 自适应高清帧:物理瓦片 80px 恒定 → 帧px * S == 80。
+describe("hubDrawScale", () => {
+  const atlasWith = (grassW: number): AtlasDom => {
+    const fr: AtlasFrame = { x: 0, y: 0, w: grassW, h: grassW };
+    return { frames: { grass: fr }, imageUrl: "/x.png", w: 128, h: 1178 };
+  };
+
+  test("16px 帧(pixel-fantasy)→ S=5(旧值不变)", () => {
+    expect(hubDrawScale(atlasWith(16))).toBe(5);
+  });
+
+  test("40px HD 帧(neon/synthwave)→ S=2", () => {
+    expect(hubDrawScale(atlasWith(40))).toBe(2);
+  });
+
+  test("帧px * S == 80(物理瓦片步进恒定)", () => {
+    for (const px of [16, 40]) {
+      expect(px * hubDrawScale(atlasWith(px))).toBeCloseTo(80, 10);
+    }
+  });
+
+  test("缺 grass 帧时退回 16px 基准(S=5)", () => {
+    const atlas: AtlasDom = { frames: {}, imageUrl: "/x.png", w: 128, h: 1178 };
+    expect(hubDrawScale(atlas)).toBe(5);
   });
 });

@@ -662,17 +662,11 @@ export const DICT: Record<string, string> = {
     "Preview an art pack before applying it. The lobby, interiors, NPCs, props, and button UI switch to that asset set and save automatically.",
   像素奇幻: "Pixel Fantasy",
   霓虹终端: "Neon Terminal",
-  全息蓝图: "Holo Blueprint",
-  深空舰桥: "Deep-Space Bridge",
   合成波: "Synthwave Grid",
   "当前内置风格 · 地牢羊皮卷 · 暖棕木质 HUD":
     "Built-in style · dungeon parchment · warm-wood HUD",
   "CRT 扫描线 · 磷光青绿 · 赛博命令行界面":
     "CRT scanlines · phosphor cyan · cyber command line",
-  "线框全息投影 · 坐标网格 · 半透冷蓝":
-    "Wireframe hologram · coordinate grid · translucent cold blue",
-  "星舰指挥桥 · 深空星野 · 暗物质金属":
-    "Starship bridge · deep-space starfield · dark-matter metal",
   "80s 落日网格 · 品红/青渐隐 · 矢量霓虹":
     "80s sunset grid · magenta/cyan fade · vector neon",
   "✓ 使用中": "✓ In use",

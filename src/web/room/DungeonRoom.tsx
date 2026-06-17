@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useSettingsStore } from "../settings-store";
 import { DecorLayer } from "./DecorLayer";
 import { anim, tex, useAtlas } from "./atlas";
-import { COLS, DOOR_COL, FOUNTAIN_COLS, ROWS, TILE } from "./config";
+import { COLS, DOOR_COL, FOUNTAIN_COLS, HD_SCALE, ROWS, TILE } from "./config";
 import { holoNodes } from "./holo";
 import { CARPET, DAIS, RUNE, floorTileAt } from "./room-props";
 
@@ -68,9 +68,15 @@ function HoloFloor() {
     // navy deck base + 顶部更深一档的能量墙底
     g.rect(0, 0, W, H).fill(0x091628);
     g.rect(0, 0, W, 2 * TILE).fill(0x0a1c2e);
-    // 能量墙带:亮青边沿 + 半透青晕
-    g.rect(0, 2 * TILE - 3, W, 3).fill({ color: 0x36c5e0, alpha: 0.5 });
-    g.rect(0, 2 * TILE, W, 16).fill({ color: 0x36c5e0, alpha: 0.14 });
+    // 能量墙带:亮青边沿 + 半透青晕(虚拟 px 厚度 ×HD_SCALE)
+    g.rect(0, 2 * TILE - 3 * HD_SCALE, W, 3 * HD_SCALE).fill({
+      color: 0x36c5e0,
+      alpha: 0.5,
+    });
+    g.rect(0, 2 * TILE, W, 16 * HD_SCALE).fill({
+      color: 0x36c5e0,
+      alpha: 0.14,
+    });
     // 纵向网格线(列):微微随列号摆动的青色
     for (let c = 0; c <= COLS; c++) {
       const a = 0.1 + 0.05 + 0.05 * Math.sin(c * 0.7);
@@ -87,7 +93,12 @@ function HoloFloor() {
     }
     // 稀疏发光交点(确定性 hash,可回放一致)
     for (const n of holoNodes(COLS, ROWS)) {
-      g.rect(n.c * TILE - 2, n.r * TILE - 2, 4, 4).fill({
+      g.rect(
+        n.c * TILE - 2 * HD_SCALE,
+        n.r * TILE - 2 * HD_SCALE,
+        4 * HD_SCALE,
+        4 * HD_SCALE,
+      ).fill({
         color: 0x5fe0ff,
         alpha: n.a,
       });
@@ -112,7 +123,7 @@ function DaisLayer() {
     const rugH = CARPET.h * TILE;
     g.rect(rugX, rugY, rugW, rugH).fill({ color: CARPET.base, alpha: 0.6 });
     // 金边:上沿一条 + 左右各一条立柱(原型 6px@80 → ~1.2px@16,用 1.2 描细边)
-    const trim = 1.2;
+    const trim = 1.2 * HD_SCALE;
     g.rect(rugX, rugY, rugW, trim).fill({ color: CARPET.trim, alpha: 0.55 });
     g.rect(rugX, rugY, trim, rugH).fill({ color: CARPET.trim, alpha: 0.55 });
     g.rect(rugX + rugW - trim, rugY, trim, rugH).fill({
@@ -121,7 +132,12 @@ function DaisLayer() {
     });
     // 6 条青色纹理条(横向,等距下排)
     for (let i = 0; i < CARPET.stripes; i++) {
-      g.rect(rugX + 2, (CARPET.y + 0.5 + i) * TILE, rugW - 4, 0.8).fill({
+      g.rect(
+        rugX + 2 * HD_SCALE,
+        (CARPET.y + 0.5 + i) * TILE,
+        rugW - 4 * HD_SCALE,
+        0.8 * HD_SCALE,
+      ).fill({
         color: CARPET.weave,
         alpha: 0.18,
       });
@@ -136,47 +152,57 @@ function DaisLayer() {
     const dy = dcy - DAIS.halfH * TILE;
     // 深色石板内部
     g.rect(dx, dy, dw, dh).fill({ color: 0x0a1c22, alpha: 0.55 });
-    // 亮青外描边(原型 lineWidth 4@80 → 0.8@16)
-    g.rect(dx + 0.4, dy + 0.4, dw - 0.8, dh - 0.8).stroke({
+    // 亮青外描边(原型 lineWidth 4@80 → 0.8@16,内缩/线宽 ×HD_SCALE)
+    g.rect(
+      dx + 0.4 * HD_SCALE,
+      dy + 0.4 * HD_SCALE,
+      dw - 0.8 * HD_SCALE,
+      dh - 0.8 * HD_SCALE,
+    ).stroke({
       color: RUNE.color,
       alpha: 0.5,
-      width: 0.8,
+      width: 0.8 * HD_SCALE,
     });
-    // 金内框(原型 内缩 10@80 → 2@16,lineWidth 2@80 → 0.4@16)
-    g.rect(dx + 2, dy + 2, dw - 4, dh - 4).stroke({
+    // 金内框(原型 内缩 10@80 → 2@16,lineWidth 2@80 → 0.4@16,内缩/线宽 ×HD_SCALE)
+    g.rect(
+      dx + 2 * HD_SCALE,
+      dy + 2 * HD_SCALE,
+      dw - 4 * HD_SCALE,
+      dh - 4 * HD_SCALE,
+    ).stroke({
       color: CARPET.trim,
       alpha: 0.35,
-      width: 0.4,
+      width: 0.4 * HD_SCALE,
     });
 
     // ---- 符文圈:双同心圆 + 12 辐条 + 十字轴(以指挥台中心为圆心)----
     const outer = RUNE.outer;
     const inner = RUNE.inner;
-    // 外圈 + 内圈(原型 lineWidth 3@80 → 0.6@16)
+    // 外圈 + 内圈(原型 lineWidth 3@80 → 0.6@16,线宽 ×HD_SCALE)
     g.circle(dcx, dcy, outer).stroke({
       color: RUNE.color,
       alpha: 0.6,
-      width: 0.6,
+      width: 0.6 * HD_SCALE,
     });
     g.circle(dcx, dcy, inner).stroke({
       color: RUNE.color,
       alpha: 0.6,
-      width: 0.6,
+      width: 0.6 * HD_SCALE,
     });
-    // 12 辐条:内圈 → 外圈(原型 lineWidth 2@80 → 0.4@16)
+    // 12 辐条:内圈 → 外圈(原型 lineWidth 2@80 → 0.4@16,线宽 ×HD_SCALE)
     for (let i = 0; i < RUNE.spokes; i++) {
       const a = (i / RUNE.spokes) * Math.PI * 2;
       g.moveTo(dcx + Math.cos(a) * inner, dcy + Math.sin(a) * inner)
         .lineTo(dcx + Math.cos(a) * outer, dcy + Math.sin(a) * outer)
-        .stroke({ color: RUNE.color, alpha: 0.6, width: 0.4 });
+        .stroke({ color: RUNE.color, alpha: 0.6, width: 0.4 * HD_SCALE });
     }
-    // 十字轴(更暗一档)
+    // 十字轴(更暗一档,线宽 ×HD_SCALE)
     g.moveTo(dcx - outer, dcy)
       .lineTo(dcx + outer, dcy)
-      .stroke({ color: RUNE.color, alpha: 0.3, width: 0.4 });
+      .stroke({ color: RUNE.color, alpha: 0.3, width: 0.4 * HD_SCALE });
     g.moveTo(dcx, dcy - outer)
       .lineTo(dcx, dcy + outer)
-      .stroke({ color: RUNE.color, alpha: 0.3, width: 0.4 });
+      .stroke({ color: RUNE.color, alpha: 0.3, width: 0.4 * HD_SCALE });
   }, []);
   return <pixiGraphics draw={draw} />;
 }

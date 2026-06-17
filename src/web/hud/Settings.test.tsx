@@ -307,14 +307,14 @@ test("art style preview shows generated UI button kit art", async () => {
   );
   await userEvent.click(
     container.querySelector(
-      '.artpack-card[data-pk="deep-space"]',
+      '.artpack-card[data-pk="synthwave"]',
     ) as HTMLElement,
   );
 
   const kit = container.querySelector(".apv-ui-kit") as HTMLElement | null;
   expect(kit).toBeTruthy();
   expect(kit?.style.backgroundImage).toContain(
-    "/assets/artpacks/deep-space/ui/buttons.png",
+    "/assets/artpacks/synthwave/ui/buttons.png",
   );
   expect(screen.getAllByText("BUTTON UI / 按钮").length).toBeGreaterThanOrEqual(
     1,
@@ -331,7 +331,7 @@ test("art style preview shows generated NPC tiles props structure HUD easter and
   );
   await userEvent.click(
     container.querySelector(
-      '.artpack-card[data-pk="holo-blueprint"]',
+      '.artpack-card[data-pk="synthwave"]',
     ) as HTMLElement,
   );
 
@@ -349,24 +349,41 @@ test("art style preview shows generated NPC tiles props structure HUD easter and
     "ui",
   ]);
   expect(sheets[0]?.style.backgroundImage).toContain(
-    "/assets/artpacks/holo-blueprint/characters/npcs.png",
+    "/assets/artpacks/synthwave/characters/npcs.png",
   );
   expect(sheets[1]?.style.backgroundImage).toContain(
-    "/assets/artpacks/holo-blueprint/tiles/environment.png",
+    "/assets/artpacks/synthwave/tiles/environment.png",
   );
   expect(sheets[2]?.style.backgroundImage).toContain(
-    "/assets/artpacks/holo-blueprint/items/props.png",
+    "/assets/artpacks/synthwave/items/props.png",
   );
   expect(sheets[3]?.style.backgroundImage).toContain(
-    "/assets/artpacks/holo-blueprint/structures/source-sheet.png",
+    "/assets/artpacks/synthwave/structures/source-sheet.png",
   );
   expect(sheets[4]?.style.backgroundImage).toContain(
-    "/assets/artpacks/holo-blueprint/hud/icons.png",
+    "/assets/artpacks/synthwave/hud/icons.png",
   );
   expect(sheets[5]?.style.backgroundImage).toContain(
-    "/assets/artpacks/holo-blueprint/easter/sprites.png",
+    "/assets/artpacks/synthwave/easter/sprites.png",
   );
   expect(sheets[6]?.style.backgroundImage).toContain(
-    "/assets/artpacks/holo-blueprint/ui/buttons.png",
+    "/assets/artpacks/synthwave/ui/buttons.png",
   );
+});
+
+test("art style grid hides the legacy pixel-fantasy pack", async () => {
+  useUiStore.setState({ activePanel: "settings" });
+
+  const { container } = render(<Settings />);
+
+  await userEvent.click(
+    screen.getByRole("button", { name: /美术风格 Art Style/ }),
+  );
+
+  const cards = Array.from(
+    container.querySelectorAll(".artpack-card"),
+  ) as HTMLElement[];
+  const ids = cards.map((el) => el.dataset.pk);
+  expect(ids).toEqual(["neon-terminal", "synthwave"]);
+  expect(ids).not.toContain("pixel-fantasy");
 });
