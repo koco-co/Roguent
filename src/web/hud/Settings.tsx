@@ -741,6 +741,9 @@ function ArtPackGroup() {
   const pvPack = ART_PACKS.find((p) => p.id === preview) ?? null;
   if (!curPack) return null;
 
+  // pixel-fantasy 保留为可解析的 legacy 兜底,但不在选择网格里露出。
+  const visiblePacks = ART_PACKS.filter((p) => p.id !== "pixel-fantasy");
+
   return (
     <div className="artpack-group">
       <div className="comp-intro">
@@ -752,7 +755,7 @@ function ArtPackGroup() {
         </span>
       </div>
       <div className="artpack-grid">
-        {ART_PACKS.map((p) => (
+        {visiblePacks.map((p) => (
           <button
             key={p.id}
             type="button"
