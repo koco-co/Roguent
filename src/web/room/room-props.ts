@@ -5,6 +5,7 @@
 // 16px 空间是 ox/S。下面所有偏移都已按 S=5 折算,正文只留 16px 空间的最终偏移。
 // 这些是**纯装饰**布局,不映射任何真实数据。
 
+import { HD_SCALE } from "./config";
 import { holoHash } from "./holo";
 
 export const PROP_OFFSET_SCALE = 5; // 原型 S:80px tile / 16px tile
@@ -92,8 +93,8 @@ export const DAIS = {
  * 原型半径是 80px 空间的 150/108 px → 本仓 16px 空间除以 S。色 #36c5e0。静态描线。
  */
 export const RUNE = {
-  outer: 150 / PROP_OFFSET_SCALE, // 30
-  inner: 108 / PROP_OFFSET_SCALE, // 21.6
+  outer: (150 / PROP_OFFSET_SCALE) * HD_SCALE, // 30 → 75 @ TILE40
+  inner: (108 / PROP_OFFSET_SCALE) * HD_SCALE, // 21.6 → 54 @ TILE40
   spokes: 12,
   color: 0x36c5e0,
 } as const;
