@@ -103,6 +103,11 @@ if (replayFixture) {
     },
     plugins: pluginsService,
     pairing: integrations.pairing,
+    // 单条转发到配对 IM(D-b):把 mailbox item 正文经配对连接器 sendMessage 转发。
+    forward: {
+      forward: (channel, externalChatId, text) =>
+        integrations.forwardToIm(channel, externalChatId, text),
+    },
     // 宝石经济上线:扭蛋(purchaseItem)+ 成就(claimAchievement / 运行时进度)。
     // initialPullSeq 用 null-session 账本条目数,扭蛋种子重启后仍唯一。
     gacha: economy.gacha,

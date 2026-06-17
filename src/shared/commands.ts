@@ -219,6 +219,13 @@ export type MailboxCommand =
       itemId: string;
       actionId: string;
       metadata?: Record<string, unknown>;
+    }
+  | {
+      cmd: "mailbox";
+      action: "forwardToIm";
+      itemId: string;
+      channel: IntegrationChannel;
+      externalChatId: string;
     };
 
 export type EconomyCommand =
@@ -857,6 +864,22 @@ function parseMailboxCommand(
               itemId: o.itemId,
               actionId: o.actionId,
               ...(o.metadata !== undefined ? { metadata: o.metadata } : {}),
+            },
+          }
+        : fail("Invalid mailbox command", sessionIdOf(o));
+    case "forwardToIm":
+      return typeof o.itemId === "string" &&
+        isIntegrationChannel(o.channel) &&
+        typeof o.externalChatId === "string" &&
+        o.externalChatId.trim().length > 0
+        ? {
+            ok: true,
+            command: {
+              cmd: "mailbox",
+              action: "forwardToIm",
+              itemId: o.itemId,
+              channel: o.channel,
+              externalChatId: o.externalChatId,
             },
           }
         : fail("Invalid mailbox command", sessionIdOf(o));

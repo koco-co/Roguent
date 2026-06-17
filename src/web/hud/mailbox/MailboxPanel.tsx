@@ -3,6 +3,7 @@ import type {
   IntegrationConnectorStatus,
   MailboxItem,
   MailboxSource,
+  PairingBinding,
 } from "../../../shared/events";
 import { useT } from "../../i18n";
 import { useRoomStore } from "../../store";
@@ -317,11 +318,11 @@ export function MailboxPanel() {
   );
   const unread = allItems.filter((item) => item.status === "unread").length;
 
-  // 是否存在「活跃且开启转发」的配对绑定 —— 决定转发按钮注脚措辞,但即便存在,
-  // 也没有「转发单条 mailbox item」的真实 relay 命令,按钮仍保持置灰。
-  const hasActiveForwarding = useMemo(
+  // 「活跃且开启转发」的配对绑定列表 —— 决定单条转发按钮是否可用。
+  // 引擎侧 mailbox/forwardToIm 命令经配对连接器 sendMessage 真转发(D-b)。
+  const forwardingBindings = useMemo(
     () =>
-      Object.values(pairings.byId).some(
+      Object.values(pairings.byId).filter(
         (b) => b.status === "active" && b.forwardingEnabled,
       ),
     [pairings],
@@ -463,7 +464,7 @@ export function MailboxPanel() {
               {selected ? (
                 <MailboxReader
                   item={selected}
-                  hasActiveForwarding={hasActiveForwarding}
+                  forwardingBindings={forwardingBindings}
                   sessionTitle={
                     selected.sessionId
                       ? sessions[selected.sessionId]?.title
@@ -493,19 +494,27 @@ export function MailboxPanel() {
  * meta code 块:仅当 metadata.raw / metadata.payload 存在才渲染(metaPayload),
  * 无原始载荷则不渲染、不造。
  *
- * 「转发到配对 IM」按钮:**置灰**。本仓没有「转发单条 mailbox item 到 IM」的真实
- * relay 命令(commands.ts 仅有 mailbox markRead/archive/invokeAction,转发只是
- * 每绑定的 forwardingEnabled 总开关,不是针对单条消息的 action)。即便存在活跃且
- * 开启转发的绑定,也没有可调用的单条转发命令,故按钮恒置灰,注脚如实标注状态。
+ * 「转发到配对 IM」按钮(D-b):存在「活跃且开启转发」的配对绑定时**可点**。点击
+ * 发 mailbox/forwardToIm 命令,引擎经配对连接器 sendMessage 把本条正文转发到绑定的
+ * 外部聊天。优先选与信件来源同 channel 的绑定(微信信件→微信聊天),否则回落到任一
+ * 活跃转发绑定。无可用绑定时置灰,注脚如实提示去 PAIRING 扫码绑定。
  */
+function forwardBindingFor(
+  item: MailboxItem,
+  bindings: PairingBinding[],
+): PairingBinding | undefined {
+  if (bindings.length === 0) return undefined;
+  return bindings.find((b) => b.channel === item.source) ?? bindings[0];
+}
+
 function MailboxReader({
   item,
-  hasActiveForwarding,
+  forwardingBindings,
   sessionTitle,
   onOpenSession,
 }: {
   item: MailboxItem;
-  hasActiveForwarding: boolean;
+  forwardingBindings: PairingBinding[];
   sessionTitle?: string;
   onOpenSession: (sessionId: string) => void;
 }) {
@@ -515,6 +524,7 @@ function MailboxReader({
   const canOpenSession = Boolean(item.sessionId);
   const tags = displayTags(item);
   const [rawOpen, setRawOpen] = useState(false);
+  const forwardBinding = forwardBindingFor(item, forwardingBindings);
   return (
     <div className="mbx-read-body-wrap">
       <div className="mbx-read-hd">
@@ -632,17 +642,30 @@ function MailboxReader({
         </button>
         <button
           type="button"
-          className="pxbtn sm cjk dis"
-          // 转发单条消息无真实 relay 命令,恒置灰。见上方组件注释。
-          disabled
-          aria-disabled="true"
-          title={t("转发不可用 · 暂无单条转发命令")}
+          className={`pxbtn sm cjk${forwardBinding ? "" : " dis"}`}
+          disabled={!forwardBinding}
+          aria-disabled={forwardBinding ? undefined : "true"}
+          title={
+            forwardBinding
+              ? t("转发本条到配对 IM 聊天")
+              : t("未配对 · 在 PAIRING 扫码绑定后开启转发")
+          }
+          onClick={() => {
+            if (!forwardBinding) return;
+            sendCommand({
+              cmd: "mailbox",
+              action: "forwardToIm",
+              itemId: item.id,
+              channel: forwardBinding.channel,
+              externalChatId: forwardBinding.externalChatId,
+            });
+          }}
         >
           {t("转发到配对 IM")}
         </button>
         <span className="faint" style={{ fontSize: 10 }}>
-          {hasActiveForwarding
-            ? t("转发不可用 · 暂无单条转发命令")
+          {forwardBinding
+            ? t("已配对 · 点击转发本条到外部聊天")
             : t("未配对 · 在 PAIRING 扫码绑定后开启转发")}
         </span>
       </div>

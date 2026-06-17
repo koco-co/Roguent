@@ -34,12 +34,28 @@ import type { SessionManager } from "./session";
 
 export interface GatewayMailboxService {
   list?(limit?: number): MailboxItem[];
+  /** Resolve a single item by id (used to build the forward-to-IM relay body). */
+  get?(itemId: string): MailboxItem | null;
   markRead(itemId: string): MailboxItem;
   archive(itemId: string): MailboxItem;
   resend(
     itemId: string,
     options?: { targetSessionId?: string },
   ): { item: MailboxItem; targetSessionId: string; text: string };
+}
+
+/**
+ * Relays an arbitrary text to a paired IM chat (single-item forward). Backed by
+ * the live IntegrationManager connector's `sendMessage` (see
+ * `integrations.forwardToIm`). Decoupled from GatewayMailboxService so the
+ * mailbox stays storage-only while the relay stays transport-only.
+ */
+export interface GatewayForwardService {
+  forward(
+    channel: IntegrationChannel,
+    externalChatId: string,
+    text: string,
+  ): Promise<void> | void;
 }
 
 export interface GatewaySchedulerService {
@@ -147,6 +163,8 @@ export interface WsGatewayOptions {
   /** Test/embedding mode: construct the gateway without binding a TCP port. */
   listen?: boolean;
   mailbox?: GatewayMailboxService;
+  /** Single-item forward-to-IM relay (delegates to a paired connector.sendMessage). */
+  forward?: GatewayForwardService;
   scheduler?: GatewaySchedulerService;
   settings?: GatewaySettingsService;
   achievements?: GatewayAchievementsService;
@@ -776,6 +794,8 @@ export class WsGateway {
         });
         this.mgr.sendMessage(result.targetSessionId, result.text);
         this.publishMailboxUpdate(result.item);
+      } else if (c.action === "forwardToIm") {
+        void this.handleMailboxForward(c, mailbox, ws);
       } else {
         this.replyCommandError(
           ws,
@@ -783,6 +803,46 @@ export class WsGateway {
           `Unsupported mailbox action: ${commandLabel(c)}`,
         );
       }
+    } catch (error) {
+      this.replyCommandError(
+        ws,
+        undefined,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  /**
+   * Single-item forward-to-IM (D-b): resolve the item body server-side and relay
+   * it to the bound external chat via the forward service (a paired connector's
+   * sendMessage). The relayed body is built from the item's title + summary, NOT
+   * a client-supplied string, so the client cannot dictate arbitrary outbound text.
+   */
+  private async handleMailboxForward(
+    c: Extract<ClientCommand, { cmd: "mailbox"; action: "forwardToIm" }>,
+    mailbox: GatewayMailboxService,
+    ws: WebSocket,
+  ): Promise<void> {
+    const forward = this.options.forward;
+    if (!forward) {
+      this.replyCommandError(ws, undefined, "Forward service unavailable");
+      return;
+    }
+    const item = mailbox.get?.(c.itemId);
+    if (!item) {
+      this.replyCommandError(
+        ws,
+        undefined,
+        `Mailbox item ${c.itemId} not found`,
+      );
+      return;
+    }
+    try {
+      await forward.forward(
+        c.channel,
+        c.externalChatId,
+        mailboxForwardText(item),
+      );
     } catch (error) {
       this.replyCommandError(
         ws,
@@ -868,4 +928,12 @@ function stringMetadata(
 ): string | undefined {
   const value = metadata?.[key];
   return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+// Builds the text relayed to a paired IM chat for a single mailbox item.
+// Mirrors the mailbox resend body: "[source] title", blank line, summary.
+function mailboxForwardText(item: MailboxItem): string {
+  const lines = [`[${item.source}] ${item.title}`];
+  if (item.summary.trim()) lines.push("", item.summary);
+  return lines.join("\n");
 }

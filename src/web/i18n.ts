@@ -29,8 +29,8 @@ export const DICT: Record<string, string> = {
   未读: "unread",
   "+ 添加 X 博主 / GitHub 仓库": "+ Add X author / GitHub repo",
   "转发到配对 IM": "Forward to IM",
-  "转发不可用 · 暂无单条转发命令":
-    "Forwarding unavailable · no per-message relay command",
+  "转发本条到配对 IM 聊天": "Forward this item to the paired IM chat",
+  "已配对 · 点击转发本条到外部聊天": "Paired · click to forward this item",
   "未配对 · 在 PAIRING 扫码绑定后开启转发":
     "Not paired · bind in PAIRING to enable forwarding",
   "查看 diff": "View diff",

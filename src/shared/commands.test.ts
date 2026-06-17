@@ -553,6 +553,59 @@ test("parseClientCommand rejects invalid scheduler recurrence payloads", () => {
   }
 });
 
+test("parseClientCommand accepts mailbox forwardToIm and rejects malformed ones", () => {
+  expect(
+    parseClientCommand({
+      cmd: "mailbox",
+      action: "forwardToIm",
+      itemId: "mail-1",
+      channel: "wechat",
+      externalChatId: "chat-1",
+    }),
+  ).toEqual({
+    ok: true,
+    command: {
+      cmd: "mailbox",
+      action: "forwardToIm",
+      itemId: "mail-1",
+      channel: "wechat",
+      externalChatId: "chat-1",
+    },
+  });
+
+  // Missing externalChatId → rejected.
+  expect(
+    parseClientCommand({
+      cmd: "mailbox",
+      action: "forwardToIm",
+      itemId: "mail-1",
+      channel: "feishu",
+    }).ok,
+  ).toBe(false);
+
+  // Blank externalChatId → rejected (cannot relay to nothing).
+  expect(
+    parseClientCommand({
+      cmd: "mailbox",
+      action: "forwardToIm",
+      itemId: "mail-1",
+      channel: "feishu",
+      externalChatId: "   ",
+    }).ok,
+  ).toBe(false);
+
+  // Non-integration channel → rejected.
+  expect(
+    parseClientCommand({
+      cmd: "mailbox",
+      action: "forwardToIm",
+      itemId: "mail-1",
+      channel: "telegram",
+      externalChatId: "chat-1",
+    }).ok,
+  ).toBe(false);
+});
+
 test("parseClientCommand rejects unknown prototype actions", () => {
   expect(
     parseClientCommand({
