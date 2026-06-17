@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { inflateSync } from "node:zlib";
 import {
   REQUIRED_ARTPACK_FILES,
   parseAtlasFrameSizes,
@@ -9,6 +10,224 @@ import {
   verifyArtPackOnDisk,
   verifyAtlasFrameSizes,
 } from "./verify-artpack";
+
+interface PngRgbaStats {
+  semiAlphaPixels: number;
+  nonTransparentColorCount: number;
+}
+
+interface PngRgbaImage {
+  width: number;
+  height: number;
+  pixels: Buffer;
+}
+
+interface AtlasFrameForTest {
+  frame?: {
+    x?: unknown;
+    y?: unknown;
+    w?: unknown;
+    h?: unknown;
+  };
+}
+
+interface AtlasForTest {
+  frames?: Record<string, AtlasFrameForTest>;
+}
+
+interface OverrideForTest {
+  category?: unknown;
+  cleanup?: unknown;
+  frame?: unknown;
+}
+
+interface OverrideReportForTest {
+  coveredFrames?: unknown;
+}
+
+function paethPredictor(a: number, b: number, c: number): number {
+  const p = a + b - c;
+  const pa = Math.abs(p - a);
+  const pb = Math.abs(p - b);
+  const pc = Math.abs(p - c);
+  if (pa <= pb && pa <= pc) return a;
+  if (pb <= pc) return b;
+  return c;
+}
+
+function parsePngRgba(buffer: Buffer): PngRgbaImage {
+  const signature = buffer.subarray(0, 8).toString("hex");
+  expect(signature).toBe("89504e470d0a1a0a");
+
+  let offset = 8;
+  let width = 0;
+  let height = 0;
+  let bitDepth = 0;
+  let colorType = 0;
+  const idatChunks: Buffer[] = [];
+
+  while (offset < buffer.length) {
+    const length = buffer.readUInt32BE(offset);
+    offset += 4;
+    const type = buffer.subarray(offset, offset + 4).toString("ascii");
+    offset += 4;
+    const data = buffer.subarray(offset, offset + length);
+    offset += length + 4;
+
+    if (type === "IHDR") {
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      bitDepth = data[8] ?? 0;
+      colorType = data[9] ?? 0;
+    } else if (type === "IDAT") {
+      idatChunks.push(Buffer.from(data));
+    } else if (type === "IEND") {
+      break;
+    }
+  }
+
+  expect(bitDepth).toBe(8);
+  expect(colorType).toBe(6);
+
+  const raw = inflateSync(Buffer.concat(idatChunks));
+  const bytesPerPixel = 4;
+  const stride = width * bytesPerPixel;
+  let cursor = 0;
+  let previous = Buffer.alloc(stride);
+  const pixels = Buffer.alloc(height * stride);
+
+  for (let y = 0; y < height; y += 1) {
+    const filter = raw[cursor] ?? 0;
+    cursor += 1;
+    const scanline = Buffer.from(raw.subarray(cursor, cursor + stride));
+    cursor += stride;
+    if (filter < 0 || filter > 4) {
+      throw new Error(`Unsupported PNG filter type ${filter}`);
+    }
+
+    for (let x = 0; x < stride; x += 1) {
+      const left = x >= bytesPerPixel ? (scanline[x - bytesPerPixel] ?? 0) : 0;
+      const up = previous[x] ?? 0;
+      const upLeft =
+        x >= bytesPerPixel ? (previous[x - bytesPerPixel] ?? 0) : 0;
+      const value = scanline[x] ?? 0;
+      if (filter === 1) scanline[x] = (value + left) & 0xff;
+      else if (filter === 2) scanline[x] = (value + up) & 0xff;
+      else if (filter === 3) scanline[x] = (value + ((left + up) >> 1)) & 0xff;
+      else if (filter === 4) {
+        scanline[x] = (value + paethPredictor(left, up, upLeft)) & 0xff;
+      }
+    }
+
+    scanline.copy(pixels, y * stride);
+    previous = scanline;
+  }
+
+  return { width, height, pixels };
+}
+
+function parsePngRgbaStats(buffer: Buffer): PngRgbaStats {
+  const image = parsePngRgba(buffer);
+  let semiAlphaPixels = 0;
+  const colors = new Set<number>();
+
+  for (let i = 0; i < image.pixels.length; i += 4) {
+    const r = image.pixels[i] ?? 0;
+    const g = image.pixels[i + 1] ?? 0;
+    const b = image.pixels[i + 2] ?? 0;
+    const a = image.pixels[i + 3] ?? 0;
+    if (a > 0 && a < 255) semiAlphaPixels += 1;
+    if (a > 0) colors.add(((r << 24) | (g << 16) | (b << 8) | a) >>> 0);
+  }
+
+  return {
+    semiAlphaPixels,
+    nonTransparentColorCount: colors.size,
+  };
+}
+
+function numberField(value: unknown): number | undefined {
+  return typeof value === "number" ? value : undefined;
+}
+
+function frameKey(frame: string): string {
+  return frame.endsWith(".png") ? frame : `${frame}.png`;
+}
+
+function pixelOffset(image: PngRgbaImage, x: number, y: number): number {
+  return (y * image.width + x) * 4;
+}
+
+function environmentTileNoiseScore(
+  image: PngRgbaImage,
+  atlas: AtlasForTest,
+  report: OverrideReportForTest,
+): number {
+  const coveredFrames = Array.isArray(report.coveredFrames)
+    ? (report.coveredFrames as OverrideForTest[])
+    : [];
+  let frameCount = 0;
+  let totalScore = 0;
+
+  for (const item of coveredFrames) {
+    if (item.category !== "environment" || typeof item.frame !== "string") {
+      continue;
+    }
+    const rawFrame = atlas.frames?.[frameKey(item.frame)]?.frame;
+    const x = numberField(rawFrame?.x);
+    const y = numberField(rawFrame?.y);
+    const w = numberField(rawFrame?.w);
+    const h = numberField(rawFrame?.h);
+    if (
+      x === undefined ||
+      y === undefined ||
+      w === undefined ||
+      h === undefined
+    ) {
+      continue;
+    }
+
+    let pairCount = 0;
+    let frameScore = 0;
+    for (let py = y; py < y + h; py += 1) {
+      for (let px = x; px < x + w; px += 1) {
+        const offset = pixelOffset(image, px, py);
+        const alpha = image.pixels[offset + 3] ?? 0;
+        if (alpha === 0) continue;
+
+        for (const [nx, ny] of [
+          [px + 1, py],
+          [px, py + 1],
+        ] as const) {
+          if (nx >= x + w || ny >= y + h) continue;
+          const neighbor = pixelOffset(image, nx, ny);
+          if ((image.pixels[neighbor + 3] ?? 0) === 0) continue;
+          frameScore +=
+            Math.abs(
+              (image.pixels[offset] ?? 0) - (image.pixels[neighbor] ?? 0),
+            ) +
+            Math.abs(
+              (image.pixels[offset + 1] ?? 0) -
+                (image.pixels[neighbor + 1] ?? 0),
+            ) +
+            Math.abs(
+              (image.pixels[offset + 2] ?? 0) -
+                (image.pixels[neighbor + 2] ?? 0),
+            );
+          pairCount += 1;
+        }
+      }
+    }
+
+    if (pairCount > 0) {
+      totalScore += frameScore / pairCount;
+      frameCount += 1;
+    }
+  }
+
+  expect(frameCount).toBeGreaterThan(0);
+  return totalScore / frameCount;
+}
 
 describe("verify-artpack", () => {
   it("verifyArtPackFiles passes when every required path exists", () => {
@@ -303,6 +522,82 @@ describe("verify-artpack", () => {
           "ui/buttons.png",
         ]),
       );
+    }
+  });
+
+  it("generated character frames crop to the main source-sheet body for readability", async () => {
+    for (const pack of [
+      "neon-terminal",
+      "holo-blueprint",
+      "deep-space",
+      "synthwave",
+    ]) {
+      const report = JSON.parse(
+        await readFile(
+          `public/assets/artpacks/${pack}/atlas/gpt-image-overrides.json`,
+          "utf8",
+        ),
+      ) as OverrideReportForTest;
+      const coveredFrames = Array.isArray(report.coveredFrames)
+        ? (report.coveredFrames as OverrideForTest[])
+        : [];
+      const characterFrames = coveredFrames.filter(
+        (item) => item.category === "characters",
+      );
+
+      expect(characterFrames.length).toBe(106);
+      expect(
+        characterFrames.every((item) => item.cleanup === "largest-alpha"),
+      ).toBe(true);
+    }
+  });
+
+  it("generated runtime atlases keep hard-edged pixel-art pixels", async () => {
+    for (const pack of [
+      "neon-terminal",
+      "holo-blueprint",
+      "deep-space",
+      "synthwave",
+    ]) {
+      const stats = parsePngRgbaStats(
+        Buffer.from(
+          await readFile(`public/assets/artpacks/${pack}/atlas/dungeon.png`),
+        ),
+      );
+
+      expect(stats.semiAlphaPixels).toBe(0);
+      expect(stats.nonTransparentColorCount).toBeLessThanOrEqual(2048);
+    }
+  });
+
+  it("generated environment tiles avoid high-frequency visual noise", async () => {
+    for (const pack of [
+      "neon-terminal",
+      "holo-blueprint",
+      "deep-space",
+      "synthwave",
+    ]) {
+      const image = parsePngRgba(
+        Buffer.from(
+          await readFile(`public/assets/artpacks/${pack}/atlas/dungeon.png`),
+        ),
+      );
+      const atlas = JSON.parse(
+        await readFile(
+          `public/assets/artpacks/${pack}/atlas/dungeon.json`,
+          "utf8",
+        ),
+      ) as AtlasForTest;
+      const report = JSON.parse(
+        await readFile(
+          `public/assets/artpacks/${pack}/atlas/gpt-image-overrides.json`,
+          "utf8",
+        ),
+      ) as OverrideReportForTest;
+
+      expect(
+        environmentTileNoiseScore(image, atlas, report),
+      ).toBeLessThanOrEqual(45);
     }
   });
 });

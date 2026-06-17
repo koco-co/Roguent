@@ -30,7 +30,11 @@ function useStageScale(ref: React.RefObject<HTMLDivElement | null>) {
     const el = ref.current;
     if (!el) return;
     const fit = () => {
-      const scale = stageScale(window.innerWidth, window.innerHeight);
+      const scale = stageScale(
+        window.innerWidth,
+        window.innerHeight,
+        window.devicePixelRatio,
+      );
       el.style.setProperty("--stage-scale", String(scale));
       el.style.setProperty("--stage-inverse-scale", String(1 / scale));
     };

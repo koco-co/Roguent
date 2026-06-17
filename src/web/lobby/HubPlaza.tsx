@@ -235,6 +235,9 @@ const STATUES: [string, number, number, boolean][] = [
 const EMBER_N = 18;
 const LEAF_N = 14;
 const FIREFLY_N = 7;
+export const HUB_DECOR_SPRITE_SCALE = 4;
+export const HUB_STATUE_SPRITE_SCALE = 4;
+export const HUB_AVATAR_SPRITE_SCALE = 5;
 
 const pct = (v: number, total: number) => `${(v / total) * 100}%`;
 const dist = (
@@ -748,7 +751,12 @@ export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
           className="hub-decor"
           style={{ left: pct(x, VW), top: pct(y, VH) }}
         >
-          <PixelSprite base={hero} anim="idle" scale={3.4} flip={x > VW / 2} />
+          <PixelSprite
+            base={hero}
+            anim="idle"
+            scale={HUB_DECOR_SPRITE_SCALE}
+            flip={x > VW / 2}
+          />
         </div>
       ))}
       {STATUES.map(([hero, x, y, flip]) => (
@@ -758,7 +766,12 @@ export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
           style={{ left: pct(x, VW), top: pct(y, VH) }}
         >
           <div className="hub-statue-fig">
-            <PixelSprite base={hero} anim="idle" scale={3.6} flip={flip} />
+            <PixelSprite
+              base={hero}
+              anim="idle"
+              scale={HUB_STATUE_SPRITE_SCALE}
+              flip={flip}
+            />
           </div>
           <div className="hub-statue-ped" />
         </div>
@@ -803,7 +816,7 @@ export function HubPlaza({ initialPosition }: HubPlazaProps = {}) {
         <PixelSprite
           base={avatarHero}
           anim={moving ? "run" : "idle"}
-          scale={4.4}
+          scale={HUB_AVATAR_SPRITE_SCALE}
           flip={facing < 0}
         />
       </div>

@@ -1,5 +1,5 @@
 // 美术风格包(Art Style Pack)— 忠实落地原型 panels2.jsx 的全局素材切换。
-// pixel-fantasy 使用内置 0x72 素材;另外 4 个使用 public/assets/artpacks 下的生成素材。
+// 默认使用生成的科幻美术资源;pixel-fantasy 仅保留为手动 legacy 0x72 选项。
 // 持久化沿用原型:localStorage['roguent_artpack'] + <html data-artpack>,不接 settings-store。
 // name/desc 为中文(同时是 i18n DICT 键),渲染处经 t() 翻译;en 为英文副标题/useTL 用。
 
@@ -30,7 +30,7 @@ export interface ArtPack {
 
 export const ARTPACK_KEY = "roguent_artpack";
 export const ARTPACK_CHANGE_EVENT = "roguent:artpack-changed";
-export const DEFAULT_ARTPACK = "pixel-fantasy";
+export const DEFAULT_ARTPACK = "neon-terminal";
 
 export const ART_PACKS: ArtPack[] = [
   {
@@ -139,7 +139,7 @@ export const ART_PACKS: ArtPack[] = [
   },
 ];
 
-/** 读取当前包(异常/未设置 → 默认 pixel-fantasy)。 */
+/** 读取当前包(异常/未设置 → 默认生成科幻图包)。 */
 export function loadArtPack(): string {
   try {
     return localStorage.getItem(ARTPACK_KEY) || DEFAULT_ARTPACK;

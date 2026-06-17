@@ -8,6 +8,9 @@ import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { type RoomConnection, connectRoom } from "../ws-client";
 import {
+  HUB_AVATAR_SPRITE_SCALE,
+  HUB_DECOR_SPRITE_SCALE,
+  HUB_STATUE_SPRITE_SCALE,
   HubPlaza,
   LobbyView,
   boardNoteTitle,
@@ -172,6 +175,12 @@ test("board notes use short deduped titles for lobby rendering", () => {
   ]);
 
   expect(notes.map((note) => note.id)).toEqual(["a", "c"]);
+});
+
+test("lobby character sprites use integer display scales for sharp atlas sampling", () => {
+  expect(Number.isInteger(HUB_DECOR_SPRITE_SCALE)).toBe(true);
+  expect(Number.isInteger(HUB_STATUE_SPRITE_SCALE)).toBe(true);
+  expect(Number.isInteger(HUB_AVATAR_SPRITE_SCALE)).toBe(true);
 });
 
 test("clicking Codex and Claude doors sends runtime-specific newSession commands", async () => {

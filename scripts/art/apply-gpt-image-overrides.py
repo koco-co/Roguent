@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, TypedDict
 
-from PIL import Image
+from PIL import Image, ImageEnhance
 
 
 PACKS = ("neon-terminal", "holo-blueprint", "deep-space", "synthwave")
@@ -518,6 +518,7 @@ def character_frames(prefix: str, source_cell: int, include_hit: bool = True) ->
             # grid so each cell lands on a single complete character.
             "sourceCols": 4,
             "sourceRows": 3,
+            "cleanup": "largest-alpha",
             "frame": frame,
         }
         for frame in frames
@@ -994,6 +995,154 @@ def apply_variant(sprite: Image.Image, variant: str | None) -> Image.Image:
     raise ValueError(f"unknown sprite variant: {variant}")
 
 
+def quantize_channel(value: int) -> int:
+    # Eight steps per channel keeps each atlas crisp and palette-limited at
+    # 16x16 scale while preserving the sci-fi accent colors.
+    return max(0, min(255, round(value / 36.43) * 36))
+
+
+def harden_pixel_art(sprite: Image.Image) -> Image.Image:
+    out = sprite.copy()
+    pix = out.load()
+    width, height = out.size
+    for y in range(height):
+        for x in range(width):
+            r, g, b, a = pix[x, y]
+            if a < 64:
+                pix[x, y] = (0, 0, 0, 0)
+                continue
+            pix[x, y] = (
+                quantize_channel(r),
+                quantize_channel(g),
+                quantize_channel(b),
+                255,
+            )
+    return out
+
+
+def boost_small_sprite_contrast(sprite: Image.Image) -> Image.Image:
+    alpha = sprite.getchannel("A")
+    rgb = Image.new("RGB", sprite.size, (0, 0, 0))
+    rgb.paste(sprite.convert("RGB"), mask=alpha)
+    rgb = ImageEnhance.Contrast(rgb).enhance(1.55)
+    rgb = ImageEnhance.Color(rgb).enhance(1.18)
+    rgb = ImageEnhance.Brightness(rgb).enhance(1.06)
+    out = rgb.convert("RGBA")
+    out.putalpha(alpha)
+    return out
+
+
+def add_readability_outline(sprite: Image.Image) -> Image.Image:
+    alpha = sprite.getchannel("A")
+    alpha_pix = alpha.load()
+    width, height = sprite.size
+    out = sprite.copy()
+    out_pix = out.load()
+    outline = (0, 0, 0, 255)
+    for y in range(height):
+        for x in range(width):
+            if alpha_pix[x, y] != 0:
+                continue
+            has_neighbor = False
+            for ny in range(max(0, y - 1), min(height, y + 2)):
+                for nx in range(max(0, x - 1), min(width, x + 2)):
+                    if nx == x and ny == y:
+                        continue
+                    if alpha_pix[nx, ny] != 0:
+                        has_neighbor = True
+                        break
+                if has_neighbor:
+                    break
+            if has_neighbor:
+                out_pix[x, y] = outline
+    return out
+
+
+def block_pixel_art(sprite: Image.Image, block_size: int) -> Image.Image:
+    if block_size <= 1:
+        return sprite
+    width, height = sprite.size
+    reduced_size = (
+        max(1, round(width / block_size)),
+        max(1, round(height / block_size)),
+    )
+    reduced = sprite.resize(reduced_size, Image.Resampling.BOX)
+    return reduced.resize(sprite.size, Image.Resampling.NEAREST)
+
+
+def mix_toward_average(sprite: Image.Image, amount: float) -> Image.Image:
+    if amount <= 0:
+        return sprite
+
+    pix = sprite.load()
+    width, height = sprite.size
+    total_r = 0
+    total_g = 0
+    total_b = 0
+    count = 0
+    for y in range(height):
+        for x in range(width):
+            r, g, b, a = pix[x, y]
+            if a == 0:
+                continue
+            total_r += r
+            total_g += g
+            total_b += b
+            count += 1
+
+    if count == 0:
+        return sprite
+
+    anchor = (
+        round(total_r / count),
+        round(total_g / count),
+        round(total_b / count),
+    )
+    out = sprite.copy()
+    out_pix = out.load()
+    for y in range(height):
+        for x in range(width):
+            r, g, b, a = out_pix[x, y]
+            if a == 0:
+                continue
+            out_pix[x, y] = (
+                round(r * (1 - amount) + anchor[0] * amount),
+                round(g * (1 - amount) + anchor[1] * amount),
+                round(b * (1 - amount) + anchor[2] * amount),
+                a,
+            )
+    return out
+
+
+def reduce_environment_noise(sprite: Image.Image, frame_name: str) -> Image.Image:
+    frame = frame_name.removesuffix(".png")
+    out = block_pixel_art(sprite, 2)
+    if frame.startswith(("floor", "ground", "grass", "edge")) or frame == "hole":
+        return mix_toward_average(out, 0.46)
+    if frame.startswith(("wall", "doors", "column")):
+        return mix_toward_average(out, 0.28)
+    return mix_toward_average(out, 0.18)
+
+
+def stylize_runtime_sprite(
+    sprite: Image.Image,
+    category: str,
+    frame_name: str,
+) -> Image.Image:
+    if category == "environment":
+        return reduce_environment_noise(sprite, frame_name)
+    if category in {"characters", "enemies", "bosses", "props", "easter", "hud", "ui"}:
+        return boost_small_sprite_contrast(sprite)
+    return sprite
+
+
+def finalize_runtime_sprite(sprite: Image.Image, category: str) -> Image.Image:
+    hardened = harden_pixel_art(sprite)
+    if category in {"characters", "enemies", "bosses", "props", "easter", "hud", "ui"}:
+        return add_readability_outline(hardened)
+    return hardened
+
+
 def fitted_cell(
     source: Image.Image,
     cell: int,
@@ -1015,10 +1164,7 @@ def fitted_cell(
         max(1, min(target_w, round(subject.width * scale))),
         max(1, min(target_h, round(subject.height * scale))),
     )
-    # Source sheets are smooth high-res GPT-image art (~300px subjects) being
-    # reduced into tiny atlas frames (~16-28px). NEAREST aliased that downscale
-    # into noise; LANCZOS area-resampling keeps the miniature legible.
-    resized = subject.resize(new_size, Image.Resampling.LANCZOS)
+    resized = subject.resize(new_size, Image.Resampling.BOX)
     out = Image.new("RGBA", target_size, (0, 0, 0, 0))
     out.alpha_composite(
         resized,
@@ -1077,6 +1223,12 @@ def apply_pack(pack_id: str) -> dict[str, object]:
             override.get("cleanup"),
         )
         sprite = apply_variant(sprite, override.get("variant"))
+        sprite = stylize_runtime_sprite(
+            sprite,
+            override["category"],
+            override["frame"],
+        )
+        sprite = finalize_runtime_sprite(sprite, override["category"])
         atlas.paste(
             Image.new("RGBA", target_size, (0, 0, 0, 0)),
             (frame["x"], frame["y"]),

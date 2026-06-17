@@ -397,8 +397,8 @@ export const DICT: Record<string, string> = {
   // About
   "本地 Claude Code agent 活动的游戏化实时可视化平台,把订阅模式驱动的真实 subagent 活动渲染成像素地牢。":
     "A gamified real-time visualizer for local Claude Code agent activity — rendering subscription-driven subagent work as a pixel dungeon.",
-  "像素美术 0x72 DungeonTilesetII (CC0) · 像素字体 Fusion Pixel 12px (OFL-1.1, TakWolf) · Press Start 2P (OFL) · 致敬《元气骑士》":
-    "Pixel art 0x72 DungeonTilesetII (CC0) · pixel fonts Fusion Pixel 12px (OFL-1.1, TakWolf) · Press Start 2P (OFL) · homage to Soul Knight",
+  "默认美术为生成科幻像素资源 · 0x72 DungeonTilesetII 仅保留 legacy 选项 · 像素字体 Fusion Pixel 12px (OFL-1.1, TakWolf) · Press Start 2P (OFL)":
+    "Default art uses generated sci-fi pixel assets · 0x72 DungeonTilesetII is kept only as a legacy option · pixel fonts Fusion Pixel 12px (OFL-1.1, TakWolf) · Press Start 2P (OFL)",
   // SystemMenu
   "PAUSED · 指挥台": "PAUSED · Command deck",
   // Settings

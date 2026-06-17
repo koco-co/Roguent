@@ -307,14 +307,14 @@ test("art style preview shows generated UI button kit art", async () => {
   );
   await userEvent.click(
     container.querySelector(
-      '.artpack-card[data-pk="neon-terminal"]',
+      '.artpack-card[data-pk="deep-space"]',
     ) as HTMLElement,
   );
 
   const kit = container.querySelector(".apv-ui-kit") as HTMLElement | null;
   expect(kit).toBeTruthy();
   expect(kit?.style.backgroundImage).toContain(
-    "/assets/artpacks/neon-terminal/ui/buttons.png",
+    "/assets/artpacks/deep-space/ui/buttons.png",
   );
   expect(screen.getAllByText("BUTTON UI / 按钮").length).toBeGreaterThanOrEqual(
     1,

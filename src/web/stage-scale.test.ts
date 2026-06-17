@@ -21,6 +21,14 @@ test("picks the smaller axis ratio (letterbox, never crop)", () => {
   expect(stageScale(1440, 900)).toBe(0.75);
 });
 
+test("retina narrow viewport snaps near half-scale for sharper pixel art", () => {
+  expect(stageScale(896, 837, 2)).toBe(0.5);
+});
+
+test("retina snapping avoids large crop when the nearest sharp scale is too far", () => {
+  expect(stageScale(1440, 900, 2)).toBe(0.75);
+});
+
 test("upscales above 1 on larger-than-design screens (no clamp)", () => {
   expect(stageScale(3840, 2160)).toBe(2);
 });

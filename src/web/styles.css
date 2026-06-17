@@ -89,6 +89,7 @@ body {
    整个 UI 在 1920×1080 设计像素里布局;#stage 由 --stage-scale =
    min(W/1920, H/1080)(App 的 useStageScale 在 resize 时写入)等比缩放,使
    房间/人物/HUD/模态在任意屏幕保持恒定比例并 letterbox 居中,而非在小屏渲染过大。
+   Retina 窄视口会在很小 overscan 内吸附到 DPR 对齐比例,避免像素画被非整数缩小发糊。
    对齐设计原型 styles.css 的 #viewport/#stage + app.jsx 的 useStageScale。
    注:styles.css 全文无 position:fixed,HUD/.scrim 均为 position:absolute,
    故 #stage 的 transform 不会改变任何后代定位语义,只是统一缩放。 */

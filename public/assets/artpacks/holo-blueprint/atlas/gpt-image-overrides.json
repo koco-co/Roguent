@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "packId": "holo-blueprint",
-  "generatedAt": "2026-06-16T08:21:02+00:00",
+  "generatedAt": "2026-06-17T08:27:17+00:00",
   "method": "source-sheet-cell-fit",
   "sourceSheets": [
     "characters/npcs.png",
@@ -33,6 +33,7 @@
       "sourceCell": 11,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_m_hit_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -46,6 +47,7 @@
       "sourceCell": 11,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_m_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -59,6 +61,7 @@
       "sourceCell": 11,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_m_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -72,6 +75,7 @@
       "sourceCell": 11,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_m_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -85,6 +89,7 @@
       "sourceCell": 11,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_m_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -98,6 +103,7 @@
       "sourceCell": 11,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_m_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -111,6 +117,7 @@
       "sourceCell": 11,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_m_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -124,6 +131,7 @@
       "sourceCell": 11,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_m_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -137,6 +145,7 @@
       "sourceCell": 11,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_m_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -150,6 +159,7 @@
       "sourceCell": 1,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_f_hit_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -163,6 +173,7 @@
       "sourceCell": 1,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_f_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -176,6 +187,7 @@
       "sourceCell": 1,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_f_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -189,6 +201,7 @@
       "sourceCell": 1,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_f_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -202,6 +215,7 @@
       "sourceCell": 1,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_f_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -215,6 +229,7 @@
       "sourceCell": 1,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_f_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -228,6 +243,7 @@
       "sourceCell": 1,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_f_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -241,6 +257,7 @@
       "sourceCell": 1,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_f_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -254,6 +271,7 @@
       "sourceCell": 1,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "knight_f_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -267,6 +285,7 @@
       "sourceCell": 4,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_m_hit_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -280,6 +299,7 @@
       "sourceCell": 4,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_m_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -293,6 +313,7 @@
       "sourceCell": 4,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_m_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -306,6 +327,7 @@
       "sourceCell": 4,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_m_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -319,6 +341,7 @@
       "sourceCell": 4,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_m_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -332,6 +355,7 @@
       "sourceCell": 4,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_m_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -345,6 +369,7 @@
       "sourceCell": 4,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_m_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -358,6 +383,7 @@
       "sourceCell": 4,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_m_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -371,6 +397,7 @@
       "sourceCell": 4,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_m_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -384,6 +411,7 @@
       "sourceCell": 3,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_f_hit_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -397,6 +425,7 @@
       "sourceCell": 3,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_f_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -410,6 +439,7 @@
       "sourceCell": 3,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_f_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -423,6 +453,7 @@
       "sourceCell": 3,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_f_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -436,6 +467,7 @@
       "sourceCell": 3,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_f_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -449,6 +481,7 @@
       "sourceCell": 3,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_f_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -462,6 +495,7 @@
       "sourceCell": 3,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_f_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -475,6 +509,7 @@
       "sourceCell": 3,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_f_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -488,6 +523,7 @@
       "sourceCell": 3,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "wizzard_f_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -501,6 +537,7 @@
       "sourceCell": 5,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_m_hit_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -514,6 +551,7 @@
       "sourceCell": 5,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_m_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -527,6 +565,7 @@
       "sourceCell": 5,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_m_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -540,6 +579,7 @@
       "sourceCell": 5,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_m_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -553,6 +593,7 @@
       "sourceCell": 5,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_m_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -566,6 +607,7 @@
       "sourceCell": 5,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_m_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -579,6 +621,7 @@
       "sourceCell": 5,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_m_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -592,6 +635,7 @@
       "sourceCell": 5,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_m_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -605,6 +649,7 @@
       "sourceCell": 5,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_m_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -618,6 +663,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_f_hit_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -631,6 +677,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_f_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -644,6 +691,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_f_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -657,6 +705,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_f_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -670,6 +719,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_f_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -683,6 +733,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_f_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -696,6 +747,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_f_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -709,6 +761,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_f_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -722,6 +775,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "elf_f_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -735,6 +789,7 @@
       "sourceCell": 7,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_m_hit_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -748,6 +803,7 @@
       "sourceCell": 7,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_m_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -761,6 +817,7 @@
       "sourceCell": 7,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_m_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -774,6 +831,7 @@
       "sourceCell": 7,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_m_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -787,6 +845,7 @@
       "sourceCell": 7,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_m_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -800,6 +859,7 @@
       "sourceCell": 7,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_m_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -813,6 +873,7 @@
       "sourceCell": 7,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_m_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -826,6 +887,7 @@
       "sourceCell": 7,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_m_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -839,6 +901,7 @@
       "sourceCell": 7,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_m_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -852,6 +915,7 @@
       "sourceCell": 9,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_f_hit_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -865,6 +929,7 @@
       "sourceCell": 9,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_f_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -878,6 +943,7 @@
       "sourceCell": 9,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_f_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -891,6 +957,7 @@
       "sourceCell": 9,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_f_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -904,6 +971,7 @@
       "sourceCell": 9,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_f_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -917,6 +985,7 @@
       "sourceCell": 9,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_f_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -930,6 +999,7 @@
       "sourceCell": 9,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_f_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -943,6 +1013,7 @@
       "sourceCell": 9,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_f_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -956,6 +1027,7 @@
       "sourceCell": 9,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "dwarf_f_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -969,6 +1041,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_m_hit_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -982,6 +1055,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_m_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -995,6 +1069,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_m_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1008,6 +1083,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_m_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1021,6 +1097,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_m_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1034,6 +1111,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_m_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1047,6 +1125,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_m_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1060,6 +1139,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_m_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1073,6 +1153,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_m_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1086,6 +1167,7 @@
       "sourceCell": 8,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_f_hit_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1099,6 +1181,7 @@
       "sourceCell": 8,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_f_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1112,6 +1195,7 @@
       "sourceCell": 8,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_f_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1125,6 +1209,7 @@
       "sourceCell": 8,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_f_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1138,6 +1223,7 @@
       "sourceCell": 8,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_f_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1151,6 +1237,7 @@
       "sourceCell": 8,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_f_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1164,6 +1251,7 @@
       "sourceCell": 8,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_f_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1177,6 +1265,7 @@
       "sourceCell": 8,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_f_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1190,6 +1279,7 @@
       "sourceCell": 8,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "lizard_f_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1203,6 +1293,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "goblin_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1216,6 +1307,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "goblin_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1229,6 +1321,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "goblin_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1242,6 +1335,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "goblin_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1255,6 +1349,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "goblin_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1268,6 +1363,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "goblin_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1281,6 +1377,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "goblin_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1294,6 +1391,7 @@
       "sourceCell": 10,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "goblin_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1307,6 +1405,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "doc_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1320,6 +1419,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "doc_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1333,6 +1433,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "doc_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1346,6 +1447,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "doc_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1359,6 +1461,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "doc_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1372,6 +1475,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "doc_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1385,6 +1489,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "doc_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1398,6 +1503,7 @@
       "sourceCell": 6,
       "sourceCols": 4,
       "sourceRows": 3,
+      "cleanup": "largest-alpha",
       "frame": "doc_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {

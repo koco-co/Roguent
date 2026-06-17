@@ -26,7 +26,14 @@ test("ART_PACKS:5 包、id 唯一、字段齐全", () => {
   }
 });
 
-test("五个美术包均 ready;默认仍是 pixel-fantasy", () => {
+const GENERATED_ARTPACK_IDS = [
+  "neon-terminal",
+  "holo-blueprint",
+  "deep-space",
+  "synthwave",
+];
+
+test("五个美术包均 ready;默认使用生成的霓虹终端资源", () => {
   const ready = ART_PACKS.filter((p) => p.ready);
   expect(ready.map((p) => p.id)).toEqual([
     "pixel-fantasy",
@@ -35,11 +42,13 @@ test("五个美术包均 ready;默认仍是 pixel-fantasy", () => {
     "deep-space",
     "synthwave",
   ]);
-  expect(DEFAULT_ARTPACK).toBe("pixel-fantasy");
+  expect(DEFAULT_ARTPACK).toBe("neon-terminal");
 });
 
 test("生成美术包暴露真实 lobby/interior 预览图", () => {
-  for (const p of ART_PACKS.filter((pack) => pack.id !== DEFAULT_ARTPACK)) {
+  for (const p of ART_PACKS.filter((pack) =>
+    GENERATED_ARTPACK_IDS.includes(pack.id),
+  )) {
     expect(p.previews).toEqual({
       lobby: `/assets/artpacks/${p.id}/previews/lobby.png`,
       interior: `/assets/artpacks/${p.id}/previews/interior.png`,
@@ -48,7 +57,9 @@ test("生成美术包暴露真实 lobby/interior 预览图", () => {
 });
 
 test("生成美术包暴露真实 UI/button kit 源图", () => {
-  for (const p of ART_PACKS.filter((pack) => pack.id !== DEFAULT_ARTPACK)) {
+  for (const p of ART_PACKS.filter((pack) =>
+    GENERATED_ARTPACK_IDS.includes(pack.id),
+  )) {
     expect(p.ui).toEqual({
       buttons: `/assets/artpacks/${p.id}/ui/buttons.png`,
     });
@@ -56,7 +67,9 @@ test("生成美术包暴露真实 UI/button kit 源图", () => {
 });
 
 test("生成美术包暴露 NPC、地块、道具、结构件、HUD、彩蛋与 UI sheet 资源", () => {
-  for (const p of ART_PACKS.filter((pack) => pack.id !== DEFAULT_ARTPACK)) {
+  for (const p of ART_PACKS.filter((pack) =>
+    GENERATED_ARTPACK_IDS.includes(pack.id),
+  )) {
     expect(p.sourceSheets).toEqual({
       characters: `/assets/artpacks/${p.id}/characters/npcs.png`,
       environment: `/assets/artpacks/${p.id}/tiles/environment.png`,
@@ -70,7 +83,7 @@ test("生成美术包暴露 NPC、地块、道具、结构件、HUD、彩蛋与 
 });
 
 test("loadArtPack:空→默认;读已存值", () => {
-  expect(loadArtPack()).toBe("pixel-fantasy");
+  expect(loadArtPack()).toBe("neon-terminal");
   localStorage.setItem(ARTPACK_KEY, "synthwave");
   expect(loadArtPack()).toBe("synthwave");
 });

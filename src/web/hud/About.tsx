@@ -56,7 +56,7 @@ export function About() {
         </div>
         <div className="faint" style={{ maxWidth: 480, lineHeight: 1.7 }}>
           {t(
-            "像素美术 0x72 DungeonTilesetII (CC0) · 像素字体 Fusion Pixel 12px (OFL-1.1, TakWolf) · Press Start 2P (OFL) · 致敬《元气骑士》",
+            "默认美术为生成科幻像素资源 · 0x72 DungeonTilesetII 仅保留 legacy 选项 · 像素字体 Fusion Pixel 12px (OFL-1.1, TakWolf) · Press Start 2P (OFL)",
           )}
         </div>
         {/* 检查更新入口 → 打开更新日志(mock 面板)。 */}

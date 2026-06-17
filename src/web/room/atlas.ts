@@ -2,8 +2,8 @@ import { Assets, type Spritesheet, type Texture } from "pixi.js";
 import { createContext, useContext } from "react";
 import { resolveCurrentArtPackAtlasUrls } from "../artpack-assets";
 
-// 0x72 "16x16 DungeonTileset II" (CC0). Served from public/ — see CREDITS.md.
-// Generated art packs mirror the same TexturePacker atlas shape.
+// Runtime atlases use the same TexturePacker frame contract. The default is a
+// generated sci-fi art pack; 0x72 remains selectable as a legacy pack.
 const sheetPromises = new Map<string, Promise<Spritesheet>>();
 
 /** Load the dungeon atlas once. Pixels are kept crisp (nearest-neighbour). */
