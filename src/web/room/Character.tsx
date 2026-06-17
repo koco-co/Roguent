@@ -16,7 +16,7 @@ import type { IconName } from "../hud/icons";
 import { Emote } from "./Emote";
 import { ToolBubble } from "./ToolBubble";
 import { anim, useAtlas } from "./atlas";
-import { DOOR_COL, TILE } from "./config";
+import { DOOR_COL, HD_SCALE, TILE } from "./config";
 import { glowTexture } from "./effects";
 import type { Pos } from "./layout";
 import {
@@ -29,9 +29,11 @@ import {
 } from "./motion";
 
 // Wander tuning (spec §7); nudge in-browser without touching the architecture.
-const WANDER_R_SUB = 24;
-const WANDER_R_LEAD = 6; // commander stays roughly centred
-const SPEED = 0.4; // px per frame
+// 漫步半径 / 速度按 HD_SCALE 放大,保持相对 tile 的漫步手感(房间放大 2.5× 后
+// 不至于原地踏步)。
+const WANDER_R_SUB = 24 * HD_SCALE;
+const WANDER_R_LEAD = 6 * HD_SCALE; // commander stays roughly centred
+const SPEED = 0.4 * HD_SCALE; // px per frame
 const FADE_PER_FRAME = 0.06; // leaving fade-out
 
 type Phase = "entering" | "living" | "leaving";
@@ -240,7 +242,7 @@ export function Character({
   const shadow = useCallback((g: Graphics) => {
     g.clear();
     g.setFillStyle({ color: 0x000000, alpha: 0.35 });
-    g.ellipse(0, 0, 7, 3);
+    g.ellipse(0, 0, 7 * HD_SCALE, 3 * HD_SCALE);
     g.fill();
   }, []);
 
@@ -250,15 +252,15 @@ export function Character({
       g.clear();
       if (selected) {
         g.setStrokeStyle({ width: 1.5, color: 0x4fe0ff, alpha: 1 });
-        g.ellipse(0, 0, 11, 5);
+        g.ellipse(0, 0, 11 * HD_SCALE, 5 * HD_SCALE);
         g.stroke();
       } else if (hovered) {
         g.setStrokeStyle({ width: 1, color: 0xffffff, alpha: 0.7 });
-        g.ellipse(0, 0, 10, 4.5);
+        g.ellipse(0, 0, 10 * HD_SCALE, 4.5 * HD_SCALE);
         g.stroke();
       } else if (isLead) {
         g.setStrokeStyle({ width: 1, color: 0xffd166, alpha: 0.9 });
-        g.ellipse(0, 0, 9, 4);
+        g.ellipse(0, 0, 9 * HD_SCALE, 4 * HD_SCALE);
         g.stroke();
       }
     },
@@ -275,17 +277,20 @@ export function Character({
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
-      {/* warm glow rides along (additive); symmetric, so no flip needed */}
+      {/* warm glow rides along (additive); symmetric, so no flip needed.
+          分子 ×HD_SCALE、分母保持 64(glowTexture 是 128px,64 是调参常数;
+          占用 tile 数 = 128*分子*HD_SCALE/64 / TILE,HD_SCALE 约去 → tile 覆盖
+          恒定。改成 128 会让覆盖减半,裁决 9)。 */}
       <pixiSprite
         texture={glowTexture()}
         anchor={0.5}
-        y={-8}
-        scale={(isLead ? 30 : 22) / 64}
+        y={-8 * HD_SCALE}
+        scale={((isLead ? 30 : 22) * HD_SCALE) / 64}
         tint={isLead ? 0xffd98a : 0xfff0d0}
         alpha={isLead ? 0.55 : 0.4}
         blendMode="add"
       />
-      <pixiGraphics y={1} draw={shadow} />
+      <pixiGraphics y={1 * HD_SCALE} draw={shadow} />
       <pixiGraphics draw={ring} />
       {/* inner container flips with facing so the emoji children don't mirror */}
       <pixiContainer ref={flipRef}>
@@ -298,14 +303,14 @@ export function Character({
         <pixiText
           text={label}
           anchor={{ x: 0.5, y: 1 }}
-          y={-38}
+          y={-38 * HD_SCALE}
           resolution={4}
           style={
             {
-              fontSize: 7,
+              fontSize: 7 * HD_SCALE,
               fill: isLead ? 0xffd166 : 0xe8ecff,
               fontWeight: "bold",
-              stroke: { color: 0x10121c, width: 3 },
+              stroke: { color: 0x10121c, width: 3 * HD_SCALE },
             } as Partial<TextStyle>
           }
         />
