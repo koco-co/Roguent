@@ -1,10 +1,16 @@
 // Virtual room geometry, shared by the renderer and the tilemap. The room is
-// laid out in 16px tiles and integer-scaled to fit the canvas (see Room.tsx).
-export const TILE = 16;
+// laid out in TILE-px tiles and integer-scaled to fit the canvas (see Room.tsx).
+// 高清档起步值 TILE=40(原 16);M4 preview 视觉验证后可微调(改这一个常数整体换挡)。
+export const TILE = 40;
+// 所有「虚拟像素」硬编码常数都按 HD_SCALE = TILE/16 缩放,保持相对 16px 基准的
+// tile 比例不变。渲染层(Character/Lights/ToolBubble/Emote/DungeonRoom)用它把
+// 阴影/选圈/泡泡/名牌/线宽等魔数参数化,避免散落手改。烘焙侧(apply-gpt-image
+// -overrides.py 的 TILE_PX/HD_SCALE)必须与此相等(裁决 2)。
+export const HD_SCALE = TILE / 16;
 export const COLS = 24;
 export const ROWS = 14;
-export const VW = COLS * TILE; // 384 virtual px
-export const VH = ROWS * TILE; // 224 virtual px
+export const VW = COLS * TILE; // 960 virtual px
+export const VH = ROWS * TILE; // 560 virtual px
 
 // Decor anchor columns, shared by the tilemap and the lighting layer so the
 // glows line up with the doorway and fountain.
