@@ -131,6 +131,18 @@ interface VerifyAtlasFrameSizesInput {
   scale?: number;
 }
 
+// Match Python's built-in round() (banker's rounding / round-half-to-even),
+// which is what the HD bake (apply-gpt-image-overrides.py / repack_atlas.py)
+// uses to compute frame sizes. JS Math.round rounds half UP, so exact .5 cases
+// (e.g. 9 * 2.5 = 22.5) would otherwise disagree with the baked atlas.
+function roundHalfEven(value: number): number {
+  const floor = Math.floor(value);
+  const diff = value - floor;
+  if (diff < 0.5) return floor;
+  if (diff > 0.5) return floor + 1;
+  return floor % 2 === 0 ? floor : floor + 1;
+}
+
 export function verifyAtlasFrameSizes({
   reference,
   candidate,
@@ -140,8 +152,8 @@ export function verifyAtlasFrameSizes({
 
   for (const [frame, ref] of reference.entries()) {
     const expected: Size = {
-      w: Math.round(ref.w * scale),
-      h: Math.round(ref.h * scale),
+      w: roundHalfEven(ref.w * scale),
+      h: roundHalfEven(ref.h * scale),
     };
     const actual = candidate.get(frame);
     if (!actual) {

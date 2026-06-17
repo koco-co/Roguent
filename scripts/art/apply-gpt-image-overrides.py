@@ -1220,11 +1220,23 @@ def apply_pack(pack_id: str) -> dict[str, object]:
     atlas_json = json.loads(atlas_json_path.read_text())
     frames = atlas_json["frames"]
 
+    # Idempotency guard: repacking takes the json frame sizes as the 16px
+    # contract and multiplies by HD_SCALE. Re-baking an already-HD atlas would
+    # double-scale (40 -> 100), so refuse if our HD marker is present.
+    if atlas_json.get("meta", {}).get("hdBake", {}).get("scale"):
+        raise SystemExit(
+            f"{pack_id}: atlas already HD-baked "
+            f"(meta.hdBake present); revert dungeon.json to the 16px baseline "
+            f"before re-baking to avoid double-scaling frames."
+        )
+
     # HD repack: rewrite the TexturePacker layout at HD_SCALE so the high-res
     # source cells land in larger frame rects, then build a fresh canvas.
     new_frames, (atlas_w, atlas_h) = _repack.repack_atlas_frames(frames, HD_SCALE)
     atlas_json["frames"] = new_frames
-    atlas_json.setdefault("meta", {})["size"] = {"w": atlas_w, "h": atlas_h}
+    meta = atlas_json.setdefault("meta", {})
+    meta["size"] = {"w": atlas_w, "h": atlas_h}
+    meta["hdBake"] = {"scale": HD_SCALE, "tile": TILE_PX}
     frames = new_frames
     atlas = Image.new("RGBA", (atlas_w, atlas_h), (0, 0, 0, 0))
 

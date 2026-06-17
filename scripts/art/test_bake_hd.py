@@ -101,12 +101,27 @@ def test_harden_pixel_art_alpha_threshold_raised():
 
 import json
 import shutil
+import subprocess
+
+
+def _seed_16px_atlas_json(dst: Path) -> None:
+    """Reset the copied pack's dungeon.json to the committed 16px baseline.
+
+    The on-disk pack may already be HD-baked; the bake takes the json's frame
+    sizes as the 16px contract, so we restore the original 16px layout from git
+    to keep this test deterministic regardless of working-tree state.
+    """
+    head = subprocess.check_output(
+        ["git", "show", "HEAD:public/assets/artpacks/neon-terminal/atlas/dungeon.json"]
+    )
+    (dst / "atlas" / "dungeon.json").write_bytes(head)
 
 
 def test_apply_pack_emits_hd_atlas(tmp_path, monkeypatch):
     src = Path("public/assets/artpacks/neon-terminal")
     dst = tmp_path / "neon-terminal"
     shutil.copytree(src, dst)
+    _seed_16px_atlas_json(dst)
     monkeypatch.setattr(bake, "PACK_ROOT", tmp_path)
     report = bake.apply_pack("neon-terminal")
 
@@ -126,3 +141,16 @@ def test_apply_pack_emits_hd_atlas(tmp_path, monkeypatch):
                if c["frame"] == "knight_m_idle_anim_f0")
     assert tgt == {"w": 40, "h": 70}
     assert report["coveredFrameCount"] == 381
+
+
+def test_apply_pack_refuses_double_bake(tmp_path, monkeypatch):
+    """Re-baking an already-HD atlas would double-scale frames; guard it."""
+    import pytest
+    src = Path("public/assets/artpacks/neon-terminal")
+    dst = tmp_path / "neon-terminal"
+    shutil.copytree(src, dst)
+    _seed_16px_atlas_json(dst)
+    monkeypatch.setattr(bake, "PACK_ROOT", tmp_path)
+    bake.apply_pack("neon-terminal")  # first bake: 16px -> HD, writes hd marker
+    with pytest.raises(SystemExit, match="already HD-baked"):
+        bake.apply_pack("neon-terminal")  # second bake must refuse
