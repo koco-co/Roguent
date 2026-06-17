@@ -1,12 +1,18 @@
 import type React from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { InteriorEasterLayer } from "./easter/InteriorEasterLayer";
 import { KonamiEffect } from "./easter/KonamiEffect";
 import { KonamiListener } from "./easter/KonamiListener";
 import { resolveEngineUrl } from "./engine-url";
 import { Hud } from "./hud/Hud";
 import { NpcCard } from "./hud/NpcCard";
-import { applyArtPack, loadArtPack } from "./hud/artpack";
+import {
+  ARTPACK_CHANGE_EVENT,
+  ART_PACKS,
+  DEFAULT_ARTPACK,
+  applyArtPack,
+  loadArtPack,
+} from "./hud/artpack";
 import { AnnouncementPopup } from "./hud/mailbox/AnnouncementPopup";
 import { useT } from "./i18n";
 import { LobbyView } from "./lobby/HubPlaza";
@@ -44,6 +50,28 @@ function useStageScale(ref: React.RefObject<HTMLDivElement | null>) {
   }, [ref]);
 }
 
+function artPackAccent(id: string): string {
+  const pack = ART_PACKS.find((p) => p.id === id);
+  return (
+    (pack ?? ART_PACKS.find((p) => p.id === DEFAULT_ARTPACK) ?? ART_PACKS[0])
+      ?.ac ?? "#36c5e0"
+  );
+}
+
+// 当前 artpack 的强调色(--ac):全局根节点跟随。styles.css 多处 var(--ac, …) 消费,
+// 但此前只有 Settings 卡片内联注入;这里让 #stage 根节点随包热更新(监听切换事件)。
+function useArtPackAccent(): string {
+  const [accent, setAccent] = useState<string>(() =>
+    artPackAccent(loadArtPack()),
+  );
+  useEffect(() => {
+    const sync = () => setAccent(artPackAccent(loadArtPack()));
+    window.addEventListener(ARTPACK_CHANGE_EVENT, sync);
+    return () => window.removeEventListener(ARTPACK_CHANGE_EVENT, sync);
+  }, []);
+  return accent;
+}
+
 export function App() {
   const t = useT();
   const view = useUiStore((s) => s.view);
@@ -69,6 +97,7 @@ export function App() {
 
   const viewportRef = useRef<HTMLDivElement>(null);
   useStageScale(viewportRef);
+  const artPackAc = useArtPackAccent();
 
   useEffect(() => {
     applyArtPack(loadArtPack());
@@ -141,7 +170,12 @@ export function App() {
       <div
         id="stage"
         className={`stage ${settingsRootClass(settings)}`}
-        style={settingsRootStyle(settings) as React.CSSProperties}
+        style={
+          {
+            ...settingsRootStyle(settings),
+            "--ac": artPackAc,
+          } as React.CSSProperties
+        }
       >
         <div
           className="app-live-layer"

@@ -82,3 +82,15 @@ test("startup reapplies the persisted art pack to the document root", async () =
     ),
   );
 });
+
+test("startup writes the active art-pack accent onto the stage root --ac", async () => {
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  localStorage.setItem(ARTPACK_KEY, "synthwave");
+
+  const { container } = render(<App />);
+
+  await waitFor(() => {
+    const stage = container.querySelector("#stage") as HTMLElement | null;
+    expect(stage?.style.getPropertyValue("--ac")).toBe("#ff6a8a");
+  });
+});
