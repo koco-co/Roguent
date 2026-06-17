@@ -6176,6 +6176,50 @@ img {
 .interior-easter .petactor {
   pointer-events: auto;
 }
+
+/* Konami code reward — brief full-screen rainbow flash (one-shot, cosmetic).
+   Sits above the scrim/portal so it reads as a celebratory wash; click-through.
+   no-motion / prefers-reduced-motion 守卫:沿用本仓 .no-motion 与全局 reduce 媒体查询。 */
+.konami-rainbow {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 77, 109, 0.34),
+    rgba(242, 200, 75, 0.34),
+    rgba(95, 211, 95, 0.34),
+    rgba(54, 197, 224, 0.34),
+    rgba(160, 108, 213, 0.34),
+    rgba(255, 77, 109, 0.34)
+  );
+  background-size: 300% 300%;
+  animation: konami-rainbow-flash 1.6s ease-out forwards, konami-rainbow-pan
+    1.6s linear;
+}
+@keyframes konami-rainbow-flash {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes konami-rainbow-pan {
+  to {
+    background-position: 100% 100%;
+  }
+}
+/* Reduce-motion: no animation — show a single soft static wash that fades via JS unmount. */
+.no-motion .konami-rainbow {
+  animation: none;
+  opacity: 0.5;
+}
 /* 内景撸猫固定右下角(避开左侧 HUD 栈与底部 hotbar)。 */
 .interior-pet {
   position: absolute;
