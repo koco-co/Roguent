@@ -97,3 +97,32 @@ def test_harden_pixel_art_alpha_threshold_raised():
     im = Image.new("RGBA", (1, 1), (200, 0, 0, 80))  # 64<80<96
     out = bake.harden_pixel_art(im)
     assert out.getpixel((0, 0))[3] == 0  # 80 < 96 now culled (was kept at 64)
+
+
+import json
+import shutil
+
+
+def test_apply_pack_emits_hd_atlas(tmp_path, monkeypatch):
+    src = Path("public/assets/artpacks/neon-terminal")
+    dst = tmp_path / "neon-terminal"
+    shutil.copytree(src, dst)
+    monkeypatch.setattr(bake, "PACK_ROOT", tmp_path)
+    report = bake.apply_pack("neon-terminal")
+
+    atlas_json = json.loads((dst / "atlas" / "dungeon.json").read_text())
+    kf = atlas_json["frames"]["knight_m_idle_anim_f0.png"]["frame"]
+    assert (kf["w"], kf["h"]) == (40, 70)  # HD size written back to json
+    # atlas png matches new meta size, no frame exceeds canvas
+    from PIL import Image
+    im = Image.open(dst / "atlas" / "dungeon.png")
+    W, H = atlas_json["meta"]["size"]["w"], atlas_json["meta"]["size"]["h"]
+    assert im.size == (W, H)
+    for e in atlas_json["frames"].values():
+        f = e["frame"]
+        assert f["x"] + f["w"] <= W and f["y"] + f["h"] <= H
+    # report targetSize is HD
+    tgt = next(c["targetSize"] for c in report["coveredFrames"]
+               if c["frame"] == "knight_m_idle_anim_f0")
+    assert tgt == {"w": 40, "h": 70}
+    assert report["coveredFrameCount"] == 381

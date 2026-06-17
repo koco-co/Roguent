@@ -15,6 +15,14 @@ from typing import Iterable, TypedDict
 
 from PIL import Image, ImageEnhance
 
+import importlib.util as _ilu
+
+_repack_spec = _ilu.spec_from_file_location(
+    "repack_atlas", Path(__file__).with_name("repack_atlas.py")
+)
+_repack = _ilu.module_from_spec(_repack_spec)
+_repack_spec.loader.exec_module(_repack)
+
 
 PACKS = ("neon-terminal", "synthwave")
 PACK_ROOT = Path("public/assets/artpacks")
@@ -1209,9 +1217,17 @@ def apply_pack(pack_id: str) -> dict[str, object]:
     atlas_json_path = pack_root / "atlas" / "dungeon.json"
     report_path = pack_root / "atlas" / "gpt-image-overrides.json"
 
-    atlas = Image.open(atlas_path).convert("RGBA")
     atlas_json = json.loads(atlas_json_path.read_text())
     frames = atlas_json["frames"]
+
+    # HD repack: rewrite the TexturePacker layout at HD_SCALE so the high-res
+    # source cells land in larger frame rects, then build a fresh canvas.
+    new_frames, (atlas_w, atlas_h) = _repack.repack_atlas_frames(frames, HD_SCALE)
+    atlas_json["frames"] = new_frames
+    atlas_json.setdefault("meta", {})["size"] = {"w": atlas_w, "h": atlas_h}
+    frames = new_frames
+    atlas = Image.new("RGBA", (atlas_w, atlas_h), (0, 0, 0, 0))
+
     source_cache: dict[str, Image.Image] = {}
     covered: list[dict[str, object]] = []
     missing: list[str] = []
@@ -1246,10 +1262,7 @@ def apply_pack(pack_id: str) -> dict[str, object]:
             override["frame"],
         )
         sprite = finalize_runtime_sprite(sprite, override["category"])
-        atlas.paste(
-            Image.new("RGBA", target_size, (0, 0, 0, 0)),
-            (frame["x"], frame["y"]),
-        )
+        # Fresh HD canvas is already transparent — paste directly, no clear.
         atlas.alpha_composite(sprite, (frame["x"], frame["y"]))
         covered.append(
             {
@@ -1262,6 +1275,7 @@ def apply_pack(pack_id: str) -> dict[str, object]:
     if missing:
         raise SystemExit(f"{pack_id}: missing atlas frames: {', '.join(missing)}")
 
+    atlas_json_path.write_text(json.dumps(atlas_json, indent=2) + "\n")
     atlas.save(atlas_path)
     by_category: dict[str, int] = {}
     for item in covered:
