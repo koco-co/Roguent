@@ -135,6 +135,55 @@ export class IntegrationManager {
     }
   }
 
+  /**
+   * Forward an arbitrary text to a paired chat on `channel` (single-item relay,
+   * D-b). Sends via the channel connector's `sendMessage` and publishes an
+   * outbound delivery (success) — mirroring the auto-reply path in
+   * `handleRoomEvent`, but driven explicitly (e.g. a Mailbox "forward to IM"
+   * click) rather than by an assistant message. Throws when no connector is
+   * configured for the channel or when delivery fails, so the caller (gateway)
+   * can surface a command error.
+   */
+  async forwardToIm(
+    channel: IntegrationChannel,
+    externalChatId: string,
+    text: string,
+    options: { sessionId?: string } = {},
+  ): Promise<OutboundDeliveryResult> {
+    const connector = this.options.imConnectors?.[channel];
+    if (!connector) {
+      throw new Error(`No connector configured for ${channel}`);
+    }
+    const target: OutboundImTarget = { externalChatId };
+    const result = await connector.sendMessage(target, text);
+    const sessionId =
+      options.sessionId ?? this.options.currentSessionId?.() ?? channel;
+    try {
+      await this.options.router.publishOutbound(
+        {
+          id: result.id,
+          channel,
+          direction: "outbound",
+          externalChatId,
+          deliveryId: result.id,
+          summary: `Forwarded to ${channel}`,
+          bodyText: text,
+          receivedAt: result.sentAt,
+          metadata: {
+            ...result.metadata,
+            deliveryStatus: result.status,
+            forwardSource: "mailbox",
+          },
+        },
+        { sessionId },
+      );
+    } catch {
+      // Delivery already happened; publishing the audit/outbound event is
+      // best-effort and must not mask a successful send.
+    }
+    return result;
+  }
+
   async handleRoomEventSafely(event: RoomEvent): Promise<void> {
     try {
       await this.handleRoomEvent(event);

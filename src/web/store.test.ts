@@ -834,6 +834,41 @@ test("message.final also appends an assistant bubble", () => {
   );
 });
 
+test("message.final with empty text but attachments still renders the chip (B4)", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  st = reduce(
+    st,
+    ev({
+      type: "message.final",
+      payload: {
+        text: "",
+        role: "user",
+        attachments: [{ name: "shot.png", mediaType: "image/png" }],
+      },
+    }),
+  );
+  const last = st.sessions.s1?.timeline.at(-1);
+  expect(last?.kind).toBe("message");
+  expect(
+    (last as { attachments?: { name: string; mediaType: string }[] })
+      ?.attachments,
+  ).toEqual([{ name: "shot.png", mediaType: "image/png" }]);
+  expect((last as { text: string })?.text).toBe("");
+});
+
+test("message.final with empty text and no attachments is still dropped", () => {
+  let st = reduce(
+    empty,
+    ev({ type: "session.created", payload: { title: "t", model: "m" } }),
+  );
+  const before = st.sessions.s1?.timeline.length ?? 0;
+  st = reduce(st, ev({ type: "message.final", payload: { text: "" } }));
+  expect(st.sessions.s1?.timeline.length).toBe(before);
+});
+
 test("thinking.final adds thinking item to timeline", () => {
   let st = reduce(
     empty,

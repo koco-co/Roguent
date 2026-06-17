@@ -88,6 +88,7 @@ afterEach(() => {
     connection: "connecting",
     connectorStatus: {},
     mailbox: { items: {}, order: [] },
+    pairings: { qrByChannel: {}, byId: {}, byExternalKey: {} },
   });
   useUiStore.setState({
     activePanel: null,
@@ -257,6 +258,56 @@ test("mailbox row actions send archive, mark read, resend, open source, and open
   expect(useUiStore.getState().activePanel).toBeNull();
 });
 
+test("forward-to-IM enables with an active forwarding binding and sends the forward command", async () => {
+  FakeWebSocket.instances = [];
+  globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  connection = connectRoom("ws://roguent.test");
+  seedMailbox([
+    item({
+      id: "wx-1",
+      source: "wechat",
+      title: "WeChat ping",
+      summary: "ping from chat",
+      sessionId: "s1",
+    }),
+  ]);
+  // 活跃且开启转发的微信绑定 → 转发按钮应可点。
+  useRoomStore.setState({
+    pairings: {
+      qrByChannel: {},
+      byExternalKey: {},
+      byId: {
+        "binding-1": {
+          id: "binding-1",
+          channel: "wechat",
+          status: "active",
+          externalChatId: "chat-1",
+          sessionId: "s1",
+          forwardingEnabled: true,
+          boundAt: 1,
+        },
+      },
+    },
+  });
+  useUiStore.setState({ activePanel: "mailbox" });
+
+  render(<MailboxPanel />);
+
+  const forward = screen.getByRole("button", { name: "转发到配对 IM" });
+  expect((forward as HTMLButtonElement).disabled).toBe(false);
+
+  await userEvent.click(forward);
+
+  const sent = FakeWebSocket.instances[0]?.sent.map((raw) => JSON.parse(raw));
+  expect(sent).toContainEqual({
+    cmd: "mailbox",
+    action: "forwardToIm",
+    itemId: "wx-1",
+    channel: "wechat",
+    externalChatId: "chat-1",
+  });
+});
+
 test("open source only enables safe http urls and supports url fallback", async () => {
   const opened: string[] = [];
   globalThis.open = ((url?: string | URL) => {
@@ -317,7 +368,7 @@ test("reader keeps raw payload collapsed by default, and forward stays disabled"
   await userEvent.click(screen.getByText("Raw Payload"));
   expect(screen.getByText(/"event": "push"/)).toBeTruthy();
 
-  // 转发按钮恒置灰(无单条转发命令)。
+  // 无活跃转发绑定 → 转发按钮置灰。
   const forward = screen.getByRole("button", { name: "Forward to IM" });
   expect((forward as HTMLButtonElement).disabled).toBe(true);
   // 未配对注脚。

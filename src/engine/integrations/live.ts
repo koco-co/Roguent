@@ -29,6 +29,12 @@ export interface LiveIntegrationRuntime {
   manager: IntegrationManager;
   router: IntegrationRouter;
   pairing: GatewayPairingService;
+  /** Single-item forward-to-IM relay: send arbitrary text to a paired chat. */
+  forwardToIm(
+    channel: IntegrationChannel,
+    externalChatId: string,
+    text: string,
+  ): Promise<void>;
   stop(): void;
 }
 
@@ -144,6 +150,9 @@ export function startLiveIntegrations(
     manager,
     router,
     pairing: pairingService,
+    async forwardToIm(channel, externalChatId, text) {
+      await manager.forwardToIm(channel, externalChatId, text);
+    },
     stop() {
       unsubscribe();
       manager.stop();

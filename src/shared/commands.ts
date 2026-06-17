@@ -200,11 +200,6 @@ export type SchedulerCommand =
       cmd: "scheduler";
       action: "deleteTask" | "runTask";
       taskId: string;
-    }
-  | {
-      cmd: "scheduler";
-      action: "cancelRun";
-      runId: string;
     };
 
 export type MailboxCommand =
@@ -219,6 +214,13 @@ export type MailboxCommand =
       itemId: string;
       actionId: string;
       metadata?: Record<string, unknown>;
+    }
+  | {
+      cmd: "mailbox";
+      action: "forwardToIm";
+      itemId: string;
+      channel: IntegrationChannel;
+      externalChatId: string;
     };
 
 export type EconomyCommand =
@@ -233,11 +235,6 @@ export type EconomyCommand =
       sku: InventoryItem["sku"];
       quantity?: number;
       metadata?: Record<string, unknown>;
-    }
-  | {
-      cmd: "economy";
-      action: "equipItem" | "unequipItem";
-      itemId: InventoryItem["id"];
     };
 
 export interface SettingsCommand {
@@ -821,13 +818,6 @@ function parseSchedulerCommand(
             command: { cmd: "scheduler", action: o.action, taskId: o.taskId },
           }
         : fail("Invalid scheduler command", sessionIdOf(o));
-    case "cancelRun":
-      return typeof o.runId === "string"
-        ? {
-            ok: true,
-            command: { cmd: "scheduler", action: o.action, runId: o.runId },
-          }
-        : fail("Invalid scheduler command", sessionIdOf(o));
     default:
       return fail("Unknown scheduler action", sessionIdOf(o));
   }
@@ -857,6 +847,22 @@ function parseMailboxCommand(
               itemId: o.itemId,
               actionId: o.actionId,
               ...(o.metadata !== undefined ? { metadata: o.metadata } : {}),
+            },
+          }
+        : fail("Invalid mailbox command", sessionIdOf(o));
+    case "forwardToIm":
+      return typeof o.itemId === "string" &&
+        isIntegrationChannel(o.channel) &&
+        typeof o.externalChatId === "string" &&
+        o.externalChatId.trim().length > 0
+        ? {
+            ok: true,
+            command: {
+              cmd: "mailbox",
+              action: "forwardToIm",
+              itemId: o.itemId,
+              channel: o.channel,
+              externalChatId: o.externalChatId,
             },
           }
         : fail("Invalid mailbox command", sessionIdOf(o));
@@ -893,14 +899,6 @@ function parseEconomyCommand(
               ...(o.quantity !== undefined ? { quantity: o.quantity } : {}),
               ...(o.metadata !== undefined ? { metadata: o.metadata } : {}),
             },
-          }
-        : fail("Invalid economy command", sessionIdOf(o));
-    case "equipItem":
-    case "unequipItem":
-      return typeof o.itemId === "string"
-        ? {
-            ok: true,
-            command: { cmd: "economy", action: o.action, itemId: o.itemId },
           }
         : fail("Invalid economy command", sessionIdOf(o));
     default:

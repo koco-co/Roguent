@@ -13,6 +13,7 @@ import type { ControlMessage } from "../shared/local-sessions";
 import type { SchedulerTask } from "../shared/scheduler";
 import type { SessionManager } from "./session";
 import {
+  type GatewayForwardService,
   type GatewayMailboxService,
   type GatewayPairingService,
   type GatewayPluginsService,
@@ -311,7 +312,7 @@ test("WsGateway purchaseItem replies with error when gacha service is unavailabl
   });
 });
 
-test("WsGateway keeps equipItem/unequipItem economy actions explicit (not implemented)", async () => {
+test("WsGateway rejects removed/unknown economy actions (equipItem is dead)", async () => {
   const sent: string[] = [];
   const ws = {
     OPEN: 1,
@@ -324,6 +325,8 @@ test("WsGateway keeps equipItem/unequipItem economy actions explicit (not implem
   } as unknown as SessionManager;
   const gateway = createTestGateway(mgr);
   try {
+    // equipItem/unequipItem were removed (no UI sender, no gateway handler):
+    // the command no longer parses, so it must be rejected, not silently dropped.
     invokeOnCommand(
       gateway,
       JSON.stringify({
@@ -757,6 +760,127 @@ test("WsGateway handles mailbox commands through MailboxService and publishes up
       payload: { item },
     },
   ]);
+});
+
+test("WsGateway routes mailbox forwardToIm to the forward service with the resolved item body", async () => {
+  const sent: string[] = [];
+  const forwardCalls: unknown[] = [];
+  const item: MailboxItem = {
+    id: "mail-1",
+    source: "wechat",
+    title: "Build green",
+    summary: "main is green again",
+    ts: 100,
+    status: "unread",
+    sessionId: "s1",
+  };
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const mailbox: GatewayMailboxService = {
+    get: (itemId) => (itemId === "mail-1" ? item : null),
+    markRead: () => item,
+    archive: () => item,
+    resend: () => ({ item, targetSessionId: "s1", text: "x" }),
+  };
+  const forward: GatewayForwardService = {
+    forward(channel, externalChatId, text) {
+      forwardCalls.push({ channel, externalChatId, text });
+    },
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    publishIntegrationEvent: () => {},
+  } as unknown as SessionManager;
+  const gateway = createTestGateway(mgr, { mailbox, forward });
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "mailbox",
+        action: "forwardToIm",
+        itemId: "mail-1",
+        channel: "wechat",
+        externalChatId: "chat-1",
+      }),
+      ws,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  expect(forwardCalls).toHaveLength(1);
+  const call = forwardCalls[0] as {
+    channel: string;
+    externalChatId: string;
+    text: string;
+  };
+  expect(call.channel).toBe("wechat");
+  expect(call.externalChatId).toBe("chat-1");
+  // The relayed body carries the item title + summary (not a client-supplied string).
+  expect(call.text).toContain("Build green");
+  expect(call.text).toContain("main is green again");
+  // No command error should have been sent back.
+  expect(
+    sent
+      .map((raw) => JSON.parse(raw) as { type?: string })
+      .some((m) => m.type === "commandError"),
+  ).toBe(false);
+});
+
+test("WsGateway replies with error when mailbox forwardToIm has no forward service", async () => {
+  const sent: string[] = [];
+  const item: MailboxItem = {
+    id: "mail-1",
+    source: "wechat",
+    title: "t",
+    summary: "s",
+    ts: 100,
+    status: "unread",
+  };
+  const ws = {
+    OPEN: 1,
+    readyState: 1,
+    send: (msg: string) => sent.push(msg),
+  };
+  const mailbox: GatewayMailboxService = {
+    get: () => item,
+    markRead: () => item,
+    archive: () => item,
+    resend: () => ({ item, targetSessionId: "s1", text: "x" }),
+  };
+  const mgr = {
+    sessionIds: () => [],
+    subscribe: () => () => {},
+    publishIntegrationEvent: () => {},
+  } as unknown as SessionManager;
+  // No forward service wired → must reply with an error, not silently drop.
+  const gateway = createTestGateway(mgr, { mailbox });
+  try {
+    invokeOnCommand(
+      gateway,
+      JSON.stringify({
+        cmd: "mailbox",
+        action: "forwardToIm",
+        itemId: "mail-1",
+        channel: "wechat",
+        externalChatId: "chat-1",
+      }),
+      ws,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } finally {
+    await closeGateway(gateway);
+  }
+
+  const errors = sent
+    .map((raw) => JSON.parse(raw) as { type?: string; reason?: string })
+    .filter((m) => m.type === "commandError");
+  expect(errors).toHaveLength(1);
 });
 
 test("WsGateway hydrates mailbox items and replays connector statuses on connection", async () => {

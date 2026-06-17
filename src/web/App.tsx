@@ -1,6 +1,7 @@
 import type React from "react";
 import { useEffect, useRef } from "react";
 import { InteriorEasterLayer } from "./easter/InteriorEasterLayer";
+import { KonamiEffect } from "./easter/KonamiEffect";
 import { KonamiListener } from "./easter/KonamiListener";
 import { resolveEngineUrl } from "./engine-url";
 import { Hud } from "./hud/Hud";
@@ -131,6 +132,7 @@ export function App() {
       {/* Always-mounted global listeners and overlays (outside live layer so they
           survive LoginGate's inert attribute). */}
       <KonamiListener />
+      <KonamiEffect />
       <AnnouncementPopup />
       <div
         id="stage"

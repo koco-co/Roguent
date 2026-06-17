@@ -29,8 +29,8 @@ export const DICT: Record<string, string> = {
   未读: "unread",
   "+ 添加 X 博主 / GitHub 仓库": "+ Add X author / GitHub repo",
   "转发到配对 IM": "Forward to IM",
-  "转发不可用 · 暂无单条转发命令":
-    "Forwarding unavailable · no per-message relay command",
+  "转发本条到配对 IM 聊天": "Forward this item to the paired IM chat",
+  "已配对 · 点击转发本条到外部聊天": "Paired · click to forward this item",
   "未配对 · 在 PAIRING 扫码绑定后开启转发":
     "Not paired · bind in PAIRING to enable forwarding",
   "查看 diff": "View diff",
@@ -235,6 +235,7 @@ export const DICT: Record<string, string> = {
   宝箱: "chest",
   许愿: "make a wish",
   福气: "luck",
+  彩蛋: "easter egg",
   "查看个人详情 · 5h / Weekly 用量": "View profile · 5h / Weekly usage",
   "查看 5h / Weekly 用量": "View 5h / Weekly usage",
   // ── 真实 app 独有文案(设计字典未收录,后续 sweep 任务依赖) ──
@@ -445,6 +446,9 @@ export const DICT: Record<string, string> = {
   "资源/连接失败时显示可见错误层,绝不静默黑屏。":
     "A visible error layer shows on resource/connection failure — never a silent black screen.",
   重试连接: "Retry connection",
+  // HubCanvas atlas-load error overlay (D-a)
+  大厅贴图加载失败: "Lobby atlas failed to load",
+  重试: "Retry",
   // ── i18n sweep C-1 (previously-unswept components) ───────────
   // AmbientControls (Hud)
   辉光: "Glow",

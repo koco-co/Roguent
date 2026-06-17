@@ -134,6 +134,49 @@ test("assistant reply is sent back to paired IM chat", async () => {
   );
 });
 
+test("forwardToIm relays text to the channel connector and publishes an outbound delivery", async () => {
+  const harness = createHarness();
+
+  const result = await harness.manager.forwardToIm(
+    "wechat",
+    "chat-9",
+    "[wechat] Build green\n\nmain is green again",
+  );
+
+  expect(result.status).toBe("delivered");
+  expect(harness.connector.sent).toEqual([
+    {
+      target: { externalChatId: "chat-9" },
+      text: "[wechat] Build green\n\nmain is green again",
+    },
+  ]);
+  expect(harness.published).toContainEqual(
+    expect.objectContaining({
+      sessionId: "s1",
+      type: "integration.event.received",
+      payload: expect.objectContaining({
+        channel: "wechat",
+        direction: "outbound",
+        externalChatId: "chat-9",
+        bodyText: "[wechat] Build green\n\nmain is green again",
+        metadata: expect.objectContaining({
+          deliveryStatus: "delivered",
+          forwardSource: "mailbox",
+        }),
+      }),
+    }),
+  );
+});
+
+test("forwardToIm throws when no connector is configured for the channel", async () => {
+  const harness = createHarness();
+
+  await expect(
+    harness.manager.forwardToIm("feishu", "chat-9", "hello"),
+  ).rejects.toThrow(/No connector configured for feishu/);
+  expect(harness.connector.sent).toEqual([]);
+});
+
 test("assistant replies consume inbound IM targets in turn order", async () => {
   const harness = createHarness();
 

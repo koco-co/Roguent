@@ -4731,6 +4731,35 @@ img {
   z-index: 0;
   pointer-events: none;
 }
+/* 大厅 atlas 加载失败的可见错误层(对齐 Room.tsx 的 atlas 错误层):绿色保底地面之上叠
+   一层「失败原因 + 重试」。pointer-events:auto 让按钮可点,且 stopPropagation 不触发
+   背景点击寻路。z-index 压住装饰/小人,确保用户一定看得到。 */
+.hub-atlas-error {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: rgba(11, 10, 18, 0.82);
+  pointer-events: auto;
+}
+.hub-atlas-error-title {
+  font-family: var(--font-px, monospace);
+  font-size: 14px;
+  color: #ff8197;
+}
+.hub-atlas-error-reason {
+  max-width: 360px;
+  color: #aaa;
+  font-family: monospace;
+  font-size: 11px;
+  word-break: break-all;
+  text-align: center;
+}
 .hub-bigglow {
   position: absolute;
   left: 50%;
@@ -6146,6 +6175,50 @@ img {
 .interior-easter .wish-spot,
 .interior-easter .petactor {
   pointer-events: auto;
+}
+
+/* Konami code reward — brief full-screen rainbow flash (one-shot, cosmetic).
+   Sits above the scrim/portal so it reads as a celebratory wash; click-through.
+   no-motion / prefers-reduced-motion 守卫:沿用本仓 .no-motion 与全局 reduce 媒体查询。 */
+.konami-rainbow {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 77, 109, 0.34),
+    rgba(242, 200, 75, 0.34),
+    rgba(95, 211, 95, 0.34),
+    rgba(54, 197, 224, 0.34),
+    rgba(160, 108, 213, 0.34),
+    rgba(255, 77, 109, 0.34)
+  );
+  background-size: 300% 300%;
+  animation: konami-rainbow-flash 1.6s ease-out forwards, konami-rainbow-pan
+    1.6s linear;
+}
+@keyframes konami-rainbow-flash {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes konami-rainbow-pan {
+  to {
+    background-position: 100% 100%;
+  }
+}
+/* Reduce-motion: no animation — show a single soft static wash that fades via JS unmount. */
+.no-motion .konami-rainbow {
+  animation: none;
+  opacity: 0.5;
 }
 /* 内景撸猫固定右下角(避开左侧 HUD 栈与底部 hotbar)。 */
 .interior-pet {
