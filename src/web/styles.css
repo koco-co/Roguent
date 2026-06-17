@@ -4731,6 +4731,35 @@ img {
   z-index: 0;
   pointer-events: none;
 }
+/* 大厅 atlas 加载失败的可见错误层(对齐 Room.tsx 的 atlas 错误层):绿色保底地面之上叠
+   一层「失败原因 + 重试」。pointer-events:auto 让按钮可点,且 stopPropagation 不触发
+   背景点击寻路。z-index 压住装饰/小人,确保用户一定看得到。 */
+.hub-atlas-error {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: rgba(11, 10, 18, 0.82);
+  pointer-events: auto;
+}
+.hub-atlas-error-title {
+  font-family: var(--font-px, monospace);
+  font-size: 14px;
+  color: #ff8197;
+}
+.hub-atlas-error-reason {
+  max-width: 360px;
+  color: #aaa;
+  font-family: monospace;
+  font-size: 11px;
+  word-break: break-all;
+  text-align: center;
+}
 .hub-bigglow {
   position: absolute;
   left: 50%;

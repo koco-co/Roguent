@@ -445,6 +445,9 @@ export const DICT: Record<string, string> = {
   "资源/连接失败时显示可见错误层,绝不静默黑屏。":
     "A visible error layer shows on resource/connection failure — never a silent black screen.",
   重试连接: "Retry connection",
+  // HubCanvas atlas-load error overlay (D-a)
+  大厅贴图加载失败: "Lobby atlas failed to load",
+  重试: "Retry",
   // ── i18n sweep C-1 (previously-unswept components) ───────────
   // AmbientControls (Hud)
   辉光: "Glow",
