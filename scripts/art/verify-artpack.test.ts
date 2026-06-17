@@ -517,12 +517,7 @@ describe("verify-artpack", () => {
   });
 
   it("generated artpacks report GPT-image runtime frame coverage", async () => {
-    for (const pack of [
-      "neon-terminal",
-      "holo-blueprint",
-      "deep-space",
-      "synthwave",
-    ]) {
+    for (const pack of ["neon-terminal", "synthwave"]) {
       const report = JSON.parse(
         await readFile(
           `public/assets/artpacks/${pack}/atlas/gpt-image-overrides.json`,
@@ -558,12 +553,7 @@ describe("verify-artpack", () => {
   });
 
   it("generated character frames crop to the main source-sheet body for readability", async () => {
-    for (const pack of [
-      "neon-terminal",
-      "holo-blueprint",
-      "deep-space",
-      "synthwave",
-    ]) {
+    for (const pack of ["neon-terminal", "synthwave"]) {
       const report = JSON.parse(
         await readFile(
           `public/assets/artpacks/${pack}/atlas/gpt-image-overrides.json`,
@@ -585,12 +575,7 @@ describe("verify-artpack", () => {
   });
 
   it("generated runtime atlases keep hard-edged pixel-art pixels", async () => {
-    for (const pack of [
-      "neon-terminal",
-      "holo-blueprint",
-      "deep-space",
-      "synthwave",
-    ]) {
+    for (const pack of ["neon-terminal", "synthwave"]) {
       const stats = parsePngRgbaStats(
         Buffer.from(
           await readFile(`public/assets/artpacks/${pack}/atlas/dungeon.png`),
@@ -603,12 +588,7 @@ describe("verify-artpack", () => {
   });
 
   it("generated environment tiles avoid high-frequency visual noise", async () => {
-    for (const pack of [
-      "neon-terminal",
-      "holo-blueprint",
-      "deep-space",
-      "synthwave",
-    ]) {
+    for (const pack of ["neon-terminal", "synthwave"]) {
       const image = parsePngRgba(
         Buffer.from(
           await readFile(`public/assets/artpacks/${pack}/atlas/dungeon.png`),
@@ -629,8 +609,7 @@ describe("verify-artpack", () => {
 
       // HD bake re-baseline: de-blurring (drop block_pixel_art + heavy mix)
       // intentionally restores edge energy, so the noise score rises. Observed
-      // after HD re-bake: synthwave 59.35 (max), neon-terminal 39.54, with the
-      // legacy 16px packs (holo/deep-space, to be deleted) at ~11.5. Threshold
+      // after HD re-bake: synthwave 59.35 (max), neon-terminal 39.54. Threshold
       // bumped from 45 to ceil(59.35 * 1.1) = 66 to gate genuine noise, not the
       // intended deblur. This is a ceiling on per-frame mean neighbor delta.
       expect(

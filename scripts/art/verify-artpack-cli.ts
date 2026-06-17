@@ -4,7 +4,7 @@
 // 任一包有问题即非零退出。重新生成 / 重切 atlas 后跑 `bun run verify:artpack`。
 //
 // 默认扫描 public/assets/artpacks/*;可传包目录显式指定,如:
-//   bun run verify:artpack public/assets/artpacks/deep-space
+//   bun run verify:artpack public/assets/artpacks/synthwave
 
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";

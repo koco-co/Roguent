@@ -47,10 +47,10 @@ test("resolveCurrentArtPackAtlasUrls reads persisted artpack selection", () => {
     packId: "neon-terminal",
   });
 
-  localStorage.setItem(ARTPACK_KEY, "deep-space");
+  localStorage.setItem(ARTPACK_KEY, "synthwave");
   expect(resolveCurrentArtPackAtlasUrls()).toEqual({
-    json: "/assets/artpacks/deep-space/atlas/dungeon.json",
-    image: "/assets/artpacks/deep-space/atlas/dungeon.png",
-    packId: "deep-space",
+    json: "/assets/artpacks/synthwave/atlas/dungeon.json",
+    image: "/assets/artpacks/synthwave/atlas/dungeon.png",
+    packId: "synthwave",
   });
 });
