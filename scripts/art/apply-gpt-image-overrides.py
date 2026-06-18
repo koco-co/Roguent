@@ -578,6 +578,7 @@ def source_row_overrides(
     row: int,
     frames: list[str],
     source_cols_for_frames: list[int],
+    cleanup: str = "dark-grid",
 ) -> tuple[Override, ...]:
     return tuple(
         {
@@ -586,7 +587,7 @@ def source_row_overrides(
             "sourceCell": row * source_cols + source_col,
             "sourceCols": source_cols,
             "sourceRows": source_rows,
-            "cleanup": "dark-grid",
+            "cleanup": cleanup,
             "frame": frame,
         }
         for frame, source_col in zip(frames, source_cols_for_frames)
@@ -617,7 +618,9 @@ def enemy_16x16_anim_row(prefix: str, row: int) -> tuple[Override, ...]:
     )
 
 
-def enemy_16x23_row(prefix: str, row: int) -> tuple[Override, ...]:
+def enemy_16x23_row(
+    prefix: str, row: int, cleanup: str = "dark-grid"
+) -> tuple[Override, ...]:
     return source_row_overrides(
         category="enemies",
         source_sheet="enemies/enemies-16x23.png",
@@ -626,10 +629,13 @@ def enemy_16x23_row(prefix: str, row: int) -> tuple[Override, ...]:
         row=row,
         frames=idle_run_frame_names(prefix),
         source_cols_for_frames=[0, 1, 2, 3, 4, 5, 6, 6],
+        cleanup=cleanup,
     )
 
 
-def enemy_16x23_anim_row(prefix: str, row: int) -> tuple[Override, ...]:
+def enemy_16x23_anim_row(
+    prefix: str, row: int, cleanup: str = "dark-grid"
+) -> tuple[Override, ...]:
     return source_row_overrides(
         category="enemies",
         source_sheet="enemies/enemies-16x23.png",
@@ -638,6 +644,7 @@ def enemy_16x23_anim_row(prefix: str, row: int) -> tuple[Override, ...]:
         row=row,
         frames=[f"{prefix}_anim_f{i}" for i in range(4)],
         source_cols_for_frames=list(range(4)),
+        cleanup=cleanup,
     )
 
 
@@ -659,10 +666,13 @@ ENEMY_OVERRIDES: tuple[Override, ...] = (
     *enemy_16x16_anim_row("ice_zombie", 2),
     *enemy_16x16_anim_row("muddy", 3),
     *enemy_16x23_row("chort", 0),
-    *enemy_16x23_row("masked_orc", 1),
-    *enemy_16x23_row("orc_shaman", 2),
-    *enemy_16x23_row("orc_warrior", 3),
-    *enemy_16x23_anim_row("necromancer", 4),
+    # rows 1-4 sit mid-sheet where the uniform 7x8 grid catches scattered glow
+    # particles + bleed from adjacent sprites; keep only the largest alpha blob
+    # so the HD bake renders one coherent creature instead of fragments.
+    *enemy_16x23_row("masked_orc", 1, cleanup="dark-grid+largest-alpha"),
+    *enemy_16x23_row("orc_shaman", 2, cleanup="dark-grid+largest-alpha"),
+    *enemy_16x23_row("orc_warrior", 3, cleanup="dark-grid+largest-alpha"),
+    *enemy_16x23_anim_row("necromancer", 4, cleanup="dark-grid+largest-alpha"),
     *enemy_16x23_anim_row("swampy", 5),
     *source_row_overrides(
         category="enemies",
@@ -677,7 +687,7 @@ ENEMY_OVERRIDES: tuple[Override, ...] = (
 )
 
 EXTRA_ENEMY_OVERRIDES: tuple[Override, ...] = (
-    *enemy_16x23_row("pumpkin_dude", 1),
+    *enemy_16x23_row("pumpkin_dude", 1, cleanup="dark-grid+largest-alpha"),
     *enemy_16x16_anim_row("slug", 3),
     *enemy_16x16_anim_row("tiny_slug", 3),
     *source_row_overrides(
