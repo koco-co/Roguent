@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "packId": "neon-terminal",
-  "generatedAt": "2026-06-17T13:54:58+00:00",
+  "generatedAt": "2026-06-18T07:53:21+00:00",
   "method": "source-sheet-cell-fit",
   "sourceSheets": [
     "characters/npcs.png",
@@ -1965,7 +1965,7 @@
       "sourceCell": 7,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "masked_orc_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1979,7 +1979,7 @@
       "sourceCell": 8,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "masked_orc_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -1993,7 +1993,7 @@
       "sourceCell": 9,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "masked_orc_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2007,7 +2007,7 @@
       "sourceCell": 10,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "masked_orc_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2021,7 +2021,7 @@
       "sourceCell": 11,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "masked_orc_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2035,7 +2035,7 @@
       "sourceCell": 12,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "masked_orc_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2049,7 +2049,7 @@
       "sourceCell": 13,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "masked_orc_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2063,7 +2063,7 @@
       "sourceCell": 13,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "masked_orc_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2077,7 +2077,7 @@
       "sourceCell": 14,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_shaman_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2091,7 +2091,7 @@
       "sourceCell": 15,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_shaman_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2105,7 +2105,7 @@
       "sourceCell": 16,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_shaman_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2119,7 +2119,7 @@
       "sourceCell": 17,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_shaman_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2133,7 +2133,7 @@
       "sourceCell": 18,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_shaman_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2147,7 +2147,7 @@
       "sourceCell": 19,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_shaman_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2161,7 +2161,7 @@
       "sourceCell": 20,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_shaman_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2175,7 +2175,7 @@
       "sourceCell": 20,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_shaman_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2189,7 +2189,7 @@
       "sourceCell": 21,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_warrior_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2203,7 +2203,7 @@
       "sourceCell": 22,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_warrior_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2217,7 +2217,7 @@
       "sourceCell": 23,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_warrior_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2231,7 +2231,7 @@
       "sourceCell": 24,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_warrior_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2245,7 +2245,7 @@
       "sourceCell": 25,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_warrior_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2259,7 +2259,7 @@
       "sourceCell": 26,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_warrior_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2273,7 +2273,7 @@
       "sourceCell": 27,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_warrior_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2287,7 +2287,7 @@
       "sourceCell": 27,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "orc_warrior_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2301,7 +2301,7 @@
       "sourceCell": 28,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "necromancer_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2315,7 +2315,7 @@
       "sourceCell": 29,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "necromancer_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2329,7 +2329,7 @@
       "sourceCell": 30,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "necromancer_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2343,7 +2343,7 @@
       "sourceCell": 31,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "necromancer_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2581,7 +2581,7 @@
       "sourceCell": 7,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "pumpkin_dude_idle_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2595,7 +2595,7 @@
       "sourceCell": 8,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "pumpkin_dude_idle_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2609,7 +2609,7 @@
       "sourceCell": 9,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "pumpkin_dude_idle_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2623,7 +2623,7 @@
       "sourceCell": 10,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "pumpkin_dude_idle_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2637,7 +2637,7 @@
       "sourceCell": 11,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "pumpkin_dude_run_anim_f0",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2651,7 +2651,7 @@
       "sourceCell": 12,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "pumpkin_dude_run_anim_f1",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2665,7 +2665,7 @@
       "sourceCell": 13,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "pumpkin_dude_run_anim_f2",
       "method": "source-sheet-cell-fit",
       "targetSize": {
@@ -2679,7 +2679,7 @@
       "sourceCell": 13,
       "sourceCols": 7,
       "sourceRows": 8,
-      "cleanup": "dark-grid",
+      "cleanup": "dark-grid+largest-alpha",
       "frame": "pumpkin_dude_run_anim_f3",
       "method": "source-sheet-cell-fit",
       "targetSize": {
