@@ -144,12 +144,13 @@ function Scene({
     setActors((prev) => prev.filter((a) => a.id !== id));
   }, []);
 
-  // Integer scale so pixels stay crisp; centre the room in the HUD-safe art rect.
+  // Scale the room to fill the HUD-safe art rect, then centre it. HD frames
+  // (TILE=40) grew VW/VH 2.5×, so the old integer scale-to-fit floored to 1 and
+  // left the room at ~half size (960×560 in a 1216×746 rect). A fractional fit
+  // restores the room to fill ROOM_STAGE; the #stage already applies a fractional
+  // screen scale on top, and the dark floor backing hides any sub-pixel seams.
   const roomStage = scaleRectToCanvas(ROOM_STAGE, canvasW, canvasH);
-  const scale = Math.max(
-    1,
-    Math.floor(Math.min(roomStage.w / VW, roomStage.h / VH)),
-  );
+  const scale = Math.min(roomStage.w / VW, roomStage.h / VH);
   const offX = roomStage.x + Math.floor((roomStage.w - VW * scale) / 2);
   const offY = roomStage.y + Math.floor((roomStage.h - VH * scale) / 2);
 
