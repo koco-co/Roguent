@@ -19,7 +19,6 @@ import type { Agent } from "../../shared/domain";
 import { ORCHESTRATOR_HERO, roleToHero } from "../../shared/mapping";
 import { ARTPACK_CHANGE_EVENT } from "../hud/artpack";
 import { useSettingsStore } from "../settings-store";
-import { STAGE_H, STAGE_W } from "../stage-scale";
 import { useRoomStore } from "../store";
 import { useUiStore } from "../ui-store";
 import { Character } from "./Character";
@@ -28,7 +27,7 @@ import { GlowLayer, Vignette } from "./Lights";
 import { Particles } from "./Particles";
 import { AtlasProvider, atlasErrorText, loadAtlas, resetAtlas } from "./atlas";
 import { DOOR_COL, TILE, VH, VW } from "./config";
-import { type Pos, ROOM_STAGE, type Rect, roomLayout } from "./layout";
+import { type Pos, roomLayout } from "./layout";
 import type { MotionMap } from "./motion";
 
 // Register PixiJS classes → <pixiContainer>, <pixiSprite>, etc. (module scope).
@@ -44,17 +43,6 @@ interface Actor {
   home: Pos;
   bornAtDoor: boolean;
   leaving: boolean;
-}
-
-function scaleRectToCanvas(rect: Rect, canvasW: number, canvasH: number): Rect {
-  const sx = canvasW / STAGE_W;
-  const sy = canvasH / STAGE_H;
-  return {
-    x: Math.round(rect.x * sx),
-    y: Math.round(rect.y * sy),
-    w: Math.round(rect.w * sx),
-    h: Math.round(rect.h * sy),
-  };
 }
 
 function Scene({
@@ -144,15 +132,15 @@ function Scene({
     setActors((prev) => prev.filter((a) => a.id !== id));
   }, []);
 
-  // Scale the room to fill the HUD-safe art rect, then centre it. HD frames
-  // (TILE=40) grew VW/VH 2.5×, so the old integer scale-to-fit floored to 1 and
-  // left the room at ~half size (960×560 in a 1216×746 rect). A fractional fit
-  // restores the room to fill ROOM_STAGE; the #stage already applies a fractional
-  // screen scale on top, and the dark floor backing hides any sub-pixel seams.
-  const roomStage = scaleRectToCanvas(ROOM_STAGE, canvasW, canvasH);
-  const scale = Math.min(roomStage.w / VW, roomStage.h / VH);
-  const offX = roomStage.x + Math.floor((roomStage.w - VW * scale) / 2);
-  const offY = roomStage.y + Math.floor((roomStage.h - VH * scale) / 2);
+  // Fill the entire stage like the lobby — HUD panels (roster, tasks, minimap,
+  // hotbar, the session BrowserScreen) are separate overlays that sit above this
+  // container, so the room is free to cover all four edges instead of being
+  // boxed into a centred ROOM_STAGE rect. The room grid is ~1.71:1 and the stage
+  // is 16:9, so a cover fit (max) reaches every edge; the tiny ~20px vertical
+  // overflow only trims the outer wall cap. Centre the (slightly cropped) room.
+  const scale = Math.max(canvasW / VW, canvasH / VH);
+  const offX = Math.floor((canvasW - VW * scale) / 2);
+  const offY = Math.floor((canvasH - VH * scale) / 2);
 
   return (
     <pixiContainer>
